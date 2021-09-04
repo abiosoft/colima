@@ -1,16 +1,45 @@
 #!/usr/bin/env bash
 
 export LIMA_INSTANCE=limakube
-export CONF_DIR=$HOME/.limakube
-export LIMA_DIR=$HOME/.lima/$LIMA_INSTANCE
-export LIMA_HOME_DIR=/home/${USER}.linux
+export CONF_DIR="$HOME/.limakube"
+export LIMA_DIR="$HOME/.lima/$LIMA_INSTANCE"
+export LIMA_HOME_DIR=/home/${USER}.linux # avoid using LIMA_HOME to not override Lima's behaviour.
+export LAUNCHD_NAME=com.abiosoft.limakube.plist
+export LAUNCHD_FILE="$HOME/Library/LaunchAgents/$LAUNCHD_NAME"
+export SSH_PORT=68822
 
-mkdir -p $CONF_DIR
+# init
+mkdir -p "$CONF_DIR"
 
+# make room for m1 macs
 export ARCH=amd64
 [ "$(uname -m)" = "arm64" ] && export ARCH=arm64
 
-export SSH_PORT=68822
+print_usage() (
+    cat <<EOF
+usage: lima <command>
+
+commands:
+  start [ --kubernetes ]
+    Start (and/or provision) limakube vm with docker.
+    To provision with kubernetes, specify --kubernetes.
+
+  stop
+    Stop the limakube vm.
+
+  delete
+    Delete and teardown limakube vm and settings.
+
+  -h, --help
+  show this help
+
+EOF
+    if [ -z "$1" ]; then exit 0; else exit 1; fi
+)
+
+log() (
+    echo >&2 $@
+)
 
 config_file() (
     cat >limakube.yaml <<EOF
@@ -43,10 +72,10 @@ EOF
 )
 
 launchd_file() (
-    FILE=$HOME/Library/LaunchAgents/com.abiosoft.limakube
+    FILE="$LAUNCHD_FILE"
     [ -f "$FILE" ] && exit 0
 
-    cat >$FILE <<EOF
+    cat >"$FILE" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -67,15 +96,15 @@ EOF
 )
 
 socket_file() (
-    FILE=$CONF_DIR/socket.sh
+    FILE="$CONF_DIR"/socket.sh
     [ -f "$FILE" ] && exit 0
 
-    cat >$FILE <<EOF
+    cat >"$FILE" <<EOF
 #!/usr/bin/env bash
-rm -rf $CONF_DIR/docker.sock
-ssh -p $SSH_PORT -i ~/.lima/_config/user -o NoHostAuthenticationForLocalhost=yes -L $CONF_DIR/docker.sock:/var/run/docker.sock -N 127.0.0.1
+rm -rf "$CONF_DIR/docker.sock"
+ssh -p $SSH_PORT -i ~/.lima/_config/user -o NoHostAuthenticationForLocalhost=yes -L "$CONF_DIR/docker.sock":/var/run/docker.sock -N 127.0.0.1
 EOF
-    chmod +x $FILE
+    chmod +x "$FILE"
 )
 
 check_deps() (
@@ -108,7 +137,13 @@ provision_docker() (
     lima sudo apt -y install docker.io
     lima sudo usermod -aG docker $USER
     sudo rm -rf /var/run/docker.sock
-    sudo ln -s $CONF_DIR/docker.sock /var/run/docker.sock
+    sudo ln -s "$CONF_DIR/docker.sock" /var/run/docker.sock
+
+    # reset vm for user docker group to reflect
+    limactl stop
+    limactl start
+    launchctl load "$LAUNCHD_FILE"
+    launchctl start "$LAUNCHD_NAME"
 )
 
 kube() (
@@ -118,12 +153,12 @@ kube() (
 provision_minikube() (
     set -eux
     # minikube
-    lima curl -L -o /tmp/minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-$ARCH
+    lima curl -L -o /tmp/minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-${ARCH}
     lima sudo install /tmp/minikube /usr/local/bin/minikube
     kube start --driver=none
 
     # kubectl
-    lima curl -L -o /tmp/kubectl https://dl.k8s.io/release/v1.22.0/bin/linux/$ARCH/kubectl
+    lima curl -L -o /tmp/kubectl https://dl.k8s.io/release/v1.22.0/bin/linux/${ARCH}/kubectl
     lima sudo install /tmp/kubectl /usr/local/bin/kubectl
 )
 
@@ -134,33 +169,33 @@ provision_kubeconfig() (
     check_deps_k8s
 
     # kube config
-    HOST_DIR=$HOME/.kube
-    LIMA_DIR=$LIMA_HOME_DIR/.kube
-    mkdir -p $HOST_DIR
+    HOST_DIR="$HOME/.kube"
+    LIMA_DIR="$LIMA_HOME_DIR/.kube"
+    mkdir -p "$HOST_DIR"
 
     # flatten in lima for portability
-    lima kubectl config view --flatten >$LIMA_DIR/flatconfig
+    lima kubectl config view --flatten >"$LIMA_DIR/flatconfig"
 
-    # replace unreacheable ip to locahost
-    lima sed -i 's/192.168.5.15:8443/127.0.0.1:8443/' $LIMA_DIR/flatconfig
+    # replace unreacheable ip with locahost
+    lima sed -i 's/192.168.5.15:8443/127.0.0.1:8443/' "$LIMA_DIR/flatconfig"
 
     # copy to host
-    limactl cp limakube:$LIMA_DIR/flatconfig $HOST_DIR/lima-flatconfig
+    limactl cp limakube:"$LIMA_DIR/flatconfig" "$HOST_DIR/lima-config"
 
     # flatten/merge on host
-    KUBECONFIG=$HOST_DIR/config:$HOST_DIR/lima-config kubectl config view --raw >$HOST_DIR/lima-config
+    KUBECONFIG="$HOST_DIR/config":"$HOST_DIR/lima-config" kubectl config view --raw >"$HOST_DIR/lima-config"
 
     # backup previous config
-    [ -f "$HOME/.kube/config" ] && cp $HOME/.kube/config $HOME/.kube/config-"$(date +%s)".bak
+    [ -f "$HOME/.kube/config" ] && cp "$HOME/.kube/config" "$HOME"/.kube/config-"$(date +%s)".bak
 
     # set combined config as new config
-    cp $HOST_DIR/lima-config $HOST_DIR/config
+    cp "$HOST_DIR/lima-config" "$HOST_DIR/config"
 
-    # hack to indicate provision has been previously done
-    touch $HOME/.kube/.limakube
+    # hack to indicate provision has been done
+    touch "$HOME/.kube/.limakube"
 
     # clean up dirt
-    rm $HOST_DIR/lima-config
+    rm "$HOST_DIR/lima-config"
 )
 
 provision_vm() (
@@ -182,12 +217,15 @@ stop_minikube() (
 
 reset_minikube() (
     set -eux
+    kube status || exit 0
     kube delete
     kube start --driver=none
 )
 
 teardown() (
     set -eux
+
+    # delete vm
     stop_vm
     limactl delete $LIMA_INSTANCE
     rm -rf $HOME/.kube/.limakube
@@ -196,9 +234,7 @@ teardown() (
     kubectl config unset users.limakube
     kubectl config unset contexts.limakube
     kubectl config unset clusters.limakube
+
+    # remove socket service
+    launchctl unload $LAUNCHD_FILE
 )
-
-limactl stop
-limactl start
-
-# simplify config
