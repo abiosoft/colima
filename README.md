@@ -1,2 +1,3 @@
 # limakube
-Docker + Kubernetes on MacOS with Lima and Minikube
+
+Docker + Kubernetes on macOS with Lima and Minikube
