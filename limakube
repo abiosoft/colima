@@ -8,6 +8,10 @@ export LAUNCHD_NAME=com.abiosoft.limakube.plist
 export LAUNCHD_FILE="$HOME/Library/LaunchAgents/$LAUNCHD_NAME"
 export SSH_PORT=41122
 export LOG_FILE="$CONF_DIR/out.log"
+export CPU="2"
+export MEMORY="4"
+export DISK="60"
+export CONF_CHANGED=""
 export ENABLE_KUBERNETES=""
 
 # init
@@ -25,9 +29,15 @@ print_usage() (
 usage: limakube <command>
 
 commands:
-  start [--with-kubernetes]
+  start [--with-kubernetes --cpu 2 --memory 4 --disk 60]
     Start (and/or provision) limakube VM with docker (and kubernetes
     if --with-kubernetes is passed).
+    Kubernetes requires at least 2 CPUs and 3GB memory.
+
+    --cpu is no of CPUs. default 2.
+    --memory is memory in GiB. default 4
+    --disk is disk size in GiB. default 60
+
     For verbose ouput, tail the log file "$LOG_FILE".
 
   stop
@@ -71,9 +81,9 @@ images:
     arch: "x86_64"
   - location: "https://cloud-images.ubuntu.com/hirsute/current/hirsute-server-cloudimg-arm64.img"
     arch: "aarch64"
-cpus: 2
-memory: "4GiB"
-disk: "60GiB"
+cpus: $CPU
+memory: "${MEMORY}GiB"
+disk: "${DISK}GiB"
 mounts:
   - location: "~"
     # CAUTION: writable SHOULD be false for the home directory.
@@ -385,18 +395,68 @@ teardown_vm() (
     log done
 )
 
+start_vm_args() {
+    CURRENT_FLAG=""
+    assert_number() (
+        re='^[0-9]+$'
+        if ! [[ $1 =~ $re ]]; then
+            log $1 is not a number at "'$CURRENT_FLAG $1'"
+            exit 1
+        fi
+    )
+    # parse args
+    while true; do
+        CURRENT_FLAG="$1"
+        case "$1" in
+        --with-kubernetes)
+            shift
+            export ENABLE_KUBERNETES=1
+            ;;
+        --cpu)
+            shift
+            assert_number "$1" || exit 1
+            export CPU="$1"
+            export CONF_CHANGED="1"
+            shift
+            ;;
+        --memory)
+            shift
+            assert_number "$1" || exit 1
+            export MEMORY="$1"
+            export CONF_CHANGED="1"
+            shift
+            ;;
+        --disk)
+            shift
+            assert_number "$1" || exit 1
+            export DISK="$1"
+            export CONF_CHANGED="1"
+            shift
+            ;;
+        *)
+            break
+            ;;
+        esac
+    done
+
+}
+
 start_vm() (
-    if [ "$1" = "--with-kubernetes" ]; then
-        export ENABLE_KUBERNETES=1
-    fi
+    start_vm_args "$@" || exit 1
 
     set -eu
     check_deps
 
     if [ -d "$LIMA_DIR" ]; then
         if run lima uname; then
-            log VM is already running
+            log VM is already running, config flags will be ignored "(if specified)".
         else
+            if [ -n "$CONF_CHANGED" ]; then
+                stage config changed, updating VM config
+                config_file
+                cp limakube.yaml "$LIMA_DIR/lima.yaml"
+                rm limakube.yaml
+            fi
             stage starting VM
             run limactl start $LIMA_INSTANCE
         fi
