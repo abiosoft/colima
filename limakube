@@ -186,7 +186,10 @@ status() (
     health run kubectl cluster-info
 
     if [ -n "$ERROR" ]; then
+        echo "some checks failed :("
         exit 1
+    else
+        echo "everything looks good :)"
     fi
 )
 
@@ -324,8 +327,8 @@ provision_minikube() (
     # first start takes time, it's better to inform the user
     stage starting kubernetes
     if [ -n "$FIRST_RUN" ]; then
-        log this is the first startup of kubernetes, it will take a while
-        log no worries, subsequent startups only take some seconds
+        log "NOTE: this is the first startup of kubernetes, it will take a while"
+        log "      but no worries, subsequent startups only take some seconds"
     fi
     start_minikube
 )
@@ -390,11 +393,11 @@ start_vm() (
     set -eu
     check_deps
 
-    stage starting VM
     if [ -d "$LIMA_DIR" ]; then
+        stage starting VM
         run limactl start $LIMA_INSTANCE
     else
-        log creating and starting VM
+        stage creating and starting VM
         config_file
         run limactl start --tty=false limakube.yaml
         rm limakube.yaml
