@@ -331,10 +331,11 @@ provision_minikube() (
 )
 
 teardown_minikube() (
-    run lima command -v minikube || exit 0
+    if run lima command -v minikube; then
+        stage deleting kubernetes cluster
+        kube delete
+    fi
 
-    stage deleting kubernetes cluster
-    kube delete
     teardown_kubeconfig
 )
 
@@ -362,17 +363,23 @@ stop_vm() (
 
 teardown_vm() (
     set -eu
-    assert_vm_running
 
+    stage deleting docker and kubernetes configs
     teardown_minikube
     teardown_docker
 
-    # delete vm
-    stop_vm
+    # stop and delete vm
+    stage deleting limakube VM
+    if run lima uname; then
+        stop_vm
+    fi
     run limactl delete $LIMA_INSTANCE
 
+    stage deleting other configs
     # delete leftover config
     rm -rf $CONF_DIR
+
+    log done
 )
 
 start_vm() (
