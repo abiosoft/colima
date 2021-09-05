@@ -394,8 +394,12 @@ start_vm() (
     check_deps
 
     if [ -d "$LIMA_DIR" ]; then
-        stage starting VM
-        run limactl start $LIMA_INSTANCE
+        if run lima uname; then
+            log VM is already running
+        else
+            stage starting VM
+            run limactl start $LIMA_INSTANCE
+        fi
     else
         stage creating and starting VM
         config_file
