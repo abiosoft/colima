@@ -194,7 +194,7 @@ provision_kubeconfig() (
     mkdir -p "$HOST_DIR"
 
     # flatten in lima for portability
-    lima sh -c "kubectl config view --flatten > \"$LIMA_DIR/flat-config\""
+    lima sh -c "minikube kubectl -- config view --flatten > \"$LIMA_DIR/flat-config\""
 
     # replace unreacheable ip with locahost
     lima sed -i 's/192.168.5.15:8443/127.0.0.1:8443/' "$LIMA_DIR/flat-config"
@@ -260,10 +260,6 @@ provision_minikube() (
     # minikube
     lima curl -L -o /tmp/minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-${ARCH}
     lima sudo install /tmp/minikube /usr/local/bin/minikube
-
-    # kubectl
-    lima curl -L -o /tmp/kubectl https://dl.k8s.io/release/v1.22.0/bin/linux/${ARCH}/kubectl
-    lima sudo install /tmp/kubectl /usr/local/bin/kubectl
 
     # start k8s
     start_minikube
