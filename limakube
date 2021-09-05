@@ -129,7 +129,7 @@ check_deps_k8s() (
 )
 
 kube() (
-    lima minikube --profile limakube "$@"
+    lima minikube "$@"
 )
 
 provision_docker() (
@@ -179,7 +179,7 @@ stop_docker() (
 provision_kubeconfig() (
     set +x
     # ignore if previously provisioned
-    if [ -d "$HOME/.kube/.limakube" ]; then exit 0; fi
+    if [ -f "$HOME/.kube/.limakube" ]; then exit 0; fi
 
     # ascertain deps for kubernetes
     check_deps_k8s
@@ -190,28 +190,36 @@ provision_kubeconfig() (
     mkdir -p "$HOST_DIR"
 
     # flatten in lima for portability
-    lima kubectl config view --flatten >"$LIMA_DIR/flatconfig"
+    lima sh -c "kubectl config view --flatten > \"$LIMA_DIR/flatconfig\""
 
     # replace unreacheable ip with locahost
     lima sed -i 's/192.168.5.15:8443/127.0.0.1:8443/' "$LIMA_DIR/flatconfig"
+    # rename to limakube
+    lima sed -i 's/minikube/limakube/g' "$LIMA_DIR/flatconfig"
+    # reverse unintended rename
+    lima sed -i 's/limakube.sigs.k8s.io/minikube.sigs.k8s.io/' "$LIMA_DIR/flatconfig"
 
     # copy to host
-    limactl cp limakube:"$LIMA_DIR/flatconfig" "$HOST_DIR/lima-config"
+    limactl cp limakube:"$LIMA_DIR/flatconfig" "$HOST_DIR/flatconfig"
 
     # flatten/merge on host
-    KUBECONFIG="$HOST_DIR/config":"$HOST_DIR/lima-config" kubectl config view --raw >"$HOST_DIR/lima-config"
+    KUBECONFIG="$HOST_DIR/config":"$HOST_DIR/flatconfig" kubectl config view --raw >"$HOST_DIR/lima-config"
 
     # backup previous config
-    [ -f "$HOME/.kube/config" ] && cp "$HOME/.kube/config" "$HOME"/.kube/config-"$(date +%s)".bak
+    [ -f "$HOST_DIR/config" ] && cp "$HOST_DIR/config" "$HOST_DIR"/config-"$(date +%s)".bak
 
     # set combined config as new config
     cp "$HOST_DIR/lima-config" "$HOST_DIR/config"
+
+    # set the new context
+    kubectl config use-context $LIMA_INSTANCE
 
     # provision flag to indicate provision has been done
     touch "$HOST_DIR/.limakube"
 
     # clean up dirt
     rm "$HOST_DIR/lima-config"
+    rm "$HOST_DIR/flatconfig"
 )
 
 teardown_kubeconfig() (
@@ -227,6 +235,9 @@ teardown_kubeconfig() (
 provision_minikube() (
     set +x
     if lima command -v minikube; then exit 0; fi
+
+    # deps
+    lima sudo apt -y install conntrack
 
     # minikube
     lima curl -L -o /tmp/minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-${ARCH}
@@ -248,8 +259,9 @@ teardown_minikube() (
 
 start_minikube() (
     set +x
-    kube status || exit 0
-    kube start --driver=none
+    if ! kube status; then
+        kube start --driver=none
+    fi
     provision_kubeconfig
 )
 
@@ -316,7 +328,7 @@ reset_minikube() (
     assert_vm_running
     kube status || (echo Kubernetes is not enabled. && exit 0)
     teardown_minikube
-    kube start --driver=none
+    start_minikube
 )
 
 case "$1" in
