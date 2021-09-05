@@ -32,11 +32,11 @@ commands:
   start [--with-kubernetes --cpu 2 --memory 4 --disk 60]
     Start (and/or provision) limakube VM with docker (and kubernetes
     if --with-kubernetes is passed).
-    Kubernetes requires at least 2 CPUs and 3GB memory.
+    Kubernetes requires at least 2 CPUs and 2.3GiB memory.
 
-    --cpu is no of CPUs. default 2.
-    --memory is memory in GiB. default 4
-    --disk is disk size in GiB. default 60
+    --cpu is number of CPUs. Defaults to 2.
+    --memory is memory in GiB. Defaults to 4.
+    --disk is disk size in GiB. Defaults to 60.
 
     For verbose ouput, tail the log file "$LOG_FILE".
 
@@ -56,7 +56,7 @@ commands:
     Reset the kubernetes cluster.
 
   -h, --help
-    Show this help
+    Show this help.
 EOF
     if [ -z "$1" ]; then exit 0; else exit 1; fi
 )
@@ -398,7 +398,7 @@ teardown_vm() (
 start_vm_args() {
     CURRENT_FLAG=""
     assert_number() (
-        re='^[0-9]+$'
+        re='^[0-9]+([.][0-9]+)?$'
         if ! [[ $1 =~ $re ]]; then
             log $1 is not a number at "'$CURRENT_FLAG $1'"
             exit 1
