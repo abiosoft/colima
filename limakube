@@ -6,7 +6,7 @@ export LIMA_DIR="$HOME/.lima/$LIMA_INSTANCE"
 export LIMA_HOME_DIR=/home/${USER}.linux # avoid using LIMA_HOME to not override Lima's behaviour.
 export LAUNCHD_NAME=com.abiosoft.limakube.plist
 export LAUNCHD_FILE="$HOME/Library/LaunchAgents/$LAUNCHD_NAME"
-export SSH_PORT=68822
+export SSH_PORT=41122
 export ENABLE_KUBERNETES=""
 
 # init
@@ -14,7 +14,9 @@ mkdir -p "$CONF_DIR"
 
 # make room for m1 macs
 export ARCH=amd64
-[ "$(uname -m)" = "arm64" ] && export ARCH=arm64
+if [ "$(uname -m)" = "arm64" ]; then
+    export ARCH=arm64
+fi
 
 print_usage() (
     cat <<EOF
@@ -106,7 +108,7 @@ EOF
 
 socket_file() (
     FILE="$CONF_DIR"/socket.sh
-    [ -f "$FILE" ] && exit 0
+    if [ -f "$FILE" ]; then exit 0; fi
 
     cat >"$FILE" <<EOF
 #!/usr/bin/env bash
@@ -131,41 +133,53 @@ kube() (
 )
 
 provision_docker() (
-    lima command -v docker && exit 0
-    set -eu
+    set +x
+    if lima command -v docker; then exit 0; fi
+
+    # socket
+    echo sudo password may be required to set up Docker socket
+    echo
+    sudo rm -rf /var/run/docker.sock
+    sudo ln -s "$CONF_DIR/docker.sock" /var/run/docker.sock
 
     # docker
     lima sudo apt -y install docker.io
     lima sudo usermod -aG docker $USER
-    sudo rm -rf /var/run/docker.sock
-    sudo ln -s "$CONF_DIR/docker.sock" /var/run/docker.sock
 
     # reset vm for user docker group to reflect
+    echo restarting vm to complete Docker setup
     limactl stop
     limactl start
+
+    # launchd for docker socket
+    socket_file
+    launchd_file
     launchctl load "$LAUNCHD_FILE"
 )
 
 teardown_docker() (
     # remove socket service
-    launchctl unload $LAUNCHD_FILE
+    if [ -f "$LAUNCHD_FILE" ]; then
+        launchctl unload $LAUNCHD_FILE
+    fi
 )
 
 start_docker() (
-    set -eu
+    set +x
     lima sudo service docker start
-    launchctl start "$LAUNCHD_NAME"
+    launchctl load "$LAUNCHD_FILE"
 )
 
 stop_docker() (
-    set -eu
+    set +x
     lima sudo service docker stop
-    launchctl stop $LAUNCHD_NAME
+    launchctl unload "$LAUNCHD_FILE"
 )
 
 provision_kubeconfig() (
-    [ -f "$HOME/.kube/.limakube" ] && exit 0
-    set -eu
+    set +x
+    # ignore if previously provisioned
+    if [ -d "$HOME/.kube/.limakube" ]; then exit 0; fi
 
     # ascertain deps for kubernetes
     check_deps_k8s
@@ -201,6 +215,7 @@ provision_kubeconfig() (
 )
 
 teardown_kubeconfig() (
+    set +x
     # reset provision flag
     rm -rf "$HOME/.kube/.limakube"
     # unset kube config
@@ -210,8 +225,8 @@ teardown_kubeconfig() (
 )
 
 provision_minikube() (
-    lima command -v minikube && exit 0
-    set -eu
+    set +x
+    if lima command -v minikube; then exit 0; fi
 
     # minikube
     lima curl -L -o /tmp/minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-${ARCH}
@@ -224,37 +239,43 @@ provision_minikube() (
 )
 
 teardown_minikube() (
+    set +x
+    lima command -v minikube || exit 0
+
     kube delete
     teardown_kubeconfig
 )
 
 start_minikube() (
-    set -eu
+    set +x
     kube status || exit 0
     kube start --driver=none
     provision_kubeconfig
 )
 
 stop_minikube() (
-    kube status && kube stop
+    set +x
+    kube status || exit 0
+    kube stop
 )
 
 provision_vm() (
-    set -eu
+    set +x
     provision_docker
-    [ -n "$ENABLE_KUBERNETES" ] && provision_minikube
+    if [ -n "$ENABLE_KUBERNETES" ]; then
+        provision_minikube
+    fi
 )
 
 stop_vm() (
-    set -eu
+    set -eux
     assert_vm_running
-    stop_minikube
     stop_docker
     limactl stop $LIMA_INSTANCE
 )
 
 teardown_vm() (
-    set -eu
+    set -eux
     assert_vm_running
 
     teardown_minikube
@@ -266,15 +287,16 @@ teardown_vm() (
 )
 
 start_vm() (
-    set -eu
+    if [ "$1" = "--kubernetes" ]; then
+        export ENABLE_KUBERNETES=1
+    fi
 
-    [ "$1" = "--kubernetes" ] && export ENABLE_KUBERNETES=1
-
-    if [ -f "$LIMA_DIR" ]; then
+    set -eux
+    if [ -d "$LIMA_DIR" ]; then
         limactl start $LIMA_INSTANCE
     else
         config_file
-        limactl start limakube.yaml
+        limactl start --tty=false limakube.yaml
         rm limakube.yaml
     fi
 
