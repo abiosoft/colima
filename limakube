@@ -293,7 +293,6 @@ reset_minikube() (
     set -eu
     assert_vm_running
     kube status || (echo Kubernetes is not enabled. && exit 0)
-    kube delete
     teardown_minikube
     kube start --driver=none
 )
