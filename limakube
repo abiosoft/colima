@@ -132,38 +132,6 @@ kube() (
     lima minikube "$@"
 )
 
-provision_docker() (
-    set +x
-    if lima command -v docker; then exit 0; fi
-
-    # socket
-    echo sudo password may be required to set up Docker socket
-    echo
-    sudo rm -rf /var/run/docker.sock
-    sudo ln -s "$CONF_DIR/docker.sock" /var/run/docker.sock
-
-    # docker
-    lima sudo apt -y install docker.io
-    lima sudo usermod -aG docker $USER
-
-    # reset vm for user docker group to reflect
-    echo restarting vm to complete Docker setup
-    limactl stop
-    limactl start
-
-    # launchd for docker socket
-    socket_file
-    launchd_file
-    launchctl load "$LAUNCHD_FILE"
-)
-
-teardown_docker() (
-    # remove socket service
-    if [ -f "$LAUNCHD_FILE" ]; then
-        launchctl unload $LAUNCHD_FILE
-    fi
-)
-
 start_docker() (
     set +x
     lima sudo service docker start
@@ -174,6 +142,42 @@ stop_docker() (
     set +x
     lima sudo service docker stop
     launchctl unload "$LAUNCHD_FILE"
+)
+
+provision_docker() (
+    set +x
+    if lima command -v docker; then exit 0; fi
+
+    # socket
+    echo sudo password may be required to set up Docker socket
+    echo
+    sudo rm -rf /var/run/docker.sock
+    sudo ln -s "$CONF_DIR/docker.sock" /var/run/docker.sock
+    echo Docker socket setup successful
+    echo
+
+    # docker
+    lima sudo apt -y install docker.io
+    lima sudo usermod -aG docker $USER
+
+    # reset vm for user docker group to reflect
+    echo restarting VM to complete Docker setup
+    limactl stop $LIMA_INSTANCE
+    limactl start $LIMA_INSTANCE
+
+    # launchd for docker socket
+    socket_file
+    launchd_file
+
+    # start
+    start_docker
+)
+
+teardown_docker() (
+    # remove socket service
+    if [ -f "$LAUNCHD_FILE" ]; then
+        launchctl unload $LAUNCHD_FILE
+    fi
 )
 
 provision_kubeconfig() (
@@ -232,31 +236,6 @@ teardown_kubeconfig() (
     kubectl config unset clusters.limakube
 )
 
-provision_minikube() (
-    set +x
-    if lima command -v minikube; then exit 0; fi
-
-    # deps
-    lima sudo apt -y install conntrack
-
-    # minikube
-    lima curl -L -o /tmp/minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-${ARCH}
-    lima sudo install /tmp/minikube /usr/local/bin/minikube
-    kube start --driver=none
-
-    # kubectl
-    lima curl -L -o /tmp/kubectl https://dl.k8s.io/release/v1.22.0/bin/linux/${ARCH}/kubectl
-    lima sudo install /tmp/kubectl /usr/local/bin/kubectl
-)
-
-teardown_minikube() (
-    set +x
-    lima command -v minikube || exit 0
-
-    kube delete
-    teardown_kubeconfig
-)
-
 start_minikube() (
     set +x
     if ! kube status; then
@@ -269,6 +248,33 @@ stop_minikube() (
     set +x
     kube status || exit 0
     kube stop
+)
+
+provision_minikube() (
+    set +x
+    if lima command -v minikube; then exit 0; fi
+
+    # deps
+    lima sudo apt -y install conntrack
+
+    # minikube
+    lima curl -L -o /tmp/minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-${ARCH}
+    lima sudo install /tmp/minikube /usr/local/bin/minikube
+
+    # kubectl
+    lima curl -L -o /tmp/kubectl https://dl.k8s.io/release/v1.22.0/bin/linux/${ARCH}/kubectl
+    lima sudo install /tmp/kubectl /usr/local/bin/kubectl
+
+    # start k8s
+    start_minikube
+)
+
+teardown_minikube() (
+    set +x
+    lima command -v minikube || exit 0
+
+    kube delete
+    teardown_kubeconfig
 )
 
 provision_vm() (
@@ -313,8 +319,6 @@ start_vm() (
     fi
 
     provision_vm
-    start_docker
-    start_minikube
 )
 
 lima_ssh() (
