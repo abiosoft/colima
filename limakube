@@ -7,10 +7,12 @@ export LIMA_HOME_DIR=/home/${USER}.linux # avoid using LIMA_HOME to not override
 export LAUNCHD_NAME=com.abiosoft.limakube.plist
 export LAUNCHD_FILE="$HOME/Library/LaunchAgents/$LAUNCHD_NAME"
 export SSH_PORT=41122
+export LOG_FILE="$CONF_DIR/out.log"
 export ENABLE_KUBERNETES=""
 
 # init
 mkdir -p "$CONF_DIR"
+echo >$LOG_FILE # reset log file
 
 # make room for m1 macs
 export ARCH=amd64
@@ -23,9 +25,10 @@ print_usage() (
 usage: limakube <command>
 
 commands:
-  start [--kubernetes]
+  start [--with-kubernetes]
     Start (and/or provision) limakube VM with docker (and kubernetes
-    if --kubernetes is passed).
+    if --with-kubernetes is passed).
+    For verbose ouput, tail the log file "$LOG_FILE".
 
   stop
     Stop the limakube VM.
@@ -35,6 +38,9 @@ commands:
 
   ssh
     SSH into the limakube VM.
+
+  status
+    Show the status of the limakube VM.
 
   reset
     Reset the kubernetes cluster.
@@ -46,7 +52,15 @@ EOF
 )
 
 log() (
-    echo >&2 "$@"
+    echo >&2 "[limakube]" $(date +'%H:%M:%S') "$@"
+)
+
+stage() (
+    log "$@" ...
+)
+
+run() (
+    $@ >>"$LOG_FILE" 2>&1
 )
 
 config_file() (
@@ -79,7 +93,7 @@ EOF
 )
 
 assert_vm_running() (
-    lima uname &>/dev/null || (echo $LIMA_INSTANCE VM is not running. Run \'$LIMA_INSTANCE start\' to start limakube && exit 1)
+    run lima uname || (log $LIMA_INSTANCE VM is not running. Run \'$LIMA_INSTANCE start\' to start limakube && exit 1)
 )
 
 launchd_file() (
@@ -119,69 +133,113 @@ EOF
 )
 
 check_deps() (
-    set -eu
-    command -v lima || (echo lima not found. Run 'brew install lima' to install. && exit 1)
-    command -v docker || (echo docker not found. Run 'brew install docker' to install. && exit 1)
+    run command -v lima || (log lima not found. Run 'brew install lima' to install. && exit 1)
+    run command -v docker || (log docker not found. Run 'brew install docker' to install. && exit 1)
 )
 
 check_deps_k8s() (
-    command -v kubectl || (echo kubectl not found. Run 'brew install kubectl' to install. && exit 1)
+    run command -v kubectl || (log kubectl not found. Run 'brew install kubectl' to install. && exit 1)
 )
 
 kube() (
-    lima minikube "$@"
+    run lima minikube "$@"
+)
+
+status() (
+    set -eu
+
+    ERROR=""
+    health() {
+        if $@; then
+            echo success
+        else
+            echo error
+            ERROR="1"
+        fi
+        echo
+    }
+    # check vm
+    run lima uname || (echo limakube VM is not running. && exit 1)
+
+    # check docker in VM
+    echo docker is installed VM?
+    health run lima command -v docker
+
+    echo docker is running in VM?
+    health run lima service docker status
+
+    # check docker on host
+    echo docker is installed on Host?
+    health run command -v docker
+
+    echo docker client on host can access the VM server?
+    health run docker version
+
+    # check kubernetes in VM
+    echo kubernetes is installed in VM?
+    health run lima command -v minikube
+
+    echo kubernetes is running in VM?
+    health kube status
+
+    echo kubernetes client on host can access the VM?
+    health run kubectl cluster-info
+
+    if [ -n "$ERROR" ]; then
+        exit 1
+    fi
 )
 
 start_docker() (
-    set +x
-    lima sudo service docker start
-    launchctl load "$LAUNCHD_FILE"
+    run lima sudo service docker start
+    run launchctl load "$LAUNCHD_FILE"
 )
 
 stop_docker() (
-    set +x
-    lima sudo service docker stop
-    launchctl unload "$LAUNCHD_FILE"
+    run lima sudo service docker stop
+    run launchctl unload "$LAUNCHD_FILE"
 )
 
 provision_docker() (
-    set +x
-    if lima command -v docker; then exit 0; fi
+    if ! run lima command -v docker; then
+        # socket
+        stage sudo password may be required to set up docker socket
+        sudo rm -rf /var/run/docker.sock
+        sudo ln -s "$CONF_DIR/docker.sock" /var/run/docker.sock
+        log docker socket setup successful
 
-    # socket
-    echo sudo password may be required to set up Docker socket
-    echo
-    sudo rm -rf /var/run/docker.sock
-    sudo ln -s "$CONF_DIR/docker.sock" /var/run/docker.sock
-    echo Docker socket setup successful
-    echo
+        # docker
+        stage provisioning docker in VM
+        run lima sudo apt -y install docker.io
+        run lima sudo usermod -aG docker $USER
 
-    # docker
-    lima sudo apt -y install docker.io
-    lima sudo usermod -aG docker $USER
+        # reset vm for user docker group to reflect
+        stage restarting VM to complete docker setup
+        run limactl stop $LIMA_INSTANCE
+        run limactl start $LIMA_INSTANCE
+        log VM restarted
 
-    # reset vm for user docker group to reflect
-    echo restarting VM to complete Docker setup
-    limactl stop $LIMA_INSTANCE
-    limactl start $LIMA_INSTANCE
+        # launchd for docker socket
+        stage setting up docker socket communication
+        socket_file
+        launchd_file
 
-    # launchd for docker socket
-    socket_file
-    launchd_file
+    fi
 
     # start
-    start_docker
+    stage starting docker
+    run start_docker
+    log docker startup successful
 )
 
 teardown_docker() (
     # remove socket service
     if [ -f "$LAUNCHD_FILE" ]; then
-        launchctl unload $LAUNCHD_FILE
+        run launchctl unload $LAUNCHD_FILE
     fi
 )
 
 provision_kubeconfig() (
-    set +x
     # ignore if previously provisioned
     if [ -f "$HOME/.kube/.limakube" ]; then exit 0; fi
 
@@ -204,7 +262,7 @@ provision_kubeconfig() (
     lima sed -i 's/limakube.sigs.k8s.io/minikube.sigs.k8s.io/' "$LIMA_DIR/flat-config"
 
     # copy to host
-    limactl cp limakube:"$LIMA_DIR/flat-config" "$HOST_DIR/flat-config"
+    run limactl cp limakube:"$LIMA_DIR/flat-config" "$HOST_DIR/flat-config"
 
     # flatten/merge on host
     KUBECONFIG="$HOST_DIR/config":"$HOST_DIR/flat-config" kubectl config view --raw >"$HOST_DIR/lima-config"
@@ -227,69 +285,83 @@ provision_kubeconfig() (
 )
 
 teardown_kubeconfig() (
-    set +x
     # reset provision flag
     rm -rf "$HOME/.kube/.limakube"
     # unset kube config
-    kubectl config unset users.limakube
-    kubectl config unset contexts.limakube
-    kubectl config unset clusters.limakube
+    run kubectl config unset users.limakube
+    run kubectl config unset contexts.limakube
+    run kubectl config unset clusters.limakube
 )
 
 start_minikube() (
-    set +x
-    if ! kube status; then
+    if ! run kube status; then
         kube start --driver=none
     fi
     provision_kubeconfig
 )
 
 stop_minikube() (
-    set +x
     kube status || exit 0
     kube stop
 )
 
 provision_minikube() (
-    set +x
-    if lima command -v minikube; then exit 0; fi
+    FIRST_RUN=""
+    if ! run lima command -v minikube; then
+        # deps
+        stage installing kubernetes dependencies in VM
+        run lima sudo apt -y install conntrack
 
-    # deps
-    lima sudo apt -y install conntrack
+        # minikube
+        stage downloading minikube
+        run lima curl -L -o /tmp/minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-${ARCH}
+        run lima sudo install /tmp/minikube /usr/local/bin/minikube
 
-    # minikube
-    lima curl -L -o /tmp/minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-${ARCH}
-    lima sudo install /tmp/minikube /usr/local/bin/minikube
+        FIRST_RUN="1"
+    fi
 
     # start k8s
+    # first start takes time, it's better to inform the user
+    stage starting kubernetes
+    if [ -n "$FIRST_RUN" ]; then
+        log this is the first startup of kubernetes, it will take a while
+        log no worries, subsequent startups only take some seconds
+    fi
     start_minikube
 )
 
 teardown_minikube() (
-    set +x
-    lima command -v minikube || exit 0
+    run lima command -v minikube || exit 0
 
+    stage deleting kubernetes cluster
     kube delete
     teardown_kubeconfig
 )
 
 provision_vm() (
-    set +x
+    stage provisioning docker
     provision_docker
     if [ -n "$ENABLE_KUBERNETES" ]; then
+        stage provisioning kubernetes
         provision_minikube
     fi
 )
 
 stop_vm() (
-    set -eux
+    set -eu
     assert_vm_running
+
+    stage stopping docker
     stop_docker
-    limactl stop $LIMA_INSTANCE
+
+    stage stopping VM
+    run limactl stop $LIMA_INSTANCE
+
+    log done
 )
 
 teardown_vm() (
-    set -eux
+    set -eu
     assert_vm_running
 
     teardown_minikube
@@ -297,24 +369,34 @@ teardown_vm() (
 
     # delete vm
     stop_vm
-    limactl delete $LIMA_INSTANCE
+    run limactl delete $LIMA_INSTANCE
+
+    # delete leftover config
+    rm -rf $CONF_DIR
 )
 
 start_vm() (
-    if [ "$1" = "--kubernetes" ]; then
+    if [ "$1" = "--with-kubernetes" ]; then
         export ENABLE_KUBERNETES=1
     fi
 
-    set -eux
+    set -eu
+    check_deps
+
+    stage starting VM
     if [ -d "$LIMA_DIR" ]; then
-        limactl start $LIMA_INSTANCE
+        run limactl start $LIMA_INSTANCE
     else
+        log creating and starting VM
         config_file
-        limactl start --tty=false limakube.yaml
+        run limactl start --tty=false limakube.yaml
         rm limakube.yaml
     fi
 
+    stage provisioning VM
     provision_vm
+
+    log done
 )
 
 lima_ssh() (
@@ -326,8 +408,10 @@ lima_ssh() (
 reset_minikube() (
     set -eu
     assert_vm_running
-    kube status || (echo Kubernetes is not enabled. && exit 0)
+    kube status || (log kubernetes is not enabled. && exit 1)
     teardown_minikube
+
+    stage starting kubernetes
     start_minikube
 )
 
@@ -344,6 +428,9 @@ delete)
     ;;
 ssh)
     lima_ssh
+    ;;
+status)
+    status
     ;;
 reset)
     reset_minikube
