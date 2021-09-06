@@ -281,9 +281,9 @@ provision_kubeconfig() (
     # replace unreacheable ip with locahost
     lima sed -i 's/192.168.5.15:8443/127.0.0.1:8443/' "$LIMA_DIR/flat-config"
     # rename to $NAME
-    lima sed -i 's/minikube/$NAME/g' "$LIMA_DIR/flat-config"
+    lima sed -i "s/minikube/$NAME/g" "$LIMA_DIR/flat-config"
     # reverse unintended rename
-    lima sed -i "s/${NAME}.sigs.k8s.io/minikube.sigs.k8s.io/" "$LIMA_DIR/flat-config"
+    lima sed -i "s/${NAME}.sigs.k8s.io/minikube.sigs.k8s.io/g" "$LIMA_DIR/flat-config"
 
     # copy to host
     run limactl cp $NAME:"$LIMA_DIR/flat-config" "$HOST_DIR/flat-config"
