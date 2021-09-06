@@ -2,6 +2,7 @@
 
 # app details
 export NAME=colima
+export LIMA_INSTANCE="$NAME"
 export VERSION="0.1.0"
 
 # locations
