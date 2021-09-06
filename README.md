@@ -42,7 +42,7 @@ You can use the `docker` client on macOS after `colima start` with no additional
 To enable Kubernetes, start Colima with `--with-kubernetes` flag.
 Colima uses minikube in background which requires at least 2CPUs and ~2.2GiB memory to run.
 
-Colima's docker runtime is used for Kubernetes. Therefore, images built or pulled with Docker are accessible to Kubernetes.
+Colima's Docker runtime is used for Kubernetes. Therefore, images built or pulled with Docker are accessible to Kubernetes.
 
 ```
 colima start --with-kubernetes
@@ -62,7 +62,7 @@ If VM is already created, stop the VM and apply the flags when starting it.
 Customizing at VM create with 1CPU, 2GiB memory and 10GiB storage
 
 ```
-colima start --cpu 1 --memory 4 --disk 10
+colima start --cpu 1 --memory 2 --disk 10
 ```
 
 Customizing an already created VM to 4CPUs and 8GiB memory.
@@ -122,7 +122,7 @@ tail -f $HOME/.colima/out.log
 
 M1 macs should work, but not tested.
 
-The challenge is installing lima on M1 macs, instructions are available on [lima project page](https://github.com/lima-vm/lima/blob/master/README.md#installation).
+The challenge is installing Lima on M1 macs, instructions are available on [Lima project page](https://github.com/lima-vm/lima/blob/master/README.md#installation).
 
 </p>
 </details>
