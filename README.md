@@ -89,13 +89,16 @@ Colima means COntainers in LIMA
 <details>
 <summary>Can it run alongside Docker for Mac?</summary>
 <p>
+
 No. Colima assumes to be the default Docker context and will conflict with Docker for Mac. You should either, not both.
+
 </p>
 </details>
 
 <details>
 <summary>What about Docker Volumes and Docker Compose?</summary>
 <p>
+
 Colima mounts the host's $HOME directory as readonly in the VM. Volume mounts and docker compose should work as expected but only readonly.
 
 Colima uses Lima for the VM and Lima's support for writeable volumes is still experimental.
@@ -107,6 +110,7 @@ Volumes are thereby made readonly in Colima for now.
 <details>
 <summary>How can I enable verbose output?</summary>
 <p>
+
 The log file is at $HOME/.colima/out.log, you can simply tail it.
 
 ```
