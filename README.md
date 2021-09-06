@@ -1,12 +1,12 @@
-# colima
+# Colima
 
-Docker (and Kubernetes) on macOS with [lima](https://github.com/lima-vm/lima) with minimal setup.
+Docker (and Kubernetes) on macOS with minimal setup.
 
 ## Getting Started
 
 ### Prerequisites
 
-colima requires lima and docker client (and kubectl if kubernetes will be enabled).
+colima requires [Lima](https://github.com/lima-vm/lima) and docker client (and kubectl if kubernetes will be enabled).
 
 ```
 brew install lima docker kubectl
@@ -39,10 +39,10 @@ You can use the `docker` client on macOS after `colima start` with no additional
 
 ### Kubernetes
 
-To enable kubernetes, start colima with `--with-kubernetes` flag.
-colima uses minikube in background which requires at least 2 CPUs and ~2.2GiB memory to run.
+To enable Kubernetes, start Colima with `--with-kubernetes` flag.
+Colima uses minikube in background which requires at least 2CPUs and ~2.2GiB memory to run.
 
-The kubernetes uses colima's docker runtime. Images built with docker are accessible to kubernetes.
+Colima's docker runtime is used for Kubernetes. Therefore, images built or pulled with Docker are accessible to Kubernetes.
 
 ```
 colima start --with-kubernetes
@@ -50,20 +50,22 @@ colima start --with-kubernetes
 
 ### Customizing the VM
 
-The default VM created by colima has 2 CPUs, 4GiB memory and 60GiB storage.
+The default VM created by Colima has 2 CPUs, 4GiB memory and 60GiB storage.
 
 The VM can be customized by passing `--cpu`, `--memory` and `--disk` to `colima start`.
 If VM is already created, stop the VM and apply the flags when starting it.
 
 **NOTE** that only cpu and memory can be changed at anytime. Disk size cannot be changed after the VM is created.
 
-Customizing at VM create with 1 CPU, 2 GiB memory and 10GiB storage
+#### Customization Examples
+
+Customizing at VM create with 1CPU, 2GiB memory and 10GiB storage
 
 ```
 colima start --cpu 1 --memory 4 --disk 10
 ```
 
-Customizing an already created VM to 4 CPUs and 8GiB memory.
+Customizing an already created VM to 4CPUs and 8GiB memory.
 
 ```
 colima stop
@@ -75,29 +77,29 @@ colima start --cpu 4 --memory 8
 To provide container runtimes on macOS with minimal setup.
 
 The current version is in usable alpha state and provides Docker and Kubernetes using Docker runtime.
-If there is enough interest in the project, the plan is a rewrite in Go and added flexibility to
+If there is enough interest in the project, the plan is a rewrite in Go with added flexibility to
 support other container runtimes (e.g. containerd/nerdctl, crio/podman).
 
 ## What is with the name?
 
-COntainers in LIMA
+Colima means COntainers in LIMA
 
 ## FAQ
 
 <details>
 <summary>Can it run alongside Docker for Mac?</summary>
 <p>
-No. colima assumes to be the default docker context and will conflict with Docker for Mac. You should either, not both.
+No. Colima assumes to be the default Docker context and will conflict with Docker for Mac. You should either, not both.
 </p>
 </details>
 
 <details>
 <summary>What about Docker Volumes and Docker Compose?</summary>
 <p>
-colima mounts the host's home directory as readonly in the VM. Volume mounts and docker compose should work as expected but only readonly.
+Colima mounts the host's $HOME directory as readonly in the VM. Volume mounts and docker compose should work as expected but only readonly.
 
-colima uses lima for the VM and lima's support for writeable volumes is still experimental.
-Volumes are thereby made readonly in colima for now.
+Colima uses Lima for the VM and Lima's support for writeable volumes is still experimental.
+Volumes are thereby made readonly in Colima for now.
 
 </p>
 </details>
