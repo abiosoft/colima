@@ -2,6 +2,8 @@
 
 Docker (and Kubernetes) on macOS with minimal setup.
 
+![Demonstration](colima.gif)
+
 ## Getting Started
 
 ### Prerequisites
@@ -103,6 +105,17 @@ Colima mounts the host's $HOME directory as readonly in the VM. Volume mounts an
 
 Colima uses Lima for the VM and Lima's support for writeable volumes is still experimental.
 Volumes are thereby made readonly in Colima for now.
+
+</p>
+</details>
+
+<details>
+<summary>What about Ports?</summary>
+<p>
+
+Port forwarding are automatic and accessible on the macOS host.
+
+Currently, privileged ports are not forwarded i.e. ports (0-1024). This is a limitation of Lima.
 
 </p>
 </details>
