@@ -1,13 +1,19 @@
 #!/usr/bin/env bash
 
-export LIMA_INSTANCE=limakube
-export CONF_DIR="$HOME/.limakube"
-export LIMA_DIR="$HOME/.lima/$LIMA_INSTANCE"
+# app details
+export NAME=colima
+export VERSION="0.1.0"
+
+# locations
+export CONF_DIR="$HOME/.${NAME}"
+export LIMA_DIR="$HOME/.lima/$NAME"
 export LIMA_HOME_DIR=/home/${USER}.linux # avoid using LIMA_HOME to not override Lima's behaviour.
-export LAUNCHD_NAME=com.abiosoft.limakube.plist
+export LAUNCHD_NAME=com.abiosoft.${NAME}.plist
 export LAUNCHD_FILE="$HOME/Library/LaunchAgents/$LAUNCHD_NAME"
-export SSH_PORT=41122
 export LOG_FILE="$CONF_DIR/out.log"
+
+# configs and flags
+export SSH_PORT=41122
 export CPU="2"
 export MEMORY="4"
 export DISK="60"
@@ -26,11 +32,11 @@ fi
 
 print_usage() (
     cat <<EOF
-usage: limakube <command>
+usage: $NAME <command>
 
 commands:
   start [--with-kubernetes --cpu 2 --memory 4 --disk 60]
-    Start (and/or provision) limakube VM with docker (and kubernetes
+    Start (and/or provision) $NAME VM with docker (and kubernetes
     if --with-kubernetes is passed). 
 
     --with-kubernetes start (and/or provision) Kubernetes.
@@ -42,16 +48,16 @@ commands:
     For verbose ouput, tail the log file "$LOG_FILE".
 
   stop
-    Stop the limakube VM.
+    Stop the $NAME VM.
 
   delete
-    Delete and teardown the limakube VM and settings.
+    Delete and teardown the $NAME VM and settings.
 
   ssh
-    SSH into the limakube VM.
+    SSH into the $NAME VM.
 
   status
-    Show the status of the limakube VM.
+    Show the status of the $NAME VM.
 
   reset
     Reset the kubernetes cluster.
@@ -63,7 +69,7 @@ EOF
 )
 
 log() (
-    echo >&2 "[limakube]" $(date +'%H:%M:%S') "$@"
+    echo >&2 "[$NAME]" $(date +'%H:%M:%S') "$@"
 )
 
 stage() (
@@ -75,7 +81,7 @@ run() (
 )
 
 config_file() (
-    cat >limakube.yaml <<EOF
+    cat >${NAME}.yaml <<EOF
 arch: "default"
 images:
   - location: "https://cloud-images.ubuntu.com/hirsute/current/hirsute-server-cloudimg-amd64.img"
@@ -90,7 +96,7 @@ mounts:
     # CAUTION: writable SHOULD be false for the home directory.
     # Setting writable to true is possible, but untested and dangerous.
     writable: false
-  - location: "/tmp/limakube"
+  - location: "/tmp/$NAME"
     writable: true
 ssh:
   localPort: $SSH_PORT
@@ -104,7 +110,7 @@ EOF
 )
 
 assert_vm_running() (
-    run lima uname || (log $LIMA_INSTANCE VM is not running. Run \'$LIMA_INSTANCE start\' to start limakube && exit 1)
+    run lima uname || (log $NAME VM is not running. Run \'$NAME start\' to start $NAME && exit 1)
 )
 
 launchd_file() (
@@ -117,7 +123,7 @@ launchd_file() (
 <plist version="1.0">
     <dict>
         <key>Label</key>
-        <string>com.abiosoft.limakube</string>
+        <string>com.abiosoft.$NAME</string>
         <key>Program</key>
         <string>$CONF_DIR/socket.sh</string>
         <key>RunAtLoad</key>
@@ -170,7 +176,7 @@ status() (
         echo
     }
     # check vm
-    run lima uname || (echo limakube VM is not running. && exit 1)
+    run lima uname || (echo $NAME VM is not running. && exit 1)
 
     # check docker in VM
     echo docker is installed VM?
@@ -229,8 +235,8 @@ provision_docker() (
 
         # reset vm for user docker group to reflect
         stage restarting VM to complete docker setup
-        run limactl stop $LIMA_INSTANCE
-        run limactl start $LIMA_INSTANCE
+        run limactl stop $NAME
+        run limactl start $NAME
         log VM restarted
 
         # launchd for docker socket
@@ -255,7 +261,7 @@ teardown_docker() (
 
 provision_kubeconfig() (
     # ignore if previously provisioned
-    if [ -f "$HOME/.kube/.limakube" ]; then exit 0; fi
+    if [ -f "$HOME/.kube/.${NAME}" ]; then exit 0; fi
 
     # ascertain deps for kubernetes
     check_deps_k8s
@@ -270,13 +276,13 @@ provision_kubeconfig() (
 
     # replace unreacheable ip with locahost
     lima sed -i 's/192.168.5.15:8443/127.0.0.1:8443/' "$LIMA_DIR/flat-config"
-    # rename to limakube
-    lima sed -i 's/minikube/limakube/g' "$LIMA_DIR/flat-config"
+    # rename to $NAME
+    lima sed -i 's/minikube/$NAME/g' "$LIMA_DIR/flat-config"
     # reverse unintended rename
-    lima sed -i 's/limakube.sigs.k8s.io/minikube.sigs.k8s.io/' "$LIMA_DIR/flat-config"
+    lima sed -i "s/${NAME}.sigs.k8s.io/minikube.sigs.k8s.io/" "$LIMA_DIR/flat-config"
 
     # copy to host
-    run limactl cp limakube:"$LIMA_DIR/flat-config" "$HOST_DIR/flat-config"
+    run limactl cp $NAME:"$LIMA_DIR/flat-config" "$HOST_DIR/flat-config"
 
     # flatten/merge on host
     KUBECONFIG="$HOST_DIR/config":"$HOST_DIR/flat-config" kubectl config view --raw >"$HOST_DIR/lima-config"
@@ -288,10 +294,10 @@ provision_kubeconfig() (
     cp "$HOST_DIR/lima-config" "$HOST_DIR/config"
 
     # set the new context
-    kubectl config use-context $LIMA_INSTANCE
+    kubectl config use-context $NAME
 
     # provision flag to indicate provision has been done
-    touch "$HOST_DIR/.limakube"
+    touch "$HOST_DIR/.${NAME}"
 
     # clean up dirt
     rm "$HOST_DIR/lima-config"
@@ -300,11 +306,11 @@ provision_kubeconfig() (
 
 teardown_kubeconfig() (
     # reset provision flag
-    rm -rf "$HOME/.kube/.limakube"
+    rm -rf "$HOME/.kube/.${NAME}"
     # unset kube config
-    run kubectl config unset users.limakube
-    run kubectl config unset contexts.limakube
-    run kubectl config unset clusters.limakube
+    run kubectl config unset users.${NAME}
+    run kubectl config unset contexts.${NAME}
+    run kubectl config unset clusters.${NAME}
 )
 
 start_minikube() (
@@ -370,7 +376,7 @@ stop_vm() (
     stop_docker
 
     stage stopping VM
-    run limactl stop $LIMA_INSTANCE
+    run limactl stop $NAME
 
     log done
 )
@@ -383,11 +389,11 @@ teardown_vm() (
     teardown_docker
 
     # stop and delete vm
-    stage deleting limakube VM
+    stage deleting $NAME VM
     if run lima uname; then
         stop_vm
     fi
-    run limactl delete $LIMA_INSTANCE
+    run limactl delete $NAME
 
     stage deleting other configs
     # delete leftover config
@@ -455,17 +461,17 @@ start_vm() (
             if [ -n "$CONF_CHANGED" ]; then
                 stage config changed, updating VM config
                 config_file
-                cp limakube.yaml "$LIMA_DIR/lima.yaml"
-                rm limakube.yaml
+                cp ${NAME}.yaml "$LIMA_DIR/lima.yaml"
+                rm ${NAME}.yaml
             fi
             stage starting VM
-            run limactl start $LIMA_INSTANCE
+            run limactl start $NAME
         fi
     else
         stage creating and starting VM
         config_file
-        run limactl start --tty=false limakube.yaml
-        rm limakube.yaml
+        run limactl start --tty=false ${NAME}.yaml
+        rm ${NAME}.yaml
     fi
 
     stage provisioning VM
@@ -517,7 +523,7 @@ reset)
     print_usage 1
     ;;
 *)
-    log "invalid arg '$1'. view help with 'limakube --help'."
+    log "invalid arg '$1'. view help with '$NAME --help'."
     exit 1
     ;;
 esac
