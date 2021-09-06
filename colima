@@ -62,6 +62,9 @@ commands:
   reset
     Reset the kubernetes cluster.
 
+  version
+    Show the version of $NAME.
+
   -h, --help
     Show this help.
 EOF
@@ -496,6 +499,10 @@ reset_minikube() (
     start_minikube
 )
 
+version() (
+    echo $NAME v${VERSION}
+)
+
 case "$1" in
 start)
     shift
@@ -515,6 +522,9 @@ status)
     ;;
 reset)
     reset_minikube
+    ;;
+version)
+    version
     ;;
 -h | --help)
     print_usage
