@@ -59,18 +59,18 @@ If VM is already created, stop the VM and apply the flags when starting it.
 
 #### Customization Examples
 
-Customizing at VM create with 1CPU, 2GiB memory and 10GiB storage
+- create VM with 1CPU, 2GiB memory and 10GiB storage.
 
-```
-colima start --cpu 1 --memory 2 --disk 10
-```
+  ```
+  colima start --cpu 1 --memory 2 --disk 10
+  ```
 
-Customizing an already created VM to 4CPUs and 8GiB memory.
+- modify an existing VM to 4CPUs and 8GiB memory.
 
-```
-colima stop
-colima start --cpu 4 --memory 8
-```
+  ```
+  colima stop
+  colima start --cpu 4 --memory 8
+  ```
 
 ## Project Goal
 
