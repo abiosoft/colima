@@ -6,7 +6,7 @@ Docker (and Kubernetes) on macOS with minimal setup.
 
 ### Prerequisites
 
-colima requires [Lima](https://github.com/lima-vm/lima) and docker client (and kubectl if kubernetes will be enabled).
+Colima requires [Lima](https://github.com/lima-vm/lima) and Docker client (and kubectl if Kubernetes will be enabled).
 
 ```
 brew install lima docker kubectl
