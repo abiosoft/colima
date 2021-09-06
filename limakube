@@ -31,9 +31,10 @@ usage: limakube <command>
 commands:
   start [--with-kubernetes --cpu 2 --memory 4 --disk 60]
     Start (and/or provision) limakube VM with docker (and kubernetes
-    if --with-kubernetes is passed).
-    Kubernetes requires at least 2 CPUs and 2.3GiB memory.
+    if --with-kubernetes is passed). 
 
+    --with-kubernetes start (and/or provision) Kubernetes.
+      Kubernetes requires at least 2 CPUs and 2.3GiB memory.
     --cpu is number of CPUs. Defaults to 2.
     --memory is memory in GiB. Defaults to 4.
     --disk is disk size in GiB. Defaults to 60.
