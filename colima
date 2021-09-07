@@ -220,11 +220,14 @@ start_docker() (
 )
 
 stop_docker() (
-    run lima sudo service docker stop
+    if run lima service docker status; then
+        run lima sudo service docker stop
+    fi
     run launchctl unload "$LAUNCHD_FILE"
 )
 
 provision_docker() (
+    # check docker installation
     if ! run lima command -v docker; then
         # socket
         stage sudo password may be required to set up docker socket
@@ -235,24 +238,25 @@ provision_docker() (
         # docker
         stage provisioning docker in VM
         run lima sudo apt -y install docker.io
-        run lima sudo usermod -aG docker $USER
+    fi
 
+    # verify and fix user docker permission
+    if ! run lima sh -c "getent group docker | grep \"\b${USER}\b\""; then
+        run lima sudo usermod -aG docker $USER
         # reset vm for user docker group to reflect
         stage restarting VM to complete docker setup
         run limactl stop $NAME
         run limactl start $NAME
         log VM restarted
-
-        # launchd for docker socket
-        stage setting up docker socket communication
-        socket_file
-        launchd_file
-
     fi
+
+    # launchd for docker socket
+    socket_file
+    launchd_file
 
     # start
     stage starting docker
-    run start_docker
+    start_docker
     log docker startup successful
 )
 
