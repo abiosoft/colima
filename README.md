@@ -92,7 +92,7 @@ Colima means COntainers in LIMA
 <summary>Can it run alongside Docker for Mac?</summary>
 <p>
 
-No. Colima assumes to be the default Docker context and will conflict with Docker for Mac. You should either, not both.
+No. Colima assumes to be the default Docker context and will conflict with Docker for Mac. You should run either, not both.
 
 </p>
 </details>
@@ -116,6 +116,26 @@ Volumes are thereby made readonly in Colima for now.
 Port forwarding are automatic and accessible on the macOS host.
 
 Currently, privileged ports are not forwarded i.e. ports (0-1024). This is a limitation of Lima.
+
+</p>
+</details>
+
+<details>
+<summary>How does it compare to minikube, Kind, K3d?</summary>
+<p>
+
+### For Kubernetes
+
+Yes, you can create a Kubernetes cluster with minikube (with Docker driver), Kind or K3d instead of enabling Kubernetes in Colima. Those are better options if you need multiple clusters, or do not need Docker and Kubernetes to share the same images and runtime.
+
+### For Docker
+
+Minikube with Docker runtime can expose the cluster's Docker with `minikube docker-env`. But there are some caveats.
+
+- Kubernetes is not optional, even if you only need Docker.
+
+- All of minikube's free drivers for macOS fall-short in one of performance, port forwarding or volumes.
+  While port-forwarding and volumes are non-issue for Kubernetes, they can be deal breaker for Docker-only use.
 
 </p>
 </details>
