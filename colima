@@ -242,6 +242,12 @@ provision_docker() (
         # docker
         stage provisioning docker in VM
         run lima sudo apt -y install docker.io
+
+        # enable buildkit by default.
+        # eventually, there should be an easy way to configure Docker.
+        # users may want to set other configs like registeries e.t.c.
+        run lima sudo mkdir -p /etc/docker
+        run lima sudo sh -c "echo '{\"features\":{\"buildkit\":true}}' > /etc/docker/daemon.json"
     fi
 
     # verify and fix user docker permission
