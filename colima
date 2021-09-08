@@ -85,6 +85,15 @@ run() (
     "$@" >>"$LOG_FILE" 2>&1
 )
 
+prompt() (
+    msg="$@"
+    read -p "${msg}? [y/N] " yn
+    case $yn in
+    [Yy]*) exit 0 ;;
+    *) exit 1 ;;
+    esac
+)
+
 config_file() (
     cat >${NAME}.yaml <<EOF
 arch: "default"
@@ -401,6 +410,7 @@ stop_vm() (
 
 teardown_vm() (
     set -eu
+    prompt Are you sure you want to delete the VM and all settings
 
     stage deleting docker and kubernetes configs
     teardown_minikube
@@ -506,6 +516,8 @@ lima_ssh() (
 
 reset_minikube() (
     set -eu
+    prompt Are you sure you want to reset the Kubernetes cluster
+
     assert_vm_running
     kube status || (log kubernetes is not enabled. && exit 1)
     teardown_minikube
