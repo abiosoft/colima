@@ -24,7 +24,7 @@ export ENABLE_KUBERNETES=""
 
 # init
 mkdir -p "$CONF_DIR"
-echo >$LOG_FILE # reset log file
+echo >"$LOG_FILE" # reset log file
 
 # make room for m1 macs
 export ARCH=amd64
@@ -74,7 +74,7 @@ EOF
 )
 
 log() (
-    echo >&2 "[$NAME]" $(date +'%H:%M:%S') "$@"
+    echo >&2 "[$NAME]" "$(date +'%H:%M:%S')" "$@"
 )
 
 stage() (
@@ -86,8 +86,8 @@ run() (
 )
 
 prompt() (
-    msg="$@"
-    read -p "${msg}? [y/N] " yn
+    msg="$*"
+    read -r -p "${msg}? [y/N] " yn
     case $yn in
     [Yy]*) exit 0 ;;
     *) exit 1 ;;
@@ -184,7 +184,7 @@ status() (
 
     ERROR=""
     health() {
-        if $@; then
+        if "$@"; then
             echo success
         else
             echo error
@@ -261,7 +261,7 @@ provision_docker() (
 
     # verify and fix user docker permission
     if ! run lima sh -c "getent group docker | grep \"\b${USER}\b\""; then
-        run lima sudo usermod -aG docker $USER
+        run lima sudo usermod -aG docker "$USER"
         # reset vm for user docker group to reflect
         stage restarting VM to complete docker setup
         run limactl stop $NAME
@@ -282,7 +282,7 @@ provision_docker() (
 teardown_docker() (
     # remove socket service
     if [ -f "$LAUNCHD_FILE" ]; then
-        run launchctl unload $LAUNCHD_FILE
+        run launchctl unload "$LAUNCHD_FILE"
     fi
 )
 
@@ -294,41 +294,41 @@ provision_kubeconfig() (
     check_deps_k8s
 
     # kube config
-    HOST_DIR="$HOME/.kube"
-    LIMA_DIR="$LIMA_HOME_DIR/.kube"
-    mkdir -p "$HOST_DIR"
+    HOST_KUBE_DIR="$HOME/.kube"
+    LIMA_KUBE_DIR="$LIMA_HOME_DIR/.kube"
+    mkdir -p "$HOST_KUBE_DIR"
 
     # flatten in lima for portability
-    lima sh -c "minikube kubectl -- config view --flatten > \"$LIMA_DIR/flat-config\""
+    lima sh -c "minikube kubectl -- config view --flatten > \"$LIMA_KUBE_DIR/flat-config\""
 
     # replace unreacheable ip with locahost
-    lima sed -i 's/192.168.5.15:8443/127.0.0.1:8443/' "$LIMA_DIR/flat-config"
+    lima sed -i 's/192.168.5.15:8443/127.0.0.1:8443/' "$LIMA_KUBE_DIR/flat-config"
     # rename to $NAME
-    lima sed -i "s/minikube/$NAME/g" "$LIMA_DIR/flat-config"
+    lima sed -i "s/minikube/$NAME/g" "$LIMA_KUBE_DIR/flat-config"
     # reverse unintended rename
-    lima sed -i "s/${NAME}.sigs.k8s.io/minikube.sigs.k8s.io/g" "$LIMA_DIR/flat-config"
+    lima sed -i "s/${NAME}.sigs.k8s.io/minikube.sigs.k8s.io/g" "$LIMA_KUBE_DIR/flat-config"
 
     # copy to host
-    run limactl cp $NAME:"$LIMA_DIR/flat-config" "$HOST_DIR/flat-config"
+    run limactl cp $NAME:"$LIMA_KUBE_DIR/flat-config" "$HOST_KUBE_DIR/flat-config"
 
     # flatten/merge on host
-    KUBECONFIG="$HOST_DIR/config":"$HOST_DIR/flat-config" kubectl config view --raw >"$HOST_DIR/lima-config"
+    KUBECONFIG="${HOST_KUBE_DIR}/config:${HOST_KUBE_DIR}/flat-config" kubectl config view --raw >"$HOST_KUBE_DIR/lima-config"
 
     # backup previous config
-    [ -f "$HOST_DIR/config" ] && cp "$HOST_DIR/config" "$HOST_DIR"/config-"$(date +%s)".bak
+    [ -f "$HOST_KUBE_DIR/config" ] && cp "$HOST_KUBE_DIR/config" "$HOST_KUBE_DIR"/config-"$(date +%s)".bak
 
     # set combined config as new config
-    cp "$HOST_DIR/lima-config" "$HOST_DIR/config"
+    cp "$HOST_KUBE_DIR/lima-config" "$HOST_KUBE_DIR/config"
 
     # set the new context
     kubectl config use-context $NAME
 
     # provision flag to indicate provision has been done
-    touch "$HOST_DIR/.${NAME}"
+    touch "$HOST_KUBE_DIR/.${NAME}"
 
     # clean up dirt
-    rm "$HOST_DIR/lima-config"
-    rm "$HOST_DIR/flat-config"
+    rm "$HOST_KUBE_DIR/lima-config"
+    rm "$HOST_KUBE_DIR/flat-config"
 )
 
 teardown_kubeconfig() (
@@ -405,7 +405,7 @@ stop_vm() (
     stage stopping VM
     run limactl stop $NAME
 
-    log done
+    log "done"
 )
 
 teardown_vm() (
@@ -425,9 +425,9 @@ teardown_vm() (
 
     stage deleting other configs
     # delete leftover config
-    rm -rf $CONF_DIR
+    rm -rf "$CONF_DIR"
 
-    log done
+    log "done"
 )
 
 start_vm_args() {
@@ -435,7 +435,7 @@ start_vm_args() {
     assert_number() (
         re='^[0-9]+([.][0-9]+)?$'
         if ! [[ $1 =~ $re ]]; then
-            log $1 is not a number at "'$CURRENT_FLAG $1'"
+            log "$1" is not a number at "'$CURRENT_FLAG $1'"
             exit 1
         fi
     )
@@ -445,27 +445,27 @@ start_vm_args() {
         case "$1" in
         --with-kubernetes)
             shift
-            export ENABLE_KUBERNETES=1
+            ENABLE_KUBERNETES="1"
             ;;
         --cpu)
             shift
             assert_number "$1" || exit 1
-            export CPU="$1"
-            export CONF_CHANGED="1"
+            CPU="$1"
+            CONF_CHANGED="1"
             shift
             ;;
         --memory)
             shift
             assert_number "$1" || exit 1
-            export MEMORY="$1"
-            export CONF_CHANGED="1"
+            MEMORY="$1"
+            CONF_CHANGED="1"
             shift
             ;;
         --disk)
             shift
             assert_number "$1" || exit 1
-            export DISK="$1"
-            export CONF_CHANGED="1"
+            DISK="$1"
+            CONF_CHANGED="1"
             shift
             ;;
         *)
@@ -505,7 +505,7 @@ start_vm() (
     stage provisioning VM
     provision_vm
 
-    log done
+    log "done"
 )
 
 lima_ssh() (
