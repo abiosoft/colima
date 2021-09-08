@@ -120,6 +120,7 @@ assert_vm_running() (
 launchd_file() (
     FILE="$LAUNCHD_FILE"
     [ -f "$FILE" ] && exit 0
+    [ ! -d "$HOME/Library/LaunchAgents/" ]; then mkdir -p "$HOME/Library/LaunchAgents/"; fi
 
     cat >"$FILE" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
