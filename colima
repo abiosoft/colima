@@ -10,7 +10,8 @@ export CONF_DIR="$HOME/.${NAME}"
 export LIMA_DIR="$HOME/.lima/$NAME"
 export LIMA_HOME_DIR=/home/${USER}.linux # avoid using LIMA_HOME to not override Lima's behaviour.
 export LAUNCHD_NAME=com.abiosoft.${NAME}.plist
-export LAUNCHD_FILE="$HOME/Library/LaunchAgents/$LAUNCHD_NAME"
+export LAUNCHD_AGENTS_DIR="$HOME/Library/LaunchAgents"
+export LAUNCHD_FILE="$LAUNCHD_AGENTS_DIR/$LAUNCHD_NAME"
 export LOG_FILE="$CONF_DIR/out.log"
 
 # configs and flags
@@ -120,7 +121,9 @@ assert_vm_running() (
 launchd_file() (
     FILE="$LAUNCHD_FILE"
     [ -f "$FILE" ] && exit 0
-    [ ! -d "$HOME/Library/LaunchAgents/" ]; then mkdir -p "$HOME/Library/LaunchAgents/"; fi
+
+    # ensure the agent directory exists
+    mkdir -p "$LAUNCHD_AGENTS_DIR"
 
     cat >"$FILE" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -128,7 +131,7 @@ launchd_file() (
 <plist version="1.0">
     <dict>
         <key>Label</key>
-        <string>com.abiosoft.$NAME</string>
+        <string>com.abiosoft.${NAME}</string>
         <key>Program</key>
         <string>$CONF_DIR/socket.sh</string>
         <key>RunAtLoad</key>
