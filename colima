@@ -367,7 +367,7 @@ provision_minikube() (
     if ! run lima command -v minikube; then
         # deps
         stage installing kubernetes dependencies in VM
-        run lima sudo apt -y install conntrack
+        run lima sudo apt -y install conntrack socat
 
         # minikube
         stage downloading minikube
