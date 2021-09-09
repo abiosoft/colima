@@ -61,14 +61,24 @@ commands:
   status
     Show the status of the $NAME VM.
 
-  reset
-    Reset the kubernetes cluster.
-
   version
     Show the version of $NAME.
 
   -h, --help
     Show this help.
+
+  k, kube, kubernetes <command>
+    start
+      Start Kubernetes
+
+    stop
+      Stop Kubernetes
+
+    dashboard
+      Enable the Kubernetes dashboard and print the url.
+
+    reset
+      Reset the kubernetes cluster.
 EOF
     if [ -z "$1" ]; then exit 0; else exit 1; fi
 )
@@ -527,7 +537,80 @@ reset_minikube() (
 )
 
 version() (
+    # app version
     echo $NAME v${VERSION}
+
+    # docker version
+    if run assert_vm_running; then
+        echo
+        echo "Docker"
+        docker version --format 'Client Version: v{{.Client.Version}}{{printf "\n"}}Server Version: v{{.Server.Version}}'
+    fi
+
+    # kubernetes version
+    if kube status; then
+        echo
+        echo "Kubernetes"
+        kubectl --context colima version --short
+    fi
+)
+
+kube_command() (
+    k_usage() {
+        cat <<EOF
+usage: $NAME kubernetes <command>
+
+commands:
+  start
+    Start Kubernetes
+
+  stop
+    Stop Kubernetes
+
+  dashboard
+    Enable the Kubernetes dashboard and print the url.
+
+  reset
+    Reset the kubernetes cluster.
+EOF
+        exit 1
+    }
+    # prevent set -eu from crashing for zero args
+    if [ $# -eq 0 ]; then
+        k_usage
+    fi
+
+    set -eu
+    assert_vm_running
+
+    case "$1" in
+    start)
+        provision_minikube
+        log "done"
+        ;;
+    stop)
+        stage stopping kubernetes
+        stop_minikube
+        log "done"
+        ;;
+    dashboard)
+        kube status || (log kubernetes is not enabled. && exit 1)
+        lima minikube dashboard --url 2>/dev/null
+        ;;
+    reset)
+        reset_minikube
+        ;;
+    -h | --help)
+        k_usage
+        ;;
+    "")
+        k_usage
+        ;;
+    *)
+        echo "invalid arg '$1'. view help with '$NAME kubernetes --help'."
+        ;;
+    esac
+
 )
 
 case "$1" in
@@ -548,8 +631,9 @@ ssh)
 status)
     status
     ;;
-reset)
-    reset_minikube
+k | kube | kubernetes)
+    shift
+    kube_command "$@"
     ;;
 version)
     version
