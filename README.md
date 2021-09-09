@@ -80,7 +80,7 @@ To provide container runtimes on macOS with minimal setup.
 
 The current version is in usable alpha state and provides Docker and Kubernetes using Docker runtime.
 If there is enough interest in the project, the plan is a rewrite in Go with added flexibility to
-support other container runtimes (e.g. containerd/nerdctl, crio/podman).
+support other container runtimes (e.g. containerd/nerdctl, cri-o/podman).
 
 ## What is with the name?
 
@@ -115,7 +115,7 @@ Volumes are thereby made readonly in Colima for now.
 
 Port forwarding are automatic and accessible on the macOS host.
 
-Currently, privileged ports are not forwarded i.e. ports (0-1024). This is a limitation of Lima.
+Currently, privileged ports are not forwarded i.e. ports (1-1023). This is a limitation of Lima.
 
 </p>
 </details>
