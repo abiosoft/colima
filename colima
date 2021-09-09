@@ -55,7 +55,7 @@ commands:
   delete
     Delete and teardown the $NAME VM and settings.
 
-  ssh
+  ssh [args ...]
     SSH into the $NAME VM.
 
   status
@@ -511,7 +511,7 @@ start_vm() (
 lima_ssh() (
     set -eu
     assert_vm_running
-    lima
+    lima "$@"
 )
 
 reset_minikube() (
@@ -542,7 +542,8 @@ delete)
     teardown_vm
     ;;
 ssh)
-    lima_ssh
+    shift
+    lima_ssh "$@"
     ;;
 status)
     status
