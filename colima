@@ -3,7 +3,7 @@
 # app details
 export NAME=colima
 export LIMA_INSTANCE="$NAME"
-export VERSION="0.1.4"
+export VERSION="0.1.5"
 
 # locations
 export CONF_DIR="$HOME/.${NAME}"
