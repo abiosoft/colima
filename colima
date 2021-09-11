@@ -21,6 +21,7 @@ export MEMORY="4"
 export DISK="60"
 export CONF_CHANGED=""
 export ENABLE_KUBERNETES=""
+export ENABLE_COMPOSE_CLI=""
 
 # init
 mkdir -p "$CONF_DIR"
@@ -37,12 +38,13 @@ print_usage() (
 usage: $NAME <command>
 
 commands:
-  start [--with-kubernetes --cpu 2 --memory 4 --disk 60]
+  start [--with-kubernetes --with-compose-cli --cpu 2 --memory 4 --disk 60]
     Start (and/or provision) $NAME VM with docker (and kubernetes
     if --with-kubernetes is passed). 
 
     --with-kubernetes start (and/or provision) Kubernetes.
       Kubernetes requires at least 2 CPUs and 2.3GiB memory.
+    --with-compose-cli intall compose on the host. Then available with a docker compose command
     --cpu is number of CPUs. Defaults to 2.
     --memory is memory in GiB. Defaults to 4.
     --disk is disk size in GiB. Defaults to 60.
@@ -403,6 +405,10 @@ provision_vm() (
         stage provisioning kubernetes
         provision_minikube
     fi
+    if [ -n "$ENABLE_COMPOSE_CLI" ]; then
+        stage install compose CLI plugin
+        install_compose_cli
+    fi
 )
 
 stop_vm() (
@@ -456,6 +462,10 @@ start_vm_args() {
         --with-kubernetes)
             shift
             ENABLE_KUBERNETES="1"
+            ;;
+        --with-compose-cli)
+            shift
+            ENABLE_COMPOSE_CLI="1"
             ;;
         --cpu)
             shift
@@ -611,6 +621,14 @@ EOF
         ;;
     esac
 
+)
+
+install_compose_cli() (
+    if [ ! -f ~/.docker/cli-plugins ]; then 
+        mkdir -p ~/.docker/cli-plugins
+        curl https://gist.githubusercontent.com/thaJeztah/b7950186212a49e91a806689e66b317d/raw/36d4c5854523502deed5b56842b0d34cd6ec0f70/docker-compose-plugin.sh > ~/.docker/cli-plugins/docker-compose 
+        chmod +x ~/.docker/cli-plugins/docker-compose
+    fi
 )
 
 case "$1" in
