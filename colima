@@ -264,7 +264,7 @@ provision_docker() (
 
         # enable buildkit by default.
         # eventually, there should be an easy way to configure Docker.
-        # users may want to set other configs like registeries e.t.c.
+        # users may want to set other configs like registries e.t.c.
         run lima sudo mkdir -p /etc/docker
         run lima sudo sh -c "echo '{\"features\":{\"buildkit\":true}}' > /etc/docker/daemon.json"
     fi
@@ -311,7 +311,7 @@ provision_kubeconfig() (
     # flatten in lima for portability
     lima sh -c "minikube kubectl -- config view --flatten > \"$LIMA_KUBE_DIR/flat-config\""
 
-    # replace unreacheable ip with locahost
+    # replace unreachable ip with localhost
     lima sed -i 's/192.168.5.15:8443/127.0.0.1:8443/' "$LIMA_KUBE_DIR/flat-config"
     # rename to $NAME
     lima sed -i "s/minikube/$NAME/g" "$LIMA_KUBE_DIR/flat-config"
