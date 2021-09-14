@@ -2,21 +2,17 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/abiosoft/colima/config"
 	"github.com/spf13/cobra"
-	"os"
-
 	"github.com/spf13/viper"
+	"os"
 )
-
-const appName = "colima"
-
-var appVersion = "devel"
 
 var cfgFile string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   appName,
+	Use:   config.AppName(),
 	Short: "Docker (and Kubernetes) on macOS with minimal setup",
 	Long:  `Colima provides Docker (and Kubernetes) on macOS with minimal setup.`,
 }

@@ -1,0 +1,24 @@
+arch: "default"
+images:
+  - location: "https://cloud-images.ubuntu.com/hirsute/current/hirsute-server-cloudimg-amd64.img"
+    arch: "x86_64"
+  - location: "https://cloud-images.ubuntu.com/hirsute/current/hirsute-server-cloudimg-arm64.img"
+    arch: "aarch64"
+cpus: {{.CPU}}
+memory: "{{.Memory}}GiB"
+disk: "{{.Disk}}GiB"
+mounts:
+  - location: "~"
+    # CAUTION: writable SHOULD be false for the home directory.
+    # Setting writable to true is possible, but untested and dangerous.
+    writable: false
+  - location: "/tmp/{{.User}}"
+    writable: true
+ssh:
+  localPort: {{.SSHPort}}
+  loadDotSSHPubKeys: false
+containerd:
+  system: false
+  user: false
+firmware:
+  legacyBIOS: false
