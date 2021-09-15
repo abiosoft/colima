@@ -1,5 +1,8 @@
-// Package cruntime is container runtime package
-package cruntime
+package container
+
+import (
+	"github.com/abiosoft/colima/runtime"
+)
 
 // Runtime is container runtime.
 type Runtime interface {
@@ -14,7 +17,6 @@ type Runtime interface {
 	Stop() error
 	// Teardown tears down/uninstall the container runtime.
 	Teardown() error
-	// HostDependencies are dependencies that must exist on the host.
-	// TODO this may need to accommodate non-brew installable dependencies
-	HostDependencies() []string
+
+	runtime.Dependencies
 }

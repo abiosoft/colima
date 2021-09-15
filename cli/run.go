@@ -23,29 +23,3 @@ func NewCommand(command string, args ...string) *exec.Cmd {
 	cmd.Stderr = stderr
 	return cmd
 }
-
-// Controller is the controller for performing actions on the host and guest.
-type Controller interface {
-	Host() HostActions
-	Guest() GuestActions
-}
-
-// RunAction runs commands.
-type RunAction interface {
-	// Run runs command
-	Run(args ...string) error
-}
-
-// HostActions are actions performed on the host.
-type HostActions interface {
-	RunAction
-}
-
-// GuestActions are actions performed on the guest i.e. VM.
-type GuestActions interface {
-	RunAction
-	// Start starts up the VM
-	Start() error
-	// Stop shuts down the VM
-	Stop() error
-}

@@ -2,28 +2,50 @@ package runner
 
 import (
 	"fmt"
-	"github.com/abiosoft/colima/clog"
+	"github.com/abiosoft/colima/log"
 )
 
-// Func is a runner function.
-type Func func() error
+// New creates a new runner instance.
+func New(name string) Instance {
+	return &namedInstance{
+		name: name,
+	}
+}
 
-// New creates a new runner.
-func New(name string, funcs ...Func) *Runner {
+// Instance is a runner instance.
+type Instance interface {
+	// Init initiates a new runner using the current instance.
+	Init() *Runner
+	// Logger returns the instance logger.
+	Logger() *log.Logger
+}
+
+var _ Instance = (*namedInstance)(nil)
+
+type namedInstance struct {
+	name string
+	log  *log.Logger
+}
+
+func (n namedInstance) Logger() *log.Logger {
+	if n.log == nil {
+		n.log = log.New(n.name)
+	}
+	return n.log
+}
+
+func (n namedInstance) Init() *Runner {
 	return &Runner{
-		name:   name,
-		funcs:  funcs,
-		Logger: clog.For(name),
+		Logger: n.Logger(),
 	}
 }
 
 // Runner is function runner. Functions are chained and
 // executed in order.
 type Runner struct {
-	name      string
-	funcs     []Func
+	funcs     []func() error
 	lastStage string
-	*clog.Logger
+	*log.Logger
 }
 
 // Add adds a new function to the runner.
@@ -32,13 +54,13 @@ func (r *Runner) Add(f func() error) {
 }
 
 // Stage sets the current stage of the runner.
-func (r Runner) Stage(s string) {
+func (r *Runner) Stage(s string) {
 	r.Println(s, "...")
 	r.lastStage = s
 }
 
 // Stagef is like stage with string format.
-func (r Runner) Stagef(format string, s ...interface{}) {
+func (r *Runner) Stagef(format string, s ...interface{}) {
 	f := fmt.Sprintf(format, s...)
 	r.Stage(f)
 }

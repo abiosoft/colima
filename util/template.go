@@ -1,4 +1,4 @@
-package cutil
+package util
 
 import (
 	"bytes"

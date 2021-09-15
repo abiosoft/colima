@@ -1,16 +1,15 @@
 package docker
 
 import (
-	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/cli/runner"
-	"github.com/abiosoft/colima/clog"
 	"github.com/abiosoft/colima/config"
-	"github.com/abiosoft/colima/cruntime"
+	"github.com/abiosoft/colima/runtime"
+	"github.com/abiosoft/colima/runtime/container"
 	"os"
 	"path/filepath"
 )
 
-var _ cruntime.Runtime = (*Docker)(nil)
+var _ container.Runtime = (*Docker)(nil)
 
 const (
 	dockerSocket = "/var/run/docker.sock"
@@ -21,8 +20,16 @@ func dockerSocketSymlink() string {
 }
 
 type Docker struct {
-	c   cli.Controller
-	log *clog.Logger
+	c runtime.Controller
+	runner.Instance
+}
+
+// New creates a new docker runtime.
+func New(controller runtime.Controller) container.Runtime {
+	return &Docker{
+		c:        controller,
+		Instance: runner.New("docker"),
+	}
 }
 
 func (d Docker) Name() string {
@@ -40,7 +47,7 @@ func (d Docker) isUserPermissionFixed() bool {
 }
 
 func (d Docker) Provision() error {
-	r := d.newRunner()
+	r := d.Init()
 	r.Stage("provisioning")
 
 	// check installation
@@ -69,7 +76,7 @@ func (d Docker) Provision() error {
 }
 
 func (d Docker) Start() error {
-	r := d.newRunner()
+	r := d.Init()
 	r.Stage("starting")
 
 	r.Add(func() error {
@@ -83,7 +90,7 @@ func (d Docker) Start() error {
 }
 
 func (d Docker) Stop() error {
-	r := d.newRunner()
+	r := d.Init()
 	r.Stage("stopping")
 
 	r.Add(func() error {
@@ -97,7 +104,7 @@ func (d Docker) Stop() error {
 }
 
 func (d Docker) Teardown() error {
-	r := d.newRunner()
+	r := d.Init()
 	r.Stage("teardown")
 
 	if stat, err := os.Stat(launchdFile()); err == nil && !stat.IsDir() {
@@ -109,8 +116,6 @@ func (d Docker) Teardown() error {
 	return r.Run()
 }
 
-func (d Docker) HostDependencies() []string {
+func (d Docker) Dependencies() []string {
 	return []string{"docker"}
 }
-
-func (d Docker) newRunner() *runner.Runner { return runner.New(d.Name()) }

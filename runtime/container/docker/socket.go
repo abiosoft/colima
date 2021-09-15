@@ -4,7 +4,7 @@ import (
 	_ "embed"
 	"fmt"
 	"github.com/abiosoft/colima/config"
-	"github.com/abiosoft/colima/cutil"
+	"github.com/abiosoft/colima/util"
 	"os"
 	"path/filepath"
 )
@@ -35,7 +35,7 @@ func createSocketForwardingScript() error {
 		SSHPort    int
 	}{SocketFile: dockerSocketSymlink(), SSHPort: config.SSHPort()}
 
-	err := cutil.WriteTemplate(socketForwardingScript, scriptFile, values)
+	err := util.WriteTemplate(socketForwardingScript, scriptFile, values)
 	if err != nil {
 		return fmt.Errorf("error writing socket forwarding script: %w", err)
 	}
@@ -49,7 +49,7 @@ func createSocketForwardingScript() error {
 }
 
 func launchdDir() string {
-	home := cutil.HomeDir()
+	home := util.HomeDir()
 	return filepath.Join(home, "Library", "LaunchAgents")
 }
 
@@ -80,7 +80,7 @@ func createLaunchdScript() error {
 		SocketFile string
 	}{Package: packageName, SocketFile: socketForwardingScriptFile()}
 
-	if err := cutil.WriteTemplate(socketLaunchdScript, launchdScriptFile, values); err != nil {
+	if err := util.WriteTemplate(socketLaunchdScript, launchdScriptFile, values); err != nil {
 		return fmt.Errorf("error writing launchd file: %w", err)
 	}
 

@@ -2,18 +2,20 @@ package vm
 
 import (
 	_ "embed"
-	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/cli/runner"
 	"github.com/abiosoft/colima/config"
-	"github.com/abiosoft/colima/cutil"
+	"github.com/abiosoft/colima/runtime"
+	"github.com/abiosoft/colima/runtime/host"
+	"github.com/abiosoft/colima/util"
 	"os"
 	"path/filepath"
 )
 
-type VM interface {
-	cli.GuestActions
+// Runtime is virtual machine runtime.
+type Runtime interface {
+	runtime.GuestActions
+	runtime.Dependencies
 	Teardown() error
-	Host() cli.HostActions
 }
 
 type Config struct {
@@ -26,15 +28,15 @@ type Config struct {
 	Changed bool
 }
 
-// New creates a new VM.
-func New(c Config) VM {
+// New creates a new virtual machine Runtime.
+func New(c Config) Runtime {
 	env := []string{limaInstanceEnvVar + "=" + config.AppName()}
 
 	// consider making this truly flexible to support other VMs
 	return &limaVM{
-		conf: c,
-		r:    runner.New("vm"),
-		host: host{env: env},
+		conf:     c,
+		host:     host.New(env),
+		Instance: runner.New("vm"),
 	}
 }
 
@@ -45,7 +47,7 @@ const (
 )
 
 func limaConfDir() string {
-	home := cutil.HomeDir()
+	home := util.HomeDir()
 	return filepath.Join(home, ".lima", config.AppName())
 }
 
@@ -57,67 +59,75 @@ func isConfigured() bool {
 //go:embed vm.yaml
 var limaConf string
 
-var _ VM = (*limaVM)(nil)
+var _ Runtime = (*limaVM)(nil)
 
 type limaVM struct {
 	conf Config
-	r    *runner.Runner
-	host cli.HostActions
+	host runtime.HostActions
+	runner.Instance
+}
+
+func (l limaVM) Dependencies() []string {
+	return []string{
+		"lima",
+	}
 }
 
 func (l limaVM) Start() error {
+	r := l.Init()
 
 	if isConfigured() {
 		return l.resume()
 	}
 
-	l.r.Stage("creating and starting")
+	r.Stage("creating and starting")
 
 	configFile := "colima.yaml"
 
 	var values = struct {
 		Config
 		User string
-	}{Config: l.conf, User: cutil.User()}
+	}{Config: l.conf, User: util.User()}
 
-	l.r.Add(func() error {
-		return cutil.WriteTemplate(limaConf, configFile, values)
+	r.Add(func() error {
+		return util.WriteTemplate(limaConf, configFile, values)
 	})
-	l.r.Add(func() error {
+	r.Add(func() error {
 		return l.host.Run(limactl, "start", "--tty=false", configFile)
 	})
-	l.r.Add(func() error {
+	r.Add(func() error {
 		return os.Remove(configFile)
 	})
 
-	return l.r.Run()
+	return r.Run()
 }
 
 func (l limaVM) resume() error {
+	r := l.Init()
 	if l.isRunning() {
-		l.r.Println("already running")
+		r.Println("already running")
 		return nil
 	}
 
 	if l.conf.Changed {
-		l.r.Stage("config change detected, updating")
+		r.Stage("config change detected, updating")
 		configFile := filepath.Join(limaConfDir(), "lima.yaml")
 
 		var values = struct {
 			Config
 			User string
-		}{Config: l.conf, User: cutil.User()}
+		}{Config: l.conf, User: util.User()}
 
-		l.r.Add(func() error {
-			return cutil.WriteTemplate(limaConf, configFile, values)
+		r.Add(func() error {
+			return util.WriteTemplate(limaConf, configFile, values)
 		})
 	}
 
-	l.r.Stage("starting")
-	l.r.Add(func() error {
+	r.Stage("starting")
+	r.Add(func() error {
 		return l.host.Run(limactl, "start")
 	})
-	return l.r.Run()
+	return r.Run()
 }
 
 func (l limaVM) isRunning() bool {
@@ -125,50 +135,41 @@ func (l limaVM) isRunning() bool {
 }
 
 func (l limaVM) Stop() error {
-	l.r.Stage("stopping")
+	r := l.Init()
 
-	l.r.Add(func() error {
+	r.Stage("stopping")
+
+	r.Add(func() error {
 		return l.host.Run(limactl, "stop")
 	})
 
-	return l.r.Run()
+	return r.Run()
 }
 
 func (l limaVM) Teardown() error {
-	l.r.Stage("deleting")
+	r := l.Init()
 
-	l.r.Add(func() error {
+	r.Stage("deleting")
+
+	r.Add(func() error {
 		return l.host.Run(limactl, "delete", config.AppName())
 	})
 
-	return l.r.Run()
+	return r.Run()
 }
 
 func (l limaVM) Run(args ...string) error {
 	args = append([]string{lima}, args...)
 
-	l.r.Add(func() error {
+	r := l.Init()
+
+	r.Add(func() error {
 		return l.host.Run(args...)
 	})
 
-	return l.r.Run()
+	return r.Run()
 }
 
-func (l limaVM) Host() cli.HostActions {
+func (l limaVM) Host() runtime.HostActions {
 	return l.host
-}
-
-var _ cli.HostActions = (*host)(nil)
-
-type host struct {
-	env []string
-}
-
-func (h host) Run(args ...string) error {
-	if len(args) == 0 {
-		return nil
-	}
-	cmd := cli.NewCommand(args[0], args[1:]...)
-	cmd.Env = append(os.Environ(), h.env...)
-	return cmd.Run()
 }

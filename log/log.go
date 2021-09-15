@@ -1,4 +1,4 @@
-package clog
+package log
 
 import (
 	"fmt"
@@ -19,14 +19,11 @@ func defaultOpt() lineprefix.Option {
 	})
 }
 
-// New creates a new logger.
-func New() *Logger {
+// New creates a new logger for s.
+func New(prefix string) *Logger {
 	writer := lineprefix.New(defaultOpt())
-	return &Logger{Logger: log.New(writer, "", 0)}
-}
-
-// For creates a new logger for s.
-func For(s string) *Logger {
-	writer := lineprefix.New(defaultOpt(), lineprefix.Prefix(s+":"))
+	if prefix != "" {
+		writer = lineprefix.New(defaultOpt(), lineprefix.Prefix(prefix+":"))
+	}
 	return &Logger{Logger: log.New(writer, "", 0)}
 }

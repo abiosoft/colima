@@ -2,12 +2,13 @@ package docker
 
 import (
 	"fmt"
-	"github.com/abiosoft/colima/cutil"
+	"github.com/abiosoft/colima/util"
 )
 
 func (d Docker) setupSocketSymlink() error {
+	log := d.Logger()
 	// remove existing socket (if any)
-	d.log.Println("sudo password may be required to set up docker socket")
+	log.Println("sudo password may be required to set up docker socket")
 	err := d.c.Host().Run("sudo", "rm", "-rf", dockerSocket)
 	if err != nil {
 		return fmt.Errorf("error setting up socket: %w", err)
@@ -30,6 +31,7 @@ func (d Docker) setupInVM() error {
 	// enable buildkit by default.
 	// eventually, there should be an easy way to configure Docker.
 	// users may want to set other configs like registries e.t.c.
+
 	err = d.c.Guest().Run("sudo", "mkdir", "-p", "/etc/docker")
 	if err != nil {
 		return fmt.Errorf("error setting up default config: %w", err)
@@ -44,7 +46,7 @@ func (d Docker) setupInVM() error {
 }
 
 func (d Docker) fixUserPermission() error {
-	err := d.c.Guest().Run("sudo", "usermod", "-aG", "docker", cutil.User())
+	err := d.c.Guest().Run("sudo", "usermod", "-aG", "docker", util.User())
 	if err != nil {
 		return fmt.Errorf("error fixing user permission: %w", err)
 	}
