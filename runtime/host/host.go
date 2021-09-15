@@ -3,7 +3,7 @@ package host
 import (
 	"errors"
 	"fmt"
-	"github.com/abiosoft/colima/cli"
+	"github.com/abiosoft/colima/runner"
 	"github.com/abiosoft/colima/runtime"
 	"strings"
 )
@@ -28,7 +28,7 @@ func (h host) Run(args ...string) error {
 	if len(args) == 0 {
 		return errors.New("args not specified")
 	}
-	cmd := cli.NewCommand(args[0], args[1:]...)
+	cmd := runner.Command(args[0], args[1:]...)
 	cmd.Env = append(cmd.Env, h.env...)
 	return cmd.Run()
 }

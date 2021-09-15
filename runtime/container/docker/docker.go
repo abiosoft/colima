@@ -1,8 +1,8 @@
 package docker
 
 import (
-	"github.com/abiosoft/colima/cli/runner"
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/runner"
 	"github.com/abiosoft/colima/runtime"
 	"github.com/abiosoft/colima/runtime/container"
 	"os"
