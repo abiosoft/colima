@@ -250,15 +250,16 @@ stop_docker() (
 )
 
 provision_docker() (
-    # check docker installation
-    if ! run lima command -v docker; then
-        # socket
+    # check docker socket
+    if [ "$(readlink /var/run/docker.sock)" != "$CONF_DIR/docker.sock" ]; then
         stage sudo password may be required to set up docker socket
         sudo rm -rf /var/run/docker.sock
         sudo ln -s "$CONF_DIR/docker.sock" /var/run/docker.sock
         log docker socket setup successful
+    fi
 
-        # docker
+    # check docker installation
+    if ! run lima command -v docker; then
         stage provisioning docker in VM
         run lima sudo apt -y install docker.io
 
