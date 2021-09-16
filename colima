@@ -282,6 +282,7 @@ provision_docker() (
         # reset vm for user docker group to reflect
         stage restarting VM to complete docker setup
         run limactl stop $NAME
+        sleep 2
         run limactl start $NAME
         log VM restarted
     fi
