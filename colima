@@ -174,9 +174,10 @@ rm -rf "$CONF_DIR/docker.sock"
 ssh -p $SSH_PORT \
     -i ~/.lima/_config/user \
     -o IdentitiesOnly=yes \
+    -F /dev/null \
     -o NoHostAuthenticationForLocalhost=yes \
     -L "$CONF_DIR/docker.sock":/var/run/docker.sock \
-    -N 127.0.0.1
+    -N "127.0.0.1"
 EOF
     chmod +x "$FILE"
 )
