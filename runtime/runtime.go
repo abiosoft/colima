@@ -6,6 +6,25 @@ type Controller interface {
 	Guest() GuestActions
 }
 
+// ControllerFrom creates a new controller using host and guest.
+func ControllerFrom(host HostActions, guest GuestActions) Controller {
+	return &controller{
+		host:  host,
+		guest: guest,
+	}
+}
+
+var _ Controller = (*controller)(nil)
+
+type controller struct {
+	host  HostActions
+	guest GuestActions
+}
+
+func (c controller) Host() HostActions { return c.host }
+
+func (c controller) Guest() GuestActions { return c.guest }
+
 // RunAction runs commands.
 type RunAction interface {
 	// Run runs command
@@ -15,7 +34,6 @@ type RunAction interface {
 // HostActions are actions performed on the host.
 type HostActions interface {
 	RunAction
-	IsInstalled(Dependencies) error
 }
 
 // GuestActions are actions performed on the guest i.e. VM.

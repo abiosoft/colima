@@ -9,11 +9,12 @@ import (
 	"path/filepath"
 )
 
+const (
+	socket = "/var/run/docker.sock"
+)
+
 //go:embed socket.sh
 var socketForwardingScript string
-
-//go:embed socket.plist
-var socketLaunchdScript string
 
 func socketForwardingScriptFile() string {
 	return filepath.Join(config.Dir(), "socket.sh")
@@ -33,7 +34,7 @@ func createSocketForwardingScript() error {
 	var values = struct {
 		SocketFile string
 		SSHPort    int
-	}{SocketFile: dockerSocketSymlink(), SSHPort: config.SSHPort()}
+	}{SocketFile: socketSymlink(), SSHPort: config.SSHPort()}
 
 	err := util.WriteTemplate(socketForwardingScript, scriptFile, values)
 	if err != nil {
@@ -43,45 +44,6 @@ func createSocketForwardingScript() error {
 	// make executable
 	if err := os.Chmod(scriptFile, 0755); err != nil {
 		return err
-	}
-
-	return nil
-}
-
-func launchdDir() string {
-	home := util.HomeDir()
-	return filepath.Join(home, "Library", "LaunchAgents")
-}
-
-func launchdPackage() string {
-	return "com.abiosoft." + config.AppName()
-}
-
-func launchdFile() string {
-	return filepath.Join(launchdDir(), launchdPackage())
-}
-
-func createLaunchdScript() error {
-	if err := os.MkdirAll(launchdDir(), 0755); err != nil {
-		return fmt.Errorf("error creating launchd directory: %w", err)
-	}
-	packageName := launchdPackage()
-	launchdScriptFile := filepath.Join(launchdDir(), packageName)
-
-	if stat, err := os.Stat(launchdScriptFile); err != nil {
-		if stat.IsDir() {
-			return fmt.Errorf("launchd file: directory not expected at '%s'", launchdScriptFile)
-		}
-		return nil
-	}
-
-	var values = struct {
-		Package    string
-		SocketFile string
-	}{Package: packageName, SocketFile: socketForwardingScriptFile()}
-
-	if err := util.WriteTemplate(socketLaunchdScript, launchdScriptFile, values); err != nil {
-		return fmt.Errorf("error writing launchd file: %w", err)
 	}
 
 	return nil

@@ -15,6 +15,7 @@ import (
 type Runtime interface {
 	runtime.GuestActions
 	runtime.Dependencies
+	Host() runtime.HostActions
 	Teardown() error
 }
 
@@ -28,8 +29,29 @@ type Config struct {
 	Changed bool
 }
 
+// default VM configs
+const (
+	defaultCPU    = 2
+	defaultMemory = 4
+	defaultDisk   = 60
+)
+
+func (c *Config) setDefaults() {
+	if c.CPU == 0 {
+		c.CPU = defaultCPU
+	}
+	if c.Memory == 0 {
+		c.Memory = defaultMemory
+	}
+	if c.Disk == 0 {
+		c.Disk = defaultDisk
+	}
+	c.SSHPort = config.SSHPort()
+}
+
 // New creates a new virtual machine Runtime.
 func New(c Config) Runtime {
+	c.setDefaults()
 	env := []string{limaInstanceEnvVar + "=" + config.AppName()}
 
 	// consider making this truly flexible to support other VMs
@@ -104,6 +126,7 @@ func (l limaVM) Start() error {
 
 func (l limaVM) resume() error {
 	r := l.Init()
+
 	if l.isRunning() {
 		r.Println("already running")
 		return nil
@@ -127,6 +150,7 @@ func (l limaVM) resume() error {
 	r.Add(func() error {
 		return l.host.Run(limactl, "start")
 	})
+
 	return r.Run()
 }
 

@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-
+	"github.com/abiosoft/colima/config"
 	"github.com/spf13/cobra"
 )
 
@@ -12,7 +12,9 @@ var versionCmd = &cobra.Command{
 	Short: "Print the version of Colima",
 	Long:  `Print the version of Colima`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("version called")
+		name := config.AppName()
+		version := config.AppVersion()
+		fmt.Println(name, "version", version)
 	},
 }
 

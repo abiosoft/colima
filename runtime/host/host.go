@@ -34,10 +34,10 @@ func (h host) Run(args ...string) error {
 }
 
 // IsInstalled checks if dependencies are installed.
-func (h host) IsInstalled(dependencies runtime.Dependencies) error {
+func IsInstalled(dependencies runtime.Dependencies) error {
 	var missing []string
 	check := func(p string) error {
-		return h.Run("command", "-v", p)
+		return runner.Command("command", "-v", p).Run()
 	}
 	for _, p := range dependencies.Dependencies() {
 		if check(p) != nil {

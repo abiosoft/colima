@@ -41,3 +41,24 @@ func init() {
 	}
 	configDir = dir
 }
+
+// Config is the application config.
+type Config struct {
+	// VM is virtual machine configuration.
+	VM struct {
+		CPU    int      `yaml:"cpu"`
+		Disk   int      `yaml:"disk"`
+		Memory int      `yaml:"memory"`
+		DNS    []string `yaml:"dns"` // DNS nameservers
+		Env    []string `yaml:"env"` // environment variables
+	} `yaml:"vm"`
+
+	// Runtime is one of docker, containerd.
+	Runtime string `yaml:"runtime"`
+
+	// Kubernetes sets if kubernetes should be enabled.
+	Kubernetes bool `yaml:"kubernetes"`
+
+	// true when user changes config with flag
+	Changed bool `yaml:"-"`
+}
