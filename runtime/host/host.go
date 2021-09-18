@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/abiosoft/colima/runner"
 	"github.com/abiosoft/colima/runtime"
+	"os"
 	"strings"
 )
 
@@ -14,22 +15,30 @@ type Runtime interface {
 }
 
 // New creates a new host runtime using env as environment variables.
-func New(env []string) Runtime {
-	return &host{env: env}
+func New() Runtime {
+	return &hostRuntime{}
 }
 
-var _ Runtime = (*host)(nil)
+var _ Runtime = (*hostRuntime)(nil)
 
-type host struct {
+type hostRuntime struct {
 	env []string
 }
 
-func (h host) Run(args ...string) error {
+func (h hostRuntime) WithEnv(env []string) runtime.HostActions {
+	var newHost hostRuntime
+	// use current and new env vars
+	newHost.env = append(newHost.env, h.env...)
+	newHost.env = append(newHost.env, env...)
+	return newHost
+}
+
+func (h hostRuntime) Run(args ...string) error {
 	if len(args) == 0 {
 		return errors.New("args not specified")
 	}
 	cmd := runner.Command(args[0], args[1:]...)
-	cmd.Env = append(cmd.Env, h.env...)
+	cmd.Env = append(os.Environ(), h.env...)
 	return cmd.Run()
 }
 

@@ -8,10 +8,10 @@ import (
 var stdout = os.Stdout
 var stderr = os.Stderr
 
-// Stdout sets the stdout.
+// Stdout sets the stdout for commands.
 func Stdout(file *os.File) { stdout = file }
 
-// Stderr sets the stderr.
+// Stderr sets the stderr for commands.
 func Stderr(file *os.File) { stderr = file }
 
 // Command creates a new command.

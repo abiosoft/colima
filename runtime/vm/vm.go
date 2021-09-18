@@ -5,7 +5,6 @@ import (
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/runner"
 	"github.com/abiosoft/colima/runtime"
-	"github.com/abiosoft/colima/runtime/host"
 	"github.com/abiosoft/colima/util"
 	"os"
 	"path/filepath"
@@ -50,14 +49,14 @@ func (c *Config) setDefaults() {
 }
 
 // New creates a new virtual machine Runtime.
-func New(c Config) Runtime {
+func New(host runtime.HostActions, c Config) Runtime {
 	c.setDefaults()
 	env := []string{limaInstanceEnvVar + "=" + config.AppName()}
 
 	// consider making this truly flexible to support other VMs
 	return &limaVM{
 		conf:     c,
-		host:     host.New(env),
+		host:     host.WithEnv(env),
 		Instance: runner.New("vm"),
 	}
 }

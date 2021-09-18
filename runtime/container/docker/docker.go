@@ -16,19 +16,21 @@ func socketSymlink() string {
 }
 
 type dockerRuntime struct {
-	runtime.Controller
+	host  runtime.HostActions
+	guest runtime.GuestActions
 	runner.Instance
 	launchd launchAgent
 }
 
 // New creates a new docker runtime.
-func New(controller runtime.Controller) container.Runtime {
+func New(host runtime.HostActions, guest runtime.GuestActions) container.Runtime {
 	launchdPkg := "com.abiosoft." + config.AppName()
 
 	return &dockerRuntime{
-		Controller: controller,
-		Instance:   runner.New("docker"),
-		launchd:    launchAgent(launchdPkg),
+		host:     host,
+		guest:    guest,
+		Instance: runner.New("docker"),
+		launchd:  launchAgent(launchdPkg),
 	}
 }
 
@@ -37,12 +39,12 @@ func (d dockerRuntime) Name() string {
 }
 
 func (d dockerRuntime) isInstalled() bool {
-	err := d.Guest().Run("command", "-v", "docker")
+	err := d.guest.Run("command", "-v", "docker")
 	return err == nil
 }
 
 func (d dockerRuntime) isUserPermissionFixed() bool {
-	err := d.Guest().Run("sh", "-c", `getent group docker | grep "\b${USER}\b"`)
+	err := d.guest.Run("sh", "-c", `getent group docker | grep "\b${USER}\b"`)
 	return err == nil
 }
 
@@ -64,8 +66,8 @@ func (d dockerRuntime) Provision() error {
 		r.Add(d.fixUserPermission)
 
 		r.Stage("restarting VM to complete setup")
-		r.Add(d.Guest().Stop)
-		r.Add(d.Guest().Start)
+		r.Add(d.guest.Stop)
+		r.Add(d.guest.Start)
 	}
 
 	// socket file/launchd
@@ -80,10 +82,10 @@ func (d dockerRuntime) Start() error {
 	r.Stage("starting")
 
 	r.Add(func() error {
-		return d.Guest().Run("sudo", "service", "docker", "start")
+		return d.guest.Run("sudo", "service", "docker", "start")
 	})
 	r.Add(func() error {
-		return d.Host().Run("launchctl", "load", d.launchd.File())
+		return d.host.Run("launchctl", "load", d.launchd.File())
 	})
 
 	return r.Run()
@@ -94,10 +96,10 @@ func (d dockerRuntime) Stop() error {
 	r.Stage("stopping")
 
 	r.Add(func() error {
-		return d.Guest().Run("service", "docker", "status")
+		return d.guest.Run("service", "docker", "status")
 	})
 	r.Add(func() error {
-		return d.Host().Run("launchctl", "unload", d.launchd.File())
+		return d.host.Run("launchctl", "unload", d.launchd.File())
 	})
 
 	return r.Run()
@@ -109,7 +111,7 @@ func (d dockerRuntime) Teardown() error {
 
 	if stat, err := os.Stat(d.launchd.File()); err == nil && !stat.IsDir() {
 		r.Add(func() error {
-			return d.Host().Run("launchctl", "unload", d.launchd.File())
+			return d.host.Run("launchctl", "unload", d.launchd.File())
 		})
 	}
 
