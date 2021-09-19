@@ -8,7 +8,6 @@ export VERSION="0.1.9"
 # locations
 export CONF_DIR="$HOME/.${NAME}"
 export LIMA_DIR="$HOME/.lima/$NAME"
-export LIMA_HOME_DIR=/home/${USER}.linux # avoid using LIMA_HOME to not override Lima's behaviour.
 export LAUNCHD_NAME=com.abiosoft.${NAME}.plist
 export LAUNCHD_AGENTS_DIR="$HOME/Library/LaunchAgents"
 export LAUNCHD_FILE="$LAUNCHD_AGENTS_DIR/$LAUNCHD_NAME"
@@ -21,6 +20,10 @@ export MEMORY="4"
 export DISK="60"
 export CONF_CHANGED=""
 export ENABLE_KUBERNETES=""
+
+# derived values
+vm_user() (lima whoami)
+vm_home() (lima echo "\$HOME")
 
 # init
 mkdir -p "$CONF_DIR"
@@ -168,10 +171,12 @@ socket_file() (
     FILE="$CONF_DIR"/socket.sh
     if [ -f "$FILE" ]; then exit 0; fi
 
+    LIMA_USER="$(vm_user)"
     cat >"$FILE" <<EOF
 #!/usr/bin/env bash
 rm -rf "$CONF_DIR/docker.sock"
 ssh -p $SSH_PORT \
+    -l "$LIMA_USER" \
     -i ~/.lima/_config/user \
     -o IdentitiesOnly=yes \
     -F /dev/null \
@@ -277,8 +282,9 @@ provision_docker() (
     fi
 
     # verify and fix user docker permission
-    if ! run lima sh -c "getent group docker | grep \"\b${USER}\b\""; then
-        run lima sudo usermod -aG docker "$USER"
+    LIMA_USER="$(vm_user)"
+    if ! run lima sh -c "getent group docker | grep \"\b${LIMA_USER}\b\""; then
+        run lima sudo usermod -aG docker "$LIMA_USER"
         # reset vm for user docker group to reflect
         stage restarting VM to complete docker setup
         run limactl stop $NAME
@@ -313,7 +319,7 @@ provision_kubeconfig() (
 
     # kube config
     HOST_KUBE_DIR="$HOME/.kube"
-    LIMA_KUBE_DIR="$LIMA_HOME_DIR/.kube"
+    LIMA_KUBE_DIR="$(vm_home)/.kube"
     mkdir -p "$HOST_KUBE_DIR"
 
     # flatten in lima for portability
