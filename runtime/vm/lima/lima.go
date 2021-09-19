@@ -95,7 +95,7 @@ func (l limaVM) resume() error {
 
 	r.Stage("starting")
 	r.Add(func() error {
-		return l.host.Run(limactl, "start")
+		return l.host.Run(limactl, "start", config.AppName())
 	})
 
 	return r.Exec()
@@ -111,7 +111,7 @@ func (l limaVM) Stop() error {
 	r.Stage("stopping")
 
 	r.Add(func() error {
-		return l.host.Run(limactl, "stop")
+		return l.host.Run(limactl, "stop", config.AppName())
 	})
 
 	return r.Exec()

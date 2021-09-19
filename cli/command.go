@@ -30,7 +30,7 @@ func DryRun(d bool) {
 func Stdout(file *os.File) { runner.Stdout(file) }
 
 // Stderr sets the stderr for commands.
-func Stderr(file *os.File) { runner.Stdout(file) }
+func Stderr(file *os.File) { runner.Stderr(file) }
 
 // Command creates a new command.
 func Command(command string, args ...string) *exec.Cmd { return runner.Command(command, args...) }

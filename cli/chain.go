@@ -12,6 +12,11 @@ func New(name string) CommandChain {
 	}
 }
 
+type cFunc struct {
+	f func() error
+	s string
+}
+
 // CommandChain is a chain of commands.
 // commands are executed in order.
 type CommandChain interface {
@@ -43,20 +48,19 @@ func (n namedInstance) Init() *ActiveCommandChain {
 
 // ActiveCommandChain is an active command chain.
 type ActiveCommandChain struct {
-	funcs     []func() error
+	funcs     []cFunc
 	lastStage string
 	*log.Logger
 }
 
 // Add adds a new function to the runner.
 func (r *ActiveCommandChain) Add(f func() error) {
-	r.funcs = append(r.funcs, f)
+	r.funcs = append(r.funcs, cFunc{f: f})
 }
 
 // Stage sets the current stage of the runner.
 func (r *ActiveCommandChain) Stage(s string) {
-	r.Println(s, "...")
-	r.lastStage = s
+	r.funcs = append(r.funcs, cFunc{s: s})
 }
 
 // Stagef is like stage with string format.
@@ -70,11 +74,15 @@ func (r *ActiveCommandChain) Stagef(format string, s ...interface{}) {
 // error is returned. Otherwise, returns nil.
 func (r ActiveCommandChain) Exec() error {
 	for _, f := range r.funcs {
-		if f == nil {
+		if f.f == nil {
+			if f.s != "" {
+				r.Println(f.s, "...")
+				r.lastStage = f.s
+			}
 			continue
 		}
 
-		err := f()
+		err := f.f()
 		if err == nil {
 			continue
 		}
