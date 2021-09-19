@@ -14,10 +14,12 @@ type App interface {
 	Start() error
 	Stop() error
 	Delete() error
+	SSH(...string) error
 }
 
 var _ App = (*colimaApp)(nil)
 
+// New creates a new app.
 func New(c config.Config) (App, error) {
 	vmConfig := vm.Config{
 		CPU:     c.VM.CPU,
@@ -50,7 +52,7 @@ type colimaApp struct {
 
 func (c colimaApp) Start() error {
 	// the order for start is:
-	//   vm start -> container provision -> container start
+	//   vm start -> container runtime provision -> container runtime start
 
 	// start vm
 	if err := c.guest.Start(); err != nil {
@@ -78,12 +80,12 @@ func (c colimaApp) Stop() error {
 	// the order for stop is:
 	//   container stop -> vm stop
 
-	// stop containers
+	// stop container runtimes
 	for _, cont := range c.containers {
 		if err := cont.Stop(); err != nil {
 			// failure to stop a container runtime is not fatal
 			// it is only meant for graceful shutdown.
-			// the VM will shutdown anyways.
+			// the VM will shut down anyways.
 			log.Println(fmt.Errorf("error stopping %s: %w", cont.Name(), err))
 		}
 	}
@@ -101,9 +103,10 @@ func (c colimaApp) Delete() error {
 	//   container teardown -> vm teardown
 
 	// vm teardown would've sufficed but container provision
-	// may have created files on the host.
+	// may have created configurations on the host.
 	// it is essential to teardown containers as well.
 
+	// teardown container runtimes
 	for _, cont := range c.containers {
 		if err := cont.Teardown(); err != nil {
 			// failure here is not fatal
@@ -111,9 +114,14 @@ func (c colimaApp) Delete() error {
 		}
 	}
 
+	// teardown vm
 	if err := c.guest.Teardown(); err != nil {
 		return fmt.Errorf("error during teardown of vm: %w", err)
 	}
 
 	return nil
+}
+
+func (c colimaApp) SSH(args ...string) error {
+	return c.guest.Run(args...)
 }

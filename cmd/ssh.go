@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 )
 
@@ -13,9 +11,9 @@ var sshCmd = &cobra.Command{
 	Long: `SSH into the VM.
 
 Appending with any additional command runs the command instead.
-e.g. 'colima ssh htop' will run htop'`,
+e.g. 'colima ssh htop' will run htop`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("ssh called")
+		cobra.CheckErr(app.SSH(args...))
 	},
 }
 

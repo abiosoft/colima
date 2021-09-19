@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/abiosoft/colima"
 	"github.com/abiosoft/colima/config"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -24,10 +25,15 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
+	cobra.OnInitialize(
+		initConfig,
+		initApp,
+	)
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.colima.yaml)")
 }
+
+var app colima.App
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
@@ -51,4 +57,12 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	}
+
+}
+
+func initApp() {
+	var c config.Config
+	var err error
+	app, err = colima.New(c)
+	cobra.CheckErr(err)
 }
