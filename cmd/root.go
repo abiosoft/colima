@@ -23,12 +23,18 @@ func Execute() {
 }
 
 func init() {
+	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", dryRun, "perform a dry run instead")
+
+	// decide if this should be public
+	//rootCmd.PersistentFlags().MarkHidden("dry-run")
+
 	cobra.OnInitialize(
 		initLog,
 		initApp,
 	)
 }
 
+var dryRun bool
 var app colima.App
 
 func initLog() {
@@ -39,8 +45,12 @@ func initLog() {
 	out, err := os.OpenFile(config.LogFile(), os.O_CREATE|os.O_RDWR, 0644)
 	cobra.CheckErr(err)
 
+	if dryRun {
+		cli.DryRun(dryRun)
+	}
 	cli.Stdout(out)
 	cli.Stderr(out)
+
 }
 
 func initApp() {

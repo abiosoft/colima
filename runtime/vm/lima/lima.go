@@ -153,6 +153,20 @@ func (l limaVM) RunInteractive(args ...string) error {
 	return r.Exec()
 }
 
+func (l limaVM) RunOutput(args ...string) (out string, err error) {
+	args = append([]string{lima}, args...)
+
+	r := l.Init()
+
+	r.Add(func() (err error) {
+		out, err = l.host.RunOutput(args...)
+		return
+	})
+
+	err = r.Exec()
+	return
+}
+
 func (l limaVM) Host() runtime.HostActions {
 	return l.host
 }

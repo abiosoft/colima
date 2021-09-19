@@ -4,6 +4,8 @@ package runtime
 type runAction interface {
 	// Run runs command
 	Run(args ...string) error
+	// RunOutput runs command and returns its output.
+	RunOutput(args ...string) (string, error)
 	// RunInteractive runs command interactively.
 	RunInteractive(args ...string) error
 }

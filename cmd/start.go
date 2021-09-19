@@ -20,7 +20,7 @@ Kubernetes requires at least 2 CPUs and 2.3GiB memory.
 For verbose output, tail the log file "~/Library/Application Support/colima/out.log".
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		app.Start()
+		cobra.CheckErr(app.Start())
 	},
 }
 

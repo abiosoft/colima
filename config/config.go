@@ -38,11 +38,11 @@ func LogFile() string {
 func init() {
 	{
 		// prepare config directory
-		dir, err := os.UserConfigDir()
+		dir, err := os.UserHomeDir()
 		if err != nil {
 			log.Fatal(fmt.Errorf("cannot fetch user config directory: %w", err))
 		}
-		configDir = filepath.Join(dir, appName)
+		configDir = filepath.Join(dir, "."+appName)
 		if err := os.MkdirAll(configDir, 0755); err != nil {
 			log.Fatal(fmt.Errorf("cannot create config directory: %w", err))
 		}
@@ -55,7 +55,7 @@ func init() {
 			log.Fatal(fmt.Errorf("cannot fetch user config directory: %w", err))
 		}
 		cacheDir = filepath.Join(dir, appName)
-		if err := os.MkdirAll(configDir, 0755); err != nil {
+		if err := os.MkdirAll(cacheDir, 0755); err != nil {
 			log.Fatal(fmt.Errorf("cannot create cache directory: %w", err))
 		}
 	}

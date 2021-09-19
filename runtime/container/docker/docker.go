@@ -72,10 +72,20 @@ func (d dockerRuntime) Provision() error {
 	}
 
 	// socket file/launchd
-	r.Add(createSocketForwardingScript)
+	r.Add(func() error {
+		user, err := d.vmUser()
+		if err != nil {
+			return err
+		}
+		return createSocketForwardingScript(user)
+	})
 	r.Add(func() error { return createLaunchdScript(d.launchd) })
 
 	return r.Exec()
+}
+
+func (d dockerRuntime) vmUser() (string, error) {
+	return d.guest.RunOutput("whoami")
 }
 
 func (d dockerRuntime) Start() error {
@@ -97,7 +107,10 @@ func (d dockerRuntime) Stop() error {
 	r.Stage("stopping")
 
 	r.Add(func() error {
-		return d.guest.Run("service", "docker", "status")
+		if d.guest.Run("service", "docker", "status") != nil {
+			return nil
+		}
+		return d.guest.Run("service", "docker", "stop")
 	})
 	r.Add(func() error {
 		return d.host.Run("launchctl", "unload", d.launchd.File())
@@ -108,7 +121,7 @@ func (d dockerRuntime) Stop() error {
 
 func (d dockerRuntime) Teardown() error {
 	r := d.Init()
-	r.Stage("teardown")
+	r.Stage("deleting")
 
 	if stat, err := os.Stat(d.launchd.File()); err == nil && !stat.IsDir() {
 		r.Add(func() error {

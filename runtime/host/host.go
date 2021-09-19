@@ -1,6 +1,7 @@
 package host
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"github.com/abiosoft/colima/cli"
@@ -40,6 +41,19 @@ func (h hostRuntime) Run(args ...string) error {
 	cmd := cli.Command(args[0], args[1:]...)
 	cmd.Env = append(os.Environ(), h.env...)
 	return cmd.Run()
+}
+
+func (h hostRuntime) RunOutput(args ...string) (string, error) {
+	cmd := cli.Command(args[0], args[1:]...)
+	cmd.Env = append(os.Environ(), h.env...)
+
+	var buf bytes.Buffer
+	cmd.Stdout = &buf
+
+	if err := cmd.Run(); err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(buf.String()), nil
 }
 
 func (h hostRuntime) RunInteractive(args ...string) error {

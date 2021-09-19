@@ -29,7 +29,7 @@ func createLaunchdScript(launchd launchAgent) error {
 	if err := os.MkdirAll(launchd.Dir(), 0755); err != nil {
 		return fmt.Errorf("error creating launchd directory: %w", err)
 	}
-	if stat, err := os.Stat(launchd.File()); err != nil {
+	if stat, err := os.Stat(launchd.File()); err == nil {
 		if stat.IsDir() {
 			return fmt.Errorf("launchd file: directory not expected at '%s'", launchd.File())
 		}

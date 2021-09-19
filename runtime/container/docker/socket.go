@@ -20,7 +20,7 @@ func socketForwardingScriptFile() string {
 	return filepath.Join(config.Dir(), "socket.sh")
 }
 
-func createSocketForwardingScript() error {
+func createSocketForwardingScript(vmUser string) error {
 	scriptFile := socketForwardingScriptFile()
 	// do nothing if previously created
 	if stat, err := os.Stat(scriptFile); err == nil {
@@ -34,7 +34,8 @@ func createSocketForwardingScript() error {
 	var values = struct {
 		SocketFile string
 		SSHPort    int
-	}{SocketFile: socketSymlink(), SSHPort: config.SSHPort()}
+		VMUser     string
+	}{SocketFile: socketSymlink(), SSHPort: config.SSHPort(), VMUser: vmUser}
 
 	err := util.WriteTemplate(socketForwardingScript, scriptFile, values)
 	if err != nil {
