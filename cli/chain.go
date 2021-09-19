@@ -1,4 +1,4 @@
-package runner
+package cli
 
 import (
 	"fmt"
@@ -6,21 +6,22 @@ import (
 )
 
 // New creates a new runner instance.
-func New(name string) Instance {
+func New(name string) CommandChain {
 	return &namedInstance{
 		name: name,
 	}
 }
 
-// Instance is a runner instance.
-type Instance interface {
+// CommandChain is a chain of commands.
+// commands are executed in order.
+type CommandChain interface {
 	// Init initiates a new runner using the current instance.
-	Init() *Runner
+	Init() *ActiveCommandChain
 	// Logger returns the instance logger.
 	Logger() *log.Logger
 }
 
-var _ Instance = (*namedInstance)(nil)
+var _ CommandChain = (*namedInstance)(nil)
 
 type namedInstance struct {
 	name string
@@ -34,41 +35,40 @@ func (n namedInstance) Logger() *log.Logger {
 	return n.log
 }
 
-func (n namedInstance) Init() *Runner {
-	return &Runner{
+func (n namedInstance) Init() *ActiveCommandChain {
+	return &ActiveCommandChain{
 		Logger: n.Logger(),
 	}
 }
 
-// Runner is function runner. Functions are chained and
-// executed in order.
-type Runner struct {
+// ActiveCommandChain is an active command chain.
+type ActiveCommandChain struct {
 	funcs     []func() error
 	lastStage string
 	*log.Logger
 }
 
 // Add adds a new function to the runner.
-func (r *Runner) Add(f func() error) {
+func (r *ActiveCommandChain) Add(f func() error) {
 	r.funcs = append(r.funcs, f)
 }
 
 // Stage sets the current stage of the runner.
-func (r *Runner) Stage(s string) {
+func (r *ActiveCommandChain) Stage(s string) {
 	r.Println(s, "...")
 	r.lastStage = s
 }
 
 // Stagef is like stage with string format.
-func (r *Runner) Stagef(format string, s ...interface{}) {
+func (r *ActiveCommandChain) Stagef(format string, s ...interface{}) {
 	f := fmt.Sprintf(format, s...)
 	r.Stage(f)
 }
 
-// Run runs the command chain.
+// Exec executes the command chain.
 // The first errored function terminates the chain and the
 // error is returned. Otherwise, returns nil.
-func (r Runner) Run() error {
+func (r ActiveCommandChain) Exec() error {
 	for _, f := range r.funcs {
 		if f == nil {
 			continue

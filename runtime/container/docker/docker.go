@@ -1,15 +1,15 @@
 package docker
 
 import (
+	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
-	"github.com/abiosoft/colima/runner"
 	"github.com/abiosoft/colima/runtime"
 	"github.com/abiosoft/colima/runtime/container"
 	"os"
 	"path/filepath"
 )
 
-var _ container.Runtime = (*dockerRuntime)(nil)
+var _ container.Container = (*dockerRuntime)(nil)
 
 func socketSymlink() string {
 	return filepath.Join(config.Dir(), "docker.sock")
@@ -18,19 +18,19 @@ func socketSymlink() string {
 type dockerRuntime struct {
 	host  runtime.HostActions
 	guest runtime.GuestActions
-	runner.Instance
+	cli.CommandChain
 	launchd launchAgent
 }
 
 // New creates a new docker runtime.
-func New(host runtime.HostActions, guest runtime.GuestActions) container.Runtime {
+func New(host runtime.HostActions, guest runtime.GuestActions) container.Container {
 	launchdPkg := "com.abiosoft." + config.AppName()
 
 	return &dockerRuntime{
-		host:     host,
-		guest:    guest,
-		Instance: runner.New("docker"),
-		launchd:  launchAgent(launchdPkg),
+		host:         host,
+		guest:        guest,
+		CommandChain: cli.New("docker"),
+		launchd:      launchAgent(launchdPkg),
 	}
 }
 
@@ -67,6 +67,7 @@ func (d dockerRuntime) Provision() error {
 
 		r.Stage("restarting VM to complete setup")
 		r.Add(d.guest.Stop)
+		r.Add(func() error { return d.guest.Run("sleep", "2") })
 		r.Add(d.guest.Start)
 	}
 
@@ -74,7 +75,7 @@ func (d dockerRuntime) Provision() error {
 	r.Add(createSocketForwardingScript)
 	r.Add(func() error { return createLaunchdScript(d.launchd) })
 
-	return r.Run()
+	return r.Exec()
 }
 
 func (d dockerRuntime) Start() error {
@@ -88,7 +89,7 @@ func (d dockerRuntime) Start() error {
 		return d.host.Run("launchctl", "load", d.launchd.File())
 	})
 
-	return r.Run()
+	return r.Exec()
 }
 
 func (d dockerRuntime) Stop() error {
@@ -102,7 +103,7 @@ func (d dockerRuntime) Stop() error {
 		return d.host.Run("launchctl", "unload", d.launchd.File())
 	})
 
-	return r.Run()
+	return r.Exec()
 }
 
 func (d dockerRuntime) Teardown() error {
@@ -115,7 +116,7 @@ func (d dockerRuntime) Teardown() error {
 		})
 	}
 
-	return r.Run()
+	return r.Exec()
 }
 
 func (d dockerRuntime) Dependencies() []string {

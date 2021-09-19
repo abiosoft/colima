@@ -1,15 +1,13 @@
 package cmd
 
 import (
-	"fmt"
 	"github.com/abiosoft/colima"
+	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/log"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"os"
 )
-
-var cfgFile string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -26,43 +24,27 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(
-		initConfig,
+		initLog,
 		initApp,
 	)
-
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.colima.yaml)")
 }
 
 var app colima.App
 
-// initConfig reads in config file and ENV variables if set.
-func initConfig() {
-	if cfgFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
-	} else {
-		// Find home directory.
-		home, err := os.UserHomeDir()
-		cobra.CheckErr(err)
+func initLog() {
+	// general log
+	log.OverrideDefaultLog()
 
-		// Search config in home directory with name ".colima" (without extension).
-		viper.AddConfigPath(home)
-		viper.SetConfigType("yaml")
-		viper.SetConfigName(".colima")
-	}
+	// command logs
+	out, err := os.OpenFile(config.LogFile(), os.O_CREATE|os.O_RDWR, 0644)
+	cobra.CheckErr(err)
 
-	viper.AutomaticEnv() // read in environment variables that match
-
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
-	}
-
+	cli.Stdout(out)
+	cli.Stderr(out)
 }
 
 func initApp() {
-	var c config.Config
 	var err error
-	app, err = colima.New(c)
+	app, err = colima.New(appConfig)
 	cobra.CheckErr(err)
 }

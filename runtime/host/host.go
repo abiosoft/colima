@@ -3,23 +3,23 @@ package host
 import (
 	"errors"
 	"fmt"
-	"github.com/abiosoft/colima/runner"
+	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/runtime"
 	"os"
 	"strings"
 )
 
-// Runtime is the host runtime.
-type Runtime interface {
+// Host is the host runtime.
+type Host interface {
 	runtime.HostActions
 }
 
 // New creates a new host runtime using env as environment variables.
-func New() Runtime {
+func New() Host {
 	return &hostRuntime{}
 }
 
-var _ Runtime = (*hostRuntime)(nil)
+var _ Host = (*hostRuntime)(nil)
 
 type hostRuntime struct {
 	env []string
@@ -37,7 +37,16 @@ func (h hostRuntime) Run(args ...string) error {
 	if len(args) == 0 {
 		return errors.New("args not specified")
 	}
-	cmd := runner.Command(args[0], args[1:]...)
+	cmd := cli.Command(args[0], args[1:]...)
+	cmd.Env = append(os.Environ(), h.env...)
+	return cmd.Run()
+}
+
+func (h hostRuntime) RunInteractive(args ...string) error {
+	if len(args) == 0 {
+		return errors.New("args not specified")
+	}
+	cmd := cli.CommandInteractive(args[0], args[1:]...)
 	cmd.Env = append(os.Environ(), h.env...)
 	return cmd.Run()
 }
@@ -46,12 +55,17 @@ func (h hostRuntime) Run(args ...string) error {
 func IsInstalled(dependencies runtime.Dependencies) error {
 	var missing []string
 	check := func(p string) error {
-		return runner.Command("command", "-v", p).Run()
+		return cli.Command("command", "-v", p).Run()
 	}
 	for _, p := range dependencies.Dependencies() {
 		if check(p) != nil {
 			missing = append(missing, p)
 		}
 	}
-	return fmt.Errorf("%s not found, run 'brew install %s' to install", strings.Join(missing, ", "), strings.Join(missing, " "))
+
+	if len(missing) > 0 {
+		return fmt.Errorf("%s not found, run 'brew install %s' to install", strings.Join(missing, ", "), strings.Join(missing, " "))
+	}
+
+	return nil
 }

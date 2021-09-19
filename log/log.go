@@ -19,11 +19,17 @@ func defaultOpt() lineprefix.Option {
 	})
 }
 
+// OverrideDefaultLog overrides the default log package.
+func OverrideDefaultLog() {
+	writer := lineprefix.New(defaultOpt())
+	log.SetOutput(writer)
+}
+
 // New creates a new logger for s.
 func New(prefix string) *Logger {
 	writer := lineprefix.New(defaultOpt())
 	if prefix != "" {
-		writer = lineprefix.New(defaultOpt(), lineprefix.Prefix(prefix+":"))
+		writer = lineprefix.New(defaultOpt(), lineprefix.Prefix(" "+prefix+":"))
 	}
 	return &Logger{Logger: log.New(writer, "", 0)}
 }

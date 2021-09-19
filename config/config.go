@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"path/filepath"
 )
@@ -16,6 +17,7 @@ var (
 	appVersion = "devel"
 
 	configDir string
+	cacheDir  string
 
 	// TODO change config location
 	sshPort = 41122
@@ -26,39 +28,59 @@ var (
 func SSHPort() int { return sshPort }
 
 // Dir returns the configuration directory.
-func Dir() string {
-	return filepath.Join(configDir, appName)
+func Dir() string { return configDir }
+
+// LogFile returns the path the command log output.
+func LogFile() string {
+	return filepath.Join(cacheDir, "out.log")
 }
 
 func init() {
-	// prepare config directory
-	dir, err := os.UserConfigDir()
-	if err != nil {
-		log.Fatal(fmt.Errorf("cannot fetch user config directory: %w", err))
+	{
+		// prepare config directory
+		dir, err := os.UserConfigDir()
+		if err != nil {
+			log.Fatal(fmt.Errorf("cannot fetch user config directory: %w", err))
+		}
+		configDir = filepath.Join(dir, appName)
+		if err := os.MkdirAll(configDir, 0755); err != nil {
+			log.Fatal(fmt.Errorf("cannot create config directory: %w", err))
+		}
 	}
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		log.Fatal(fmt.Errorf("cannot create config directory: %w", err))
+
+	{
+		// prepare cache directory
+		dir, err := os.UserCacheDir()
+		if err != nil {
+			log.Fatal(fmt.Errorf("cannot fetch user config directory: %w", err))
+		}
+		cacheDir = filepath.Join(dir, appName)
+		if err := os.MkdirAll(configDir, 0755); err != nil {
+			log.Fatal(fmt.Errorf("cannot create cache directory: %w", err))
+		}
 	}
-	configDir = dir
 }
 
 // Config is the application config.
 type Config struct {
-	// VM is virtual machine configuration.
-	VM struct {
-		CPU    int      `yaml:"cpu"`
-		Disk   int      `yaml:"disk"`
-		Memory int      `yaml:"memory"`
-		DNS    []string `yaml:"dns"` // DNS nameservers
-		Env    []string `yaml:"env"` // environment variables
-	} `yaml:"vm"`
+	// Virtual Machine
+	VM VM `yaml:"vm"`
 
 	// Runtime is one of docker, containerd.
 	Runtime string `yaml:"runtime"`
 
 	// Kubernetes sets if kubernetes should be enabled.
 	Kubernetes bool `yaml:"kubernetes"`
+}
 
-	// true when user changes config with flag
-	Changed bool `yaml:"-"`
+// VM is virtual machine configuration.
+type VM struct {
+	CPU    int               `yaml:"cpu"`
+	Disk   int               `yaml:"disk"`
+	Memory int               `yaml:"memory"`
+	DNS    []net.IP          `yaml:"dns"` // DNS nameservers
+	Env    map[string]string `yaml:"env"` // environment variables
+
+	// internal use
+	SSHPort int `yaml:"-"`
 }

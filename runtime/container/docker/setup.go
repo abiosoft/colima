@@ -9,12 +9,12 @@ func (d dockerRuntime) setupSocketSymlink() error {
 	log := d.Logger()
 	// remove existing socket (if any)
 	log.Println("sudo password may be required to set up docker socket")
-	err := d.host.Run("sudo", "rm", "-rf", socket)
+	err := d.host.RunInteractive("sudo", "rm", "-rf", socket)
 	if err != nil {
 		return fmt.Errorf("error setting up socket: %w", err)
 	}
 	// create new symlink
-	err = d.host.Run("sudo", "ln", "-s", socketSymlink(), socket)
+	err = d.host.RunInteractive("sudo", "ln", "-s", socketSymlink(), socket)
 	if err != nil {
 		return fmt.Errorf("error setting up socket: %w", err)
 	}

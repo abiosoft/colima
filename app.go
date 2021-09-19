@@ -7,6 +7,7 @@ import (
 	"github.com/abiosoft/colima/runtime/container/docker"
 	"github.com/abiosoft/colima/runtime/host"
 	"github.com/abiosoft/colima/runtime/vm"
+	"github.com/abiosoft/colima/runtime/vm/lima"
 	"log"
 )
 
@@ -21,15 +22,7 @@ var _ App = (*colimaApp)(nil)
 
 // New creates a new app.
 func New(c config.Config) (App, error) {
-	vmConfig := vm.Config{
-		CPU:     c.VM.CPU,
-		Disk:    c.VM.Disk,
-		Memory:  c.VM.Memory,
-		SSHPort: config.SSHPort(),
-		Changed: false,
-	}
-
-	guest := vm.New(host.New(), vmConfig)
+	guest := lima.New(host.New(), c)
 	if err := host.IsInstalled(guest); err != nil {
 		return nil, fmt.Errorf("dependency check failed for VM: %w", err)
 	}
@@ -41,13 +34,13 @@ func New(c config.Config) (App, error) {
 
 	return &colimaApp{
 		guest:      guest,
-		containers: []container.Runtime{dockerRuntime},
+		containers: []container.Container{dockerRuntime},
 	}, nil
 }
 
 type colimaApp struct {
-	guest      vm.Runtime
-	containers []container.Runtime
+	guest      vm.VM
+	containers []container.Container
 }
 
 func (c colimaApp) Start() error {
@@ -123,5 +116,5 @@ func (c colimaApp) Delete() error {
 }
 
 func (c colimaApp) SSH(args ...string) error {
-	return c.guest.Run(args...)
+	return c.guest.RunInteractive(args...)
 }

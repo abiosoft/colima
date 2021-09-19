@@ -4,6 +4,8 @@ package runtime
 type runAction interface {
 	// Run runs command
 	Run(args ...string) error
+	// RunInteractive runs command interactively.
+	RunInteractive(args ...string) error
 }
 
 // HostActions are actions performed on the host.

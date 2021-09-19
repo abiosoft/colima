@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 )
 
@@ -15,7 +13,7 @@ var stopCmd = &cobra.Command{
 The state of the VM is persisted at stop. A start afterwards
 should return it back to its previous state.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("stop called")
+		app.Stop()
 	},
 }
 

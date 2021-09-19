@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 )
 
@@ -17,7 +15,7 @@ initial startup of Colima.
 
 If you simply want to reset the Kubernetes cluster, run 'colima kubernetes reset'.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("delete called")
+		app.Delete()
 	},
 }
 

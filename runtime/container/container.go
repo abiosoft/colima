@@ -4,8 +4,8 @@ import (
 	"github.com/abiosoft/colima/runtime"
 )
 
-// Runtime is container runtime.
-type Runtime interface {
+// Container is container runtime.
+type Container interface {
 	// Name is the name of the container runtime. e.g. docker, containerd
 	Name() string
 	// Provision provisions/installs the container runtime.
@@ -20,3 +20,10 @@ type Runtime interface {
 
 	runtime.Dependencies
 }
+
+type Runtime string
+
+const (
+	Docker     Runtime = "docker"
+	ContainerD Runtime = "containerd"
+)
