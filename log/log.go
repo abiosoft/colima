@@ -22,6 +22,8 @@ func defaultOpt() lineprefix.Option {
 func OverrideDefaultLog() {
 	writer := lineprefix.New(defaultOpt())
 	log.SetOutput(writer)
+	log.SetPrefix("")
+	log.SetFlags(0)
 }
 
 // New creates a new logger for s.

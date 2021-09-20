@@ -25,6 +25,8 @@ type GuestActions interface {
 	Start() error
 	// Stop shuts down the VM
 	Stop() error
+	// Running returns if the VM is currently running.
+	Running() bool
 }
 
 // Dependencies are dependencies that must exist on the host.

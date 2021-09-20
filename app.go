@@ -44,6 +44,8 @@ type colimaApp struct {
 }
 
 func (c colimaApp) Start() error {
+	log.Println("starting", config.AppName())
+
 	// the order for start is:
 	//   vm start -> container runtime provision -> container runtime start
 
@@ -66,32 +68,41 @@ func (c colimaApp) Start() error {
 		}
 	}
 
+	log.Println("done")
 	return nil
 }
 
 func (c colimaApp) Stop() error {
+	log.Println("stopping", config.AppName())
+
 	// the order for stop is:
 	//   container stop -> vm stop
 
 	// stop container runtimes
-	for _, cont := range c.containers {
-		if err := cont.Stop(); err != nil {
-			// failure to stop a container runtime is not fatal
-			// it is only meant for graceful shutdown.
-			// the VM will shut down anyways.
-			log.Println(fmt.Errorf("error stopping %s: %w", cont.Name(), err))
+	if c.guest.Running() {
+		for _, cont := range c.containers {
+			if err := cont.Stop(); err != nil {
+				// failure to stop a container runtime is not fatal
+				// it is only meant for graceful shutdown.
+				// the VM will shut down anyways.
+				log.Println(fmt.Errorf("error stopping %s: %w", cont.Name(), err))
+			}
 		}
 	}
 
 	// stop vm
+	// no need to check running status, it may be in a state that requires stopping.
 	if err := c.guest.Stop(); err != nil {
 		return fmt.Errorf("error stopping vm: %w", err)
 	}
 
+	log.Println("done")
 	return nil
 }
 
 func (c colimaApp) Delete() error {
+	log.Println("deleting", config.AppName())
+
 	// the order for teardown is:
 	//   container teardown -> vm teardown
 
@@ -100,10 +111,12 @@ func (c colimaApp) Delete() error {
 	// it is essential to teardown containers as well.
 
 	// teardown container runtimes
-	for _, cont := range c.containers {
-		if err := cont.Teardown(); err != nil {
-			// failure here is not fatal
-			log.Println(fmt.Errorf("error during teardown of %s: %w", cont.Name(), err))
+	if c.guest.Running() {
+		for _, cont := range c.containers {
+			if err := cont.Teardown(); err != nil {
+				// failure here is not fatal
+				log.Println(fmt.Errorf("error during teardown of %s: %w", cont.Name(), err))
+			}
 		}
 	}
 
@@ -112,6 +125,7 @@ func (c colimaApp) Delete() error {
 		return fmt.Errorf("error during teardown of vm: %w", err)
 	}
 
+	log.Println("done")
 	return nil
 }
 

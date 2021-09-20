@@ -16,7 +16,7 @@ e.g. 'colima ssh -- htop' will run htop.
 
 It is recommended to specify '--' to differentiate from colima flags.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		app.SSH(args...)
+		cobra.CheckErr(app.SSH(args...))
 	},
 }
 

@@ -7,6 +7,7 @@ import (
 	"github.com/abiosoft/colima/runtime/container"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 var _ container.Container = (*dockerRuntime)(nil)
@@ -67,7 +68,7 @@ func (d dockerRuntime) Provision() error {
 
 		r.Stage("restarting VM to complete setup")
 		r.Add(d.guest.Stop)
-		r.Add(func() error { return d.guest.Run("sleep", "2") })
+		r.Add(func() error { time.Sleep(time.Second * 2); return nil })
 		r.Add(d.guest.Start)
 	}
 
@@ -123,9 +124,14 @@ func (d dockerRuntime) Teardown() error {
 	r := d.Init()
 	r.Stage("deleting")
 
+	// no need to uninstall as the VM teardown will remove all components
+	// only host configurations should be removed
 	if stat, err := os.Stat(d.launchd.File()); err == nil && !stat.IsDir() {
 		r.Add(func() error {
 			return d.host.Run("launchctl", "unload", d.launchd.File())
+		})
+		r.Add(func() error {
+			return d.host.Run("rm", "-rf", d.launchd.File())
 		})
 	}
 

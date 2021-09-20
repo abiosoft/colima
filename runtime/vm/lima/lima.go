@@ -81,7 +81,7 @@ func (l limaVM) Start() error {
 func (l limaVM) resume() error {
 	r := l.Init()
 
-	if l.isRunning() {
+	if l.Running() {
 		r.Println("already running")
 		return nil
 	}
@@ -101,12 +101,16 @@ func (l limaVM) resume() error {
 	return r.Exec()
 }
 
-func (l limaVM) isRunning() bool {
-	return l.host.Run(lima, "uname") == nil
+func (l limaVM) Running() bool {
+	return l.Run("uname") == nil
 }
 
 func (l limaVM) Stop() error {
 	r := l.Init()
+	if !l.Running() {
+		r.Println("not running")
+		return nil
+	}
 
 	r.Stage("stopping")
 
@@ -119,6 +123,12 @@ func (l limaVM) Stop() error {
 
 func (l limaVM) Teardown() error {
 	r := l.Init()
+	if l.Running() {
+		// lima needs to be stopped before it can be deleted.
+		if err := l.Stop(); err != nil {
+			return err
+		}
+	}
 
 	r.Stage("deleting")
 
