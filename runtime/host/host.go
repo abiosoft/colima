@@ -44,6 +44,10 @@ func (h hostRuntime) Run(args ...string) error {
 }
 
 func (h hostRuntime) RunOutput(args ...string) (string, error) {
+	if len(args) == 0 {
+		return "", errors.New("args not specified")
+	}
+
 	cmd := cli.Command(args[0], args[1:]...)
 	cmd.Env = append(os.Environ(), h.env...)
 

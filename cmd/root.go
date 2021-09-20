@@ -42,7 +42,7 @@ func initLog() {
 	log.OverrideDefaultLog()
 
 	// command logs
-	out, err := os.OpenFile(config.LogFile(), os.O_CREATE|os.O_RDWR, 0644)
+	out, err := os.OpenFile(config.LogFile(), os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
 	cobra.CheckErr(err)
 
 	if dryRun {

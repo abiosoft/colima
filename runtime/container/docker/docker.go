@@ -110,7 +110,7 @@ func (d dockerRuntime) Stop() error {
 		if d.guest.Run("service", "docker", "status") != nil {
 			return nil
 		}
-		return d.guest.Run("service", "docker", "stop")
+		return d.guest.Run("sudo", "service", "docker", "stop")
 	})
 	r.Add(func() error {
 		return d.host.Run("launchctl", "unload", d.launchd.File())
