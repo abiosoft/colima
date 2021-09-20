@@ -3,7 +3,9 @@ package cmd
 import (
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/runtime/container"
+	"github.com/abiosoft/colima/runtime/container/docker"
 	"github.com/spf13/cobra"
+	"strings"
 )
 
 // startCmd represents the start command
@@ -34,9 +36,11 @@ const (
 var appConfig config.Config
 
 func init() {
+	runtimes := container.Names()
+
 	rootCmd.AddCommand(startCmd)
 	startCmd.Flags().BoolVarP(&appConfig.Kubernetes, "with-kubernetes", "k", false, "start VM with Kubernetes")
-	startCmd.Flags().StringVarP(&appConfig.Runtime, "runtime", "r", string(container.Docker), "container runtime, one of [docker, containerd]")
+	startCmd.Flags().StringVarP(&appConfig.Runtime, "runtime", "r", docker.Name, "container runtime, one of ["+strings.Join(runtimes, ", ")+"]")
 	startCmd.Flags().IntVarP(&appConfig.VM.CPU, "cpu", "c", defaultCPU, "number of CPUs")
 	startCmd.Flags().IntVarP(&appConfig.VM.Memory, "memory", "m", defaultMemory, "memory in GiB")
 	startCmd.Flags().IntVarP(&appConfig.VM.Disk, "disk", "d", defaultDisk, "disk size in GiB")

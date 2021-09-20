@@ -6,14 +6,16 @@ import (
 	"github.com/abiosoft/colima/runtime"
 	"github.com/abiosoft/colima/runtime/container"
 	"os"
-	"path/filepath"
 	"time"
 )
 
+// Name is container runtime name.
+const Name = "docker"
+
 var _ container.Container = (*dockerRuntime)(nil)
 
-func socketSymlink() string {
-	return filepath.Join(config.Dir(), "docker.sock")
+func init() {
+	container.Register(Name, newRuntime)
 }
 
 type dockerRuntime struct {
@@ -24,19 +26,19 @@ type dockerRuntime struct {
 }
 
 // New creates a new docker runtime.
-func New(host runtime.HostActions, guest runtime.GuestActions) container.Container {
+func newRuntime(host runtime.HostActions, guest runtime.GuestActions) container.Container {
 	launchdPkg := "com.abiosoft." + config.AppName()
 
 	return &dockerRuntime{
 		host:         host,
 		guest:        guest,
-		CommandChain: cli.New("docker"),
+		CommandChain: cli.New(Name),
 		launchd:      launchAgent(launchdPkg),
 	}
 }
 
 func (d dockerRuntime) Name() string {
-	return "docker"
+	return Name
 }
 
 func (d dockerRuntime) isInstalled() bool {
@@ -140,4 +142,9 @@ func (d dockerRuntime) Teardown() error {
 
 func (d dockerRuntime) Dependencies() []string {
 	return []string{"docker"}
+}
+
+func (d dockerRuntime) Version() string {
+	version, _ := d.host.RunOutput("docker", "version", "--format", `client Version: v{{.Client.Version}}{{printf "\n"}}server Version: v{{.Server.Version}}`)
+	return version
 }

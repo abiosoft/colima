@@ -65,7 +65,7 @@ func (l limaVM) Start() error {
 	configFile := "colima.yaml"
 
 	r.Add(func() error {
-		limaConf := newLimaConf(l.conf)
+		limaConf := newConf(l.conf)
 		return util.WriteYAML(limaConf, configFile)
 	})
 	r.Add(func() error {
@@ -89,7 +89,7 @@ func (l limaVM) resume() error {
 	configFile := filepath.Join(limaConfDir(), "lima.yaml")
 
 	r.Add(func() error {
-		limaConf := newLimaConf(l.conf)
+		limaConf := newConf(l.conf)
 		return util.WriteYAML(limaConf, configFile)
 	})
 

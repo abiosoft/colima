@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/runtime/container"
-	"github.com/abiosoft/colima/runtime/container/docker"
 	"github.com/abiosoft/colima/runtime/host"
 	"github.com/abiosoft/colima/runtime/vm"
 	"github.com/abiosoft/colima/runtime/vm/lima"
@@ -16,6 +15,8 @@ type App interface {
 	Stop() error
 	Delete() error
 	SSH(...string) error
+	Status() error
+	Version() error
 }
 
 var _ App = (*colimaApp)(nil)
@@ -27,20 +28,39 @@ func New(c config.Config) (App, error) {
 		return nil, fmt.Errorf("dependency check failed for VM: %w", err)
 	}
 
-	dockerRuntime := docker.New(guest.Host(), guest)
-	if err := host.IsInstalled(dockerRuntime); err != nil {
+	// if vm already started, fetch current runtime
+	func() {
+		if guest.Running() {
+			r, err := guest.RunOutput("echo", "$"+vm.ColimaRuntimeEnvVar)
+			if err == nil {
+				c.Runtime = r
+				return
+			}
+
+			log.Println(fmt.Errorf("could not determine runtime in the VM: %w", err))
+			log.Println("assuming", c.Runtime, "runtime")
+		}
+	}()
+
+	containerRuntime, err := container.New(c.Runtime, guest.Host(), guest)
+	if err != nil {
+		return nil, fmt.Errorf("error initiating container runtime: %w", err)
+	}
+	if err := host.IsInstalled(containerRuntime); err != nil {
 		return nil, fmt.Errorf("dependency check failed for docker: %w", err)
 	}
 
 	return &colimaApp{
 		guest:      guest,
-		containers: []container.Container{dockerRuntime},
+		containers: []container.Container{containerRuntime},
+		conf:       c,
 	}, nil
 }
 
 type colimaApp struct {
 	guest      vm.VM
 	containers []container.Container
+	conf       config.Config
 }
 
 func (c colimaApp) Start() error {
@@ -130,5 +150,37 @@ func (c colimaApp) Delete() error {
 }
 
 func (c colimaApp) SSH(args ...string) error {
+	if !c.guest.Running() {
+		return fmt.Errorf("%s not running", config.AppName())
+	}
+
 	return c.guest.RunInteractive(args...)
+}
+
+func (c colimaApp) Status() error {
+	if !c.guest.Running() {
+		fmt.Println(config.AppName(), "is not running")
+		return nil
+	}
+
+	fmt.Println(config.AppName(), "is running")
+	fmt.Println("runtime:", c.conf.Runtime)
+
+	return nil
+}
+
+func (c colimaApp) Version() error {
+	name := config.AppName()
+	version := config.AppVersion()
+	fmt.Println(name, "version", version)
+
+	if c.guest.Running() {
+		for _, cont := range c.containers {
+			fmt.Println()
+			fmt.Println("runtime:", cont.Name())
+			fmt.Println(cont.Version())
+		}
+	}
+
+	return nil
 }

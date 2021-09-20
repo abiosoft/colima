@@ -20,6 +20,10 @@ func socketForwardingScriptFile() string {
 	return filepath.Join(config.Dir(), "socket.sh")
 }
 
+func socketSymlink() string {
+	return filepath.Join(config.Dir(), "docker.sock")
+}
+
 func createSocketForwardingScript(vmUser string) error {
 	scriptFile := socketForwardingScriptFile()
 	// do nothing if previously created

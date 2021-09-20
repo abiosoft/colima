@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 )
 
@@ -12,7 +10,7 @@ var statusCmd = &cobra.Command{
 	Short: "Show the status of the VM",
 	Long:  `Show the status of the VM`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("status called")
+		cobra.CheckErr(app.Status())
 	},
 }
 

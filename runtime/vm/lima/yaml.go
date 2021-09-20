@@ -3,12 +3,13 @@ package lima
 import (
 	"fmt"
 	"github.com/abiosoft/colima/config"
-	"github.com/abiosoft/colima/runtime/container"
+	"github.com/abiosoft/colima/runtime/container/containerd"
+	"github.com/abiosoft/colima/runtime/vm"
 	"net"
 	"path/filepath"
 )
 
-func newLimaConf(conf config.Config) (l LimaYAML) {
+func newConf(conf config.Config) (l Config) {
 	l.Arch = "default"
 
 	l.Images = append(l.Images,
@@ -25,16 +26,21 @@ func newLimaConf(conf config.Config) (l LimaYAML) {
 	)
 
 	l.SSH = SSH{LocalPort: config.SSHPort(), LoadDotSSHPubKeys: false}
-	l.Containerd = Containerd{System: conf.Runtime == string(container.ContainerD), User: false}
+	l.Containerd = Containerd{System: conf.Runtime == containerd.Name, User: false}
 	l.Firmware.LegacyBIOS = false
 
-	l.Env = conf.VM.Env
 	l.DNS = conf.VM.DNS
+
+	l.Env = map[string]string{vm.ColimaRuntimeEnvVar: conf.Runtime}
+	for k, v := range conf.VM.Env {
+		l.Env[k] = v
+	}
+
 	return
 }
 
-// LimaYAML is lima config. Code copied from lima and modified.
-type LimaYAML struct {
+// Config is lima config. Code copied from lima and modified.
+type Config struct {
 	Arch       Arch              `yaml:"arch,omitempty"`
 	Images     []File            `yaml:"images"`
 	CPUs       int               `yaml:"cpus,omitempty"`
