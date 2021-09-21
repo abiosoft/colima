@@ -50,7 +50,7 @@ type Config struct {
 	SSH        SSH               `yaml:"ssh,omitempty"`
 	Containerd Containerd        `yaml:"containerd"`
 	Env        map[string]string `yaml:"env,omitempty"`
-	DNS        []net.IP          `yaml:"dns,omitempty"`
+	DNS        []net.IP          `yaml:"-"` // will be handled manually by colima
 	Firmware   Firmware          `yaml:"firmware"`
 }
 

@@ -75,6 +75,8 @@ func (l limaVM) Start() error {
 		return os.Remove(configFile)
 	})
 
+	l.applyDNS(r)
+
 	return r.Exec()
 }
 
@@ -98,7 +100,36 @@ func (l limaVM) resume() error {
 		return l.host.Run(limactl, "start", config.AppName())
 	})
 
+	l.applyDNS(r)
+
 	return r.Exec()
+}
+
+func (l limaVM) applyDNS(r *cli.ActiveCommandChain) {
+	// manually set the domain using systemd-resolve.
+	//
+	// Lima's DNS settings is fixed at VM create and cannot be changed afterwards.
+	// this is a better approach as it only applies on VM startup and gets reset at shutdown.
+	// this is specific to ubuntu, may be different for other distros.
+
+	if len(l.conf.VM.DNS) == 0 {
+		return
+	}
+
+	r.Stage("applying DNS config")
+
+	// apply settings
+	r.Add(func() error {
+		args := []string{"sudo", "systemd-resolve", "--interface", "eth0"}
+		for _, ip := range l.conf.VM.DNS {
+			args = append(args, "--set-dns", ip.String())
+		}
+		return l.Run(args...)
+	})
+	// restart service, should not be needed but to ascertain
+	r.Add(func() error {
+		return l.Run("sudo", "systemctl", "restart", "systemd-resolved")
+	})
 }
 
 func (l limaVM) Running() bool {
