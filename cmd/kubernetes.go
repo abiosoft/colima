@@ -38,12 +38,10 @@ var kubernetesStopCmd = &cobra.Command{
 var kubernetesDashboardCmd = &cobra.Command{
 	Use:     "dashboard",
 	Aliases: []string{"d"},
-	Short:   "Enable the Kubernetes dashboard",
-	Long: `Enable the Kubernetes dashboard.
+	Short:   "Enable the Kubernetes dashboard and print dashboard url",
+	Long: `Enable the Kubernetes dashboard and print dashboard url.
 
-This may take a while on first run, the dashboard is not enabled by default.
-
-The dashboard url is printed afterwards`,
+This may take a while on first run, the dashboard is not enabled by default.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("kubernetes called")
 	},

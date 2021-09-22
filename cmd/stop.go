@@ -7,8 +7,8 @@ import (
 // stopCmd represents the stop command
 var stopCmd = &cobra.Command{
 	Use:   "stop",
-	Short: "Stop the VM",
-	Long: `Stop stops the VM to free up resources.
+	Short: "Stop Colima",
+	Long: `Stop stops Colima to free up resources.
 
 The state of the VM is persisted at stop. A start afterwards
 should return it back to its previous state.`,
@@ -19,5 +19,4 @@ should return it back to its previous state.`,
 
 func init() {
 	rootCmd.AddCommand(stopCmd)
-
 }

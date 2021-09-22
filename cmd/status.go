@@ -7,8 +7,8 @@ import (
 // statusCmd represents the status command
 var statusCmd = &cobra.Command{
 	Use:   "status",
-	Short: "Show the status of the VM",
-	Long:  `Show the status of the VM`,
+	Short: "Show the status of Colima",
+	Long:  `Show the status of Colima`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cobra.CheckErr(app.Status())
 	},

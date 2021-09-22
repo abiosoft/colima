@@ -14,11 +14,3 @@ func HomeDir() string {
 	}
 	return home
 }
-
-func User() string {
-	user := os.Getenv("USER")
-	if user == "" {
-		log.Fatal("could not retrieve OS user")
-	}
-	return user
-}

@@ -15,11 +15,11 @@ var nerdctlConf struct {
 var nerdctlCmd = &cobra.Command{
 	Use:     "nerdctl",
 	Aliases: []string{"nerd", "n"},
-	Short:   "Run nerdctl (requires --runtime=containerd)",
+	Short:   "Run nerdctl (requires containerd runtime)",
 	Long: `Run nerdctl to interact with containerd.
-This requires containerd runtime (--runtime=containerd).
+This requires containerd runtime.
 
-It is recommended to specify '--' to differentiate from colima flags.
+It is recommended to specify '--' to differentiate from Colima flags.
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		nerdctlArgs := append([]string{"sudo", "nerdctl"}, args...)
@@ -29,13 +29,13 @@ It is recommended to specify '--' to differentiate from colima flags.
 
 // nerdctlLink represents the nerdctl command
 var nerdctlLink = &cobra.Command{
-	Use:   "link",
-	Short: "Link nerdctl binary for easy access",
-	Long: `Link nerdctl binary for easy access from the host.
-This installs the binary in /usr/local/bin/nerdctl.`,
+	Use:   "install",
+	Short: "Install nerdctl binary on the host",
+	Long: `Install nerdctl binary on the host.
+The binary will be installed at /usr/local/bin/nerdctl.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println(os.Args)
-		fmt.Println("nerdctl link")
+		fmt.Println("nerdctl install")
 	},
 }
 

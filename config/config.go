@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+	"github.com/abiosoft/colima/util"
+	"gopkg.in/yaml.v3"
 	"log"
 	"net"
 	"os"
@@ -61,6 +63,29 @@ func init() {
 	}
 }
 
+const configFileName = "colima.yaml"
+
+func configFile() string {
+	return filepath.Join(configDir, configFileName)
+}
+
+// Save saves the config.
+func Save(c Config) error {
+	return util.WriteYAML(c, configFile())
+}
+
+// Load loads the config.
+func Load() (Config, error) {
+	var c Config
+	b, err := os.ReadFile(configFile())
+	if err != nil {
+		return c, fmt.Errorf("could not load previous settings: %w", err)
+	}
+
+	err = yaml.Unmarshal(b, &c)
+	return c, err
+}
+
 // Config is the application config.
 type Config struct {
 	// Virtual Machine
@@ -75,11 +100,13 @@ type Config struct {
 
 // VM is virtual machine configuration.
 type VM struct {
-	CPU    int               `yaml:"cpu"`
-	Disk   int               `yaml:"disk"`
-	Memory int               `yaml:"memory"`
-	DNS    []net.IP          `yaml:"dns"` // DNS nameservers
-	Env    map[string]string `yaml:"env"` // environment variables
+	CPU    int `yaml:"cpu"`
+	Disk   int `yaml:"disk"`
+	Memory int `yaml:"memory"`
+
+	// do not persist. i.e. discarded on VM shutdown
+	DNS []net.IP          `yaml:"-"` // DNS nameservers
+	Env map[string]string `yaml:"-"` // environment variables
 
 	// internal use
 	SSHPort int `yaml:"-"`

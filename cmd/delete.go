@@ -7,8 +7,8 @@ import (
 // deleteCmd represents the delete command
 var deleteCmd = &cobra.Command{
 	Use:   "delete",
-	Short: "Delete and teardown the VM and settings",
-	Long: `Delete and teardown Colima VM and all settings.
+	Short: "Delete and teardown Colima",
+	Long: `Delete and teardown Colima and all settings.
 
 Use with caution. This deletes everything and a startup afterwards is like the
 initial startup of Colima.

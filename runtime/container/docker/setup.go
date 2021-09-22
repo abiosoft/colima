@@ -2,7 +2,6 @@ package docker
 
 import (
 	"fmt"
-	"github.com/abiosoft/colima/util"
 )
 
 func (d dockerRuntime) setupSocketSymlink() error {
@@ -46,8 +45,11 @@ func (d dockerRuntime) setupInVM() error {
 }
 
 func (d dockerRuntime) fixUserPermission() error {
-	err := d.guest.Run("sudo", "usermod", "-aG", "docker", util.User())
+	user, err := d.vmUser()
 	if err != nil {
+		return fmt.Errorf("error retrieving user in the VM: %w", err)
+	}
+	if err := d.guest.Run("sudo", "usermod", "-aG", "docker", user); err != nil {
 		return fmt.Errorf("error fixing user permission: %w", err)
 	}
 	return nil

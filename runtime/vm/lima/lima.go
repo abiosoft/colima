@@ -2,6 +2,7 @@ package lima
 
 import (
 	_ "embed"
+	"fmt"
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/runtime"
@@ -34,11 +35,6 @@ func limaConfDir() string {
 	return filepath.Join(home, ".lima", config.AppName())
 }
 
-func isConfigured() bool {
-	stat, err := os.Stat(limaConfDir())
-	return err == nil && stat.IsDir()
-}
-
 var _ vm.VM = (*limaVM)(nil)
 
 type limaVM struct {
@@ -56,7 +52,7 @@ func (l limaVM) Dependencies() []string {
 func (l limaVM) Start() error {
 	r := l.Init()
 
-	if isConfigured() {
+	if l.Created() {
 		return l.resume()
 	}
 
@@ -210,4 +206,16 @@ func (l limaVM) RunOutput(args ...string) (out string, err error) {
 
 func (l limaVM) Host() runtime.HostActions {
 	return l.host
+}
+
+func (l limaVM) Env(s string) (string, error) {
+	if !l.Running() {
+		return "", fmt.Errorf("not running")
+	}
+	return l.RunOutput("echo", "$"+s)
+}
+
+func (l limaVM) Created() bool {
+	stat, err := os.Stat(limaConfDir())
+	return err == nil && stat.IsDir()
 }

@@ -25,8 +25,12 @@ type GuestActions interface {
 	Start() error
 	// Stop shuts down the VM
 	Stop() error
+	// Created returns if the VM has been previously created.
+	Created() bool
 	// Running returns if the VM is currently running.
 	Running() bool
+	// Env retrieves environment variable in the VM.
+	Env(string) (string, error)
 }
 
 // Dependencies are dependencies that must exist on the host.
