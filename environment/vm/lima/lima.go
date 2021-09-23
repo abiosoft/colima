@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
-	"github.com/abiosoft/colima/runtime"
-	"github.com/abiosoft/colima/runtime/vm"
+	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/environment/vm"
 	"github.com/abiosoft/colima/util"
 	"os"
 	"path/filepath"
 	"time"
 )
 
-// New creates a new virtual machine VM.
-func New(host runtime.HostActions) vm.VM {
+// New creates a new virtual machine.
+func New(host environment.HostActions) vm.VM {
 	env := []string{limaInstanceEnvVar + "=" + config.AppName()}
 
 	// consider making this truly flexible to support other VMs
@@ -38,7 +38,7 @@ func limaConfDir() string {
 var _ vm.VM = (*limaVM)(nil)
 
 type limaVM struct {
-	host runtime.HostActions
+	host environment.HostActions
 	cli.CommandChain
 
 	// keep config in case of restart
@@ -231,7 +231,7 @@ func (l limaVM) RunOutput(args ...string) (out string, err error) {
 	return
 }
 
-func (l limaVM) Host() runtime.HostActions {
+func (l limaVM) Host() environment.HostActions {
 	return l.host
 }
 

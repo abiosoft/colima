@@ -5,17 +5,17 @@ import (
 	"errors"
 	"fmt"
 	"github.com/abiosoft/colima/cli"
-	"github.com/abiosoft/colima/runtime"
+	"github.com/abiosoft/colima/environment"
 	"os"
 	"strings"
 )
 
-// Host is the host runtime.
+// Host is the host environment.
 type Host interface {
-	runtime.HostActions
+	environment.HostActions
 }
 
-// New creates a new host runtime using env as environment variables.
+// New creates a new host environment using env as environment variables.
 func New() Host {
 	return &hostRuntime{}
 }
@@ -26,7 +26,7 @@ type hostRuntime struct {
 	env []string
 }
 
-func (h hostRuntime) WithEnv(env []string) runtime.HostActions {
+func (h hostRuntime) WithEnv(env []string) environment.HostActions {
 	var newHost hostRuntime
 	// use current and new env vars
 	newHost.env = append(newHost.env, h.env...)
@@ -70,7 +70,7 @@ func (h hostRuntime) RunInteractive(args ...string) error {
 }
 
 // IsInstalled checks if dependencies are installed.
-func IsInstalled(dependencies runtime.Dependencies) error {
+func IsInstalled(dependencies environment.Dependencies) error {
 	var missing []string
 	check := func(p string) error {
 		return cli.Command("command", "-v", p).Run()

@@ -3,8 +3,8 @@ package docker
 import (
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
-	"github.com/abiosoft/colima/runtime"
-	"github.com/abiosoft/colima/runtime/container"
+	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/environment/container"
 	"os"
 )
 
@@ -18,14 +18,14 @@ func init() {
 }
 
 type dockerRuntime struct {
-	host  runtime.HostActions
-	guest runtime.GuestActions
+	host  environment.HostActions
+	guest environment.GuestActions
 	cli.CommandChain
 	launchd launchAgent
 }
 
 // New creates a new docker runtime.
-func newRuntime(host runtime.HostActions, guest runtime.GuestActions) container.Container {
+func newRuntime(host environment.HostActions, guest environment.GuestActions) container.Container {
 	launchdPkg := "com.abiosoft." + config.AppName()
 
 	return &dockerRuntime{

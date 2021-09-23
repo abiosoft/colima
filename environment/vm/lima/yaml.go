@@ -3,7 +3,7 @@ package lima
 import (
 	"fmt"
 	"github.com/abiosoft/colima/config"
-	"github.com/abiosoft/colima/runtime/container/containerd"
+	"github.com/abiosoft/colima/environment/container/containerd"
 	"net"
 	"path/filepath"
 )

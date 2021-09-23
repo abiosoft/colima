@@ -2,16 +2,16 @@ package kubernetes
 
 import (
 	"github.com/abiosoft/colima/cli"
-	"github.com/abiosoft/colima/runtime"
-	"github.com/abiosoft/colima/runtime/container"
-	"github.com/abiosoft/colima/runtime/container/containerd"
-	"github.com/abiosoft/colima/runtime/container/docker"
+	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/environment/container"
+	"github.com/abiosoft/colima/environment/container/containerd"
+	"github.com/abiosoft/colima/environment/container/docker"
 )
 
 // Name is container runtime name
 const Name = "kubernetes"
 
-func New(host runtime.HostActions, guest runtime.GuestActions, containerRuntime string) container.Container {
+func New(host environment.HostActions, guest environment.GuestActions, containerRuntime string) container.Container {
 	return &kubernetesRuntime{
 		host:         host,
 		guest:        guest,
@@ -23,8 +23,8 @@ func New(host runtime.HostActions, guest runtime.GuestActions, containerRuntime 
 var _ container.Container = (*kubernetesRuntime)(nil)
 
 type kubernetesRuntime struct {
-	host    runtime.HostActions
-	guest   runtime.GuestActions
+	host    environment.HostActions
+	guest   environment.GuestActions
 	runtime string
 	cli.CommandChain
 }

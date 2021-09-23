@@ -2,8 +2,8 @@ package containerd
 
 import (
 	"github.com/abiosoft/colima/cli"
-	"github.com/abiosoft/colima/runtime"
-	"github.com/abiosoft/colima/runtime/container"
+	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/environment/container"
 )
 
 // Name is container runtime name
@@ -13,7 +13,7 @@ const Name = "containerd"
 // which provides nerdctl/containerd support out of the box.
 // There may be need to make this flexible for non-Lima VMs.
 
-func newRuntime(host runtime.HostActions, guest runtime.GuestActions) container.Container {
+func newRuntime(host environment.HostActions, guest environment.GuestActions) container.Container {
 	return &containerdRuntime{
 		host:         host,
 		guest:        guest,
@@ -28,8 +28,8 @@ func init() {
 var _ container.Container = (*containerdRuntime)(nil)
 
 type containerdRuntime struct {
-	host  runtime.HostActions
-	guest runtime.GuestActions
+	host  environment.HostActions
+	guest environment.GuestActions
 	cli.CommandChain
 }
 

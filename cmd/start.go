@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"github.com/abiosoft/colima/config"
-	"github.com/abiosoft/colima/runtime/container"
-	"github.com/abiosoft/colima/runtime/container/docker"
+	"github.com/abiosoft/colima/environment/container"
+	"github.com/abiosoft/colima/environment/container/docker"
 	"github.com/spf13/cobra"
 	"log"
 	"strings"

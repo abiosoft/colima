@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/abiosoft/colima/cli"
-	"github.com/abiosoft/colima/runtime/container/containerd"
+	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/spf13/cobra"
 	"log"
 	"os"

@@ -1,4 +1,4 @@
-package runtime
+package environment
 
 import "github.com/abiosoft/colima/config"
 

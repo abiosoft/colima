@@ -2,11 +2,11 @@ package container
 
 import (
 	"fmt"
-	"github.com/abiosoft/colima/runtime"
+	"github.com/abiosoft/colima/environment"
 	"log"
 )
 
-// Container is container runtime.
+// Container is container environment.
 type Container interface {
 	// Name is the name of the container runtime. e.g. docker, containerd
 	Name() string
@@ -22,20 +22,20 @@ type Container interface {
 	// Version returns the container runtime version.
 	Version() string
 
-	runtime.Dependencies
+	environment.Dependencies
 }
 
-// New creates a new container runtime. `name` must be a valid container runtime name.
-func New(name string, host runtime.HostActions, guest runtime.GuestActions) (Container, error) {
-	if _, ok := runtimes[name]; !ok {
-		return nil, fmt.Errorf("invalid container runtime '%s'", name)
+// New creates a new container environment. `name` must be a valid container runtime name.
+func New(runtime string, host environment.HostActions, guest environment.GuestActions) (Container, error) {
+	if _, ok := runtimes[runtime]; !ok {
+		return nil, fmt.Errorf("invalid container runtime '%s'", runtime)
 	}
 
-	return runtimes[name](host, guest), nil
+	return runtimes[runtime](host, guest), nil
 }
 
 // NewFunc is implemented by container runtime implementations to create a new instance.
-type NewFunc func(host runtime.HostActions, guest runtime.GuestActions) Container
+type NewFunc func(host environment.HostActions, guest environment.GuestActions) Container
 
 var runtimes = map[string]NewFunc{}
 
