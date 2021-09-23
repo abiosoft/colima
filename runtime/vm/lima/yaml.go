@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/runtime/container/containerd"
-	"github.com/abiosoft/colima/runtime/vm"
 	"net"
 	"path/filepath"
 )
@@ -31,7 +30,7 @@ func newConf(conf config.Config) (l Config) {
 
 	l.DNS = conf.VM.DNS
 
-	l.Env = map[string]string{vm.ColimaRuntimeEnvVar: conf.Runtime}
+	l.Env = map[string]string{}
 	for k, v := range conf.VM.Env {
 		l.Env[k] = v
 	}

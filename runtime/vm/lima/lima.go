@@ -13,12 +13,11 @@ import (
 )
 
 // New creates a new virtual machine VM.
-func New(host runtime.HostActions, c config.Config) vm.VM {
+func New(host runtime.HostActions) vm.VM {
 	env := []string{limaInstanceEnvVar + "=" + config.AppName()}
 
 	// consider making this truly flexible to support other VMs
 	return &limaVM{
-		conf:         c,
 		host:         host.WithEnv(env),
 		CommandChain: cli.New("vm"),
 	}
@@ -38,7 +37,6 @@ func limaConfDir() string {
 var _ vm.VM = (*limaVM)(nil)
 
 type limaVM struct {
-	conf config.Config
 	host runtime.HostActions
 	cli.CommandChain
 }
@@ -49,11 +47,11 @@ func (l limaVM) Dependencies() []string {
 	}
 }
 
-func (l limaVM) Start() error {
+func (l limaVM) Start(conf config.Config) error {
 	r := l.Init()
 
 	if l.Created() {
-		return l.resume()
+		return l.resume(conf)
 	}
 
 	r.Stage("creating and starting")
@@ -61,7 +59,7 @@ func (l limaVM) Start() error {
 	configFile := "colima.yaml"
 
 	r.Add(func() error {
-		limaConf := newConf(l.conf)
+		limaConf := newConf(conf)
 		return util.WriteYAML(limaConf, configFile)
 	})
 	r.Add(func() error {
@@ -71,12 +69,12 @@ func (l limaVM) Start() error {
 		return os.Remove(configFile)
 	})
 
-	l.applyDNS(r)
+	l.applyDNS(r, conf)
 
 	return r.Exec()
 }
 
-func (l limaVM) resume() error {
+func (l limaVM) resume(conf config.Config) error {
 	r := l.Init()
 
 	if l.Running() {
@@ -87,7 +85,7 @@ func (l limaVM) resume() error {
 	configFile := filepath.Join(limaConfDir(), "lima.yaml")
 
 	r.Add(func() error {
-		limaConf := newConf(l.conf)
+		limaConf := newConf(conf)
 		return util.WriteYAML(limaConf, configFile)
 	})
 
@@ -96,19 +94,19 @@ func (l limaVM) resume() error {
 		return l.host.Run(limactl, "start", config.AppName())
 	})
 
-	l.applyDNS(r)
+	l.applyDNS(r, conf)
 
 	return r.Exec()
 }
 
-func (l limaVM) applyDNS(r *cli.ActiveCommandChain) {
+func (l limaVM) applyDNS(r *cli.ActiveCommandChain, conf config.Config) {
 	// manually set the domain using systemd-resolve.
 	//
 	// Lima's DNS settings is fixed at VM create and cannot be changed afterwards.
 	// this is a better approach as it only applies on VM startup and gets reset at shutdown.
 	// this is specific to ubuntu, may be different for other distros.
 
-	if len(l.conf.VM.DNS) == 0 {
+	if len(conf.VM.DNS) == 0 {
 		return
 	}
 
@@ -117,7 +115,7 @@ func (l limaVM) applyDNS(r *cli.ActiveCommandChain) {
 	// apply settings
 	r.Add(func() error {
 		args := []string{"sudo", "systemd-resolve", "--interface", "eth0"}
-		for _, ip := range l.conf.VM.DNS {
+		for _, ip := range conf.VM.DNS {
 			args = append(args, "--set-dns", ip.String())
 		}
 		return l.Run(args...)

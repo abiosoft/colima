@@ -8,10 +8,11 @@ import (
 	"github.com/abiosoft/colima/runtime/vm"
 	"github.com/abiosoft/colima/runtime/vm/lima"
 	"log"
+	"path/filepath"
 )
 
 type App interface {
-	Start() error
+	Start(config.Config) error
 	Stop() error
 	Delete() error
 	SSH(...string) error
@@ -22,70 +23,61 @@ type App interface {
 var _ App = (*colimaApp)(nil)
 
 // New creates a new app.
-func New(c config.Config) (App, error) {
-	guest := lima.New(host.New(), c)
+func New() (App, error) {
+	guest := lima.New(host.New())
 	if err := host.IsInstalled(guest); err != nil {
 		return nil, fmt.Errorf("dependency check failed for VM: %w", err)
 	}
 
-	// if vm already started, fetch current runtime
-	func() {
-		if guest.Running() {
-			r, err := guest.RunOutput("echo", "$"+vm.ColimaRuntimeEnvVar)
-			if err == nil {
-				c.Runtime = r
-				return
-			}
-
-			log.Println(fmt.Errorf("could not determine runtime in the VM: %w", err))
-			log.Println("assuming", c.Runtime, "runtime")
-		}
-	}()
-
-	containerRuntime, err := container.New(c.Runtime, guest.Host(), guest)
-	if err != nil {
-		return nil, fmt.Errorf("error initiating container runtime: %w", err)
-	}
-	if err := host.IsInstalled(containerRuntime); err != nil {
-		return nil, fmt.Errorf("dependency check failed for docker: %w", err)
-	}
-
 	return &colimaApp{
-		guest:      guest,
-		containers: []container.Container{containerRuntime},
-		conf:       c,
+		guest: guest,
 	}, nil
 }
 
 type colimaApp struct {
-	guest      vm.VM
-	containers []container.Container
-	conf       config.Config
+	guest vm.VM
 }
 
-func (c colimaApp) Start() error {
+const runtimeConfigFile = "/etc/colima/runtime"
+
+func (c colimaApp) Start(conf config.Config) error {
 	log.Println("starting", config.AppName())
+
+	var containerRuntimes []container.Container
+	{
+		containerRuntime, err := c.containerRuntime(conf.Runtime)
+		if err != nil {
+			return err
+		}
+		containerRuntimes = append(containerRuntimes, containerRuntime)
+		// TODO add kubernetes
+	}
 
 	// the order for start is:
 	//   vm start -> container runtime provision -> container runtime start
 
 	// start vm
-	if err := c.guest.Start(); err != nil {
+	if err := c.guest.Start(conf); err != nil {
 		return fmt.Errorf("error starting vm: %w", err)
 	}
 
-	// provision container runtimes
-	for _, cont := range c.containers {
+	// provision container runtime
+	for _, cont := range containerRuntimes {
 		if err := cont.Provision(); err != nil {
 			return fmt.Errorf("error provisioning %s: %w", cont.Name(), err)
 		}
 	}
 
 	// start container runtimes
-	for _, cont := range c.containers {
+	for _, cont := range containerRuntimes {
 		if err := cont.Start(); err != nil {
 			return fmt.Errorf("error starting %s: %w", cont.Name(), err)
 		}
+	}
+
+	// persist runtime for future reference.
+	if err := c.setRuntime(conf.Runtime); err != nil {
+		return fmt.Errorf("error setting current runtime: %w", err)
 	}
 
 	log.Println("done")
@@ -100,7 +92,11 @@ func (c colimaApp) Stop() error {
 
 	// stop container runtimes
 	if c.guest.Running() {
-		for _, cont := range c.containers {
+		containerRuntimes, err := c.currentContainerRuntimes()
+		if err != nil {
+			log.Println(err)
+		}
+		for _, cont := range containerRuntimes {
 			if err := cont.Stop(); err != nil {
 				// failure to stop a container runtime is not fatal
 				// it is only meant for graceful shutdown.
@@ -132,7 +128,11 @@ func (c colimaApp) Delete() error {
 
 	// teardown container runtimes
 	if c.guest.Running() {
-		for _, cont := range c.containers {
+		containerRuntimes, err := c.currentContainerRuntimes()
+		if err != nil {
+			log.Println(err)
+		}
+		for _, cont := range containerRuntimes {
 			if err := cont.Teardown(); err != nil {
 				// failure here is not fatal
 				log.Println(fmt.Errorf("error during teardown of %s: %w", cont.Name(), err))
@@ -143,6 +143,11 @@ func (c colimaApp) Delete() error {
 	// teardown vm
 	if err := c.guest.Teardown(); err != nil {
 		return fmt.Errorf("error during teardown of vm: %w", err)
+	}
+
+	// delete configs
+	if err := config.Teardown(); err != nil {
+		return fmt.Errorf("error deleting configs: %w", err)
 	}
 
 	log.Println("done")
@@ -163,8 +168,13 @@ func (c colimaApp) Status() error {
 		return nil
 	}
 
+	currentRuntime, err := c.currentRuntime()
+	if err != nil {
+		return err
+	}
+
 	fmt.Println(config.AppName(), "is running")
-	fmt.Println("runtime:", c.conf.Runtime)
+	fmt.Println("runtime:", currentRuntime)
 
 	return nil
 }
@@ -175,7 +185,11 @@ func (c colimaApp) Version() error {
 	fmt.Println(name, "version", version)
 
 	if c.guest.Running() {
-		for _, cont := range c.containers {
+		containerRuntimes, err := c.currentContainerRuntimes()
+		if err != nil {
+			return err
+		}
+		for _, cont := range containerRuntimes {
 			fmt.Println()
 			fmt.Println("runtime:", cont.Name())
 			fmt.Println(cont.Version())
@@ -183,4 +197,60 @@ func (c colimaApp) Version() error {
 	}
 
 	return nil
+}
+
+func (c colimaApp) currentRuntime() (string, error) {
+	if !c.guest.Running() {
+		return "", fmt.Errorf("%s is not running", config.AppName())
+	}
+
+	r, err := c.guest.RunOutput("cat", runtimeConfigFile)
+	if err != nil {
+		return "", fmt.Errorf("error retrieving current runtime: %w", err)
+	}
+
+	return r, nil
+}
+
+func (c colimaApp) setRuntime(runtimeName string) error {
+	if err := c.guest.Run("sudo", "mkdir", "-p", filepath.Dir(runtimeConfigFile)); err != nil {
+		return fmt.Errorf("error saving runtime settings: %w", err)
+	}
+	if err := c.guest.Run("sudo", "sh", "-c", fmt.Sprintf(`echo "%s" > %s`, runtimeName, runtimeConfigFile)); err != nil {
+		return fmt.Errorf("error saving runtime settings: %w", err)
+	}
+
+	return nil
+}
+
+func (c colimaApp) currentContainerRuntimes() ([]container.Container, error) {
+	var containerRuntimes []container.Container
+
+	currentRuntime, err := c.currentRuntime()
+	if err != nil {
+		return nil, err
+	}
+
+	containerRuntime, err := c.containerRuntime(currentRuntime)
+	if err != nil {
+		return nil, err
+	}
+
+	containerRuntimes = append(containerRuntimes, containerRuntime)
+
+	// detect and add kubernetes
+
+	return containerRuntimes, nil
+}
+
+func (c colimaApp) containerRuntime(runtimeName string) (container.Container, error) {
+	containerRuntime, err := container.New(runtimeName, c.guest.Host(), c.guest)
+	if err != nil {
+		return nil, fmt.Errorf("error initiating container runtime: %w", err)
+	}
+	if err := host.IsInstalled(containerRuntime); err != nil {
+		return nil, fmt.Errorf("dependency check failed for %s: %w", runtimeName, err)
+	}
+
+	return containerRuntime, nil
 }

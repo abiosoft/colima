@@ -75,7 +75,13 @@ func Save(c Config) error {
 }
 
 // Load loads the config.
+// Error is only returned if the config file exists but could not be loaded.
+// No error is returned if the config file does not exist.
 func Load() (Config, error) {
+	if _, err := os.Stat(configFile()); err != nil {
+		// config file does not exist
+		return Config{}, nil
+	}
 	var c Config
 	b, err := os.ReadFile(configFile())
 	if err != nil {
@@ -83,7 +89,15 @@ func Load() (Config, error) {
 	}
 
 	err = yaml.Unmarshal(b, &c)
-	return c, err
+	return c, fmt.Errorf("could not load pprevious settings: %w", err)
+}
+
+// Teardown deletes the config.
+func Teardown() error {
+	if _, err := os.Stat(configDir); err == nil {
+		return os.RemoveAll(configDir)
+	}
+	return nil
 }
 
 // Config is the application config.
@@ -111,3 +125,6 @@ type VM struct {
 	// internal use
 	SSHPort int `yaml:"-"`
 }
+
+// Empty checks if the configuration is empty.
+func (c Config) Empty() bool { return c.Runtime == "" } // this may be better but not really needed.

@@ -1,5 +1,7 @@
 package runtime
 
+import "github.com/abiosoft/colima/config"
+
 // runAction runs commands.
 type runAction interface {
 	// Run runs command
@@ -22,7 +24,7 @@ type HostActions interface {
 type GuestActions interface {
 	runAction
 	// Start starts up the VM
-	Start() error
+	Start(config.Config) error
 	// Stop shuts down the VM
 	Stop() error
 	// Created returns if the VM has been previously created.
