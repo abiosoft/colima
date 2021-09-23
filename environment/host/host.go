@@ -10,31 +10,26 @@ import (
 	"strings"
 )
 
-// Host is the host environment.
-type Host interface {
-	environment.HostActions
-}
-
 // New creates a new host environment using env as environment variables.
-func New() Host {
-	return &hostRuntime{}
+func New() environment.Host {
+	return &hostEnv{}
 }
 
-var _ Host = (*hostRuntime)(nil)
+var _ environment.Host = (*hostEnv)(nil)
 
-type hostRuntime struct {
+type hostEnv struct {
 	env []string
 }
 
-func (h hostRuntime) WithEnv(env []string) environment.HostActions {
-	var newHost hostRuntime
+func (h hostEnv) WithEnv(env []string) environment.HostActions {
+	var newHost hostEnv
 	// use current and new env vars
 	newHost.env = append(newHost.env, h.env...)
 	newHost.env = append(newHost.env, env...)
 	return newHost
 }
 
-func (h hostRuntime) Run(args ...string) error {
+func (h hostEnv) Run(args ...string) error {
 	if len(args) == 0 {
 		return errors.New("args not specified")
 	}
@@ -43,7 +38,7 @@ func (h hostRuntime) Run(args ...string) error {
 	return cmd.Run()
 }
 
-func (h hostRuntime) RunOutput(args ...string) (string, error) {
+func (h hostEnv) RunOutput(args ...string) (string, error) {
 	if len(args) == 0 {
 		return "", errors.New("args not specified")
 	}
@@ -60,7 +55,7 @@ func (h hostRuntime) RunOutput(args ...string) (string, error) {
 	return strings.TrimSpace(buf.String()), nil
 }
 
-func (h hostRuntime) RunInteractive(args ...string) error {
+func (h hostEnv) RunInteractive(args ...string) error {
 	if len(args) == 0 {
 		return errors.New("args not specified")
 	}

@@ -4,17 +4,16 @@ import (
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
-	"github.com/abiosoft/colima/environment/container"
 	"os"
 )
 
 // Name is container runtime name.
 const Name = "docker"
 
-var _ container.Container = (*dockerRuntime)(nil)
+var _ environment.Container = (*dockerRuntime)(nil)
 
 func init() {
-	container.Register(Name, newRuntime)
+	environment.RegisterContainer(Name, newRuntime)
 }
 
 type dockerRuntime struct {
@@ -24,8 +23,8 @@ type dockerRuntime struct {
 	launchd launchAgent
 }
 
-// New creates a new docker runtime.
-func newRuntime(host environment.HostActions, guest environment.GuestActions) container.Container {
+// NewContainer creates a new docker runtime.
+func newRuntime(host environment.HostActions, guest environment.GuestActions) environment.Container {
 	launchdPkg := "com.abiosoft." + config.AppName()
 
 	return &dockerRuntime{

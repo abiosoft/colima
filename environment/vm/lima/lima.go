@@ -6,7 +6,6 @@ import (
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
-	"github.com/abiosoft/colima/environment/vm"
 	"github.com/abiosoft/colima/util"
 	"os"
 	"path/filepath"
@@ -14,7 +13,7 @@ import (
 )
 
 // New creates a new virtual machine.
-func New(host environment.HostActions) vm.VM {
+func New(host environment.HostActions) environment.VM {
 	env := []string{limaInstanceEnvVar + "=" + config.AppName()}
 
 	// consider making this truly flexible to support other VMs
@@ -35,7 +34,7 @@ func limaConfDir() string {
 	return filepath.Join(home, ".lima", config.AppName())
 }
 
-var _ vm.VM = (*limaVM)(nil)
+var _ environment.VM = (*limaVM)(nil)
 
 type limaVM struct {
 	host environment.HostActions

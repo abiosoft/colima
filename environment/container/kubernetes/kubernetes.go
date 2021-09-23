@@ -3,7 +3,6 @@ package kubernetes
 import (
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/environment"
-	"github.com/abiosoft/colima/environment/container"
 	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/environment/container/docker"
 )
@@ -11,7 +10,7 @@ import (
 // Name is container runtime name
 const Name = "kubernetes"
 
-func New(host environment.HostActions, guest environment.GuestActions, containerRuntime string) container.Container {
+func New(host environment.HostActions, guest environment.GuestActions, containerRuntime string) environment.Container {
 	return &kubernetesRuntime{
 		host:         host,
 		guest:        guest,
@@ -20,7 +19,7 @@ func New(host environment.HostActions, guest environment.GuestActions, container
 	}
 }
 
-var _ container.Container = (*kubernetesRuntime)(nil)
+var _ environment.Container = (*kubernetesRuntime)(nil)
 
 type kubernetesRuntime struct {
 	host    environment.HostActions

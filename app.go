@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
-	"github.com/abiosoft/colima/environment/container"
+	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/host"
-	"github.com/abiosoft/colima/environment/vm"
 	"github.com/abiosoft/colima/environment/vm/lima"
 	"log"
 	"path/filepath"
@@ -37,7 +36,7 @@ func New() (App, error) {
 }
 
 type colimaApp struct {
-	guest vm.VM
+	guest environment.VM
 }
 
 const runtimeConfigFile = "/etc/colima/runtime"
@@ -45,7 +44,7 @@ const runtimeConfigFile = "/etc/colima/runtime"
 func (c colimaApp) Start(conf config.Config) error {
 	log.Println("starting", config.AppName())
 
-	var containers []container.Container
+	var containers []environment.Container
 	{
 		env, err := c.containerEnvironment(conf.Runtime)
 		if err != nil {
@@ -229,8 +228,8 @@ func (c colimaApp) setRuntime(runtimeName string) error {
 	return nil
 }
 
-func (c colimaApp) currentContainerEnvironments() ([]container.Container, error) {
-	var containers []container.Container
+func (c colimaApp) currentContainerEnvironments() ([]environment.Container, error) {
+	var containers []environment.Container
 
 	runtime, err := c.currentRuntime()
 	if err != nil {
@@ -249,8 +248,8 @@ func (c colimaApp) currentContainerEnvironments() ([]container.Container, error)
 	return containers, nil
 }
 
-func (c colimaApp) containerEnvironment(runtime string) (container.Container, error) {
-	env, err := container.New(runtime, c.guest.Host(), c.guest)
+func (c colimaApp) containerEnvironment(runtime string) (environment.Container, error) {
+	env, err := environment.NewContainer(runtime, c.guest.Host(), c.guest)
 	if err != nil {
 		return nil, fmt.Errorf("error initiating container runtime: %w", err)
 	}

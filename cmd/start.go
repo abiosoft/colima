@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"github.com/abiosoft/colima/config"
-	"github.com/abiosoft/colima/environment/container"
+	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/docker"
 	"github.com/spf13/cobra"
 	"log"
@@ -10,7 +10,6 @@ import (
 )
 
 // startCmd represents the start command
-// TODO detect the default container runtime
 // TODO replace $HOME env var.
 var startCmd = &cobra.Command{
 	Use:   "start",
@@ -84,7 +83,7 @@ var startCmdArgs struct {
 }
 
 func init() {
-	runtimes := strings.Join(container.Names(), ", ")
+	runtimes := strings.Join(environment.ContainerRuntimes(), ", ")
 
 	rootCmd.AddCommand(startCmd)
 	startCmd.Flags().BoolVarP(&startCmdArgs.Kubernetes, "with-kubernetes", "k", false, "start VM with Kubernetes")
