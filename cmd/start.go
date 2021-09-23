@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"github.com/abiosoft/colima"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/runtime/container"
 	"github.com/abiosoft/colima/runtime/container/docker"
@@ -15,29 +14,30 @@ import (
 // TODO replace $HOME env var.
 var startCmd = &cobra.Command{
 	Use:   "start",
-	Short: "Start Colima",
+	Short: "start Colima",
 	Long: `Start Colima with the specified container runtime (and kubernetes if --with-kubernetes is passed).
+The --runtime flag is only used on initial start and ignored on subsequent starts.
 
 Kubernetes requires at least 2 CPUs and 2.3GiB memory.
 
 For verbose output, tail the log file "$HOME/Library/Caches/colima/out.log".
+  tail -f "$HOME/Library/Caches/colima/out.log"
 `,
+	Example: "  colima start\n" +
+		"  colima start --runtime containerd\n" +
+		"  colima start --with-kubernetes\n" +
+		"  colima start --runtime containerd --with-kubernetes\n" +
+		"  colima start --cpu 4 --memory 8 --disk 100\n" +
+		"  colima start --dns 8.8.8.8 --dns 8.8.4.4\n",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		conf := cmd.Context().Value(contextKey).(*config.Config)
-		app, err := colima.New(*conf)
-		if err != nil {
-			return err
-		}
-
-		return app.Start()
+		return newApp().Start(startCmdArgs.Config)
 	},
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		conf := cmd.Context().Value(contextKey).(*config.Config)
-
 		current, err := config.Load()
 		if err != nil {
 			// not fatal, will proceed with defaults
 			log.Println(err)
+			log.Println("reverting to default settings")
 		}
 
 		// use default config
@@ -45,32 +45,30 @@ For verbose output, tail the log file "$HOME/Library/Caches/colima/out.log".
 			return nil
 		}
 
-		// runtime and memory are only effective on VM create
+		// runtime and disk size are only effective on VM create
 		// set it to the current settings
-		conf.Runtime = current.Runtime
-		conf.VM.Memory = current.VM.Memory
+		startCmdArgs.Runtime = current.Runtime
+		startCmdArgs.VM.Disk = current.VM.Disk
 
 		// use current settings for unchanged configs
 		// otherwise may be reverted to their default values.
 		if !cmd.Flag("with-kubernetes").Changed {
-			conf.Kubernetes = current.Kubernetes
+			startCmdArgs.Kubernetes = current.Kubernetes
 		}
 		if !cmd.Flag("cpu").Changed {
-			conf.VM.CPU = current.VM.CPU
+			startCmdArgs.VM.CPU = current.VM.CPU
 		}
 		if !cmd.Flag("memory").Changed {
-			conf.VM.Memory = current.VM.Memory
+			startCmdArgs.VM.Memory = current.VM.Memory
 		}
-		if !cmd.Flag("disk").Changed {
-			conf.VM.Disk = current.VM.Disk
-		}
+
+		log.Println("using", current.Runtime, "runtime")
 
 		// remaining settings do not survive VM reboots.
 		return nil
 	},
 	PostRunE: func(cmd *cobra.Command, args []string) error {
-		conf := cmd.Context().Value(contextKey).(*config.Config)
-		return config.Save(*conf)
+		return config.Save(startCmdArgs.Config)
 	},
 }
 

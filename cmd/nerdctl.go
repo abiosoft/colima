@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/abiosoft/colima/runtime/container/containerd"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -15,15 +16,24 @@ var nerdctlConf struct {
 var nerdctlCmd = &cobra.Command{
 	Use:     "nerdctl",
 	Aliases: []string{"nerd", "n"},
-	Short:   "Run nerdctl (requires containerd runtime)",
+	Short:   "run nerdctl (requires containerd runtime)",
 	Long: `Run nerdctl to interact with containerd.
 This requires containerd runtime.
 
 It is recommended to specify '--' to differentiate from Colima flags.
 `,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
+		app := newApp()
+		r, err := app.Runtime()
+		if err != nil {
+			return err
+		}
+		if r != containerd.Name {
+			return fmt.Errorf("nerdctl only supports %s runtime", containerd.Name)
+		}
+
 		nerdctlArgs := append([]string{"sudo", "nerdctl"}, args...)
-		cobra.CheckErr(app.SSH(nerdctlArgs...))
+		return app.SSH(nerdctlArgs...)
 	},
 }
 

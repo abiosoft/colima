@@ -10,14 +10,14 @@ import (
 var kubernetesCmd = &cobra.Command{
 	Use:     "kubernetes",
 	Aliases: []string{"kube", "k8s", "k"},
-	Short:   "Manage Kubernetes cluster",
+	Short:   "manage Kubernetes cluster",
 	Long:    `Manage the Kubernetes cluster`,
 }
 
 // kubernetesStartCmd represents the kubernetes command
 var kubernetesStartCmd = &cobra.Command{
 	Use:   "start",
-	Short: "Start the Kubernetes cluster",
+	Short: "start the Kubernetes cluster",
 	Long:  `Start the Kubernetes cluster.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("kubernetes called")
@@ -27,7 +27,7 @@ var kubernetesStartCmd = &cobra.Command{
 // kubernetesStartCmd represents the kubernetes command
 var kubernetesStopCmd = &cobra.Command{
 	Use:   "stop",
-	Short: "Stop the Kubernetes cluster",
+	Short: "stop the Kubernetes cluster",
 	Long:  `Stop the Kubernetes cluster.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("kubernetes called")
@@ -38,7 +38,7 @@ var kubernetesStopCmd = &cobra.Command{
 var kubernetesDashboardCmd = &cobra.Command{
 	Use:     "dashboard",
 	Aliases: []string{"d"},
-	Short:   "Enable the Kubernetes dashboard and print dashboard url",
+	Short:   "enable the Kubernetes dashboard and print dashboard url",
 	Long: `Enable the Kubernetes dashboard and print dashboard url.
 
 This may take a while on first run, the dashboard is not enabled by default.`,
@@ -50,7 +50,7 @@ This may take a while on first run, the dashboard is not enabled by default.`,
 // kubernetesStartCmd represents the kubernetes command
 var kubernetesResetCmd = &cobra.Command{
 	Use:   "reset",
-	Short: "Reset the Kubernetes cluster",
+	Short: "reset the Kubernetes cluster",
 	Long: `Reset the Kubernetes cluster.
 
 This resets the Kubernetes cluster and all Kubernetes objects

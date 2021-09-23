@@ -27,6 +27,8 @@ type GuestActions interface {
 	Start(config.Config) error
 	// Stop shuts down the VM
 	Stop() error
+	// Restart restarts the VM
+	Restart() error
 	// Created returns if the VM has been previously created.
 	Created() bool
 	// Running returns if the VM is currently running.

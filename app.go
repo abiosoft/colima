@@ -2,6 +2,7 @@ package colima
 
 import (
 	"fmt"
+	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/runtime/container"
 	"github.com/abiosoft/colima/runtime/host"
@@ -18,6 +19,7 @@ type App interface {
 	SSH(...string) error
 	Status() error
 	Version() error
+	Runtime() (string, error)
 }
 
 var _ App = (*colimaApp)(nil)
@@ -117,6 +119,11 @@ func (c colimaApp) Stop() error {
 }
 
 func (c colimaApp) Delete() error {
+	y := cli.Prompt("are you sure you want to delete Colima and all settings")
+	if !y {
+		return nil
+	}
+
 	log.Println("deleting", config.AppName())
 
 	// the order for teardown is:
@@ -164,8 +171,7 @@ func (c colimaApp) SSH(args ...string) error {
 
 func (c colimaApp) Status() error {
 	if !c.guest.Running() {
-		fmt.Println(config.AppName(), "is not running")
-		return nil
+		return fmt.Errorf("%s is not running", config.AppName())
 	}
 
 	currentRuntime, err := c.currentRuntime()
@@ -253,4 +259,8 @@ func (c colimaApp) containerRuntime(runtimeName string) (container.Container, er
 	}
 
 	return containerRuntime, nil
+}
+
+func (c colimaApp) Runtime() (string, error) {
+	return c.currentRuntime()
 }

@@ -6,7 +6,6 @@ import (
 	"github.com/abiosoft/colima/runtime"
 	"github.com/abiosoft/colima/runtime/container"
 	"os"
-	"time"
 )
 
 // Name is container runtime name.
@@ -69,9 +68,7 @@ func (d dockerRuntime) Provision() error {
 		r.Add(d.fixUserPermission)
 
 		r.Stage("restarting VM to complete setup")
-		r.Add(d.guest.Stop)
-		r.Add(func() error { time.Sleep(time.Second * 2); return nil })
-		r.Add(d.guest.Start)
+		r.Add(d.guest.Restart)
 	}
 
 	// socket file/launchd

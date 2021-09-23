@@ -16,7 +16,7 @@ func AppName() string    { return appName }
 func AppVersion() string { return appVersion }
 
 var (
-	appVersion = "devel"
+	appVersion = "v0.2.0-devel"
 
 	configDir string
 	cacheDir  string
@@ -89,7 +89,10 @@ func Load() (Config, error) {
 	}
 
 	err = yaml.Unmarshal(b, &c)
-	return c, fmt.Errorf("could not load pprevious settings: %w", err)
+	if err != nil {
+		return c, fmt.Errorf("could not load previous settings: %w", err)
+	}
+	return c, nil
 }
 
 // Teardown deletes the config.

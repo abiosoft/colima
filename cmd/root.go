@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"context"
+	"github.com/abiosoft/colima"
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/log"
@@ -12,13 +12,14 @@ import (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   config.AppName(),
-	Short: "Docker (and Kubernetes) on macOS with minimal setup",
-	Long:  `Colima provides Docker (and Kubernetes) on macOS with minimal setup.`,
+	Short: "container runtimes on macOS with minimal setup",
+	Long:  `Colima provides container runtimes on macOS with minimal setup.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		if err := initLog(rootCmdArgs.DryRun); err != nil {
 			return err
 		}
 
+		cmd.SilenceUsage = true
 		return nil
 	},
 }
@@ -30,9 +31,10 @@ var rootCmdArgs struct {
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	appConfig := &config.Config{}
-	ctx := context.WithValue(context.Background(), contextKey, appConfig)
-	cobra.CheckErr(rootCmd.ExecuteContext(ctx))
+	// because Cobra is somehow too smart or too dumb to exit with error code when there is an error.
+	if rootCmd.Execute() != nil {
+		os.Exit(1)
+	}
 }
 
 func init() {
@@ -42,8 +44,6 @@ func init() {
 	rootCmd.PersistentFlags().MarkHidden("dry-run")
 
 }
-
-var contextKey = struct{ key string }{key: "APP_SETTINGS"}
 
 func initLog(dryRun bool) error {
 	// general log
@@ -62,4 +62,10 @@ func initLog(dryRun bool) error {
 	cli.Stderr(out)
 
 	return nil
+}
+
+func newApp() colima.App {
+	app, err := colima.New()
+	cobra.CheckErr(err)
+	return app
 }

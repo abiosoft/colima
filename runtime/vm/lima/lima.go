@@ -10,6 +10,7 @@ import (
 	"github.com/abiosoft/colima/util"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 // New creates a new virtual machine VM.
@@ -39,6 +40,9 @@ var _ vm.VM = (*limaVM)(nil)
 type limaVM struct {
 	host runtime.HostActions
 	cli.CommandChain
+
+	// keep config in case of restart
+	conf config.Config
 }
 
 func (l limaVM) Dependencies() []string {
@@ -47,7 +51,7 @@ func (l limaVM) Dependencies() []string {
 	}
 }
 
-func (l limaVM) Start(conf config.Config) error {
+func (l *limaVM) Start(conf config.Config) error {
 	r := l.Init()
 
 	if l.Created() {
@@ -70,6 +74,12 @@ func (l limaVM) Start(conf config.Config) error {
 	})
 
 	l.applyDNS(r, conf)
+
+	// adding it to command chain to execute only after successful startup.
+	r.Add(func() error {
+		l.conf = conf
+		return nil
+	})
 
 	return r.Exec()
 }
@@ -162,6 +172,25 @@ func (l limaVM) Teardown() error {
 	})
 
 	return r.Exec()
+}
+
+func (l limaVM) Restart() error {
+	if l.conf.Empty() {
+		return fmt.Errorf("cannot restart, VM not previously started")
+	}
+
+	if err := l.Stop(); err != nil {
+		return err
+	}
+
+	// minor delay to prevent possible race condition.
+	time.Sleep(time.Second * 2)
+
+	if err := l.Start(l.conf); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (l limaVM) Run(args ...string) error {

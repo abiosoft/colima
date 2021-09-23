@@ -98,3 +98,18 @@ func (d dryRunCommandRunner) printArgs(prefix, command string, args ...string) {
 	}
 	fmt.Println(strings.Join(str, " "))
 }
+
+// Prompt prompts for input with a question. It returns true only if answer is y or Y.
+func Prompt(question string) bool {
+	fmt.Print(question)
+	fmt.Print("? [y/N] ")
+
+	var answer string
+	fmt.Scanln(&answer)
+
+	if answer == "" {
+		return false
+	}
+
+	return answer[0] == 'Y' || answer[0] == 'y'
+}

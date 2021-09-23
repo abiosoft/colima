@@ -15,8 +15,8 @@ Appending additional command runs the command instead.
 e.g. 'colima ssh -- htop' will run htop.
 
 It is recommended to specify '--' to differentiate from colima flags.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		cobra.CheckErr(app.SSH(args...))
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return newApp().SSH(args...)
 	},
 }
 
