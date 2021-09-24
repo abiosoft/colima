@@ -1,6 +1,9 @@
 package environment
 
-import "github.com/abiosoft/colima/config"
+import (
+	"github.com/abiosoft/colima/config"
+	"os"
+)
 
 type runActions interface {
 	// Run runs command
@@ -14,6 +17,7 @@ type runActions interface {
 type fileActions interface {
 	Read(fileName string) (string, error)
 	Write(fileName, body string) error
+	Stat(fileName string) (os.FileInfo, error)
 }
 
 // HostActions are actions performed on the host.

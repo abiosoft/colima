@@ -77,6 +77,10 @@ func (h hostEnv) Write(fileName, body string) error {
 	return os.WriteFile(fileName, []byte(body), 0644)
 }
 
+func (h hostEnv) Stat(fileName string) (os.FileInfo, error) {
+	return os.Stat(fileName)
+}
+
 // IsInstalled checks if dependencies are installed.
 func IsInstalled(dependencies environment.Dependencies) error {
 	var missing []string

@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Name is container runtime name
@@ -74,6 +75,7 @@ func (c *kubernetesRuntime) Provision() error {
 	}
 
 	// minikube
+	r.Stage("installing minikube")
 	c.installMinikube(r)
 
 	// adding to chain to ensure it executes after successful provision
@@ -100,7 +102,7 @@ func (c kubernetesRuntime) installCrictl(r *cli.ActiveCommandChain) {
 	})
 
 	r.Add(func() error {
-		return c.guest.Run("curl", "-L", "-o", downloadPath, url)
+		return c.guest.RunInteractive("curl", "-L", "-#", "-o", downloadPath, url)
 	})
 	r.Add(func() error {
 		return c.guest.Run("sudo", "tar", "xvfz", downloadPath, "-C", "/usr/local/bin")
@@ -111,7 +113,7 @@ func (c kubernetesRuntime) installMinikube(r *cli.ActiveCommandChain) {
 	downloadPath := "/tmp/minikube"
 	url := "https://storage.googleapis.com/minikube/releases/latest/minikube-linux-" + runtime.GOOS
 	r.Add(func() error {
-		return c.guest.Run("curl", "-L", "-o", downloadPath, url)
+		return c.guest.RunInteractive("curl", "-L", "-#", "-o", downloadPath, url)
 	})
 	r.Add(func() error {
 		return c.guest.Run("sudo", "install", downloadPath, "/usr/local/bin/minikube")
@@ -122,15 +124,20 @@ func (c kubernetesRuntime) Start() error {
 	r := c.Init()
 	r.Stage("starting")
 
-	if c.newlyProvisioned {
-		r.Println("NOTE: this is the first startup of kubernetes, it will take a while")
-		r.Println("      but no worries, subsequent startups only take some seconds")
+	r.Add(func() error {
+		// first start takes time, it's better to inform the user
+		if c.newlyProvisioned {
+			r.Println("NOTE: this is the first startup of kubernetes, it will take a while")
+			r.Println("      but no worries, subsequent startups only take some seconds")
+		}
+		return c.guest.Run("minikube", "start", "--driver", "none", "--container-runtime", c.runtime)
+	})
+
+	if err := r.Exec(); err != nil {
+		return err
 	}
 
-	r.Add(func() error {
-		return c.guest.Run("minikube", "start", "--driver=none", "--container-runtime", c.runtime)
-	})
-	return r.Exec()
+	return c.provisionKubeconfig()
 }
 
 func (c kubernetesRuntime) Stop() error {
@@ -173,6 +180,8 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 
 	r := c.Init()
 
+	r.Stage("updating " + Name + " configuration")
+
 	// ensure host kube directory exists
 	hostHome := c.host.Env("HOME")
 	if hostHome == "" {
@@ -184,10 +193,12 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 		return c.host.Run("mkdir", "-p", hostKubeDir)
 	})
 
-	tmpConfFile := filepath.Join(hostKubeDir, "colima-temp")
+	kubeconfFile := filepath.Join(hostKubeDir, "config")
+	tmpkubeconfFile := filepath.Join(hostKubeDir, "colima-temp")
 
-	// flatten in lima for portability
+	// manipulate in VM and save to host
 	r.Add(func() error {
+		// flatten in lima for portability
 		kubeconfig, err := c.guest.RunOutput("minikube", "kubectl", "--", "config", "view", "--flatten")
 		if err != nil {
 			return err
@@ -199,7 +210,46 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 		// reverse unintended rename
 		kubeconfig = strings.ReplaceAll(kubeconfig, config.AppName()+".sigs.k8s.io", "minikube.sigs.k8s.io")
 
-		return c.host.Write(tmpConfFile, kubeconfig)
+		// save on the host
+		return c.host.Write(tmpkubeconfFile, kubeconfig)
+	})
+
+	// merge on host
+	r.Add(func() (err error) {
+		// prepare new host with right env var.
+		envVar := fmt.Sprintf("KUBECONFIG=%s:%s", kubeconfFile, tmpkubeconfFile)
+		host := c.host.WithEnv([]string{envVar})
+
+		// get merged config
+		kubeconfig, err := host.RunOutput("kubectl", "view", "--raw")
+		if err != nil {
+			return err
+		}
+
+		// save
+		return host.Write(tmpkubeconfFile, kubeconfig)
+	})
+
+	// backup current settings and save new config
+	r.Add(func() error {
+		// backup existing file if exists
+		if stat, err := c.host.Stat(kubeconfFile); err == nil && !stat.IsDir() {
+			backup := filepath.Join(filepath.Dir(kubeconfFile), fmt.Sprintf("config-bak-%d", time.Now().Unix()))
+			if err := c.host.Run("cp", kubeconfFile, backup); err != nil {
+				return fmt.Errorf("error backing up kubeconfig: %w", err)
+			}
+		}
+		// save new config
+		if err := c.host.Run("cp", tmpkubeconfFile, kubeconfFile); err != nil {
+			return fmt.Errorf("error updating kubeconfig: %w", err)
+		}
+
+		return nil
+	})
+
+	// set new context
+	r.Add(func() error {
+		return c.host.RunInteractive("kubectl", "config", "use-context", config.AppName())
 	})
 
 	// save settings
