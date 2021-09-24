@@ -5,12 +5,14 @@ import (
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/environment/container/kubernetes"
 	"github.com/abiosoft/colima/environment/host"
 	"github.com/abiosoft/colima/environment/vm/lima"
 	"log"
 )
 
 type App interface {
+	Active() bool
 	Start(config.Config) error
 	Stop() error
 	Delete() error
@@ -18,6 +20,7 @@ type App interface {
 	Status() error
 	Version() error
 	Runtime() (string, error)
+	Kubernetes() (environment.Container, error)
 }
 
 var _ App = (*colimaApp)(nil)
@@ -42,13 +45,21 @@ func (c colimaApp) Start(conf config.Config) error {
 	log.Println("starting", config.AppName())
 
 	var containers []environment.Container
+	// runtime
 	{
 		env, err := c.containerEnvironment(conf.Runtime)
 		if err != nil {
 			return err
 		}
 		containers = append(containers, env)
-		// TODO add kubernetes
+	}
+	// kubernetes
+	if conf.Kubernetes {
+		env, err := c.containerEnvironment(kubernetes.Name)
+		if err != nil {
+			return err
+		}
+		containers = append(containers, env)
 	}
 
 	// the order for start is:
@@ -221,19 +232,23 @@ func (c colimaApp) setRuntime(runtime string) error {
 func (c colimaApp) currentContainerEnvironments() ([]environment.Container, error) {
 	var containers []environment.Container
 
-	runtime, err := c.currentRuntime()
-	if err != nil {
-		return nil, err
+	// runtime
+	{
+		runtime, err := c.currentRuntime()
+		if err != nil {
+			return nil, err
+		}
+		env, err := c.containerEnvironment(runtime)
+		if err != nil {
+			return nil, err
+		}
+		containers = append(containers, env)
 	}
-
-	env, err := c.containerEnvironment(runtime)
-	if err != nil {
-		return nil, err
-	}
-
-	containers = append(containers, env)
 
 	// detect and add kubernetes
+	if k, err := c.containerEnvironment(kubernetes.Name); err == nil && k.Version() != "" {
+		containers = append(containers, k)
+	}
 
 	return containers, nil
 }
@@ -252,4 +267,12 @@ func (c colimaApp) containerEnvironment(runtime string) (environment.Container, 
 
 func (c colimaApp) Runtime() (string, error) {
 	return c.currentRuntime()
+}
+
+func (c colimaApp) Kubernetes() (environment.Container, error) {
+	return c.containerEnvironment(kubernetes.Name)
+}
+
+func (c colimaApp) Active() bool {
+	return c.guest.Running()
 }

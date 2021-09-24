@@ -18,14 +18,16 @@ import (
 // Name is container runtime name
 const Name = "kubernetes"
 
-// New creates a new kubernetes runtime.
-func New(host environment.HostActions, guest environment.GuestActions, containerRuntime string) environment.Container {
+func newRuntime(host environment.HostActions, guest environment.GuestActions) environment.Container {
 	return &kubernetesRuntime{
 		host:         host,
 		guest:        guest,
 		CommandChain: cli.New("kubernetes"),
-		runtime:      containerRuntime,
 	}
+}
+
+func init() {
+	environment.RegisterContainer(Name, newRuntime)
 }
 
 var _ environment.Container = (*kubernetesRuntime)(nil)
@@ -33,7 +35,6 @@ var _ environment.Container = (*kubernetesRuntime)(nil)
 type kubernetesRuntime struct {
 	host             environment.HostActions
 	guest            environment.GuestActions
-	runtime          string
 	newlyProvisioned bool // track first run
 	cli.CommandChain
 }
@@ -46,6 +47,10 @@ func (c kubernetesRuntime) isInstalled() bool {
 	// minikube is the last provision step.
 	// if it is present, everything is assumed fine.
 	return c.guest.Run("command", "-v", "minikube") == nil
+}
+
+func (c kubernetesRuntime) runtime() string {
+	return c.guest.Get(environment.ContainerRuntimeKey)
 }
 
 func (c *kubernetesRuntime) Provision() error {
@@ -64,10 +69,11 @@ func (c *kubernetesRuntime) Provision() error {
 		return c.guest.Run("sudo", "apt", "install", "-y", "conntrack", "socat", "docker.io")
 	})
 
-	switch c.runtime {
+	containerRuntime := c.runtime()
+	switch containerRuntime {
 
 	case containerd.Name:
-		r.Stage("installing " + c.runtime + " dependencies")
+		r.Stage("installing " + containerRuntime + " dependencies")
 		c.installCrictl(r)
 
 	case docker.Name:
@@ -130,7 +136,7 @@ func (c kubernetesRuntime) Start() error {
 			r.Println("NOTE: this is the first startup of kubernetes, it will take a while")
 			r.Println("      but no worries, subsequent startups only take some seconds")
 		}
-		return c.guest.Run("minikube", "start", "--driver", "none", "--container-runtime", c.runtime)
+		return c.guest.Run("minikube", "start", "--driver", "none", "--container-runtime", c.runtime())
 	})
 
 	if err := r.Exec(); err != nil {

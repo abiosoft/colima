@@ -49,6 +49,11 @@ func RegisterContainer(name string, f NewContainerFunc) {
 // ContainerRuntimes return the names of available container runtimes.
 func ContainerRuntimes() (names []string) {
 	for name := range containerRuntimes {
+		// exclude kubernetes from the runtime list
+		// TODO find a cleaner way to not hardcode kubernetes
+		if name == "kubernetes" {
+			continue
+		}
 		names = append(names, name)
 	}
 	return
