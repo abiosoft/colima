@@ -70,6 +70,11 @@ func (c colimaApp) Start(conf config.Config) error {
 		return fmt.Errorf("error starting vm: %w", err)
 	}
 
+	// persist runtime for future reference.
+	if err := c.setRuntime(conf.Runtime); err != nil {
+		return fmt.Errorf("error setting current runtime: %w", err)
+	}
+
 	// provision container runtime
 	for _, cont := range containers {
 		if err := cont.Provision(); err != nil {
@@ -82,11 +87,6 @@ func (c colimaApp) Start(conf config.Config) error {
 		if err := cont.Start(); err != nil {
 			return fmt.Errorf("error starting %s: %w", cont.Name(), err)
 		}
-	}
-
-	// persist runtime for future reference.
-	if err := c.setRuntime(conf.Runtime); err != nil {
-		return fmt.Errorf("error setting current runtime: %w", err)
 	}
 
 	log.Println("done")

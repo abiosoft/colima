@@ -15,6 +15,11 @@ var kubernetesCmd = &cobra.Command{
 	Short:   "manage Kubernetes cluster",
 	Long:    `Manage the Kubernetes cluster`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		// cobra overrides when redeclared
+		// re-run rootCmd's.
+		if err := rootCmd.PersistentPreRunE(cmd, args); err != nil {
+			return err
+		}
 		if !newApp().Active() {
 			return fmt.Errorf("%s is not running", config.AppName())
 		}
@@ -34,6 +39,10 @@ var kubernetesStartCmd = &cobra.Command{
 			return err
 		}
 
+		if err := k.Provision(); err != nil {
+			return err
+		}
+
 		return k.Start()
 	},
 }
@@ -48,6 +57,9 @@ var kubernetesStopCmd = &cobra.Command{
 		k, err := app.Kubernetes()
 		if err != nil {
 			return err
+		}
+		if k.Version() == "" {
+			return fmt.Errorf("%s is not enabled", kubernetes.Name)
 		}
 
 		return k.Stop()

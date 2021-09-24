@@ -251,11 +251,11 @@ func (l limaVM) Created() bool {
 const configFile = "/etc/colima/colima.json"
 
 func (l limaVM) getConf() map[string]string {
+	obj := map[string]string{}
 	b, err := l.RunOutput("cat", configFile)
 	if err != nil {
-		return nil
+		return obj
 	}
-	obj := map[string]string{}
 
 	// we do not care if it fails
 	_ = json.Unmarshal([]byte(b), &obj)

@@ -117,7 +117,7 @@ func (c kubernetesRuntime) installCrictl(r *cli.ActiveCommandChain) {
 
 func (c kubernetesRuntime) installMinikube(r *cli.ActiveCommandChain) {
 	downloadPath := "/tmp/minikube"
-	url := "https://storage.googleapis.com/minikube/releases/latest/minikube-linux-" + runtime.GOOS
+	url := "https://storage.googleapis.com/minikube/releases/latest/minikube-linux-" + runtime.GOARCH
 	r.Add(func() error {
 		return c.guest.RunInteractive("curl", "-L", "-#", "-o", downloadPath, url)
 	})
@@ -227,7 +227,7 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 		host := c.host.WithEnv([]string{envVar})
 
 		// get merged config
-		kubeconfig, err := host.RunOutput("kubectl", "view", "--raw")
+		kubeconfig, err := host.RunOutput("kubectl", "config", "view", "--raw")
 		if err != nil {
 			return err
 		}
