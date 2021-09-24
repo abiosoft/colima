@@ -8,7 +8,6 @@ import (
 	"github.com/abiosoft/colima/environment/host"
 	"github.com/abiosoft/colima/environment/vm/lima"
 	"log"
-	"path/filepath"
 )
 
 type App interface {
@@ -38,8 +37,6 @@ func New() (App, error) {
 type colimaApp struct {
 	guest environment.VM
 }
-
-const runtimeConfigFile = "/etc/colima/runtime"
 
 func (c colimaApp) Start(conf config.Config) error {
 	log.Println("starting", config.AppName())
@@ -209,23 +206,16 @@ func (c colimaApp) currentRuntime() (string, error) {
 		return "", fmt.Errorf("%s is not running", config.AppName())
 	}
 
-	r, err := c.guest.RunOutput("cat", runtimeConfigFile)
-	if err != nil {
-		return "", fmt.Errorf("error retrieving current runtime: %w", err)
+	r := c.guest.Get(environment.ContainerRuntimeKey)
+	if r == "" {
+		return "", fmt.Errorf("error retrieving current runtime: empty value")
 	}
 
 	return r, nil
 }
 
-func (c colimaApp) setRuntime(runtimeName string) error {
-	if err := c.guest.Run("sudo", "mkdir", "-p", filepath.Dir(runtimeConfigFile)); err != nil {
-		return fmt.Errorf("error saving runtime settings: %w", err)
-	}
-	if err := c.guest.Run("sudo", "sh", "-c", fmt.Sprintf(`echo "%s" > %s`, runtimeName, runtimeConfigFile)); err != nil {
-		return fmt.Errorf("error saving runtime settings: %w", err)
-	}
-
-	return nil
+func (c colimaApp) setRuntime(runtime string) error {
+	return c.guest.Set(environment.ContainerRuntimeKey, runtime)
 }
 
 func (c colimaApp) currentContainerEnvironments() ([]environment.Container, error) {

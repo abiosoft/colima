@@ -2,8 +2,7 @@ package environment
 
 import "github.com/abiosoft/colima/config"
 
-// runAction runs commands.
-type runAction interface {
+type runActions interface {
 	// Run runs command
 	Run(args ...string) error
 	// RunOutput runs command and returns its output.
@@ -12,17 +11,25 @@ type runAction interface {
 	RunInteractive(args ...string) error
 }
 
+type fileActions interface {
+	Read(fileName string) (string, error)
+	Write(fileName, body string) error
+}
+
 // HostActions are actions performed on the host.
 type HostActions interface {
-	runAction
+	runActions
+	fileActions
 	// WithEnv creates a new instance based on the current instance
 	// with the specified environment variables.
 	WithEnv(env []string) HostActions
+	// Env retrieves environment variable on the host.
+	Env(string) string
 }
 
 // GuestActions are actions performed on the guest i.e. VM.
 type GuestActions interface {
-	runAction
+	runActions
 	// Start starts up the VM
 	Start(config.Config) error
 	// Stop shuts down the VM
@@ -35,6 +42,10 @@ type GuestActions interface {
 	Running() bool
 	// Env retrieves environment variable in the VM.
 	Env(string) (string, error)
+	// Get retrieves a configuration in the VM.
+	Get(key string) string
+	// Set sets configuration in the VM.
+	Set(key, value string) error
 }
 
 // Dependencies are dependencies that must exist on the host.

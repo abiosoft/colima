@@ -53,3 +53,6 @@ func ContainerRuntimes() (names []string) {
 	}
 	return
 }
+
+// ContainerRuntimeKey is the settings key for container runtime.
+const ContainerRuntimeKey = "runtime"

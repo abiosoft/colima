@@ -1,17 +1,23 @@
 package kubernetes
 
 import (
+	"fmt"
 	"github.com/abiosoft/colima/cli"
+	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/environment/container/docker"
 	"os"
+	"path/filepath"
 	"runtime"
+	"strconv"
+	"strings"
 )
 
 // Name is container runtime name
 const Name = "kubernetes"
 
+// New creates a new kubernetes runtime.
 func New(host environment.HostActions, guest environment.GuestActions, containerRuntime string) environment.Container {
 	return &kubernetesRuntime{
 		host:         host,
@@ -142,6 +148,9 @@ func (c kubernetesRuntime) Teardown() error {
 	r.Add(func() error {
 		return c.guest.Run("minikube", "delete")
 	})
+	r.Add(func() error {
+		return c.guest.Set(kubeconfigKey, "")
+	})
 	return r.Exec()
 }
 
@@ -152,4 +161,51 @@ func (c kubernetesRuntime) Dependencies() []string {
 func (c kubernetesRuntime) Version() string {
 	version, _ := c.host.RunOutput("kubectl", "--context", "colima", "version", "--short")
 	return version
+}
+
+const kubeconfigKey = "kubeconfig"
+
+func (c kubernetesRuntime) provisionKubeconfig() error {
+	provisioned, _ := strconv.ParseBool(c.guest.Get(kubeconfigKey))
+	if provisioned {
+		return nil
+	}
+
+	r := c.Init()
+
+	// ensure host kube directory exists
+	hostHome := c.host.Env("HOME")
+	if hostHome == "" {
+		return fmt.Errorf("error retrieving home directory on host")
+	}
+
+	hostKubeDir := filepath.Join(hostHome, ".kube")
+	r.Add(func() error {
+		return c.host.Run("mkdir", "-p", hostKubeDir)
+	})
+
+	tmpConfFile := filepath.Join(hostKubeDir, "colima-temp")
+
+	// flatten in lima for portability
+	r.Add(func() error {
+		kubeconfig, err := c.guest.RunOutput("minikube", "kubectl", "--", "config", "view", "--flatten")
+		if err != nil {
+			return err
+		}
+		// replace unreachable ip with localhost
+		kubeconfig = strings.ReplaceAll(kubeconfig, "192.168.5.15:8443", "127.0.0.1:8443")
+		// rename to $NAME
+		kubeconfig = strings.ReplaceAll(kubeconfig, "minikube", config.AppName())
+		// reverse unintended rename
+		kubeconfig = strings.ReplaceAll(kubeconfig, config.AppName()+".sigs.k8s.io", "minikube.sigs.k8s.io")
+
+		return c.host.Write(tmpConfFile, kubeconfig)
+	})
+
+	// save settings
+	r.Add(func() error {
+		return c.guest.Set(kubeconfigKey, "true")
+	})
+
+	return r.Exec()
 }

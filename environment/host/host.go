@@ -64,6 +64,19 @@ func (h hostEnv) RunInteractive(args ...string) error {
 	return cmd.Run()
 }
 
+func (h hostEnv) Env(s string) string {
+	return os.Getenv(s)
+}
+
+func (h hostEnv) Read(fileName string) (string, error) {
+	b, err := os.ReadFile(fileName)
+	return string(b), err
+}
+
+func (h hostEnv) Write(fileName, body string) error {
+	return os.WriteFile(fileName, []byte(body), 0644)
+}
+
 // IsInstalled checks if dependencies are installed.
 func IsInstalled(dependencies environment.Dependencies) error {
 	var missing []string
