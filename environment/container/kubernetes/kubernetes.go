@@ -117,11 +117,18 @@ func (c kubernetesRuntime) Start() error {
 			r.Println("NOTE: this is the first startup of kubernetes, it will take a while")
 			r.Println("      but no worries, subsequent startups only take some seconds")
 		}
-		return c.guest.Run("minikube", "start",
+
+		args := []string{"minikube", "start",
 			"--driver", "none",
 			"--container-runtime", c.runtime(),
-			"--cni", "bridge",
-		)
+		}
+
+		switch c.runtime() {
+		case containerd.Name:
+			args = append(args, "--cni", "bridge")
+		}
+
+		return c.guest.Run(args...)
 	})
 
 	if err := r.Exec(); err != nil {
