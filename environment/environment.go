@@ -50,6 +50,8 @@ type GuestActions interface {
 	Get(key string) string
 	// Set sets configuration in the VM.
 	Set(key, value string) error
+	// User returns the username of the user in the VM.
+	User() (string, error)
 }
 
 // Dependencies are dependencies that must exist on the host.

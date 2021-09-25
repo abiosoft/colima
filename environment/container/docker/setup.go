@@ -45,7 +45,7 @@ func (d dockerRuntime) setupInVM() error {
 }
 
 func (d dockerRuntime) fixUserPermission() error {
-	user, err := d.vmUser()
+	user, err := d.guest.User()
 	if err != nil {
 		return fmt.Errorf("error retrieving user in the VM: %w", err)
 	}

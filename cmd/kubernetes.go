@@ -83,7 +83,7 @@ This may take a while on first run, the dashboard is not enabled by default.`,
 		if k.Version() == "" {
 			return fmt.Errorf("%s is not enabled", kubernetes.Name)
 		}
-		return app.SSH("sh", "-c", "minikube dashboard --url 2>/dev/null")
+		return app.SSH("sh", "-c", "minikube dashboard --url")
 	},
 }
 

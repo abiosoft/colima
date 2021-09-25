@@ -72,7 +72,7 @@ func (d dockerRuntime) Provision() error {
 
 	// socket file/launchd
 	r.Add(func() error {
-		user, err := d.vmUser()
+		user, err := d.guest.User()
 		if err != nil {
 			return err
 		}
@@ -81,10 +81,6 @@ func (d dockerRuntime) Provision() error {
 	r.Add(func() error { return createLaunchdScript(d.launchd) })
 
 	return r.Exec()
-}
-
-func (d dockerRuntime) vmUser() (string, error) {
-	return d.guest.RunOutput("whoami")
 }
 
 func (d dockerRuntime) Start() error {

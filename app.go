@@ -189,6 +189,11 @@ func (c colimaApp) Status() error {
 	fmt.Println(config.AppName(), "is running")
 	fmt.Println("runtime:", currentRuntime)
 
+	// kubernetes
+	if k, err := c.Kubernetes(); err == nil && k.Version() != "" {
+		fmt.Println("kubernetes: enabled")
+	}
+
 	return nil
 }
 

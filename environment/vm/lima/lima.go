@@ -288,3 +288,7 @@ func (l limaVM) Set(key, value string) error {
 
 	return nil
 }
+
+func (l limaVM) User() (string, error) {
+	return l.RunOutput("whoami")
+}
