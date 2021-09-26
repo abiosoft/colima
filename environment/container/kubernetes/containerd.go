@@ -31,6 +31,14 @@ func (c *kubernetesRuntime) containerdDeps(r *cli.ActiveCommandChain) {
 		}
 		return c.guest.Run("sudo", "chown", "-R", user+":"+user, "/etc/cni")
 	})
+	// fix cni path
+	r.Add(func() error {
+		cniDir := "/opt/cni/bin"
+		if err := c.guest.Run("ls", cniDir); err == nil {
+			return nil
+		}
+		return c.guest.Run("sudo", "ln", "-s", "/usr/local/libexec/cni", cniDir)
+	})
 }
 
 func (c kubernetesRuntime) installCrictl(r *cli.ActiveCommandChain) {
