@@ -74,7 +74,7 @@ func (c *kubernetesRuntime) Provision() error {
 
 	case containerd.Name:
 		r.Stage("installing " + containerRuntime + " dependencies")
-		installContainerdDeps(c.guest, r)
+		installContainerdDeps(c.host, c.guest, r)
 
 	case docker.Name:
 		// no known dependencies for now
@@ -82,7 +82,7 @@ func (c *kubernetesRuntime) Provision() error {
 
 	// minikube
 	r.Stage("installing minikube")
-	installMinikube(c.guest, r, c.kubernetesVersion())
+	installMinikube(c.host, c.guest, r, c.kubernetesVersion())
 
 	// adding to chain to ensure it executes after successful provision
 	r.Add(func() error {

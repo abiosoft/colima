@@ -2,7 +2,7 @@ package config
 
 import (
 	"fmt"
-	"github.com/abiosoft/colima/util"
+	"github.com/abiosoft/colima/util/yamlutil"
 	"gopkg.in/yaml.v3"
 	"log"
 	"net"
@@ -31,6 +31,9 @@ func SSHPort() int { return sshPort }
 
 // Dir returns the configuration directory.
 func Dir() string { return configDir }
+
+// CacheDir returns the cache directory.
+func CacheDir() string { return cacheDir }
 
 // LogFile returns the path the command log output.
 func LogFile() string {
@@ -71,7 +74,7 @@ func configFile() string {
 
 // Save saves the config.
 func Save(c Config) error {
-	return util.WriteYAML(c, configFile())
+	return yamlutil.WriteYAML(c, configFile())
 }
 
 // Load loads the config.

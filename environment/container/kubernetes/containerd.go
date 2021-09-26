@@ -4,14 +4,15 @@ import (
 	"fmt"
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/util/downloader"
 	"os"
 	"path/filepath"
 	"runtime"
 )
 
-func installContainerdDeps(guest environment.GuestActions, r *cli.ActiveCommandChain) {
+func installContainerdDeps(host environment.HostActions, guest environment.GuestActions, r *cli.ActiveCommandChain) {
 	// install crictl
-	installCrictl(guest, r)
+	installCrictl(host, guest, r)
 
 	// minikube with containerd still needs docker :( https://github.com/kubernetes/minikube/issues/10908
 	// the good news is we can spoof it.
@@ -47,7 +48,7 @@ func installContainerdDeps(guest environment.GuestActions, r *cli.ActiveCommandC
 	})
 }
 
-func installCrictl(guest environment.GuestActions, r *cli.ActiveCommandChain) {
+func installCrictl(host environment.Host, guest environment.GuestActions, r *cli.ActiveCommandChain) {
 	// TODO figure a way to keep up to date.
 	version := "v1.22.0"
 	downloadPath := "/tmp/crictl.tar.gz"
@@ -63,7 +64,7 @@ func installCrictl(guest environment.GuestActions, r *cli.ActiveCommandChain) {
 	})
 
 	r.Add(func() error {
-		return guest.RunInteractive("curl", "-L", "-#", "-o", downloadPath, url)
+		return downloader.Download(host, guest, url, downloadPath)
 	})
 	r.Add(func() error {
 		return guest.Run("sudo", "tar", "xvfz", downloadPath, "-C", "/usr/local/bin")

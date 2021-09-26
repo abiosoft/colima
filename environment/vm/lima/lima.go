@@ -8,6 +8,7 @@ import (
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/util"
+	"github.com/abiosoft/colima/util/yamlutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -65,7 +66,7 @@ func (l *limaVM) Start(conf config.Config) error {
 
 	r.Add(func() error {
 		limaConf := newConf(conf)
-		return util.WriteYAML(limaConf, configFile)
+		return yamlutil.WriteYAML(limaConf, configFile)
 	})
 	r.Add(func() error {
 		return l.host.Run(limactl, "start", "--tty=false", configFile)
@@ -97,7 +98,7 @@ func (l limaVM) resume(conf config.Config) error {
 
 	r.Add(func() error {
 		limaConf := newConf(conf)
-		return util.WriteYAML(limaConf, configFile)
+		return yamlutil.WriteYAML(limaConf, configFile)
 	})
 
 	r.Stage("starting")
