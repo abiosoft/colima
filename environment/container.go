@@ -59,5 +59,9 @@ func ContainerRuntimes() (names []string) {
 	return
 }
 
-// ContainerRuntimeKey is the settings key for container runtime.
-const ContainerRuntimeKey = "runtime"
+const (
+	// ContainerRuntimeKey is the settings key for container runtime.
+	ContainerRuntimeKey = "runtime"
+	// KubernetesVersionKey is the settings key for kubernetes version.
+	KubernetesVersionKey = "kubernetes_version"
+)

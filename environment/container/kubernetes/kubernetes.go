@@ -5,7 +5,6 @@ import (
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/environment/container/docker"
-	"runtime"
 )
 
 // Name is container runtime name
@@ -51,6 +50,9 @@ func (c kubernetesRuntime) Running() bool {
 func (c kubernetesRuntime) runtime() string {
 	return c.guest.Get(environment.ContainerRuntimeKey)
 }
+func (c kubernetesRuntime) kubernetesVersion() string {
+	return c.guest.Get(environment.KubernetesVersionKey)
+}
 
 func (c *kubernetesRuntime) Provision() error {
 	r := c.Init()
@@ -72,7 +74,7 @@ func (c *kubernetesRuntime) Provision() error {
 
 	case containerd.Name:
 		r.Stage("installing " + containerRuntime + " dependencies")
-		c.containerdDeps(r)
+		installContainerdDeps(c.guest, r)
 
 	case docker.Name:
 		// no known dependencies for now
@@ -80,7 +82,7 @@ func (c *kubernetesRuntime) Provision() error {
 
 	// minikube
 	r.Stage("installing minikube")
-	c.installMinikube(r)
+	installMinikube(c.guest, r, c.kubernetesVersion())
 
 	// adding to chain to ensure it executes after successful provision
 	r.Add(func() error {
@@ -89,17 +91,6 @@ func (c *kubernetesRuntime) Provision() error {
 	})
 
 	return r.Exec()
-}
-
-func (c kubernetesRuntime) installMinikube(r *cli.ActiveCommandChain) {
-	downloadPath := "/tmp/minikube"
-	url := "https://storage.googleapis.com/minikube/releases/latest/minikube-linux-" + runtime.GOARCH
-	r.Add(func() error {
-		return c.guest.RunInteractive("curl", "-L", "-#", "-o", downloadPath, url)
-	})
-	r.Add(func() error {
-		return c.guest.Run("sudo", "install", downloadPath, "/usr/local/bin/minikube")
-	})
 }
 
 func (c kubernetesRuntime) Start() error {
@@ -121,6 +112,7 @@ func (c kubernetesRuntime) Start() error {
 		args := []string{"minikube", "start",
 			"--driver", "none",
 			"--container-runtime", c.runtime(),
+			"--kubernetes-version", c.kubernetesVersion(),
 		}
 
 		switch c.runtime() {
@@ -139,6 +131,10 @@ func (c kubernetesRuntime) Start() error {
 }
 
 func (c kubernetesRuntime) Stop() error {
+	if c.runtime() == containerd.Name {
+		// minikube stop with containerd runtime is ineffective at the moment.
+		return nil
+	}
 	r := c.Init()
 	r.Stage("stopping")
 	r.Add(func() error {

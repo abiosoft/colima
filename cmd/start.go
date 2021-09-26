@@ -44,10 +44,11 @@ For verbose output, tail the log file "$HOME/Library/Caches/colima/out.log".
 			return nil
 		}
 
-		// runtime and disk size are only effective on VM create
+		// runtime, disk size and kubernetes version are only effective on VM create
 		// set it to the current settings
 		startCmdArgs.Runtime = current.Runtime
 		startCmdArgs.VM.Disk = current.VM.Disk
+		startCmdArgs.Kubernetes.Version = current.Kubernetes.Version
 
 		// use current settings for unchanged configs
 		// otherwise may be reverted to their default values.
@@ -72,10 +73,11 @@ For verbose output, tail the log file "$HOME/Library/Caches/colima/out.log".
 }
 
 const (
-	defaultCPU     = 2
-	defaultMemory  = 4
-	defaultDisk    = 60
-	defaultSSHPort = 41122
+	defaultCPU               = 2
+	defaultMemory            = 4
+	defaultDisk              = 60
+	defaultSSHPort           = 41122
+	defaultKubernetesVersion = "v1.22.2"
 )
 
 var startCmdArgs struct {
@@ -86,12 +88,15 @@ func init() {
 	runtimes := strings.Join(environment.ContainerRuntimes(), ", ")
 
 	rootCmd.AddCommand(startCmd)
-	startCmd.Flags().BoolVarP(&startCmdArgs.Kubernetes, "with-kubernetes", "k", false, "start VM with Kubernetes")
 	startCmd.Flags().StringVarP(&startCmdArgs.Runtime, "runtime", "r", docker.Name, "container runtime, one of ["+runtimes+"]")
 	startCmd.Flags().IntVarP(&startCmdArgs.VM.CPU, "cpu", "c", defaultCPU, "number of CPUs")
 	startCmd.Flags().IntVarP(&startCmdArgs.VM.Memory, "memory", "m", defaultMemory, "memory in GiB")
 	startCmd.Flags().IntVarP(&startCmdArgs.VM.Disk, "disk", "d", defaultDisk, "disk size in GiB")
 	startCmd.Flags().IPSliceVarP(&startCmdArgs.VM.DNS, "dns", "n", nil, "DNS servers for the VM")
+
+	// k8s
+	startCmd.Flags().BoolVarP(&startCmdArgs.Kubernetes.Enabled, "with-kubernetes", "k", false, "start VM with Kubernetes")
+	startCmd.Flags().StringVar(&startCmdArgs.Kubernetes.Version, "kubernetes-version", defaultKubernetesVersion, "the Kubernetes version")
 
 	// internal
 	startCmd.Flags().IntVar(&startCmdArgs.VM.SSHPort, "ssh-port", defaultSSHPort, "SSH port for the VM")

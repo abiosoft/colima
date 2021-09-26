@@ -54,7 +54,7 @@ func (c colimaApp) Start(conf config.Config) error {
 		containers = append(containers, env)
 	}
 	// kubernetes
-	if conf.Kubernetes {
+	if conf.Kubernetes.Enabled {
 		env, err := c.containerEnvironment(kubernetes.Name)
 		if err != nil {
 			return err
@@ -73,6 +73,10 @@ func (c colimaApp) Start(conf config.Config) error {
 	// persist runtime for future reference.
 	if err := c.setRuntime(conf.Runtime); err != nil {
 		return fmt.Errorf("error setting current runtime: %w", err)
+	}
+	// persist kubernetes version for future reference.
+	if err := c.setKubernetesVersion(conf.Kubernetes.Version); err != nil {
+		return fmt.Errorf("error setting kubernetes version: %w", err)
 	}
 
 	// provision container runtime
@@ -232,6 +236,10 @@ func (c colimaApp) currentRuntime() (string, error) {
 
 func (c colimaApp) setRuntime(runtime string) error {
 	return c.guest.Set(environment.ContainerRuntimeKey, runtime)
+}
+
+func (c colimaApp) setKubernetesVersion(version string) error {
+	return c.guest.Set(environment.KubernetesVersionKey, version)
 }
 
 func (c colimaApp) currentContainerEnvironments() ([]environment.Container, error) {

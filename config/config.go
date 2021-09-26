@@ -112,7 +112,13 @@ type Config struct {
 	Runtime string `yaml:"runtime"`
 
 	// Kubernetes sets if kubernetes should be enabled.
-	Kubernetes bool `yaml:"kubernetes"`
+	Kubernetes Kubernetes `yaml:"kubernetes"`
+}
+
+// Kubernetes is kubernetes configuration
+type Kubernetes struct {
+	Enabled bool   `yaml:"enabled"`
+	Version string `yaml:"version"`
 }
 
 // VM is virtual machine configuration.
