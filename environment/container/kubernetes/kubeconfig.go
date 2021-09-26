@@ -20,7 +20,7 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 
 	r := c.Init()
 
-	r.Stage("updating " + Name + " configuration")
+	r.Stage("updating kubeconfig")
 
 	// ensure host kube directory exists
 	hostHome := c.host.Env("HOME")

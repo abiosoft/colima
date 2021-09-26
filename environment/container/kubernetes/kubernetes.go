@@ -96,7 +96,7 @@ func (c *kubernetesRuntime) Provision() error {
 func (c kubernetesRuntime) Start() error {
 	r := c.Init()
 	if c.Running() {
-		r.Println("already running")
+		r.Println("already enabled")
 		return nil
 	}
 
