@@ -58,7 +58,7 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 	r.Add(func() (err error) {
 		// prepare new host with right env var.
 		envVar := fmt.Sprintf("KUBECONFIG=%s:%s", kubeconfFile, tmpkubeconfFile)
-		host := c.host.WithEnv([]string{envVar})
+		host := c.host.WithEnv(envVar)
 
 		// get merged config
 		kubeconfig, err := host.RunOutput("kubectl", "config", "view", "--raw")

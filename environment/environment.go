@@ -26,7 +26,7 @@ type HostActions interface {
 	fileActions
 	// WithEnv creates a new instance based on the current instance
 	// with the specified environment variables.
-	WithEnv(env []string) HostActions
+	WithEnv(env ...string) HostActions
 	// Env retrieves environment variable on the host.
 	Env(string) string
 }

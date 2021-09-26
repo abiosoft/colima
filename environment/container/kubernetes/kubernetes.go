@@ -12,7 +12,7 @@ const Name = "kubernetes"
 
 func newRuntime(host environment.HostActions, guest environment.GuestActions) environment.Container {
 	return &kubernetesRuntime{
-		host:         host,
+		host:         host.WithEnv("MINIKUBE_IN_STYLE=0"),
 		guest:        guest,
 		CommandChain: cli.New("kubernetes"),
 	}

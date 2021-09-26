@@ -21,7 +21,7 @@ type hostEnv struct {
 	env []string
 }
 
-func (h hostEnv) WithEnv(env []string) environment.HostActions {
+func (h hostEnv) WithEnv(env ...string) environment.HostActions {
 	var newHost hostEnv
 	// use current and new env vars
 	newHost.env = append(newHost.env, h.env...)

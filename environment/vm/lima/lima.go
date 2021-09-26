@@ -16,7 +16,7 @@ import (
 
 // New creates a new virtual machine.
 func New(host environment.HostActions) environment.VM {
-	env := []string{limaInstanceEnvVar + "=" + config.AppName()}
+	env := limaInstanceEnvVar + "=" + config.AppName()
 
 	// consider making this truly flexible to support other VMs
 	return &limaVM{
