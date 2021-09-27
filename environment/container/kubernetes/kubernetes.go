@@ -4,6 +4,7 @@ import (
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/containerd"
+	"github.com/abiosoft/colima/environment/container/docker"
 	"strings"
 )
 
@@ -93,22 +94,73 @@ func (c kubernetesRuntime) Stop() error {
 		return c.guest.Run("k3s-killall.sh")
 	})
 
-	if c.runtime() == containerd.Name {
-		// k3s is buggy with external containerd for now
-		// cleanup is manual
-		r.Add(func() error {
-			ids := c.runningContainerIDs()
-			if ids == "" {
-				return nil
-			}
-			return c.guest.Run("sh", "-c", `sudo nerdctl -n k8s.io kill `+ids)
-		})
-	}
+	// k3s is buggy with external containerd for now
+	// cleanup is manual
+	r.Add(func() error {
+		return c.stopAllContainers()
+	})
+
 	return r.Exec()
 }
 
+func (c kubernetesRuntime) deleteAllContainers() error {
+	ids := c.runningContainerIDs()
+	if ids == "" {
+		return nil
+	}
+
+	var args []string
+
+	switch c.runtime() {
+	case containerd.Name:
+		args = []string{"nerdctl", "-n", "k8s.io", "rm", "-f"}
+	case docker.Name:
+		args = []string{"docker", "rm", "-f"}
+	default:
+		return nil
+	}
+
+	args = append(args, strings.Fields(ids)...)
+
+	return c.guest.Run("sudo", "sh", "-c", strings.Join(args, " "))
+}
+
+func (c kubernetesRuntime) stopAllContainers() error {
+
+	ids := c.runningContainerIDs()
+	if ids == "" {
+		return nil
+	}
+
+	var args []string
+
+	switch c.runtime() {
+	case containerd.Name:
+		args = []string{"nerdctl", "-n", "k8s.io", "kill"}
+	case docker.Name:
+		args = []string{"docker", "kill"}
+	default:
+		return nil
+	}
+
+	args = append(args, strings.Fields(ids)...)
+
+	return c.guest.Run("sudo", "sh", "-c", strings.Join(args, " "))
+}
+
 func (c kubernetesRuntime) runningContainerIDs() string {
-	ids, _ := c.guest.RunOutput("sudo", "nerdctl", "-n", "k8s.io", "ps", "-q")
+	var args []string
+
+	switch c.runtime() {
+	case containerd.Name:
+		args = []string{"sudo", "nerdctl", "-n", "k8s.io", "ps", "-q"}
+	case docker.Name:
+		args = []string{"sudo", "sh", "-c", `docker ps --format '{{.Names}}'| grep "k8s_"`}
+	default:
+		return ""
+	}
+
+	ids, _ := c.guest.RunOutput(args...)
 	if ids == "" {
 		return ""
 	}
@@ -125,22 +177,17 @@ func (c kubernetesRuntime) Teardown() error {
 		})
 	}
 
-	if c.runtime() == containerd.Name {
-		// k3s is buggy with external containerd for now
-		// cleanup is manual
-		r.Add(func() error {
-			ids := c.runningContainerIDs()
-			if ids == "" {
-				return nil
-			}
-			return c.guest.Run("sh", "-c", "sudo nerdctl -n k8s.io rm -f -v "+ids)
-		})
-	}
+	// k3s is buggy with external containerd for now
+	// cleanup is manual
+	r.Add(func() error {
+		return c.deleteAllContainers()
+	})
 
 	c.teardownKubeconfig(r)
 	r.Add(func() error {
 		return c.guest.Set(kubeconfigKey, "")
 	})
+
 	return r.Exec()
 }
 

@@ -59,11 +59,16 @@ func installK3sCache(host environment.HostActions, guest environment.GuestAction
 		return guest.Run("sudo", "cp", downloadPathTar, airGapDir)
 	})
 
-	// containerd requires manual loading
-	if containerRuntime == containerd.Name {
+	switch containerRuntime {
+	case containerd.Name:
 		r.Stage("loading containerd images")
 		r.Add(func() error {
 			return guest.Run("sudo", "ctr", "-n", "k8s.io", "images", "import", downloadPathTar)
+		})
+	case docker.Name:
+		r.Stage("loading docker images")
+		r.Add(func() error {
+			return guest.Run("sudo", "docker", "load", "-i", downloadPathTar)
 		})
 	}
 
@@ -80,7 +85,7 @@ func installK3sCluster(host environment.HostActions, guest environment.GuestActi
 		return guest.Run("sudo", "install", downloadPath, "/usr/local/bin/k3s-install.sh")
 	})
 
-	args := []string{"--write-kubeconfig-mode", "644"}
+	args := []string{"--write-kubeconfig-mode", "644", "--resolv-conf", "/run/systemd/resolve/resolv.conf"}
 
 	switch containerRuntime {
 	case docker.Name:
