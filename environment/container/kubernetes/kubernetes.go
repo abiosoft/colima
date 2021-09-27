@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"github.com/abiosoft/colima/cli"
+	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/environment/container/docker"
@@ -196,6 +197,6 @@ func (c kubernetesRuntime) Dependencies() []string {
 }
 
 func (c kubernetesRuntime) Version() string {
-	version, _ := c.host.RunOutput("kubectl", "--context", "colima", "version", "--short")
+	version, _ := c.host.RunOutput("kubectl", "--context", config.AppName(), "version", "--short")
 	return version
 }

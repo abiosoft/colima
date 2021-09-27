@@ -11,10 +11,13 @@ import (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   config.AppName(),
+	Use:   "colima",
 	Short: "container runtimes on macOS with minimal setup",
 	Long:  `Colima provides container runtimes on macOS with minimal setup.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		if rootCmdArgs.Profile != "colima" && rootCmdArgs.Profile != "" {
+			config.Profile(rootCmdArgs.Profile)
+		}
 		if err := initLog(rootCmdArgs.DryRun); err != nil {
 			return err
 		}
@@ -25,7 +28,8 @@ var rootCmd = &cobra.Command{
 }
 
 var rootCmdArgs struct {
-	DryRun bool
+	DryRun  bool
+	Profile string
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -39,9 +43,11 @@ func Execute() {
 
 func init() {
 	rootCmd.PersistentFlags().BoolVar(&rootCmdArgs.DryRun, "dry-run", rootCmdArgs.DryRun, "perform a dry run instead")
+	rootCmd.PersistentFlags().StringVarP(&rootCmdArgs.Profile, "profile", "p", "colima", "use different profile")
 
 	// decide if this should be public
 	rootCmd.PersistentFlags().MarkHidden("dry-run")
+	rootCmd.PersistentFlags().MarkHidden("profile")
 
 }
 

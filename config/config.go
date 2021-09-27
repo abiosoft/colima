@@ -10,10 +10,10 @@ import (
 	"path/filepath"
 )
 
-const appName = "colima"
+var appName = "colima"
 
-func AppName() string    { return appName }
-func AppVersion() string { return appVersion }
+func AppName() string    { ensureInit(); return appName }
+func AppVersion() string { ensureInit(); return appVersion }
 
 var (
 	appVersion = "v0.2.0-devel"
@@ -25,22 +25,33 @@ var (
 	sshPort = 41122
 )
 
-// SSHPort returns the SSH port for the VM
-// TODO change location
-func SSHPort() int { return sshPort }
-
-// Dir returns the configuration directory.
-func Dir() string { return configDir }
-
-// CacheDir returns the cache directory.
-func CacheDir() string { return cacheDir }
-
-// LogFile returns the path the command log output.
-func LogFile() string {
-	return filepath.Join(cacheDir, "out.log")
+// Profile sets the profile name for the application.
+// This is an avenue to test Colima without breaking an existing stable setup.
+// Not perfect, but good enough for testing.
+func Profile(profile string) {
+	appName = profile
 }
 
-func init() {
+// SSHPort returns the SSH port for the VM
+// TODO change location
+func SSHPort() int { ensureInit(); return sshPort }
+
+// Dir returns the configuration directory.
+func Dir() string { ensureInit(); return configDir }
+
+// CacheDir returns the cache directory.
+func CacheDir() string { ensureInit(); return cacheDir }
+
+// LogFile returns the path the command log output.
+func LogFile() string { ensureInit(); return filepath.Join(cacheDir, "out.log") }
+
+var initDone = false
+
+func ensureInit() {
+	if initDone {
+		return
+	}
+
 	{
 		// prepare config directory
 		dir, err := os.UserHomeDir()
@@ -64,13 +75,12 @@ func init() {
 			log.Fatal(fmt.Errorf("cannot create cache directory: %w", err))
 		}
 	}
+	initDone = true
 }
 
 const configFileName = "colima.yaml"
 
-func configFile() string {
-	return filepath.Join(configDir, configFileName)
-}
+func configFile() string { ensureInit(); return filepath.Join(configDir, configFileName) }
 
 // Save saves the config.
 func Save(c Config) error {

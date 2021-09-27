@@ -30,11 +30,11 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 
 	hostKubeDir := filepath.Join(hostHome, ".kube")
 	r.Add(func() error {
-		return c.host.Run("mkdir", "-p", filepath.Join(hostKubeDir, ".colima"))
+		return c.host.Run("mkdir", "-p", filepath.Join(hostKubeDir, "."+config.AppName()))
 	})
 
 	kubeconfFile := filepath.Join(hostKubeDir, "config")
-	tmpkubeconfFile := filepath.Join(hostKubeDir, ".colima", "colima-temp")
+	tmpkubeconfFile := filepath.Join(hostKubeDir, "."+config.AppName(), "colima-temp")
 
 	// manipulate in VM and save to host
 	r.Add(func() error {

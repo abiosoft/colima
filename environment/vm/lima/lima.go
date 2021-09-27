@@ -62,7 +62,7 @@ func (l *limaVM) Start(conf config.Config) error {
 
 	r.Stage("creating and starting")
 
-	configFile := "colima.yaml"
+	configFile := config.AppName() + ".yaml"
 
 	r.Add(func() error {
 		limaConf := newConf(conf)

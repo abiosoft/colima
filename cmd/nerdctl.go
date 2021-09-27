@@ -118,5 +118,5 @@ func init() {
 	nerdctlLink := nerdctlLinkFunc()
 	nerdctlCmd.AddCommand(nerdctlLink)
 	nerdctlLink.Flags().BoolVarP(&nerdctlCmdArgs.force, "force", "f", false, "replace "+nerdctlDefaultInstallPath+" (if exists)")
-	nerdctlLink.Flags().StringVarP(&nerdctlCmdArgs.path, "path", "p", nerdctlDefaultInstallPath, "path to install nerdctl binary")
+	nerdctlLink.Flags().StringVar(&nerdctlCmdArgs.path, "path", nerdctlDefaultInstallPath, "path to install nerdctl binary")
 }
