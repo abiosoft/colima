@@ -30,11 +30,11 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 
 	hostKubeDir := filepath.Join(hostHome, ".kube")
 	r.Add(func() error {
-		return c.host.Run("mkdir", "-p", hostKubeDir)
+		return c.host.Run("mkdir", "-p", filepath.Join(hostKubeDir, ".colima"))
 	})
 
 	kubeconfFile := filepath.Join(hostKubeDir, "config")
-	tmpkubeconfFile := filepath.Join(hostKubeDir, "colima-temp")
+	tmpkubeconfFile := filepath.Join(hostKubeDir, ".colima", "colima-temp")
 
 	// manipulate in VM and save to host
 	r.Add(func() error {
@@ -69,7 +69,7 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 	r.Add(func() error {
 		// backup existing file if exists
 		if stat, err := c.host.Stat(kubeconfFile); err == nil && !stat.IsDir() {
-			backup := filepath.Join(filepath.Dir(kubeconfFile), fmt.Sprintf("config-bak-%d", time.Now().Unix()))
+			backup := filepath.Join(filepath.Dir(tmpkubeconfFile), fmt.Sprintf("config-bak-%d", time.Now().Unix()))
 			if err := c.host.Run("cp", kubeconfFile, backup); err != nil {
 				return fmt.Errorf("error backing up kubeconfig: %w", err)
 			}

@@ -85,27 +85,6 @@ var kubernetesDeleteCmd = &cobra.Command{
 	},
 }
 
-//// kubernetesDashboardCmd represents the kubernetes dashboard command
-//var kubernetesDashboardCmd = &cobra.Command{
-//	Use:     "dashboard",
-//	Aliases: []string{"d"},
-//	Short:   "enable the Kubernetes dashboard and print dashboard url",
-//	Long: `Enable the Kubernetes dashboard and print dashboard url.
-//
-//This may take a while on first run, the dashboard is not enabled by default.`,
-//	RunE: func(cmd *cobra.Command, args []string) error {
-//		app := newApp()
-//		k, err := app.Kubernetes()
-//		if err != nil {
-//			return err
-//		}
-//		if k.Version() == "" {
-//			return fmt.Errorf("%s is not enabled", kubernetes.Name)
-//		}
-//		return app.SSH("minikube", "dashboard", "--url")
-//	},
-//}
-
 // kubernetesResetCmd represents the kubernetes reset command
 var kubernetesResetCmd = &cobra.Command{
 	Use:   "reset",
@@ -144,6 +123,5 @@ func init() {
 	kubernetesCmd.AddCommand(kubernetesStartCmd)
 	kubernetesCmd.AddCommand(kubernetesStopCmd)
 	kubernetesCmd.AddCommand(kubernetesDeleteCmd)
-	//kubernetesCmd.AddCommand(kubernetesDashboardCmd)
 	kubernetesCmd.AddCommand(kubernetesResetCmd)
 }
