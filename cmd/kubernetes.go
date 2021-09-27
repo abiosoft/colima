@@ -27,12 +27,11 @@ var kubernetesCmd = &cobra.Command{
 	},
 }
 
-// kubernetesEnableCmd represents the kubernetes start command
-var kubernetesEnableCmd = &cobra.Command{
-	Use:     "enable",
-	Aliases: []string{"e"},
-	Short:   "enable and start the Kubernetes cluster",
-	Long:    `Enable and start the Kubernetes cluster.`,
+// kubernetesStartCmd represents the kubernetes start command
+var kubernetesStartCmd = &cobra.Command{
+	Use:   "start",
+	Short: "start the Kubernetes cluster",
+	Long:  `Start the Kubernetes cluster.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		app := newApp()
 		k, err := app.Kubernetes()
@@ -48,12 +47,30 @@ var kubernetesEnableCmd = &cobra.Command{
 	},
 }
 
-// kubernetesDisableCmd represents the kubernetes stop command
-var kubernetesDisableCmd = &cobra.Command{
-	Use:     "disable",
-	Aliases: []string{"d"},
-	Short:   "disable and delete the Kubernetes cluster",
-	Long:    `Disable and delete the Kubernetes cluster.`,
+// kubernetesStopCmd represents the kubernetes stop command
+var kubernetesStopCmd = &cobra.Command{
+	Use:   "stop",
+	Short: "stop the Kubernetes cluster",
+	Long:  `Stop the Kubernetes cluster.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		app := newApp()
+		k, err := app.Kubernetes()
+		if err != nil {
+			return err
+		}
+		if k.Version() == "" {
+			return fmt.Errorf("%s is not enabled", kubernetes.Name)
+		}
+
+		return k.Stop()
+	},
+}
+
+// kubernetesDeleteCmd represents the kubernetes delete command
+var kubernetesDeleteCmd = &cobra.Command{
+	Use:   "delete",
+	Short: "delete the Kubernetes cluster",
+	Long:  `Delete the Kubernetes cluster.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		app := newApp()
 		k, err := app.Kubernetes()
@@ -68,26 +85,26 @@ var kubernetesDisableCmd = &cobra.Command{
 	},
 }
 
-// kubernetesDashboardCmd represents the kubernetes dashboard command
-var kubernetesDashboardCmd = &cobra.Command{
-	Use:     "dashboard",
-	Aliases: []string{"d"},
-	Short:   "enable the Kubernetes dashboard and print dashboard url",
-	Long: `Enable the Kubernetes dashboard and print dashboard url.
-
-This may take a while on first run, the dashboard is not enabled by default.`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		app := newApp()
-		k, err := app.Kubernetes()
-		if err != nil {
-			return err
-		}
-		if k.Version() == "" {
-			return fmt.Errorf("%s is not enabled", kubernetes.Name)
-		}
-		return app.SSH("minikube", "dashboard", "--url")
-	},
-}
+//// kubernetesDashboardCmd represents the kubernetes dashboard command
+//var kubernetesDashboardCmd = &cobra.Command{
+//	Use:     "dashboard",
+//	Aliases: []string{"d"},
+//	Short:   "enable the Kubernetes dashboard and print dashboard url",
+//	Long: `Enable the Kubernetes dashboard and print dashboard url.
+//
+//This may take a while on first run, the dashboard is not enabled by default.`,
+//	RunE: func(cmd *cobra.Command, args []string) error {
+//		app := newApp()
+//		k, err := app.Kubernetes()
+//		if err != nil {
+//			return err
+//		}
+//		if k.Version() == "" {
+//			return fmt.Errorf("%s is not enabled", kubernetes.Name)
+//		}
+//		return app.SSH("minikube", "dashboard", "--url")
+//	},
+//}
 
 // kubernetesResetCmd represents the kubernetes reset command
 var kubernetesResetCmd = &cobra.Command{
@@ -109,6 +126,11 @@ The Kubernetes images are cached making the startup (after reset) much faster.`,
 		if err := k.Teardown(); err != nil {
 			return fmt.Errorf("error deleting %s: %w", kubernetes.Name, err)
 		}
+
+		if err := k.Provision(); err != nil {
+			return err
+		}
+
 		if err := k.Start(); err != nil {
 			return fmt.Errorf("error starting %s: %w", kubernetes.Name, err)
 		}
@@ -119,8 +141,9 @@ The Kubernetes images are cached making the startup (after reset) much faster.`,
 
 func init() {
 	rootCmd.AddCommand(kubernetesCmd)
-	kubernetesCmd.AddCommand(kubernetesEnableCmd)
-	kubernetesCmd.AddCommand(kubernetesDisableCmd)
-	kubernetesCmd.AddCommand(kubernetesDashboardCmd)
+	kubernetesCmd.AddCommand(kubernetesStartCmd)
+	kubernetesCmd.AddCommand(kubernetesStopCmd)
+	kubernetesCmd.AddCommand(kubernetesDeleteCmd)
+	//kubernetesCmd.AddCommand(kubernetesDashboardCmd)
 	kubernetesCmd.AddCommand(kubernetesResetCmd)
 }

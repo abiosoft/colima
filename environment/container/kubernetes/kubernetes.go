@@ -5,6 +5,7 @@ import (
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/environment/container/docker"
+	"strings"
 )
 
 // Name is container runtime name
@@ -12,7 +13,7 @@ const Name = "kubernetes"
 
 func newRuntime(host environment.HostActions, guest environment.GuestActions) environment.Container {
 	return &kubernetesRuntime{
-		host:         host.WithEnv("MINIKUBE_IN_STYLE=0"),
+		host:         host,
 		guest:        guest,
 		CommandChain: cli.New("kubernetes"),
 	}
@@ -25,9 +26,8 @@ func init() {
 var _ environment.Container = (*kubernetesRuntime)(nil)
 
 type kubernetesRuntime struct {
-	host             environment.HostActions
-	guest            environment.GuestActions
-	newlyProvisioned bool // track first run
+	host  environment.HostActions
+	guest environment.GuestActions
 	cli.CommandChain
 }
 
@@ -36,15 +36,12 @@ func (c kubernetesRuntime) Name() string {
 }
 
 func (c kubernetesRuntime) isInstalled() bool {
-	// minikube is the last provision step.
-	// if it is present, everything is assumed fine.
-	return c.guest.Run("command", "-v", "minikube") == nil
+	// it is installed if uninstall script is present.
+	return c.guest.Run("command", "-v", "k3s-uninstall.sh") == nil
 }
 
 func (c kubernetesRuntime) Running() bool {
-	// minikube is the last provision step.
-	// if it is present, everything is assumed fine.
-	return c.guest.Run("minikube", "status") == nil
+	return c.guest.Run("service", "k3s", "status") == nil
 }
 
 func (c kubernetesRuntime) runtime() string {
@@ -63,32 +60,19 @@ func (c *kubernetesRuntime) Provision() error {
 
 	r.Stage("provisioning")
 
-	// apt install deps
-	r.Stage("installing dependencies")
-	r.Add(func() error {
-		return c.guest.Run("sudo", "apt", "install", "-y", "conntrack", "socat")
-	})
-
 	containerRuntime := c.runtime()
 	switch containerRuntime {
 
 	case containerd.Name:
-		r.Stage("installing " + containerRuntime + " dependencies")
-		installContainerdDeps(c.host, c.guest, r)
+		installContainerdDeps(c.guest, r)
 
 	case docker.Name:
 		// no known dependencies for now
 	}
 
-	// minikube
-	r.Stage("installing minikube")
-	installMinikube(c.host, c.guest, r, c.kubernetesVersion())
-
-	// adding to chain to ensure it executes after successful provision
-	r.Add(func() error {
-		c.newlyProvisioned = true
-		return nil
-	})
+	// k3s
+	r.Stage("installing k3s")
+	installK3s(c.host, c.guest, r, c.runtime())
 
 	return r.Exec()
 }
@@ -96,31 +80,14 @@ func (c *kubernetesRuntime) Provision() error {
 func (c kubernetesRuntime) Start() error {
 	r := c.Init()
 	if c.Running() {
-		r.Println("already enabled")
+		r.Println("already running")
 		return nil
 	}
 
 	r.Stage("starting")
 
 	r.Add(func() error {
-		// first start takes time, it's better to inform the user
-		if c.newlyProvisioned {
-			r.Println("NOTE: this is the first startup of kubernetes, it will take a while")
-			r.Println("      but no worries, subsequent startups only take some seconds")
-		}
-
-		args := []string{"minikube", "start",
-			"--driver", "none",
-			"--container-runtime", c.runtime(),
-			"--kubernetes-version", c.kubernetesVersion(),
-		}
-
-		switch c.runtime() {
-		case containerd.Name:
-			args = append(args, "--cni", "bridge")
-		}
-
-		return c.guest.Run(args...)
+		return c.guest.Run("sudo", "service", "k3s", "start")
 	})
 
 	if err := r.Exec(); err != nil {
@@ -131,24 +98,55 @@ func (c kubernetesRuntime) Start() error {
 }
 
 func (c kubernetesRuntime) Stop() error {
-	if c.runtime() == containerd.Name {
-		// minikube stop with containerd runtime is ineffective at the moment.
-		return nil
-	}
 	r := c.Init()
 	r.Stage("stopping")
 	r.Add(func() error {
-		return c.guest.Run("minikube", "stop")
+		return c.guest.Run("k3s-killall.sh")
 	})
+
+	if c.runtime() == containerd.Name {
+		// k3s is buggy with external containerd for now
+		// cleanup is manual
+		r.Add(func() error {
+			ids := c.runningContainerIDs()
+			if ids == "" {
+				return nil
+			}
+			return c.guest.Run("sh", "-c", `sudo nerdctl -n k8s.io kill `+ids)
+		})
+	}
 	return r.Exec()
+}
+
+func (c kubernetesRuntime) runningContainerIDs() string {
+	ids, _ := c.guest.RunOutput("sudo", "nerdctl", "-n", "k8s.io", "ps", "-q")
+	if ids == "" {
+		return ""
+	}
+	return strings.ReplaceAll(ids, "\n", " ")
 }
 
 func (c kubernetesRuntime) Teardown() error {
 	r := c.Init()
 	r.Stage("deleting")
-	r.Add(func() error {
-		return c.guest.Run("minikube", "delete")
-	})
+
+	if c.isInstalled() {
+		r.Add(func() error {
+			return c.guest.Run("k3s-uninstall.sh")
+		})
+	}
+
+	if c.runtime() == containerd.Name {
+		// k3s is buggy with external containerd for now
+		// cleanup is manual
+		r.Add(func() error {
+			ids := c.runningContainerIDs()
+			if ids == "" {
+				return nil
+			}
+			return c.guest.Run("sh", "-c", "sudo nerdctl -n k8s.io rm -f -v "+ids)
+		})
+	}
 
 	c.teardownKubeconfig(r)
 	r.Add(func() error {

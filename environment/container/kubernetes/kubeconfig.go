@@ -38,17 +38,12 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 
 	// manipulate in VM and save to host
 	r.Add(func() error {
-		// flatten in lima for portability
-		kubeconfig, err := c.guest.RunOutput("minikube", "kubectl", "--", "config", "view", "--flatten")
+		kubeconfig, err := c.guest.RunOutput("cat", "/etc/rancher/k3s/k3s.yaml")
 		if err != nil {
 			return err
 		}
-		// replace unreachable ip with localhost
-		kubeconfig = strings.ReplaceAll(kubeconfig, "192.168.5.15:8443", "127.0.0.1:8443")
-		// rename to $NAME
-		kubeconfig = strings.ReplaceAll(kubeconfig, "minikube", config.AppName())
-		// reverse unintended rename
-		kubeconfig = strings.ReplaceAll(kubeconfig, config.AppName()+".sigs.k8s.io", "minikube.sigs.k8s.io")
+		// replace name
+		kubeconfig = strings.ReplaceAll(kubeconfig, ": default", ": "+config.AppName())
 
 		// save on the host
 		return c.host.Write(tmpkubeconfFile, kubeconfig)
