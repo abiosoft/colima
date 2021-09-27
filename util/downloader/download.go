@@ -53,7 +53,7 @@ func (d downloader) downloadFile(url string) (err error) {
 	if err := d.host.RunInteractive("curl", "-L", "-#", "-C", "-", "-o", cacheFileName, url); err != nil {
 		return err
 	}
-	return d.host.Run("cp", d.cacheDownloadingFileName(url), d.cacheFileName(url))
+	return d.host.Run("mv", d.cacheDownloadingFileName(url), d.cacheFileName(url))
 
 }
 

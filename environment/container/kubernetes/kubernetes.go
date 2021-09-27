@@ -4,7 +4,6 @@ import (
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/containerd"
-	"github.com/abiosoft/colima/environment/container/docker"
 	"strings"
 )
 
@@ -60,18 +59,8 @@ func (c *kubernetesRuntime) Provision() error {
 
 	r.Stage("provisioning")
 
-	containerRuntime := c.runtime()
-	switch containerRuntime {
-
-	case containerd.Name:
-		installContainerdDeps(c.guest, r)
-
-	case docker.Name:
-		// no known dependencies for now
-	}
-
 	// k3s
-	r.Stage("installing k3s")
+	r.Stage("installing")
 	installK3s(c.host, c.guest, r, c.runtime())
 
 	return r.Exec()

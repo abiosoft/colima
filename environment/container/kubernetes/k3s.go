@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	_ "embed"
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/containerd"
@@ -16,6 +17,10 @@ func installK3s(host environment.HostActions, guest environment.GuestActions, r 
 	installK3sBinary(host, guest, r)
 	installK3sCache(host, guest, r, containerRuntime)
 	installK3sCluster(host, guest, r, containerRuntime)
+
+	if containerRuntime == containerd.Name {
+		installContainerdDeps(guest, r)
+	}
 }
 
 func installK3sBinary(host environment.HostActions, guest environment.GuestActions, r *cli.ActiveCommandChain) {
@@ -56,7 +61,7 @@ func installK3sCache(host environment.HostActions, guest environment.GuestAction
 
 	// containerd requires manual loading
 	if containerRuntime == containerd.Name {
-		r.Stage("loading k3s container images")
+		r.Stage("loading containerd images")
 		r.Add(func() error {
 			return guest.Run("sudo", "ctr", "-n", "k8s.io", "images", "import", downloadPathTar)
 		})
