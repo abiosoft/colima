@@ -85,7 +85,11 @@ func installK3sCluster(host environment.HostActions, guest environment.GuestActi
 		return guest.Run("sudo", "install", downloadPath, "/usr/local/bin/k3s-install.sh")
 	})
 
-	args := []string{"--write-kubeconfig-mode", "644", "--resolv-conf", "/run/systemd/resolve/resolv.conf"}
+	args := []string{
+		"--write-kubeconfig-mode", "644",
+		"--resolv-conf", "/run/systemd/resolve/resolv.conf",
+		"--disable", "traefik",
+	}
 
 	switch containerRuntime {
 	case docker.Name:
