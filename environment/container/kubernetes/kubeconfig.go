@@ -18,9 +18,9 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 		return nil
 	}
 
-	r := c.Init()
+	a := c.Init()
 
-	r.Stage("updating kubeconfig")
+	a.Stage("updating kubeconfig")
 
 	// ensure host kube directory exists
 	hostHome := c.host.Env("HOME")
@@ -29,7 +29,7 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 	}
 
 	hostKubeDir := filepath.Join(hostHome, ".kube")
-	r.Add(func() error {
+	a.Add(func() error {
 		return c.host.Run("mkdir", "-p", filepath.Join(hostKubeDir, "."+config.AppName()))
 	})
 
@@ -37,7 +37,7 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 	tmpkubeconfFile := filepath.Join(hostKubeDir, "."+config.AppName(), "colima-temp")
 
 	// manipulate in VM and save to host
-	r.Add(func() error {
+	a.Add(func() error {
 		kubeconfig, err := c.guest.RunOutput("cat", "/etc/rancher/k3s/k3s.yaml")
 		if err != nil {
 			return err
@@ -50,7 +50,7 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 	})
 
 	// merge on host
-	r.Add(func() (err error) {
+	a.Add(func() (err error) {
 		// prepare new host with right env var.
 		envVar := fmt.Sprintf("KUBECONFIG=%s:%s", kubeconfFile, tmpkubeconfFile)
 		host := c.host.WithEnv(envVar)
@@ -66,7 +66,7 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 	})
 
 	// backup current settings and save new config
-	r.Add(func() error {
+	a.Add(func() error {
 		// backup existing file if exists
 		if stat, err := c.host.Stat(kubeconfFile); err == nil && !stat.IsDir() {
 			backup := filepath.Join(filepath.Dir(tmpkubeconfFile), fmt.Sprintf("config-bak-%d", time.Now().Unix()))
@@ -83,27 +83,27 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 	})
 
 	// set new context
-	r.Add(func() error {
+	a.Add(func() error {
 		return c.host.RunInteractive("kubectl", "config", "use-context", config.AppName())
 	})
 
 	// save settings
-	r.Add(func() error {
+	a.Add(func() error {
 		return c.guest.Set(kubeconfigKey, "true")
 	})
 
-	return r.Exec()
+	return a.Exec()
 }
-func (c kubernetesRuntime) teardownKubeconfig(r *cli.ActiveCommandChain) {
-	r.Stage("reverting kubeconfig")
+func (c kubernetesRuntime) teardownKubeconfig(a *cli.ActiveCommandChain) {
+	a.Stage("reverting kubeconfig")
 
-	r.Add(func() error {
+	a.Add(func() error {
 		return c.host.Run("kubectl", "config", "unset", "users."+config.AppName())
 	})
-	r.Add(func() error {
+	a.Add(func() error {
 		return c.host.Run("kubectl", "config", "unset", "contexts."+config.AppName())
 	})
-	r.Add(func() error {
+	a.Add(func() error {
 		return c.host.Run("kubectl", "config", "unset", "clusters."+config.AppName())
 	})
 }

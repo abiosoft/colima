@@ -50,86 +50,86 @@ func (d dockerRuntime) isUserPermissionFixed() bool {
 }
 
 func (d dockerRuntime) Provision() error {
-	r := d.Init()
-	r.Stage("provisioning")
+	a := d.Init()
+	a.Stage("provisioning")
 
 	// check installation
 	if !d.isInstalled() {
-		r.Stage("setting up socket")
-		r.Add(d.setupSocketSymlink)
+		a.Stage("setting up socket")
+		a.Add(d.setupSocketSymlink)
 
-		r.Stage("provisioning in VM")
-		r.Add(d.setupInVM)
+		a.Stage("provisioning in VM")
+		a.Add(d.setupInVM)
 	}
 
 	// check user permission
 	if !d.isUserPermissionFixed() {
-		r.Add(d.fixUserPermission)
+		a.Add(d.fixUserPermission)
 
-		r.Stage("restarting VM to complete setup")
-		r.Add(d.guest.Restart)
+		a.Stage("restarting VM to complete setup")
+		a.Add(d.guest.Restart)
 	}
 
 	// socket file/launchd
-	r.Add(func() error {
+	a.Add(func() error {
 		user, err := d.guest.User()
 		if err != nil {
 			return err
 		}
 		return createSocketForwardingScript(user)
 	})
-	r.Add(func() error { return createLaunchdScript(d.launchd) })
+	a.Add(func() error { return createLaunchdScript(d.launchd) })
 
-	return r.Exec()
+	return a.Exec()
 }
 
 func (d dockerRuntime) Start() error {
-	r := d.Init()
-	r.Stage("starting")
+	a := d.Init()
+	a.Stage("starting")
 
-	r.Add(func() error {
+	a.Add(func() error {
 		return d.guest.Run("sudo", "service", "docker", "start")
 	})
-	r.Add(func() error {
+	a.Add(func() error {
 		return d.host.Run("launchctl", "load", d.launchd.File())
 	})
 
-	return r.Exec()
+	return a.Exec()
 }
 
 func (d dockerRuntime) Stop() error {
-	r := d.Init()
-	r.Stage("stopping")
+	a := d.Init()
+	a.Stage("stopping")
 
-	r.Add(func() error {
+	a.Add(func() error {
 		if d.guest.Run("service", "docker", "status") != nil {
 			return nil
 		}
 		return d.guest.Run("sudo", "service", "docker", "stop")
 	})
-	r.Add(func() error {
+	a.Add(func() error {
 		return d.host.Run("launchctl", "unload", d.launchd.File())
 	})
 
-	return r.Exec()
+	return a.Exec()
 }
 
 func (d dockerRuntime) Teardown() error {
-	r := d.Init()
-	r.Stage("deleting")
+	a := d.Init()
+	a.Stage("deleting")
 
 	// no need to uninstall as the VM teardown will remove all components
 	// only host configurations should be removed
 	if stat, err := os.Stat(d.launchd.File()); err == nil && !stat.IsDir() {
-		r.Add(func() error {
+		a.Add(func() error {
 			return d.host.Run("launchctl", "unload", d.launchd.File())
 		})
-		r.Add(func() error {
+		a.Add(func() error {
 			return d.host.Run("rm", "-rf", d.launchd.File())
 		})
 	}
 
-	return r.Exec()
+	return a.Exec()
 }
 
 func (d dockerRuntime) Dependencies() []string {

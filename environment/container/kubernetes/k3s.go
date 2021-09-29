@@ -13,75 +13,75 @@ import (
 
 const k3sVersion = "v1.22.2+k3s1"
 
-func installK3s(host environment.HostActions, guest environment.GuestActions, r *cli.ActiveCommandChain, containerRuntime string) {
-	installK3sBinary(host, guest, r)
-	installK3sCache(host, guest, r, containerRuntime)
-	installK3sCluster(host, guest, r, containerRuntime)
+func installK3s(host environment.HostActions, guest environment.GuestActions, a *cli.ActiveCommandChain, containerRuntime string) {
+	installK3sBinary(host, guest, a)
+	installK3sCache(host, guest, a, containerRuntime)
+	installK3sCluster(host, guest, a, containerRuntime)
 
 	if containerRuntime == containerd.Name {
-		installContainerdDeps(guest, r)
+		installContainerdDeps(guest, a)
 	}
 }
 
-func installK3sBinary(host environment.HostActions, guest environment.GuestActions, r *cli.ActiveCommandChain) {
+func installK3sBinary(host environment.HostActions, guest environment.GuestActions, a *cli.ActiveCommandChain) {
 	// install k3s last to ensure it is the last step
 	downloadPath := "/tmp/k3s"
 	url := "https://github.com/k3s-io/k3s/releases/download/" + k3sVersion + "/k3s"
 	if runtime.GOARCH == "arm64" {
 		url += "-arm64"
 	}
-	r.Add(func() error {
+	a.Add(func() error {
 		return downloader.Download(host, guest, url, downloadPath)
 	})
-	r.Add(func() error {
+	a.Add(func() error {
 		return guest.Run("sudo", "install", downloadPath, "/usr/local/bin/k3s")
 	})
 }
 
-func installK3sCache(host environment.HostActions, guest environment.GuestActions, r *cli.ActiveCommandChain, containerRuntime string) {
+func installK3sCache(host environment.HostActions, guest environment.GuestActions, a *cli.ActiveCommandChain, containerRuntime string) {
 	imageTar := "k3s-airgap-images-" + runtime.GOARCH + ".tar"
 	imageTarGz := imageTar + ".gz"
 	downloadPathTar := "/tmp/" + imageTar
 	downloadPathTarGz := "/tmp/" + imageTarGz
 	url := "https://github.com/k3s-io/k3s/releases/download/" + k3sVersion + "/" + imageTarGz
-	r.Add(func() error {
+	a.Add(func() error {
 		return downloader.Download(host, guest, url, downloadPathTarGz)
 	})
-	r.Add(func() error {
+	a.Add(func() error {
 		return guest.Run("gzip", "-f", "-d", downloadPathTarGz)
 	})
 
 	airGapDir := "/var/lib/rancher/k3s/agent/images/"
-	r.Add(func() error {
+	a.Add(func() error {
 		return guest.Run("sudo", "mkdir", "-p", airGapDir)
 	})
-	r.Add(func() error {
+	a.Add(func() error {
 		return guest.Run("sudo", "cp", downloadPathTar, airGapDir)
 	})
 
 	switch containerRuntime {
 	case containerd.Name:
-		r.Stage("loading containerd images")
-		r.Add(func() error {
+		a.Stage("loading containerd images")
+		a.Add(func() error {
 			return guest.Run("sudo", "ctr", "-n", "k8s.io", "images", "import", downloadPathTar)
 		})
 	case docker.Name:
-		r.Stage("loading docker images")
-		r.Add(func() error {
+		a.Stage("loading docker images")
+		a.Add(func() error {
 			return guest.Run("sudo", "docker", "load", "-i", downloadPathTar)
 		})
 	}
 
 }
 
-func installK3sCluster(host environment.HostActions, guest environment.GuestActions, r *cli.ActiveCommandChain, containerRuntime string) {
+func installK3sCluster(host environment.HostActions, guest environment.GuestActions, a *cli.ActiveCommandChain, containerRuntime string) {
 	// install k3s last to ensure it is the last step
 	downloadPath := "/tmp/k3s-install.sh"
 	url := "https://raw.githubusercontent.com/k3s-io/k3s/" + k3sVersion + "/install.sh"
-	r.Add(func() error {
+	a.Add(func() error {
 		return downloader.Download(host, guest, url, downloadPath)
 	})
-	r.Add(func() error {
+	a.Add(func() error {
 		return guest.Run("sudo", "install", downloadPath, "/usr/local/bin/k3s-install.sh")
 	})
 
@@ -97,7 +97,7 @@ func installK3sCluster(host environment.HostActions, guest environment.GuestActi
 	case containerd.Name:
 		args = append(args, "--container-runtime-endpoint", "unix:///run/containerd/containerd.sock")
 	}
-	r.Add(func() error {
+	a.Add(func() error {
 		return guest.Run("sh", "-c", "INSTALL_K3S_SKIP_DOWNLOAD=true INSTALL_K3S_SKIP_ENABLE=true k3s-install.sh "+strings.Join(args, " "))
 	})
 

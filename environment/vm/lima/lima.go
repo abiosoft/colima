@@ -54,64 +54,64 @@ func (l limaVM) Dependencies() []string {
 }
 
 func (l *limaVM) Start(conf config.Config) error {
-	r := l.Init()
+	a := l.Init()
 
 	if l.Created() {
 		return l.resume(conf)
 	}
 
-	r.Stage("creating and starting")
+	a.Stage("creating and starting")
 
 	configFile := config.AppName() + ".yaml"
 
-	r.Add(func() error {
+	a.Add(func() error {
 		limaConf := newConf(conf)
 		return yamlutil.WriteYAML(limaConf, configFile)
 	})
-	r.Add(func() error {
+	a.Add(func() error {
 		return l.host.Run(limactl, "start", "--tty=false", configFile)
 	})
-	r.Add(func() error {
+	a.Add(func() error {
 		return os.Remove(configFile)
 	})
 
-	l.applyDNS(r, conf)
+	l.applyDNS(a, conf)
 
 	// adding it to command chain to execute only after successful startup.
-	r.Add(func() error {
+	a.Add(func() error {
 		l.conf = conf
 		return nil
 	})
 
-	return r.Exec()
+	return a.Exec()
 }
 
 func (l limaVM) resume(conf config.Config) error {
-	r := l.Init()
+	a := l.Init()
 
 	if l.Running() {
-		r.Println("already running")
+		a.Println("already running")
 		return nil
 	}
 
 	configFile := filepath.Join(limaConfDir(), "lima.yaml")
 
-	r.Add(func() error {
+	a.Add(func() error {
 		limaConf := newConf(conf)
 		return yamlutil.WriteYAML(limaConf, configFile)
 	})
 
-	r.Stage("starting")
-	r.Add(func() error {
+	a.Stage("starting")
+	a.Add(func() error {
 		return l.host.Run(limactl, "start", config.AppName())
 	})
 
-	l.applyDNS(r, conf)
+	l.applyDNS(a, conf)
 
-	return r.Exec()
+	return a.Exec()
 }
 
-func (l limaVM) applyDNS(r *cli.ActiveCommandChain, conf config.Config) {
+func (l limaVM) applyDNS(a *cli.ActiveCommandChain, conf config.Config) {
 	// manually set the domain using systemd-resolve.
 	//
 	// Lima's DNS settings is fixed at VM create and cannot be changed afterwards.
@@ -122,10 +122,10 @@ func (l limaVM) applyDNS(r *cli.ActiveCommandChain, conf config.Config) {
 		return
 	}
 
-	r.Stage("applying DNS config")
+	a.Stage("applying DNS config")
 
 	// apply settings
-	r.Add(func() error {
+	a.Add(func() error {
 		args := []string{"sudo", "systemd-resolve", "--interface", "eth0"}
 		for _, ip := range conf.VM.DNS {
 			args = append(args, "--set-dns", ip.String())
@@ -133,7 +133,7 @@ func (l limaVM) applyDNS(r *cli.ActiveCommandChain, conf config.Config) {
 		return l.Run(args...)
 	})
 	// restart service, should not be needed but to ascertain
-	r.Add(func() error {
+	a.Add(func() error {
 		return l.Run("sudo", "systemctl", "restart", "systemd-resolved")
 	})
 }
@@ -143,23 +143,23 @@ func (l limaVM) Running() bool {
 }
 
 func (l limaVM) Stop() error {
-	r := l.Init()
+	a := l.Init()
 	if !l.Running() {
-		r.Println("not running")
+		a.Println("not running")
 		return nil
 	}
 
-	r.Stage("stopping")
+	a.Stage("stopping")
 
-	r.Add(func() error {
+	a.Add(func() error {
 		return l.host.Run(limactl, "stop", config.AppName())
 	})
 
-	return r.Exec()
+	return a.Exec()
 }
 
 func (l limaVM) Teardown() error {
-	r := l.Init()
+	a := l.Init()
 	if l.Running() {
 		// lima needs to be stopped before it can be deleted.
 		if err := l.Stop(); err != nil {
@@ -167,13 +167,13 @@ func (l limaVM) Teardown() error {
 		}
 	}
 
-	r.Stage("deleting")
+	a.Stage("deleting")
 
-	r.Add(func() error {
+	a.Add(func() error {
 		return l.host.Run(limactl, "delete", config.AppName())
 	})
 
-	return r.Exec()
+	return a.Exec()
 }
 
 func (l limaVM) Restart() error {
@@ -198,38 +198,38 @@ func (l limaVM) Restart() error {
 func (l limaVM) Run(args ...string) error {
 	args = append([]string{lima}, args...)
 
-	r := l.Init()
+	a := l.Init()
 
-	r.Add(func() error {
+	a.Add(func() error {
 		return l.host.Run(args...)
 	})
 
-	return r.Exec()
+	return a.Exec()
 }
 
 func (l limaVM) RunInteractive(args ...string) error {
 	args = append([]string{lima}, args...)
 
-	r := l.Init()
+	a := l.Init()
 
-	r.Add(func() error {
+	a.Add(func() error {
 		return l.host.RunInteractive(args...)
 	})
 
-	return r.Exec()
+	return a.Exec()
 }
 
 func (l limaVM) RunOutput(args ...string) (out string, err error) {
 	args = append([]string{lima}, args...)
 
-	r := l.Init()
+	a := l.Init()
 
-	r.Add(func() (err error) {
+	a.Add(func() (err error) {
 		out, err = l.host.RunOutput(args...)
 		return
 	})
 
-	err = r.Exec()
+	err = a.Exec()
 	return
 }
 

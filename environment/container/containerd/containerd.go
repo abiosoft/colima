@@ -42,21 +42,21 @@ func (c containerdRuntime) Provision() error {
 }
 
 func (c containerdRuntime) Start() error {
-	r := c.Init()
-	r.Stage("starting")
-	r.Add(func() error {
+	a := c.Init()
+	a.Stage("starting")
+	a.Add(func() error {
 		return c.guest.Run("sudo", "service", "containerd", "start")
 	})
-	return r.Exec()
+	return a.Exec()
 }
 
 func (c containerdRuntime) Stop() error {
-	r := c.Init()
-	r.Stage("stopping")
-	r.Add(func() error {
+	a := c.Init()
+	a.Stage("stopping")
+	a.Add(func() error {
 		return c.guest.Run("sudo", "service", "containerd", "stop")
 	})
-	return r.Exec()
+	return a.Exec()
 }
 
 func (c containerdRuntime) Teardown() error {

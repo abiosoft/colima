@@ -53,35 +53,35 @@ func (c kubernetesRuntime) kubernetesVersion() string {
 }
 
 func (c *kubernetesRuntime) Provision() error {
-	r := c.Init()
+	a := c.Init()
 
 	if c.isInstalled() {
 		return nil
 	}
 
-	r.Stage("provisioning")
+	a.Stage("provisioning")
 
 	// k3s
-	r.Stage("installing")
-	installK3s(c.host, c.guest, r, c.runtime())
+	a.Stage("installing")
+	installK3s(c.host, c.guest, a, c.runtime())
 
-	return r.Exec()
+	return a.Exec()
 }
 
 func (c kubernetesRuntime) Start() error {
-	r := c.Init()
+	a := c.Init()
 	if c.Running() {
-		r.Println("already running")
+		a.Println("already running")
 		return nil
 	}
 
-	r.Stage("starting")
+	a.Stage("starting")
 
-	r.Add(func() error {
+	a.Add(func() error {
 		return c.guest.Run("sudo", "service", "k3s", "start")
 	})
 
-	if err := r.Exec(); err != nil {
+	if err := a.Exec(); err != nil {
 		return err
 	}
 
@@ -89,19 +89,19 @@ func (c kubernetesRuntime) Start() error {
 }
 
 func (c kubernetesRuntime) Stop() error {
-	r := c.Init()
-	r.Stage("stopping")
-	r.Add(func() error {
+	a := c.Init()
+	a.Stage("stopping")
+	a.Add(func() error {
 		return c.guest.Run("k3s-killall.sh")
 	})
 
 	// k3s is buggy with external containerd for now
 	// cleanup is manual
-	r.Add(func() error {
+	a.Add(func() error {
 		return c.stopAllContainers()
 	})
 
-	return r.Exec()
+	return a.Exec()
 }
 
 func (c kubernetesRuntime) deleteAllContainers() error {
@@ -169,27 +169,27 @@ func (c kubernetesRuntime) runningContainerIDs() string {
 }
 
 func (c kubernetesRuntime) Teardown() error {
-	r := c.Init()
-	r.Stage("deleting")
+	a := c.Init()
+	a.Stage("deleting")
 
 	if c.isInstalled() {
-		r.Add(func() error {
+		a.Add(func() error {
 			return c.guest.Run("k3s-uninstall.sh")
 		})
 	}
 
 	// k3s is buggy with external containerd for now
 	// cleanup is manual
-	r.Add(func() error {
+	a.Add(func() error {
 		return c.deleteAllContainers()
 	})
 
-	c.teardownKubeconfig(r)
-	r.Add(func() error {
+	c.teardownKubeconfig(a)
+	a.Add(func() error {
 		return c.guest.Set(kubeconfigKey, "")
 	})
 
-	return r.Exec()
+	return a.Exec()
 }
 
 func (c kubernetesRuntime) Dependencies() []string {

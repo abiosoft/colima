@@ -54,30 +54,30 @@ type ActiveCommandChain struct {
 }
 
 // Add adds a new function to the runner.
-func (r *ActiveCommandChain) Add(f func() error) {
-	r.funcs = append(r.funcs, cFunc{f: f})
+func (a *ActiveCommandChain) Add(f func() error) {
+	a.funcs = append(a.funcs, cFunc{f: f})
 }
 
 // Stage sets the current stage of the runner.
-func (r *ActiveCommandChain) Stage(s string) {
-	r.funcs = append(r.funcs, cFunc{s: s})
+func (a *ActiveCommandChain) Stage(s string) {
+	a.funcs = append(a.funcs, cFunc{s: s})
 }
 
 // Stagef is like stage with string format.
-func (r *ActiveCommandChain) Stagef(format string, s ...interface{}) {
+func (a *ActiveCommandChain) Stagef(format string, s ...interface{}) {
 	f := fmt.Sprintf(format, s...)
-	r.Stage(f)
+	a.Stage(f)
 }
 
 // Exec executes the command chain.
 // The first errored function terminates the chain and the
 // error is returned. Otherwise, returns nil.
-func (r ActiveCommandChain) Exec() error {
-	for _, f := range r.funcs {
+func (a ActiveCommandChain) Exec() error {
+	for _, f := range a.funcs {
 		if f.f == nil {
 			if f.s != "" {
-				r.Println(f.s, "...")
-				r.lastStage = f.s
+				a.Println(f.s, "...")
+				a.lastStage = f.s
 			}
 			continue
 		}
@@ -87,10 +87,10 @@ func (r ActiveCommandChain) Exec() error {
 			continue
 		}
 
-		if r.lastStage == "" {
+		if a.lastStage == "" {
 			return err
 		}
-		return fmt.Errorf("error at '%s': %w", r.lastStage, err)
+		return fmt.Errorf("error at '%s': %w", a.lastStage, err)
 	}
 	return nil
 }

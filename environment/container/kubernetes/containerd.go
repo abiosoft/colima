@@ -8,9 +8,9 @@ import (
 	"strconv"
 )
 
-func installContainerdDeps(guest environment.GuestActions, r *cli.ActiveCommandChain) {
+func installContainerdDeps(guest environment.GuestActions, a *cli.ActiveCommandChain) {
 	// fix cni path
-	r.Add(func() error {
+	a.Add(func() error {
 		cniDir := "/opt/cni/bin"
 		if err := guest.Run("ls", cniDir); err == nil {
 			return nil
@@ -23,10 +23,10 @@ func installContainerdDeps(guest environment.GuestActions, r *cli.ActiveCommandC
 	})
 
 	// fix cni config
-	r.Add(func() error {
+	a.Add(func() error {
 		return guest.Run("sudo", "mkdir", "-p", "/etc/cni/net.d")
 	})
-	r.Add(func() error {
+	a.Add(func() error {
 		return guest.Run("sudo", "sh", "-c", "echo "+strconv.Quote(k3sFlannelConflist)+" > /etc/cni/net.d/10-flannel.conflist")
 	})
 }
