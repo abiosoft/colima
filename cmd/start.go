@@ -17,8 +17,6 @@ var startCmd = &cobra.Command{
 	Long: `Start Colima with the specified container runtime (and kubernetes if --with-kubernetes is passed).
 The --runtime flag is only used on initial start and ignored on subsequent starts.
 
-Kubernetes requires at least 2 CPUs and 2.3GiB memory.
-
 For verbose output, tail the log file "$HOME/Library/Caches/colima/out.log".
   tail -f "$HOME/Library/Caches/colima/out.log"
 `,
