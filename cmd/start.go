@@ -97,13 +97,15 @@ func init() {
 	// k8s
 	startCmd.Flags().BoolVarP(&startCmdArgs.Kubernetes.Enabled, "with-kubernetes", "k", false, "start VM with Kubernetes")
 	startCmd.Flags().StringVar(&startCmdArgs.Kubernetes.Version, "kubernetes-version", defaultKubernetesVersion, "the Kubernetes version")
+	// not so familiar with k3s versioning atm, hide for now.
+	_ = startCmd.Flags().MarkHidden("kubernetes-version")
 
 	// internal
 	startCmd.Flags().IntVar(&startCmdArgs.VM.SSHPort, "ssh-port", defaultSSHPort, "SSH port for the VM")
-	startCmd.Flags().MarkHidden("ssh-port")
+	_ = startCmd.Flags().MarkHidden("ssh-port")
 
 	// not sure of the usefulness of env vars for now considering that interactions will be with the containers, not the VM.
 	// leaving it undocumented until there is a need.
 	startCmd.Flags().StringToStringVarP(&startCmdArgs.VM.Env, "env", "e", nil, "environment variables for the VM")
-	startCmd.Flags().MarkHidden("env")
+	_ = startCmd.Flags().MarkHidden("env")
 }
