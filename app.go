@@ -109,7 +109,10 @@ func (c colimaApp) Stop() error {
 		if err != nil {
 			log.Println(err)
 		}
-		for _, cont := range containers {
+
+		// stop happens in reverse of start
+		for i := len(containers) - 1; i >= 0; i-- {
+			cont := containers[i]
 			if err := cont.Stop(); err != nil {
 				// failure to stop a container runtime is not fatal
 				// it is only meant for graceful shutdown.
@@ -211,10 +214,22 @@ func (c colimaApp) Version() error {
 		if err != nil {
 			return err
 		}
+
+		var kube environment.Container
 		for _, cont := range containerRuntimes {
+			if cont.Name() == kubernetes.Name {
+				kube = cont
+				continue
+			}
 			fmt.Println()
 			fmt.Println("runtime:", cont.Name())
 			fmt.Println(cont.Version())
+		}
+
+		if kube != nil && kube.Version() != "" {
+			fmt.Println()
+			fmt.Println("kubernetes")
+			fmt.Println(kube.Version())
 		}
 	}
 
