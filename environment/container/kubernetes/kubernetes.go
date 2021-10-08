@@ -197,6 +197,6 @@ func (c kubernetesRuntime) Dependencies() []string {
 }
 
 func (c kubernetesRuntime) Version() string {
-	version, _ := c.host.RunOutput("kubectl", "--context", config.AppName(), "version", "--short")
+	version, _ := c.host.RunOutput("kubectl", "--context", config.Profile(), "version", "--short")
 	return version
 }

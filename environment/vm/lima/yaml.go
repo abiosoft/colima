@@ -21,7 +21,7 @@ func newConf(conf config.Config) (l Config) {
 
 	l.Mounts = append(l.Mounts,
 		Mount{Location: "~", Writable: false},
-		Mount{Location: filepath.Join("/tmp", config.AppName()), Writable: true},
+		Mount{Location: filepath.Join("/tmp", config.Profile()), Writable: true},
 	)
 
 	l.SSH = SSH{LocalPort: conf.VM.SSHPort, LoadDotSSHPubKeys: false}

@@ -43,7 +43,7 @@ type colimaApp struct {
 }
 
 func (c colimaApp) Start(conf config.Config) error {
-	log.Println("starting", config.AppName())
+	log.Println("starting", config.Profile())
 
 	var containers []environment.Container
 	// runtime
@@ -102,7 +102,7 @@ func (c colimaApp) Start(conf config.Config) error {
 }
 
 func (c colimaApp) Stop() error {
-	log.Println("stopping", config.AppName())
+	log.Println("stopping", config.Profile())
 
 	// the order for stop is:
 	//   container stop -> vm stop
@@ -137,12 +137,12 @@ func (c colimaApp) Stop() error {
 }
 
 func (c colimaApp) Delete() error {
-	y := cli.Prompt("are you sure you want to delete Colima and all settings")
+	y := cli.Prompt("are you sure you want to delete " + config.Profile() + " and all settings")
 	if !y {
 		return nil
 	}
 
-	log.Println("deleting", config.AppName())
+	log.Println("deleting", config.Profile())
 
 	// the order for teardown is:
 	//   container teardown -> vm teardown
@@ -181,7 +181,7 @@ func (c colimaApp) Delete() error {
 
 func (c colimaApp) SSH(args ...string) error {
 	if !c.guest.Running() {
-		return fmt.Errorf("%s not running", config.AppName())
+		return fmt.Errorf("%s not running", config.Profile())
 	}
 
 	return c.guest.RunInteractive(args...)
@@ -189,7 +189,7 @@ func (c colimaApp) SSH(args ...string) error {
 
 func (c colimaApp) Status() error {
 	if !c.guest.Running() {
-		return fmt.Errorf("%s is not running", config.AppName())
+		return fmt.Errorf("%s is not running", config.Profile())
 	}
 
 	currentRuntime, err := c.currentRuntime()
@@ -197,7 +197,7 @@ func (c colimaApp) Status() error {
 		return err
 	}
 
-	fmt.Println(config.AppName(), "is running")
+	fmt.Println(config.Profile(), "is running")
 	fmt.Println("runtime:", currentRuntime)
 
 	// kubernetes
@@ -209,7 +209,7 @@ func (c colimaApp) Status() error {
 }
 
 func (c colimaApp) Version() error {
-	name := config.AppName()
+	name := config.Profile()
 	version := config.AppVersion()
 	fmt.Println(name, "version", version)
 
@@ -242,7 +242,7 @@ func (c colimaApp) Version() error {
 
 func (c colimaApp) currentRuntime() (string, error) {
 	if !c.guest.Running() {
-		return "", fmt.Errorf("%s is not running", config.AppName())
+		return "", fmt.Errorf("%s is not running", config.Profile())
 	}
 
 	r := c.guest.Get(environment.ContainerRuntimeKey)

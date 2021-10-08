@@ -10,9 +10,17 @@ import (
 	"path/filepath"
 )
 
-var appName = "colima"
+const AppName = "colima"
 
-func AppName() string    { ensureInit(); return appName }
+var profile = AppName
+
+// SetProfile sets the profile name for the application.
+// This is an avenue to test Colima without breaking an existing stable setup.
+// Not perfect, but good enough for testing.
+func SetProfile(p string) { profile = p }
+
+// Profile returns the current application profile.
+func Profile() string    { ensureInit(); return profile }
 func AppVersion() string { ensureInit(); return appVersion }
 
 var (
@@ -21,13 +29,6 @@ var (
 	configDir string
 	cacheDir  string
 )
-
-// Profile sets the profile name for the application.
-// This is an avenue to test Colima without breaking an existing stable setup.
-// Not perfect, but good enough for testing.
-func Profile(profile string) {
-	appName = profile
-}
 
 // Dir returns the configuration directory.
 func Dir() string { ensureInit(); return configDir }
@@ -51,7 +52,7 @@ func ensureInit() {
 		if err != nil {
 			log.Fatal(fmt.Errorf("cannot fetch user config directory: %w", err))
 		}
-		configDir = filepath.Join(dir, "."+appName)
+		configDir = filepath.Join(dir, "."+profile)
 		if err := os.MkdirAll(configDir, 0755); err != nil {
 			log.Fatal(fmt.Errorf("cannot create config directory: %w", err))
 		}
@@ -63,7 +64,7 @@ func ensureInit() {
 		if err != nil {
 			log.Fatal(fmt.Errorf("cannot fetch user config directory: %w", err))
 		}
-		cacheDir = filepath.Join(dir, appName)
+		cacheDir = filepath.Join(dir, profile)
 		if err := os.MkdirAll(cacheDir, 0755); err != nil {
 			log.Fatal(fmt.Errorf("cannot create cache directory: %w", err))
 		}

@@ -30,11 +30,11 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 
 	hostKubeDir := filepath.Join(hostHome, ".kube")
 	a.Add(func() error {
-		return c.host.Run("mkdir", "-p", filepath.Join(hostKubeDir, "."+config.AppName()))
+		return c.host.Run("mkdir", "-p", filepath.Join(hostKubeDir, "."+config.Profile()))
 	})
 
 	kubeconfFile := filepath.Join(hostKubeDir, "config")
-	tmpkubeconfFile := filepath.Join(hostKubeDir, "."+config.AppName(), "colima-temp")
+	tmpkubeconfFile := filepath.Join(hostKubeDir, "."+config.Profile(), "colima-temp")
 
 	// manipulate in VM and save to host
 	a.Add(func() error {
@@ -43,7 +43,7 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 			return err
 		}
 		// replace name
-		kubeconfig = strings.ReplaceAll(kubeconfig, ": default", ": "+config.AppName())
+		kubeconfig = strings.ReplaceAll(kubeconfig, ": default", ": "+config.Profile())
 
 		// save on the host
 		return c.host.Write(tmpkubeconfFile, kubeconfig)
@@ -84,7 +84,7 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 
 	// set new context
 	a.Add(func() error {
-		return c.host.RunInteractive("kubectl", "config", "use-context", config.AppName())
+		return c.host.RunInteractive("kubectl", "config", "use-context", config.Profile())
 	})
 
 	// save settings
@@ -98,12 +98,12 @@ func (c kubernetesRuntime) teardownKubeconfig(a *cli.ActiveCommandChain) {
 	a.Stage("reverting kubeconfig")
 
 	a.Add(func() error {
-		return c.host.Run("kubectl", "config", "unset", "users."+config.AppName())
+		return c.host.Run("kubectl", "config", "unset", "users."+config.Profile())
 	})
 	a.Add(func() error {
-		return c.host.Run("kubectl", "config", "unset", "contexts."+config.AppName())
+		return c.host.Run("kubectl", "config", "unset", "contexts."+config.Profile())
 	})
 	a.Add(func() error {
-		return c.host.Run("kubectl", "config", "unset", "clusters."+config.AppName())
+		return c.host.Run("kubectl", "config", "unset", "clusters."+config.Profile())
 	})
 }

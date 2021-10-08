@@ -8,16 +8,15 @@ import (
 	"os"
 )
 
-const defaultProfile = "colima"
-
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "colima",
 	Short: "container runtimes on macOS with minimal setup",
 	Long:  `Colima provides container runtimes on macOS with minimal setup.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		if rootCmdArgs.Profile != "colima" && rootCmdArgs.Profile != "" {
-			config.Profile(rootCmdArgs.Profile)
+		if rootCmdArgs.Profile != config.AppName && rootCmdArgs.Profile != "" {
+			// use a prefix to prevent possible clashes
+			config.SetProfile(config.AppName + "-" + rootCmdArgs.Profile)
 		}
 		if err := initLog(rootCmdArgs.DryRun); err != nil {
 			return err
@@ -31,11 +30,6 @@ var rootCmd = &cobra.Command{
 // Cmd returns the root command.
 func Cmd() *cobra.Command {
 	return rootCmd
-}
-
-// Profile returns the current application profile.
-func Profile() string {
-	return rootCmdArgs.Profile
 }
 
 var rootCmdArgs struct {
@@ -54,7 +48,7 @@ func Execute() {
 
 func init() {
 	rootCmd.PersistentFlags().BoolVar(&rootCmdArgs.DryRun, "dry-run", rootCmdArgs.DryRun, "perform a dry run instead")
-	rootCmd.PersistentFlags().StringVarP(&rootCmdArgs.Profile, "profile", "p", defaultProfile, "use different profile")
+	rootCmd.PersistentFlags().StringVarP(&rootCmdArgs.Profile, "profile", "p", config.AppName, "use different profile")
 
 	// decide if these should be public
 	// implementations are currently half-baked, only for test during development
