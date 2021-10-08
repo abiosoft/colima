@@ -21,7 +21,7 @@ export DISK="60"
 export CONF_CHANGED=""
 export ENABLE_KUBERNETES=""
 declare -a MOUNTS=()
-declare -a RW_MOUNTS=()
+declare -a MOUNTS_RW=()
 
 # derived values
 vm_user() (lima whoami)
@@ -52,7 +52,7 @@ commands:
     --memory is memory in GiB. Defaults to 4.
     --disk is disk size in GiB. Defaults to 60.
     --mount is additional host directories to expose to guests.
-    --rw-mount is additional host directories to expose to guests as writable.
+    --mount-rw is additional host directories to expose to guests as writable.
 
     For verbose ouput, tail the log file "$LOG_FILE".
 
@@ -113,7 +113,7 @@ prompt() (
 
 config_file() (
     additional_mounts=""
-    for d in ${RW_MOUNTS[@]}
+    for d in ${MOUNTS_RW[@]}
     do
         additional_mounts+=$'\n'"  - location: \"${d}\""$'\n'"    writable: true"
     done
@@ -519,10 +519,10 @@ start_vm_args() {
             CONF_CHANGED="1"
             shift
             ;;
-        --rw-mount)
+        --mount-rw)
             shift
             assert_dir "$1" || exit 1
-            RW_MOUNTS+=( "$1" )
+            MOUNTS_RW+=( "$1" )
             CONF_CHANGED="1"
             shift
             ;;
