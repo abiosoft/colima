@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment/container/kubernetes"
 
@@ -17,7 +18,7 @@ var kubernetesCmd = &cobra.Command{
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		// cobra overrides PersistentPreRunE when redeclared.
 		// re-run rootCmd's.
-		if err := rootCmd.PersistentPreRunE(cmd, args); err != nil {
+		if err := root.Cmd().PersistentPreRunE(cmd, args); err != nil {
 			return err
 		}
 		if !newApp().Active() {
@@ -119,7 +120,7 @@ The Kubernetes images are cached making the startup (after reset) much faster.`,
 }
 
 func init() {
-	rootCmd.AddCommand(kubernetesCmd)
+	root.Cmd().AddCommand(kubernetesCmd)
 	kubernetesCmd.AddCommand(kubernetesStartCmd)
 	kubernetesCmd.AddCommand(kubernetesStopCmd)
 	kubernetesCmd.AddCommand(kubernetesDeleteCmd)

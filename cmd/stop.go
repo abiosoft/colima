@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/abiosoft/colima/cmd/root"
 	"github.com/spf13/cobra"
 )
 
@@ -18,5 +19,5 @@ should return it back to its previous state.`,
 }
 
 func init() {
-	rootCmd.AddCommand(stopCmd)
+	root.Cmd().AddCommand(stopCmd)
 }

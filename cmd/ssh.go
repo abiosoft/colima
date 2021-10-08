@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/abiosoft/colima/cmd/root"
 	"github.com/spf13/cobra"
 )
 
@@ -21,5 +22,5 @@ It is recommended to specify '--' to differentiate from colima flags.`,
 }
 
 func init() {
-	rootCmd.AddCommand(sshCmd)
+	root.Cmd().AddCommand(sshCmd)
 }

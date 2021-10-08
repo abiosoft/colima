@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/docker"
@@ -86,7 +87,7 @@ var startCmdArgs struct {
 func init() {
 	runtimes := strings.Join(environment.ContainerRuntimes(), ", ")
 
-	rootCmd.AddCommand(startCmd)
+	root.Cmd().AddCommand(startCmd)
 	startCmd.Flags().StringVarP(&startCmdArgs.Runtime, "runtime", "r", docker.Name, "container runtime, one of ["+runtimes+"]")
 	startCmd.Flags().IntVarP(&startCmdArgs.VM.CPU, "cpu", "c", defaultCPU, "number of CPUs")
 	startCmd.Flags().IntVarP(&startCmdArgs.VM.Memory, "memory", "m", defaultMemory, "memory in GiB")

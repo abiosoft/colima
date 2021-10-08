@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/abiosoft/colima/cli"
+	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/spf13/cobra"
 	"log"
@@ -113,7 +114,7 @@ const nerdctlScript = `#!/usr/bin/env sh
 `
 
 func init() {
-	rootCmd.AddCommand(nerdctlCmd)
+	root.Cmd().AddCommand(nerdctlCmd)
 
 	nerdctlLink := nerdctlLinkFunc()
 	nerdctlCmd.AddCommand(nerdctlLink)

@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/abiosoft/colima/cmd"
+	_ "github.com/abiosoft/colima/cmd" // for other commands
+	"github.com/abiosoft/colima/cmd/root"
 )
 
 func main() {
-	cmd.Execute()
+	root.Execute()
 }

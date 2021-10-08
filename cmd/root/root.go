@@ -1,13 +1,14 @@
-package cmd
+package root
 
 import (
-	"github.com/abiosoft/colima"
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/log"
 	"github.com/spf13/cobra"
 	"os"
 )
+
+const defaultProfile = "colima"
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -27,6 +28,16 @@ var rootCmd = &cobra.Command{
 	},
 }
 
+// Cmd returns the root command.
+func Cmd() *cobra.Command {
+	return rootCmd
+}
+
+// Profile returns the current application profile.
+func Profile() string {
+	return rootCmdArgs.Profile
+}
+
 var rootCmdArgs struct {
 	DryRun  bool
 	Profile string
@@ -43,7 +54,7 @@ func Execute() {
 
 func init() {
 	rootCmd.PersistentFlags().BoolVar(&rootCmdArgs.DryRun, "dry-run", rootCmdArgs.DryRun, "perform a dry run instead")
-	rootCmd.PersistentFlags().StringVarP(&rootCmdArgs.Profile, "profile", "p", "colima", "use different profile")
+	rootCmd.PersistentFlags().StringVarP(&rootCmdArgs.Profile, "profile", "p", defaultProfile, "use different profile")
 
 	// decide if these should be public
 	// implementations are currently half-baked, only for test during development
@@ -69,10 +80,4 @@ func initLog(dryRun bool) error {
 	cli.Stderr(out)
 
 	return nil
-}
-
-func newApp() colima.App {
-	app, err := colima.New()
-	cobra.CheckErr(err)
-	return app
 }

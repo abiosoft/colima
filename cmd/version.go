@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/abiosoft/colima/cmd/root"
 	"github.com/spf13/cobra"
 )
 
@@ -15,5 +16,5 @@ var versionCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(versionCmd)
+	root.Cmd().AddCommand(versionCmd)
 }

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/abiosoft/colima/cmd/root"
 	"github.com/spf13/cobra"
 )
 
@@ -20,5 +21,5 @@ If you simply want to reset the Kubernetes cluster, run 'colima kubernetes reset
 }
 
 func init() {
-	rootCmd.AddCommand(deleteCmd)
+	root.Cmd().AddCommand(deleteCmd)
 }
