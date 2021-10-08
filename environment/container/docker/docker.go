@@ -1,10 +1,12 @@
 package docker
 
 import (
+	"fmt"
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
 	"os"
+	"strconv"
 )
 
 // Name is container runtime name.
@@ -76,7 +78,14 @@ func (d dockerRuntime) Provision() error {
 		if err != nil {
 			return err
 		}
-		return createSocketForwardingScript(user)
+		port, err := strconv.Atoi(d.guest.Get(environment.SSHPortKey))
+		if err != nil {
+			return fmt.Errorf("invalid SSH port: %w", err)
+		}
+		if port == 0 {
+			return fmt.Errorf("SSH port config missing in VM")
+		}
+		return createSocketForwardingScript(user, port)
 	})
 	a.Add(func() error { return createLaunchdScript(d.launchd) })
 

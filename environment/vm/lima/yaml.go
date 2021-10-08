@@ -24,7 +24,7 @@ func newConf(conf config.Config) (l Config) {
 		Mount{Location: filepath.Join("/tmp", config.AppName()), Writable: true},
 	)
 
-	l.SSH = SSH{LocalPort: config.SSHPort(), LoadDotSSHPubKeys: false}
+	l.SSH = SSH{LocalPort: conf.VM.SSHPort, LoadDotSSHPubKeys: false}
 	l.Containerd = Containerd{System: conf.Runtime == containerd.Name, User: false}
 	l.Firmware.LegacyBIOS = false
 

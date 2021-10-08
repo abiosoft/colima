@@ -42,10 +42,11 @@ For verbose output, tail the log file "$HOME/Library/Caches/colima/out.log".
 			return nil
 		}
 
-		// runtime, disk size and kubernetes version are only effective on VM create
+		// runtime, ssh port, disk size and kubernetes version are only effective on VM create
 		// set it to the current settings
 		startCmdArgs.Runtime = current.Runtime
 		startCmdArgs.VM.Disk = current.VM.Disk
+		startCmdArgs.VM.SSHPort = current.VM.SSHPort
 		startCmdArgs.Kubernetes.Version = current.Kubernetes.Version
 
 		// use current settings for unchanged configs

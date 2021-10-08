@@ -20,9 +20,6 @@ var (
 
 	configDir string
 	cacheDir  string
-
-	// TODO change config location
-	sshPort = 41122
 )
 
 // Profile sets the profile name for the application.
@@ -31,10 +28,6 @@ var (
 func Profile(profile string) {
 	appName = profile
 }
-
-// SSHPort returns the SSH port for the VM
-// TODO change location
-func SSHPort() int { ensureInit(); return sshPort }
 
 // Dir returns the configuration directory.
 func Dir() string { ensureInit(); return configDir }
@@ -136,16 +129,14 @@ type Kubernetes struct {
 
 // VM is virtual machine configuration.
 type VM struct {
-	CPU    int `yaml:"cpu"`
-	Disk   int `yaml:"disk"`
-	Memory int `yaml:"memory"`
+	CPU     int `yaml:"cpu"`
+	Disk    int `yaml:"disk"`
+	Memory  int `yaml:"memory"`
+	SSHPort int `yaml:"sshPort"`
 
 	// do not persist. i.e. discarded on VM shutdown
 	DNS []net.IP          `yaml:"-"` // DNS nameservers
 	Env map[string]string `yaml:"-"` // environment variables
-
-	// internal use
-	SSHPort int `yaml:"-"`
 }
 
 // Empty checks if the configuration is empty.
