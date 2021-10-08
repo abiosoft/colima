@@ -20,6 +20,7 @@ export MEMORY="4"
 export DISK="60"
 export CONF_CHANGED=""
 export ENABLE_KUBERNETES=""
+declare -a MOUNTS=()
 
 # derived values
 vm_user() (lima whoami)
@@ -42,13 +43,14 @@ usage: $NAME <command>
 commands:
   start [--with-kubernetes --cpu 2 --memory 4 --disk 60]
     Start (and/or provision) $NAME VM with docker (and kubernetes
-    if --with-kubernetes is passed). 
+    if --with-kubernetes is passed).
 
     --with-kubernetes start (and/or provision) Kubernetes.
       Kubernetes requires at least 2 CPUs and 2.3GiB memory.
     --cpu is number of CPUs. Defaults to 2.
     --memory is memory in GiB. Defaults to 4.
     --disk is disk size in GiB. Defaults to 60.
+    --mount is additional host directories to expose to guests as writable.
 
     For verbose ouput, tail the log file "$LOG_FILE".
 
@@ -108,6 +110,12 @@ prompt() (
 )
 
 config_file() (
+    additional_mounts=""
+    for d in ${MOUNTS[@]}
+    do
+        additional_mounts+=$'\n'"  - location: \"${d}\""$'\n'"    writable: true"
+    done
+
     cat >${NAME}.yaml <<EOF
 arch: "default"
 images:
@@ -124,7 +132,7 @@ mounts:
     # Setting writable to true is possible, but untested and dangerous.
     writable: false
   - location: "/tmp/$NAME"
-    writable: true
+    writable: true${additional_mounts}
 ssh:
   localPort: $SSH_PORT
   loadDotSSHPubKeys: false
@@ -463,6 +471,12 @@ start_vm_args() {
             exit 1
         fi
     )
+    assert_dir() (
+        if ! [[ -d $(eval "echo $1") ]]; then
+            log "$1" is not a directory at "'$CURRENT_FLAG $1'"
+            exit 1
+        fi
+    )
     # parse args
     while true; do
         CURRENT_FLAG="$1"
@@ -489,6 +503,13 @@ start_vm_args() {
             shift
             assert_number "$1" || exit 1
             DISK="$1"
+            CONF_CHANGED="1"
+            shift
+            ;;
+        --mount)
+            shift
+            assert_dir "$1" || exit 1
+            MOUNTS+=( "$1" )
             CONF_CHANGED="1"
             shift
             ;;
