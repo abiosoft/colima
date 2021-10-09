@@ -38,6 +38,18 @@ func (h hostEnv) Run(args ...string) error {
 	return cmd.Run()
 }
 
+func (h hostEnv) RunQuiet(args ...string) error {
+	if len(args) == 0 {
+		return errors.New("args not specified")
+	}
+	cmd := cli.Command(args[0], args[1:]...)
+	cmd.Env = append(os.Environ(), h.env...)
+	cmd.Stdout = nil
+	cmd.Stderr = nil
+
+	return cmd.Run()
+}
+
 func (h hostEnv) RunOutput(args ...string) (string, error) {
 	if len(args) == 0 {
 		return "", errors.New("args not specified")
@@ -85,7 +97,10 @@ func (h hostEnv) Stat(fileName string) (os.FileInfo, error) {
 func IsInstalled(dependencies environment.Dependencies) error {
 	var missing []string
 	check := func(p string) error {
-		return cli.Command("command", "-v", p).Run()
+		cmd := cli.Command("command", "-v", p)
+		cmd.Stderr = nil
+		cmd.Stdout = nil
+		return cmd.Run()
 	}
 	for _, p := range dependencies.Dependencies() {
 		if check(p) != nil {

@@ -51,7 +51,7 @@ func (c containerdRuntime) Start() error {
 }
 
 func (c containerdRuntime) Running() bool {
-	return c.guest.Run("service", "containerd", "status") == nil
+	return c.guest.RunQuiet("service", "containerd", "status") == nil
 }
 
 func (c containerdRuntime) Stop() error {

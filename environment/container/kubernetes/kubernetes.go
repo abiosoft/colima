@@ -38,11 +38,11 @@ func (c kubernetesRuntime) Name() string {
 
 func (c kubernetesRuntime) isInstalled() bool {
 	// it is installed if uninstall script is present.
-	return c.guest.Run("command", "-v", "k3s-uninstall.sh") == nil
+	return c.guest.RunQuiet("command", "-v", "k3s-uninstall.sh") == nil
 }
 
 func (c kubernetesRuntime) Running() bool {
-	return c.guest.Run("service", "k3s", "status") == nil
+	return c.guest.RunQuiet("service", "k3s", "status") == nil
 }
 
 func (c kubernetesRuntime) runtime() string {

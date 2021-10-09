@@ -42,12 +42,12 @@ func (d dockerRuntime) Name() string {
 }
 
 func (d dockerRuntime) isInstalled() bool {
-	err := d.guest.Run("command", "-v", "docker")
+	err := d.guest.RunQuiet("command", "-v", "docker")
 	return err == nil
 }
 
 func (d dockerRuntime) isUserPermissionFixed() bool {
-	err := d.guest.Run("sh", "-c", `getent group docker | grep "\b${USER}\b"`)
+	err := d.guest.RunQuiet("sh", "-c", `getent group docker | grep "\b${USER}\b"`)
 	return err == nil
 }
 
@@ -100,14 +100,14 @@ func (d dockerRuntime) Start() error {
 		return d.guest.Run("sudo", "service", "docker", "start")
 	})
 	a.Add(func() error {
-		return d.host.Run("launchctl", "load", d.launchd.File())
+		return d.host.RunQuiet("launchctl", "load", d.launchd.File())
 	})
 
 	return a.Exec()
 }
 
 func (d dockerRuntime) Running() bool {
-	return d.guest.Run("service", "docker", "status") == nil
+	return d.guest.RunQuiet("service", "docker", "status") == nil
 }
 
 func (d dockerRuntime) Stop() error {
@@ -121,7 +121,7 @@ func (d dockerRuntime) Stop() error {
 		return d.guest.Run("sudo", "service", "docker", "stop")
 	})
 	a.Add(func() error {
-		return d.host.Run("launchctl", "unload", d.launchd.File())
+		return d.host.RunQuiet("launchctl", "unload", d.launchd.File())
 	})
 
 	return a.Exec()
@@ -135,10 +135,10 @@ func (d dockerRuntime) Teardown() error {
 	// only host configurations should be removed
 	if stat, err := os.Stat(d.launchd.File()); err == nil && !stat.IsDir() {
 		a.Add(func() error {
-			return d.host.Run("launchctl", "unload", d.launchd.File())
+			return d.host.RunQuiet("launchctl", "unload", d.launchd.File())
 		})
 		a.Add(func() error {
-			return d.host.Run("rm", "-rf", d.launchd.File())
+			return d.host.RunQuiet("rm", "-rf", d.launchd.File())
 		})
 	}
 

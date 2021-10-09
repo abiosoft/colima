@@ -139,7 +139,7 @@ func (l limaVM) applyDNS(a *cli.ActiveCommandChain, conf config.Config) {
 }
 
 func (l limaVM) Running() bool {
-	return l.Run("uname") == nil
+	return l.RunQuiet("uname") == nil
 }
 
 func (l limaVM) Stop() error {
@@ -227,6 +227,19 @@ func (l limaVM) RunOutput(args ...string) (out string, err error) {
 	a.Add(func() (err error) {
 		out, err = l.host.RunOutput(args...)
 		return
+	})
+
+	err = a.Exec()
+	return
+}
+
+func (l limaVM) RunQuiet(args ...string) (err error) {
+	args = append([]string{lima}, args...)
+
+	a := l.Init()
+
+	a.Add(func() (err error) {
+		return l.host.RunQuiet(args...)
 	})
 
 	err = a.Exec()

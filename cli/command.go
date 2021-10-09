@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strconv"
@@ -27,10 +28,10 @@ func DryRun(d bool) {
 }
 
 // Stdout sets the stdout for commands.
-func Stdout(file *os.File) { runner.Stdout(file) }
+func Stdout(file io.Writer) { runner.Stdout(file) }
 
 // Stderr sets the stderr for commands.
-func Stderr(file *os.File) { runner.Stderr(file) }
+func Stderr(file io.Writer) { runner.Stderr(file) }
 
 // Command creates a new command.
 func Command(command string, args ...string) *exec.Cmd { return runner.Command(command, args...) }
@@ -41,8 +42,8 @@ func CommandInteractive(command string, args ...string) *exec.Cmd {
 }
 
 type commandRunner interface {
-	Stdout(file *os.File)
-	Stderr(file *os.File)
+	Stdout(io.Writer)
+	Stderr(writer io.Writer)
 	Command(command string, args ...string) *exec.Cmd
 	CommandInteractive(command string, args ...string) *exec.Cmd
 }
@@ -50,13 +51,13 @@ type commandRunner interface {
 var _ commandRunner = (*defaultCommandRunner)(nil)
 
 type defaultCommandRunner struct {
-	stdout *os.File
-	stderr *os.File
+	stdout io.Writer
+	stderr io.Writer
 }
 
-func (d *defaultCommandRunner) Stdout(file *os.File) { d.stdout = file }
+func (d *defaultCommandRunner) Stdout(file io.Writer) { d.stdout = file }
 
-func (d *defaultCommandRunner) Stderr(file *os.File) { d.stderr = file }
+func (d *defaultCommandRunner) Stderr(file io.Writer) { d.stderr = file }
 
 func (d defaultCommandRunner) Command(command string, args ...string) *exec.Cmd {
 	cmd := exec.Command(command, args...)
@@ -77,9 +78,9 @@ var _ commandRunner = (*dryRunCommandRunner)(nil)
 
 type dryRunCommandRunner struct{}
 
-func (d dryRunCommandRunner) Stdout(*os.File) {}
+func (d dryRunCommandRunner) Stdout(io.Writer) {}
 
-func (d dryRunCommandRunner) Stderr(*os.File) {}
+func (d dryRunCommandRunner) Stderr(io.Writer) {}
 
 func (d dryRunCommandRunner) Command(command string, args ...string) *exec.Cmd {
 	d.printArgs("run:", command, args...)
@@ -105,7 +106,7 @@ func Prompt(question string) bool {
 	fmt.Print("? [y/N] ")
 
 	var answer string
-	fmt.Scanln(&answer)
+	_, _ = fmt.Scanln(&answer)
 
 	if answer == "" {
 		return false

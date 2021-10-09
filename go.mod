@@ -4,12 +4,13 @@ go 1.17
 
 require (
 	github.com/abiosoft/lineprefix v0.1.4
+	github.com/fatih/color v1.12.0
+	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.2.1
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 )
 
 require (
-	github.com/fatih/color v1.12.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mattn/go-isatty v0.0.12 // indirect

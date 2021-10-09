@@ -3,9 +3,13 @@ package root
 import (
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
-	"github.com/abiosoft/colima/log"
+	"github.com/abiosoft/colima/util"
+	"github.com/abiosoft/lineprefix"
+	"github.com/fatih/color"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"os"
+	"io"
+	"log"
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -23,6 +27,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		cmd.SilenceUsage = true
+		cmd.SilenceErrors = true
 		return nil
 	},
 }
@@ -41,12 +46,13 @@ var rootCmdArgs struct {
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	// because Cobra is somehow too smart or too dumb to exit with error code when there is an error.
-	if rootCmd.Execute() != nil {
-		os.Exit(1)
+	if err := rootCmd.Execute(); err != nil {
+		logrus.Fatal(err)
 	}
 }
 
 func init() {
+	logrus.SetLevel(logrus.DebugLevel)
 	rootCmd.PersistentFlags().BoolVar(&rootCmdArgs.DryRun, "dry-run", rootCmdArgs.DryRun, "perform a dry run instead")
 	rootCmd.PersistentFlags().StringVarP(&rootCmdArgs.Profile, "profile", "p", config.AppName, "use different profile")
 
@@ -58,20 +64,29 @@ func init() {
 }
 
 func initLog(dryRun bool) error {
-	// general log
-	log.OverrideDefaultLog()
+	logger := util.Logger()
+	logger.SetLevel(logrus.DebugLevel)
 
-	// command logs
-	out, err := os.OpenFile(config.LogFile(), os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
-	if err != nil {
-		return err
+	// general log output
+	{
+		log.SetOutput(logger.Writer())
+		log.SetFlags(0)
 	}
 
-	if dryRun {
-		cli.DryRun(dryRun)
+	// verbose output
+	{
+		var out io.WriteCloser = logger.WriterLevel(logrus.DebugLevel)
+		out = lineprefix.New(
+			lineprefix.Writer(out),
+			lineprefix.Color(color.New(color.FgHiBlack)),
+		)
+
+		if dryRun {
+			cli.DryRun(dryRun)
+		}
+		cli.Stdout(out)
+		cli.Stderr(out)
 	}
-	cli.Stdout(out)
-	cli.Stderr(out)
 
 	return nil
 }

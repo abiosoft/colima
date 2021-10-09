@@ -2,12 +2,13 @@ package cli
 
 import (
 	"fmt"
-	"github.com/abiosoft/colima/log"
+	"github.com/abiosoft/colima/util"
+	"github.com/sirupsen/logrus"
 )
 
 // New creates a new runner instance.
 func New(name string) CommandChain {
-	return &namedInstance{
+	return &namedCommandChain{
 		name: name,
 	}
 }
@@ -23,26 +24,26 @@ type CommandChain interface {
 	// Init initiates a new runner using the current instance.
 	Init() *ActiveCommandChain
 	// Logger returns the instance logger.
-	Logger() *log.Logger
+	Logger() *logrus.Entry
 }
 
-var _ CommandChain = (*namedInstance)(nil)
+var _ CommandChain = (*namedCommandChain)(nil)
 
-type namedInstance struct {
+type namedCommandChain struct {
 	name string
-	log  *log.Logger
+	log  *logrus.Entry
 }
 
-func (n namedInstance) Logger() *log.Logger {
+func (n namedCommandChain) Logger() *logrus.Entry {
 	if n.log == nil {
-		n.log = log.New(n.name)
+		n.log = util.Logger().WithField("context", n.name)
 	}
 	return n.log
 }
 
-func (n namedInstance) Init() *ActiveCommandChain {
+func (n namedCommandChain) Init() *ActiveCommandChain {
 	return &ActiveCommandChain{
-		Logger: n.Logger(),
+		Entry: n.Logger(),
 	}
 }
 
@@ -50,7 +51,7 @@ func (n namedInstance) Init() *ActiveCommandChain {
 type ActiveCommandChain struct {
 	funcs     []cFunc
 	lastStage string
-	*log.Logger
+	*logrus.Entry
 }
 
 // Add adds a new function to the runner.

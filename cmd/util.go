@@ -2,11 +2,13 @@ package cmd
 
 import (
 	"github.com/abiosoft/colima"
-	"github.com/spf13/cobra"
+	"github.com/sirupsen/logrus"
 )
 
 func newApp() colima.App {
 	app, err := colima.New()
-	cobra.CheckErr(err)
+	if err != nil {
+		logrus.Fatal("Error: ", err)
+	}
 	return app
 }
