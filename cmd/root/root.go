@@ -19,7 +19,8 @@ var rootCmd = &cobra.Command{
 	Long:  `Colima provides container runtimes on macOS with minimal setup.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		if rootCmdArgs.Profile != config.AppName && rootCmdArgs.Profile != "" {
-			// use a prefix to prevent possible clashes
+			// if custom profile is specified,
+			// use a prefix to prevent possible name clashes
 			config.SetProfile(config.AppName + "-" + rootCmdArgs.Profile)
 		}
 		if err := initLog(rootCmdArgs.DryRun); err != nil {
@@ -38,14 +39,14 @@ func Cmd() *cobra.Command {
 }
 
 var rootCmdArgs struct {
-	DryRun  bool
-	Profile string
+	DryRun     bool
+	Profile    string
+	VerboseLog bool
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	// because Cobra is somehow too smart or too dumb to exit with error code when there is an error.
 	if err := rootCmd.Execute(); err != nil {
 		logrus.Fatal(err)
 	}
@@ -54,6 +55,7 @@ func Execute() {
 func init() {
 	rootCmd.PersistentFlags().BoolVar(&rootCmdArgs.DryRun, "dry-run", rootCmdArgs.DryRun, "perform a dry run instead")
 	rootCmd.PersistentFlags().StringVarP(&rootCmdArgs.Profile, "profile", "p", config.AppName, "use different profile")
+	rootCmd.PersistentFlags().BoolVarP(&rootCmdArgs.VerboseLog, "verbose", "v", rootCmdArgs.VerboseLog, "enable verbose output")
 
 	// decide if these should be public
 	// implementations are currently half-baked, only for test during development
@@ -64,7 +66,10 @@ func init() {
 
 func initLog(dryRun bool) error {
 	logger := util.Logger()
-	logger.SetLevel(logrus.DebugLevel)
+
+	if rootCmdArgs.VerboseLog {
+		logger.SetLevel(logrus.DebugLevel)
+	}
 
 	// general log output
 	{
