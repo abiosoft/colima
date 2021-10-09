@@ -52,7 +52,6 @@ func Execute() {
 }
 
 func init() {
-	logrus.SetLevel(logrus.DebugLevel)
 	rootCmd.PersistentFlags().BoolVar(&rootCmdArgs.DryRun, "dry-run", rootCmdArgs.DryRun, "perform a dry run instead")
 	rootCmd.PersistentFlags().StringVarP(&rootCmdArgs.Profile, "profile", "p", config.AppName, "use different profile")
 

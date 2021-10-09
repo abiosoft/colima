@@ -12,7 +12,7 @@ func installContainerdDeps(guest environment.GuestActions, a *cli.ActiveCommandC
 	// fix cni path
 	a.Add(func() error {
 		cniDir := "/opt/cni/bin"
-		if err := guest.Run("ls", cniDir); err == nil {
+		if err := guest.RunQuiet("ls", cniDir); err == nil {
 			return nil
 		}
 

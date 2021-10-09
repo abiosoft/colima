@@ -20,7 +20,7 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 
 	a := c.Init()
 
-	a.Stage("updating kubeconfig")
+	a.Stage("updating config")
 
 	// ensure host kube directory exists
 	hostHome := c.host.Env("HOME")
@@ -95,7 +95,7 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 	return a.Exec()
 }
 func (c kubernetesRuntime) teardownKubeconfig(a *cli.ActiveCommandChain) {
-	a.Stage("reverting kubeconfig")
+	a.Stage("reverting config")
 
 	a.Add(func() error {
 		return c.host.Run("kubectl", "config", "unset", "users."+config.Profile())
