@@ -29,6 +29,7 @@ func newConf(conf config.Config) (l Config) {
 	l.Firmware.LegacyBIOS = false
 
 	l.DNS = conf.VM.DNS
+	l.UseHostResolver = len(l.DNS) == 0 // use host resolver when no DNS is set
 
 	l.Env = map[string]string{}
 	for k, v := range conf.VM.Env {
@@ -40,17 +41,18 @@ func newConf(conf config.Config) (l Config) {
 
 // Config is lima config. Code copied from lima and modified.
 type Config struct {
-	Arch       Arch              `yaml:"arch,omitempty"`
-	Images     []File            `yaml:"images"`
-	CPUs       int               `yaml:"cpus,omitempty"`
-	Memory     string            `yaml:"memory,omitempty"`
-	Disk       string            `yaml:"disk,omitempty"`
-	Mounts     []Mount           `yaml:"mounts,omitempty"`
-	SSH        SSH               `yaml:"ssh,omitempty"`
-	Containerd Containerd        `yaml:"containerd"`
-	Env        map[string]string `yaml:"env,omitempty"`
-	DNS        []net.IP          `yaml:"-"` // will be handled manually by colima
-	Firmware   Firmware          `yaml:"firmware"`
+	Arch            Arch              `yaml:"arch,omitempty"`
+	Images          []File            `yaml:"images"`
+	CPUs            int               `yaml:"cpus,omitempty"`
+	Memory          string            `yaml:"memory,omitempty"`
+	Disk            string            `yaml:"disk,omitempty"`
+	Mounts          []Mount           `yaml:"mounts,omitempty"`
+	SSH             SSH               `yaml:"ssh,omitempty"`
+	Containerd      Containerd        `yaml:"containerd"`
+	Env             map[string]string `yaml:"env,omitempty"`
+	DNS             []net.IP          `yaml:"-"` // will be handled manually by colima
+	Firmware        Firmware          `yaml:"firmware"`
+	UseHostResolver bool              `yaml:"useHostResolver"`
 }
 
 type Arch = string
