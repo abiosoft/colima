@@ -16,7 +16,7 @@ func newRuntime(host environment.HostActions, guest environment.GuestActions) en
 	return &kubernetesRuntime{
 		host:         host,
 		guest:        guest,
-		CommandChain: cli.New("kubernetes"),
+		CommandChain: cli.New(Name),
 	}
 }
 

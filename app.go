@@ -201,7 +201,7 @@ func (c colimaApp) Status() error {
 	fmt.Println("runtime:", currentRuntime)
 
 	// kubernetes
-	if k, err := c.Kubernetes(); err == nil && k.Version() != "" {
+	if k, err := c.Kubernetes(); err == nil && k.Running() {
 		fmt.Println("kubernetes: enabled")
 	}
 
@@ -282,7 +282,7 @@ func (c colimaApp) currentContainerEnvironments() ([]environment.Container, erro
 	}
 
 	// detect and add kubernetes
-	if k, err := c.containerEnvironment(kubernetes.Name); err == nil && k.Version() != "" {
+	if k, err := c.containerEnvironment(kubernetes.Name); err == nil && k.Running() {
 		containers = append(containers, k)
 	}
 

@@ -16,7 +16,7 @@ func newRuntime(host environment.HostActions, guest environment.GuestActions) en
 	return &containerdRuntime{
 		host:         host,
 		guest:        guest,
-		CommandChain: cli.New("containerd"),
+		CommandChain: cli.New(Name),
 	}
 }
 
@@ -48,6 +48,10 @@ func (c containerdRuntime) Start() error {
 		return c.guest.Run("sudo", "service", "containerd", "start")
 	})
 	return a.Exec()
+}
+
+func (c containerdRuntime) Running() bool {
+	return c.guest.Run("service", "containerd", "status") == nil
 }
 
 func (c containerdRuntime) Stop() error {

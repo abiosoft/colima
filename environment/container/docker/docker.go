@@ -106,12 +106,16 @@ func (d dockerRuntime) Start() error {
 	return a.Exec()
 }
 
+func (d dockerRuntime) Running() bool {
+	return d.guest.Run("service", "docker", "status") == nil
+}
+
 func (d dockerRuntime) Stop() error {
 	a := d.Init()
 	a.Stage("stopping")
 
 	a.Add(func() error {
-		if d.guest.Run("service", "docker", "status") != nil {
+		if !d.Running() {
 			return nil
 		}
 		return d.guest.Run("sudo", "service", "docker", "stop")

@@ -20,6 +20,8 @@ type Container interface {
 	Teardown() error
 	// Version returns the container runtime version.
 	Version() string
+	// Running returns if the container runtime is currently running.
+	Running() bool
 
 	Dependencies
 }
