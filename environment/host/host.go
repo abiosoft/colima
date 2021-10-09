@@ -35,6 +35,13 @@ func (h hostEnv) Run(args ...string) error {
 	}
 	cmd := cli.Command(args[0], args[1:]...)
 	cmd.Env = append(os.Environ(), h.env...)
+
+	out := newVerboseOutput(4)
+	defer out.Close()
+
+	cmd.Stdout = out
+	cmd.Stderr = out
+
 	return cmd.Run()
 }
 
