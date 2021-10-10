@@ -3,7 +3,6 @@ package root
 import (
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
-	"github.com/abiosoft/colima/util"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"log"
@@ -60,10 +59,8 @@ func init() {
 }
 
 func initLog(dryRun bool) error {
-	logger := util.Logger()
-
 	// general log output
-	log.SetOutput(logger.Writer())
+	log.SetOutput(logrus.New().Writer())
 	log.SetFlags(0)
 
 	if dryRun {

@@ -41,7 +41,6 @@ func newConf(conf config.Config) (l Config, err error) {
 		)
 	} else {
 		// overlapping mounts are problematic in Lima https://github.com/lima-vm/lima/issues/302
-		// check if cache directory has been mounted by other mounts, and remove cache directory from mounts
 		if err = checkOverlappingMounts(conf.VM.Mounts); err != nil {
 			err = fmt.Errorf("overlapping mounts not supported: %w", err)
 			return
@@ -59,6 +58,7 @@ func newConf(conf config.Config) (l Config, err error) {
 			}
 			l.Mounts = append(l.Mounts, Mount{Location: location, Writable: m.Writable()})
 
+			// check if cache directory has been mounted by other mounts, and remove cache directory from mounts
 			if strings.HasPrefix(config.CacheDir(), location) && !cacheOverlapFound {
 				l.Mounts = l.Mounts[1:]
 				cacheOverlapFound = true

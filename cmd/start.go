@@ -6,7 +6,7 @@ import (
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/docker"
-	"github.com/abiosoft/colima/util"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"strings"
 )
@@ -30,7 +30,6 @@ The --runtime flag is only used on initial start and ignored on subsequent start
 		return newApp().Start(startCmdArgs.Config)
 	},
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		log := util.Logger()
 		current, err := config.Load()
 		if err != nil {
 			// not fatal, will proceed with defaults

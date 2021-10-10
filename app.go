@@ -8,8 +8,7 @@ import (
 	"github.com/abiosoft/colima/environment/container/kubernetes"
 	"github.com/abiosoft/colima/environment/host"
 	"github.com/abiosoft/colima/environment/vm/lima"
-	"github.com/abiosoft/colima/util"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"strconv"
 )
 
@@ -35,18 +34,16 @@ func New() (App, error) {
 	}
 
 	return &colimaApp{
-		guest:  guest,
-		Logger: util.Logger(),
+		guest: guest,
 	}, nil
 }
 
 type colimaApp struct {
 	guest environment.VM
-	*logrus.Logger
 }
 
 func (c colimaApp) Start(conf config.Config) error {
-	c.Println("starting", config.Profile())
+	log.Println("starting", config.Profile())
 
 	var containers []environment.Container
 	// runtime
@@ -100,12 +97,12 @@ func (c colimaApp) Start(conf config.Config) error {
 		}
 	}
 
-	c.Println("done")
+	log.Println("done")
 	return nil
 }
 
 func (c colimaApp) Stop() error {
-	c.Println("stopping", config.Profile())
+	log.Println("stopping", config.Profile())
 
 	// the order for stop is:
 	//   container stop -> vm stop
@@ -114,7 +111,7 @@ func (c colimaApp) Stop() error {
 	if c.guest.Running() {
 		containers, err := c.currentContainerEnvironments()
 		if err != nil {
-			c.Warnln(fmt.Errorf("error retrieving runtimes: %w", err))
+			log.Warnln(fmt.Errorf("error retrieving runtimes: %w", err))
 		}
 
 		// stop happens in reverse of start
@@ -124,7 +121,7 @@ func (c colimaApp) Stop() error {
 				// failure to stop a container runtime is not fatal
 				// it is only meant for graceful shutdown.
 				// the VM will shut down anyways.
-				c.Warnln(fmt.Errorf("error stopping %s: %w", cont.Name(), err))
+				log.Warnln(fmt.Errorf("error stopping %s: %w", cont.Name(), err))
 			}
 		}
 	}
@@ -135,7 +132,7 @@ func (c colimaApp) Stop() error {
 		return fmt.Errorf("error stopping vm: %w", err)
 	}
 
-	c.Println("done")
+	log.Println("done")
 	return nil
 }
 
@@ -145,7 +142,7 @@ func (c colimaApp) Delete() error {
 		return nil
 	}
 
-	c.Println("deleting", config.Profile())
+	log.Println("deleting", config.Profile())
 
 	// the order for teardown is:
 	//   container teardown -> vm teardown
@@ -158,12 +155,12 @@ func (c colimaApp) Delete() error {
 	if c.guest.Running() {
 		containers, err := c.currentContainerEnvironments()
 		if err != nil {
-			c.Warnln(fmt.Errorf("error retrieving runtimes: %w", err))
+			log.Warnln(fmt.Errorf("error retrieving runtimes: %w", err))
 		}
 		for _, cont := range containers {
 			if err := cont.Teardown(); err != nil {
 				// failure here is not fatal
-				c.Warnln(fmt.Errorf("error during teardown of %s: %w", cont.Name(), err))
+				log.Warnln(fmt.Errorf("error during teardown of %s: %w", cont.Name(), err))
 			}
 		}
 	}
@@ -178,7 +175,7 @@ func (c colimaApp) Delete() error {
 		return fmt.Errorf("error deleting configs: %w", err)
 	}
 
-	c.Println("done")
+	log.Println("done")
 	return nil
 }
 

@@ -2,8 +2,7 @@ package cli
 
 import (
 	"fmt"
-	"github.com/abiosoft/colima/util"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // New creates a new runner instance.
@@ -24,19 +23,19 @@ type CommandChain interface {
 	// Init initiates a new runner using the current instance.
 	Init() *ActiveCommandChain
 	// Logger returns the instance logger.
-	Logger() *logrus.Entry
+	Logger() *log.Entry
 }
 
 var _ CommandChain = (*namedCommandChain)(nil)
 
 type namedCommandChain struct {
 	name string
-	log  *logrus.Entry
+	log  *log.Entry
 }
 
-func (n namedCommandChain) Logger() *logrus.Entry {
+func (n namedCommandChain) Logger() *log.Entry {
 	if n.log == nil {
-		n.log = util.Logger().WithField("context", n.name)
+		n.log = log.WithField("context", n.name)
 	}
 	return n.log
 }
@@ -51,7 +50,7 @@ func (n namedCommandChain) Init() *ActiveCommandChain {
 type ActiveCommandChain struct {
 	funcs     []cFunc
 	lastStage string
-	*logrus.Entry
+	*log.Entry
 }
 
 // Add adds a new function to the runner.
