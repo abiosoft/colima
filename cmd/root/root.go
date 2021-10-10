@@ -4,11 +4,8 @@ import (
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/util"
-	"github.com/abiosoft/lineprefix"
-	"github.com/fatih/color"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"io"
 	"log"
 )
 
@@ -39,9 +36,8 @@ func Cmd() *cobra.Command {
 }
 
 var rootCmdArgs struct {
-	DryRun     bool
-	Profile    string
-	VerboseLog bool
+	DryRun  bool
+	Profile string
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -55,7 +51,6 @@ func Execute() {
 func init() {
 	rootCmd.PersistentFlags().BoolVar(&rootCmdArgs.DryRun, "dry-run", rootCmdArgs.DryRun, "perform a dry run instead")
 	rootCmd.PersistentFlags().StringVarP(&rootCmdArgs.Profile, "profile", "p", config.AppName, "use different profile")
-	rootCmd.PersistentFlags().BoolVarP(&rootCmdArgs.VerboseLog, "verbose", "v", rootCmdArgs.VerboseLog, "enable verbose output")
 
 	// decide if these should be public
 	// implementations are currently half-baked, only for test during development
@@ -67,29 +62,12 @@ func init() {
 func initLog(dryRun bool) error {
 	logger := util.Logger()
 
-	if rootCmdArgs.VerboseLog {
-		logger.SetLevel(logrus.DebugLevel)
-	}
-
 	// general log output
-	{
-		log.SetOutput(logger.Writer())
-		log.SetFlags(0)
-	}
+	log.SetOutput(logger.Writer())
+	log.SetFlags(0)
 
-	// verbose output
-	{
-		var out io.WriteCloser = logger.WriterLevel(logrus.DebugLevel)
-		out = lineprefix.New(
-			lineprefix.Writer(out),
-			lineprefix.Color(color.New(color.FgHiBlack)),
-		)
-
-		if dryRun {
-			cli.DryRun(dryRun)
-		}
-		cli.Stdout(out)
-		cli.Stderr(out)
+	if dryRun {
+		cli.DryRun(dryRun)
 	}
 
 	return nil

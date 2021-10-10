@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/util/terminal"
 	"os"
 	"strings"
 )
@@ -36,13 +37,17 @@ func (h hostEnv) Run(args ...string) error {
 	cmd := cli.Command(args[0], args[1:]...)
 	cmd.Env = append(os.Environ(), h.env...)
 
-	out := newVerboseOutput(4)
-	defer out.Close()
+	out := terminal.NewVerboseWriter(4)
 
 	cmd.Stdout = out
 	cmd.Stderr = out
 
-	return cmd.Run()
+	err := cmd.Run()
+	if err == nil {
+		return out.Close()
+	}
+
+	return err
 }
 
 func (h hostEnv) RunQuiet(args ...string) error {

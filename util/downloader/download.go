@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/util/terminal"
 	"os"
 	"path/filepath"
 )
@@ -26,7 +27,7 @@ func Download(host environment.HostActions, guest environment.GuestActions, url,
 		}
 	}
 
-	return guest.Run("cp", d.cacheFileName(url), fileName)
+	return guest.RunQuiet("cp", d.cacheFileName(url), fileName)
 }
 
 type downloader struct {
@@ -46,14 +47,26 @@ func (d downloader) downloadFile(url string) (err error) {
 	// save to a temporary file initially before renaming to the desired file after successful download
 	// this prevents having a corrupt file
 	cacheFileName := d.cacheDownloadingFileName(url)
-	if err := d.host.Run("mkdir", "-p", filepath.Dir(cacheFileName)); err != nil {
+	if err := d.host.RunQuiet("mkdir", "-p", filepath.Dir(cacheFileName)); err != nil {
 		return fmt.Errorf("error preparing cache dir: %w", err)
 	}
-	// ask curl to resume previous download if possible
-	if err := d.host.RunInteractive("curl", "-L", "-#", "-C", "-", "-o", cacheFileName, url); err != nil {
+
+	// get rid of curl's initial progress bar by getting the redirect url directly.
+	downloadURL := url
+	if u, err := d.host.RunOutput("curl", "-Ls", "-o", "/dev/null", "-w", "%{url_effective}", url); err != nil {
+		return fmt.Errorf("error retrieving redirect url: %w", err)
+	} else {
+		downloadURL = u
+	}
+
+	// ask curl to resume previous download if possible "-C -"
+	if err := d.host.RunInteractive("curl", "-L", "-#", "-C", "-", "-o", cacheFileName, downloadURL); err != nil {
 		return err
 	}
-	return d.host.Run("mv", d.cacheDownloadingFileName(url), d.cacheFileName(url))
+	// clear curl progress line
+	terminal.ClearLine()
+
+	return d.host.RunQuiet("mv", d.cacheDownloadingFileName(url), d.cacheFileName(url))
 
 }
 

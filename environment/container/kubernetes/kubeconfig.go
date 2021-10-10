@@ -84,7 +84,12 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 
 	// set new context
 	a.Add(func() error {
-		return c.host.RunInteractive("kubectl", "config", "use-context", config.Profile())
+		out, err := c.host.RunOutput("kubectl", "config", "use-context", config.Profile())
+		if err != nil {
+			return err
+		}
+		a.Println(out)
+		return nil
 	})
 
 	// save settings

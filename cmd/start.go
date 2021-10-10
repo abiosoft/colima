@@ -1,12 +1,13 @@
 package cmd
 
 import (
+	"fmt"
 	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/docker"
+	"github.com/abiosoft/colima/util"
 	"github.com/spf13/cobra"
-	"log"
 	"strings"
 )
 
@@ -17,9 +18,6 @@ var startCmd = &cobra.Command{
 	Short: "start Colima",
 	Long: `Start Colima with the specified container runtime (and kubernetes if --with-kubernetes is passed).
 The --runtime flag is only used on initial start and ignored on subsequent starts.
-
-For verbose output, tail the log file "$HOME/Library/Caches/colima/out.log".
-  tail -f "$HOME/Library/Caches/colima/out.log"
 `,
 	Example: "  colima start\n" +
 		"  colima start --runtime containerd\n" +
@@ -31,11 +29,12 @@ For verbose output, tail the log file "$HOME/Library/Caches/colima/out.log".
 		return newApp().Start(startCmdArgs.Config)
 	},
 	PreRunE: func(cmd *cobra.Command, args []string) error {
+		log := util.Logger()
 		current, err := config.Load()
 		if err != nil {
 			// not fatal, will proceed with defaults
-			log.Println(err)
-			log.Println("reverting to default settings")
+			log.Warnln(fmt.Errorf("config load failed: %w", err))
+			log.Warnln("reverting to default settings")
 		}
 
 		// use default config

@@ -59,10 +59,8 @@ func (c *kubernetesRuntime) Provision() error {
 		return nil
 	}
 
-	a.Stage("provisioning")
-
 	// k3s
-	a.Stage("installing")
+	a.Stage("downloading and installing")
 	installK3s(c.host, c.guest, a, c.runtime())
 
 	return a.Exec()

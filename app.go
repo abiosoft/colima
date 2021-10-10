@@ -8,7 +8,7 @@ import (
 	"github.com/abiosoft/colima/environment/container/kubernetes"
 	"github.com/abiosoft/colima/environment/host"
 	"github.com/abiosoft/colima/environment/vm/lima"
-	"log"
+	"github.com/sirupsen/logrus"
 	"strconv"
 )
 
@@ -40,10 +40,11 @@ func New() (App, error) {
 
 type colimaApp struct {
 	guest environment.VM
+	*logrus.Entry
 }
 
 func (c colimaApp) Start(conf config.Config) error {
-	log.Println("starting", config.Profile())
+	c.Println("starting", config.Profile())
 
 	var containers []environment.Container
 	// runtime
@@ -97,12 +98,12 @@ func (c colimaApp) Start(conf config.Config) error {
 		}
 	}
 
-	log.Println("done")
+	c.Println("done")
 	return nil
 }
 
 func (c colimaApp) Stop() error {
-	log.Println("stopping", config.Profile())
+	c.Println("stopping", config.Profile())
 
 	// the order for stop is:
 	//   container stop -> vm stop
@@ -111,7 +112,7 @@ func (c colimaApp) Stop() error {
 	if c.guest.Running() {
 		containers, err := c.currentContainerEnvironments()
 		if err != nil {
-			log.Println(err)
+			c.Warnln(fmt.Errorf("error retrieving runtimes: %w", err))
 		}
 
 		// stop happens in reverse of start
@@ -121,7 +122,7 @@ func (c colimaApp) Stop() error {
 				// failure to stop a container runtime is not fatal
 				// it is only meant for graceful shutdown.
 				// the VM will shut down anyways.
-				log.Println(fmt.Errorf("error stopping %s: %w", cont.Name(), err))
+				c.Warnln(fmt.Errorf("error stopping %s: %w", cont.Name(), err))
 			}
 		}
 	}
@@ -132,7 +133,7 @@ func (c colimaApp) Stop() error {
 		return fmt.Errorf("error stopping vm: %w", err)
 	}
 
-	log.Println("done")
+	c.Println("done")
 	return nil
 }
 
@@ -142,7 +143,7 @@ func (c colimaApp) Delete() error {
 		return nil
 	}
 
-	log.Println("deleting", config.Profile())
+	c.Println("deleting", config.Profile())
 
 	// the order for teardown is:
 	//   container teardown -> vm teardown
@@ -155,12 +156,12 @@ func (c colimaApp) Delete() error {
 	if c.guest.Running() {
 		containers, err := c.currentContainerEnvironments()
 		if err != nil {
-			log.Println(err)
+			c.Warnln(fmt.Errorf("error retrieving runtimes: %w", err))
 		}
 		for _, cont := range containers {
 			if err := cont.Teardown(); err != nil {
 				// failure here is not fatal
-				log.Println(fmt.Errorf("error during teardown of %s: %w", cont.Name(), err))
+				c.Warnln(fmt.Errorf("error during teardown of %s: %w", cont.Name(), err))
 			}
 		}
 	}
@@ -175,7 +176,7 @@ func (c colimaApp) Delete() error {
 		return fmt.Errorf("error deleting configs: %w", err)
 	}
 
-	log.Println("done")
+	c.Println("done")
 	return nil
 }
 
@@ -197,12 +198,12 @@ func (c colimaApp) Status() error {
 		return err
 	}
 
-	log.Println(config.Profile(), "is running")
-	log.Println("runtime:", currentRuntime)
+	fmt.Println(config.Profile(), "is running")
+	fmt.Println("runtime:", currentRuntime)
 
 	// kubernetes
 	if k, err := c.Kubernetes(); err == nil && k.Running() {
-		log.Println("kubernetes: enabled")
+		fmt.Println("kubernetes: enabled")
 	}
 
 	return nil
@@ -211,7 +212,7 @@ func (c colimaApp) Status() error {
 func (c colimaApp) Version() error {
 	name := config.Profile()
 	version := config.AppVersion()
-	log.Println(name, "version", version)
+	fmt.Println(name, "version", version)
 
 	if c.guest.Running() {
 		containerRuntimes, err := c.currentContainerEnvironments()
@@ -225,15 +226,15 @@ func (c colimaApp) Version() error {
 				kube = cont
 				continue
 			}
-			log.Println()
-			log.Println("runtime:", cont.Name())
-			log.Println(cont.Version())
+			fmt.Println()
+			fmt.Println("runtime:", cont.Name())
+			fmt.Println(cont.Version())
 		}
 
 		if kube != nil && kube.Version() != "" {
-			log.Println()
-			log.Println("kubernetes")
-			log.Println(kube.Version())
+			fmt.Println()
+			fmt.Println("kubernetes")
+			fmt.Println(kube.Version())
 		}
 	}
 
