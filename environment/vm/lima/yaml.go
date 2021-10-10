@@ -124,7 +124,7 @@ type volumeMount string
 
 func (v volumeMount) Writable() bool {
 	str := strings.SplitN(string(v), ":", 2)
-	return len(str) >= 2 && str[1] != "w"
+	return len(str) >= 2 && str[1] == "w"
 }
 
 func (v volumeMount) Path() (string, error) {

@@ -72,6 +72,7 @@ func (h hostEnv) RunOutput(args ...string) (string, error) {
 
 	var buf bytes.Buffer
 	cmd.Stdout = &buf
+	cmd.Stderr = nil
 
 	if err := cmd.Run(); err != nil {
 		return "", err
