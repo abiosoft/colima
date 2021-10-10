@@ -36,9 +36,6 @@ func Dir() string { ensureInit(); return configDir }
 // CacheDir returns the cache directory.
 func CacheDir() string { ensureInit(); return cacheDir }
 
-// LogFile returns the path the command log output.
-func LogFile() string { ensureInit(); return filepath.Join(cacheDir, "out.log") }
-
 var initDone = false
 
 func ensureInit() {
@@ -134,6 +131,9 @@ type VM struct {
 	Disk    int `yaml:"disk"`
 	Memory  int `yaml:"memory"`
 	SSHPort int `yaml:"sshPort"`
+
+	// volume mounts
+	Mounts []string `yaml:"mounts"`
 
 	// do not persist. i.e. discarded on VM shutdown
 	DNS []net.IP          `yaml:"-"` // DNS nameservers

@@ -8,6 +8,7 @@ import (
 	"github.com/abiosoft/colima/environment/container/kubernetes"
 	"github.com/abiosoft/colima/environment/host"
 	"github.com/abiosoft/colima/environment/vm/lima"
+	"github.com/abiosoft/colima/util"
 	"github.com/sirupsen/logrus"
 	"strconv"
 )
@@ -34,13 +35,14 @@ func New() (App, error) {
 	}
 
 	return &colimaApp{
-		guest: guest,
+		guest:  guest,
+		Logger: util.Logger(),
 	}, nil
 }
 
 type colimaApp struct {
 	guest environment.VM
-	*logrus.Entry
+	*logrus.Logger
 }
 
 func (c colimaApp) Start(conf config.Config) error {

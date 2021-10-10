@@ -65,7 +65,10 @@ func (l *limaVM) Start(conf config.Config) error {
 	configFile := config.Profile() + ".yaml"
 
 	a.Add(func() error {
-		limaConf := newConf(conf)
+		limaConf, err := newConf(conf)
+		if err != nil {
+			return err
+		}
 		return yamlutil.WriteYAML(limaConf, configFile)
 	})
 	a.Add(func() error {
@@ -97,7 +100,10 @@ func (l limaVM) resume(conf config.Config) error {
 	configFile := filepath.Join(limaConfDir(), "lima.yaml")
 
 	a.Add(func() error {
-		limaConf := newConf(conf)
+		limaConf, err := newConf(conf)
+		if err != nil {
+			return err
+		}
 		return yamlutil.WriteYAML(limaConf, configFile)
 	})
 

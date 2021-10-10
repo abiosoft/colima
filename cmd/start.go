@@ -24,7 +24,8 @@ The --runtime flag is only used on initial start and ignored on subsequent start
 		"  colima start --with-kubernetes\n" +
 		"  colima start --runtime containerd --with-kubernetes\n" +
 		"  colima start --cpu 4 --memory 8 --disk 100\n" +
-		"  colima start --dns 8.8.8.8 --dns 8.8.4.4\n",
+		"  colima start --dns 8.8.8.8 --dns 8.8.4.4\n" +
+		"  colima start --mount $HOME/projects:w\n",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return newApp().Start(startCmdArgs.Config)
 	},
@@ -60,6 +61,9 @@ The --runtime flag is only used on initial start and ignored on subsequent start
 		if !cmd.Flag("memory").Changed {
 			startCmdArgs.VM.Memory = current.VM.Memory
 		}
+		if !cmd.Flag("mount").Changed {
+			startCmdArgs.VM.Mounts = current.VM.Mounts
+		}
 
 		log.Println("using", current.Runtime, "runtime")
 
@@ -92,6 +96,9 @@ func init() {
 	startCmd.Flags().IntVarP(&startCmdArgs.VM.Memory, "memory", "m", defaultMemory, "memory in GiB")
 	startCmd.Flags().IntVarP(&startCmdArgs.VM.Disk, "disk", "d", defaultDisk, "disk size in GiB")
 	startCmd.Flags().IPSliceVarP(&startCmdArgs.VM.DNS, "dns", "n", nil, "DNS servers for the VM")
+
+	// mounts
+	startCmd.Flags().StringSliceVarP(&startCmdArgs.VM.Mounts, "mount", "v", nil, "volume mounts, suffix ':w' for writable")
 
 	// k8s
 	startCmd.Flags().BoolVarP(&startCmdArgs.Kubernetes.Enabled, "with-kubernetes", "k", false, "start VM with Kubernetes")

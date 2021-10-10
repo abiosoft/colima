@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment/container/containerd"
+	"github.com/abiosoft/colima/util"
 	"net"
+	"os"
 	"path/filepath"
+	"strings"
 )
 
-func newConf(conf config.Config) (l Config) {
+func newConf(conf config.Config) (l Config, err error) {
 	l.Arch = "default"
 
 	l.Images = append(l.Images,
@@ -18,11 +21,6 @@ func newConf(conf config.Config) (l Config) {
 	l.CPUs = conf.VM.CPU
 	l.Memory = fmt.Sprintf("%dGiB", conf.VM.Memory)
 	l.Disk = fmt.Sprintf("%dGiB", conf.VM.Disk)
-
-	l.Mounts = append(l.Mounts,
-		Mount{Location: "~", Writable: false},
-		Mount{Location: filepath.Join("/tmp", config.Profile()), Writable: true},
-	)
 
 	l.SSH = SSH{LocalPort: conf.VM.SSHPort, LoadDotSSHPubKeys: false}
 	l.Containerd = Containerd{System: conf.Runtime == containerd.Name, User: false}
@@ -34,6 +32,38 @@ func newConf(conf config.Config) (l Config) {
 	l.Env = map[string]string{}
 	for k, v := range conf.VM.Env {
 		l.Env[k] = v
+	}
+
+	if len(conf.VM.Mounts) == 0 {
+		l.Mounts = append(l.Mounts,
+			Mount{Location: "~", Writable: false},
+			Mount{Location: filepath.Join("/tmp", config.Profile()), Writable: true},
+		)
+	} else {
+		// overlapping mounts are problematic in Lima https://github.com/lima-vm/lima/issues/302
+		// check if cache directory has been mounted by other mounts, and remove cache directory from mounts
+		if err = checkOverlappingMounts(conf.VM.Mounts); err != nil {
+			err = fmt.Errorf("overlapping mounts not supported: %w", err)
+			return
+		}
+
+		l.Mounts = append(l.Mounts, Mount{Location: config.CacheDir(), Writable: false})
+		cacheOverlapFound := false
+
+		for _, v := range conf.VM.Mounts {
+			m := volumeMount(v)
+			var location string
+			location, err = m.Path()
+			if err != nil {
+				return
+			}
+			l.Mounts = append(l.Mounts, Mount{Location: location, Writable: m.Writable()})
+
+			if strings.HasPrefix(config.CacheDir(), location) && !cacheOverlapFound {
+				l.Mounts = l.Mounts[1:]
+				cacheOverlapFound = true
+			}
+		}
 	}
 
 	return
@@ -88,4 +118,48 @@ type Firmware struct {
 	// LegacyBIOS disables UEFI if set.
 	// LegacyBIOS is ignored for aarch64.
 	LegacyBIOS bool `yaml:"legacyBIOS"`
+}
+
+type volumeMount string
+
+func (v volumeMount) Writable() bool {
+	str := strings.SplitN(string(v), ":", 2)
+	return len(str) >= 2 && str[1] != "w"
+}
+
+func (v volumeMount) Path() (string, error) {
+	split := strings.SplitN(string(v), ":", 2)
+	str := os.ExpandEnv(split[0])
+
+	if strings.HasPrefix(str, "~") {
+		str = strings.Replace(str, "~", util.HomeDir(), 1)
+	}
+
+	str = filepath.Clean(str)
+	if !filepath.IsAbs(str) {
+		return "", fmt.Errorf("relative paths not supported for mount '%s'", string(v))
+	}
+
+	return str, nil
+}
+
+func checkOverlappingMounts(mounts []string) error {
+	for i := 0; i < len(mounts)-1; i++ {
+		for j := i + 1; j < len(mounts); j++ {
+			a, err := volumeMount(mounts[i]).Path()
+			if err != nil {
+				return err
+			}
+
+			b, err := volumeMount(mounts[j]).Path()
+			if err != nil {
+				return err
+			}
+
+			if strings.HasPrefix(a, b) || strings.HasPrefix(b, a) {
+				return fmt.Errorf("'%s' overlaps '%s'", a, b)
+			}
+		}
+	}
+	return nil
 }
