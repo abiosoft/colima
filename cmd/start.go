@@ -12,7 +12,6 @@ import (
 )
 
 // startCmd represents the start command
-// TODO replace $HOME env var.
 var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "start Colima",
@@ -97,7 +96,7 @@ func init() {
 	startCmd.Flags().IPSliceVarP(&startCmdArgs.VM.DNS, "dns", "n", nil, "DNS servers for the VM")
 
 	// mounts
-	startCmd.Flags().StringSliceVarP(&startCmdArgs.VM.Mounts, "mount", "v", nil, "volume mounts, suffix ':w' for writable")
+	startCmd.Flags().StringSliceVarP(&startCmdArgs.VM.Mounts, "mount", "v", nil, "directories to mount, suffix ':w' for writable")
 
 	// k8s
 	startCmd.Flags().BoolVarP(&startCmdArgs.Kubernetes.Enabled, "with-kubernetes", "k", false, "start VM with Kubernetes")
