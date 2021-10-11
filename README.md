@@ -1,5 +1,7 @@
 # Colima
 
+[![Go](https://github.com/abiosoft/colima/actions/workflows/go.yml/badge.svg)](https://github.com/abiosoft/colima/actions/workflows/go.yml)
+
 Docker (and Kubernetes) on macOS with minimal setup.
 
 ![Demonstration](colima.gif)
