@@ -29,7 +29,7 @@ type Container interface {
 // NewContainer creates a new container environment.
 func NewContainer(runtime string, host HostActions, guest GuestActions) (Container, error) {
 	if _, ok := containerRuntimes[runtime]; !ok {
-		return nil, fmt.Errorf("invalid container runtime '%s'", runtime)
+		return nil, fmt.Errorf("unsupported container runtime '%s'", runtime)
 	}
 
 	return containerRuntimes[runtime](host, guest), nil
