@@ -90,10 +90,11 @@ func (l *limaVM) Start(conf config.Config) error {
 }
 
 func (l limaVM) resume(conf config.Config) error {
+	log := l.Logger()
 	a := l.Init()
 
 	if l.Running() {
-		a.Println("already running")
+		log.Println("already running")
 		return nil
 	}
 
@@ -149,9 +150,10 @@ func (l limaVM) Running() bool {
 }
 
 func (l limaVM) Stop() error {
+	log := l.Logger()
 	a := l.Init()
 	if !l.Running() {
-		a.Println("not running")
+		log.Println("not running")
 		return nil
 	}
 

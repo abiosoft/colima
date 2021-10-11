@@ -67,9 +67,10 @@ func (c *kubernetesRuntime) Provision() error {
 }
 
 func (c kubernetesRuntime) Start() error {
+	log := c.Logger()
 	a := c.Init()
 	if c.Running() {
-		a.Println("already running")
+		log.Println("already running")
 		return nil
 	}
 

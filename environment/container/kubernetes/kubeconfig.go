@@ -18,6 +18,7 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 		return nil
 	}
 
+	log := c.Logger()
 	a := c.Init()
 
 	a.Stage("updating config")
@@ -88,7 +89,7 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 		if err != nil {
 			return err
 		}
-		a.Println(out)
+		log.Println(out)
 		return nil
 	})
 

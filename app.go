@@ -197,12 +197,12 @@ func (c colimaApp) Status() error {
 		return err
 	}
 
-	fmt.Println(config.Profile(), "is running")
-	fmt.Println("runtime:", currentRuntime)
+	log.Println(config.Profile(), "is running")
+	log.Println("runtime:", currentRuntime)
 
 	// kubernetes
 	if k, err := c.Kubernetes(); err == nil && k.Running() {
-		fmt.Println("kubernetes: enabled")
+		log.Println("kubernetes: enabled")
 	}
 
 	return nil
@@ -211,7 +211,8 @@ func (c colimaApp) Status() error {
 func (c colimaApp) Version() error {
 	name := config.Profile()
 	version := config.AppVersion()
-	fmt.Println(name, "version", version)
+	fmt.Println(name, "version", version.Version)
+	fmt.Println("git commit:", version.Revision)
 
 	if c.guest.Running() {
 		containerRuntimes, err := c.currentContainerEnvironments()

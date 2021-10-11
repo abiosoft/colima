@@ -20,11 +20,22 @@ var profile = AppName
 func SetProfile(p string) { profile = p }
 
 // Profile returns the current application profile.
-func Profile() string    { ensureInit(); return profile }
-func AppVersion() string { ensureInit(); return appVersion }
+func Profile() string { ensureInit(); return profile }
+
+// VersionInfo is the application version info.
+type VersionInfo struct {
+	Version  string
+	Revision string
+}
+
+func AppVersion() VersionInfo {
+	ensureInit()
+	return VersionInfo{Version: appVersion, Revision: revision}
+}
 
 var (
-	appVersion = "v0.2.0-devel"
+	appVersion = "development"
+	revision   = "unknown"
 
 	configDir string
 	cacheDir  string

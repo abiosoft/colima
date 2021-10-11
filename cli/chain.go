@@ -42,7 +42,7 @@ func (n namedCommandChain) Logger() *log.Entry {
 
 func (n namedCommandChain) Init() *ActiveCommandChain {
 	return &ActiveCommandChain{
-		Entry: n.Logger(),
+		log: n.Logger(),
 	}
 }
 
@@ -50,7 +50,7 @@ func (n namedCommandChain) Init() *ActiveCommandChain {
 type ActiveCommandChain struct {
 	funcs     []cFunc
 	lastStage string
-	*log.Entry
+	log       *log.Entry
 }
 
 // Add adds a new function to the runner.
@@ -76,7 +76,7 @@ func (a ActiveCommandChain) Exec() error {
 	for _, f := range a.funcs {
 		if f.f == nil {
 			if f.s != "" {
-				a.Println(f.s, "...")
+				a.log.Println(f.s, "...")
 				a.lastStage = f.s
 			}
 			continue
