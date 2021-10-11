@@ -19,7 +19,7 @@ brew install lima docker kubectl
 ### Installation
 
 ```
-curl -LO https://raw.githubusercontent.com/abiosoft/colima/v0.1.10/colima && sudo install colima /usr/local/bin/colima
+curl -LO https://github.com/abiosoft/colima/releases/download/v0.2.0/colima-amd64 && sudo install colima-amd64 /usr/local/bin/colima
 ```
 
 Verify install

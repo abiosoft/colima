@@ -1,7 +1,11 @@
 all: dev
 
+clean:
+	rm -rf _output
+
 dev:
 	go get -v ./cmd/colima
 
 release:
-	sh release.sh
+	export GITHUB=${GITHUB}
+	sh release.sh ${VERSION}
