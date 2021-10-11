@@ -24,7 +24,7 @@ curl -LO https://raw.githubusercontent.com/abiosoft/colima/v0.1.10/colima && sud
 
 Verify install
 
-```sh
+```
 colima version
 ```
 
