@@ -51,7 +51,7 @@ The --runtime flag is only used on initial start and ignored on subsequent start
 		// use current settings for unchanged configs
 		// otherwise may be reverted to their default values.
 		if !cmd.Flag("with-kubernetes").Changed {
-			startCmdArgs.Kubernetes = current.Kubernetes
+			startCmdArgs.Kubernetes.Enabled = current.Kubernetes.Enabled
 		}
 		if !cmd.Flag("cpu").Changed {
 			startCmdArgs.VM.CPU = current.VM.CPU

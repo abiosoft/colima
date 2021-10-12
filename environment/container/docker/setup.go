@@ -36,7 +36,7 @@ func (d dockerRuntime) setupInVM() error {
 		return fmt.Errorf("error setting up default config: %w", err)
 	}
 
-	err = d.guest.Run("sudo", "sh", "-c", `echo '{"features":{"buildkit":true}}' > /etc/docker/daemon.json`)
+	err = d.guest.Run("sudo", "sh", "-c", `echo '{"features":{"buildkit":true},"exec-opts":["native.cgroupdriver=cgroupfs"]}' > /etc/docker/daemon.json`)
 	if err != nil {
 		return fmt.Errorf("error enabling buildkit: %w", err)
 	}
