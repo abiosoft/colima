@@ -6,6 +6,15 @@ Container runtimes on macOS with minimal setup.
 
 ![Demonstration](colima.gif)
 
+## Features
+
+- Simple CLI interface
+- Docker and Containerd support
+- Port Forwarding
+- Volume mounts
+- Kubernetes
+
+
 ## Getting Started
 
 ### Prerequisites
@@ -46,7 +55,7 @@ You can use the `docker` client on macOS after `colima start` with no additional
 
 `colima start --runtime containerd` starts and setup Containerd. You can use `colima nerdctl` to interact with Containerd using [nerdctl](https://github.com/containerd/nerdctl). 
 
-It is recommended to run `colima nerdctl install` to install `nerdctl` in $PATH.
+It is recommended to run `colima nerdctl install` to install `nerdctl` alias script in $PATH.
 
 ### Kubernetes
 
@@ -93,7 +102,9 @@ To provide container runtimes on macOS with minimal setup.
 
 ## What is with the name?
 
-Colima means COntainers in LIMA.
+Colima means Containers in Lima.
+
+Since Lima is aka Linux on Mac. By transitivity, Colima can also mean Containers on Linux on Mac.
 
 ## FAQ
 
@@ -107,13 +118,13 @@ No, except when started with Containerd runtime. Colima assumes to be the defaul
 </details>
 
 <details>
-<summary>What about Volumes and Compose?</summary>
+<summary>How to enable writable volumes?</summary>
 <p>
 
 By default, Colima mounts the host's $HOME directory as readonly in the VM. Volume mounts and Compose should work as expected but only readonly.
 
 Colima uses Lima for the VM and Lima's support for writable volumes is still experimental.
-It is not advised to mount $HOME as writable but to only mount the necessary directories as writable.
+It is recommended to only mount the necessary directories as writable rather than the entire $HOME directory.
 
 The following mounts $HOME/projects and $HOME/work directories as writable.
 
@@ -125,10 +136,12 @@ colima start --mount $HOME/projects:w --mount $HOME/work:w
 </details>
 
 <details>
-<summary>What about Ports?</summary>
+<summary>How to customize Docker config e.g. add insecure registries?</summary>
 <p>
 
-Port forwarding are automatic and accessible on the macOS host.
+On first startup, Colima generates Docker daemon.json file at `$HOME/.colima/docker/daemon.json`.
+
+Simply modify the daemon.json file accordingly and restart Colima.
 
 </p>
 </details>
@@ -155,13 +168,19 @@ Minikube with Docker runtime can expose the cluster's Docker with `minikube dock
 
 
 <details>
-<summary>What about M1 macs?</summary>
+<summary>Are M1 macs supported?</summary>
 <p>
 
 Colima is written to support M1 macs but not tested, as the author do not currently possess an M1 device.
 
 </p>
 </details>
+
+## Help Wanted
+
+- Homebrew formula
+- Documentation page
+- Testing on M1 Macs
 
 ## License
 
