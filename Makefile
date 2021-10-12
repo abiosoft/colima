@@ -7,5 +7,7 @@ dev:
 	go get -v ./cmd/colima
 
 release:
-	export GITHUB=${GITHUB}
 	sh release.sh ${VERSION}
+
+gh_release:
+	GITHUB=1 sh release.sh ${VERSION}
