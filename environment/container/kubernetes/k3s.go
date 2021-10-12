@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-const k3sVersion = "v1.22.2+k3s1"
+const k3sVersion = "v1.22.2+k3s2"
 
 func installK3s(host environment.HostActions, guest environment.GuestActions, a *cli.ActiveCommandChain, containerRuntime string) {
 	installK3sBinary(host, guest, a)

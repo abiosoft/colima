@@ -15,8 +15,8 @@ func newConf(conf config.Config) (l Config, err error) {
 	l.Arch = "default"
 
 	l.Images = append(l.Images,
-		File{Arch: X8664, Location: "https://cloud-images.ubuntu.com/hirsute/current/hirsute-server-cloudimg-amd64.img"},
-		File{Arch: AARCH64, Location: "https://cloud-images.ubuntu.com/hirsute/current/hirsute-server-cloudimg-arm64.img"})
+		File{Arch: X8664, Location: "https://cloud-images.ubuntu.com/impish/current/impish-server-cloudimg-amd64.img"},
+		File{Arch: AARCH64, Location: "https://cloud-images.ubuntu.com/impish/current/impish-server-cloudimg-arm64.img"})
 
 	l.CPUs = conf.VM.CPU
 	l.Memory = fmt.Sprintf("%dGiB", conf.VM.Memory)
