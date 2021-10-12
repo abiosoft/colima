@@ -7,6 +7,7 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 	"io"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -80,6 +81,11 @@ func (v *verboseWriter) printScreen() error {
 	}
 
 	for _, line := range v.lines {
+		// remove logrus noises
+		if strings.HasPrefix(line, "time=") {
+			line = line[strings.Index(line, "msg="):]
+		}
+		line = "> " + line
 		if len(line) > v.termWidth {
 			line = line[:v.termWidth]
 		}
