@@ -23,6 +23,10 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 
 	a.Stage("updating config")
 
+	// remove existing configs (if any)
+	// this is safe as the profile name is unique to colima
+	c.unsetKubeconfig(a)
+
 	// ensure host kube directory exists
 	hostHome := c.host.Env("HOME")
 	if hostHome == "" {
@@ -100,9 +104,8 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 
 	return a.Exec()
 }
-func (c kubernetesRuntime) teardownKubeconfig(a *cli.ActiveCommandChain) {
-	a.Stage("reverting config")
 
+func (c kubernetesRuntime) unsetKubeconfig(a *cli.ActiveCommandChain) {
 	a.Add(func() error {
 		return c.host.Run("kubectl", "config", "unset", "users."+config.Profile())
 	})
@@ -112,4 +115,9 @@ func (c kubernetesRuntime) teardownKubeconfig(a *cli.ActiveCommandChain) {
 	a.Add(func() error {
 		return c.host.Run("kubectl", "config", "unset", "clusters."+config.Profile())
 	})
+}
+
+func (c kubernetesRuntime) teardownKubeconfig(a *cli.ActiveCommandChain) {
+	a.Stage("reverting config")
+	c.unsetKubeconfig(a)
 }
