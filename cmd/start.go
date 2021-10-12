@@ -75,7 +75,7 @@ The --runtime flag is only used on initial start and ignored on subsequent start
 
 const (
 	defaultCPU               = 2
-	defaultMemory            = 4
+	defaultMemory            = 2
 	defaultDisk              = 60
 	defaultSSHPort           = 41122
 	defaultKubernetesVersion = "v1.22.2"

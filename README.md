@@ -65,7 +65,7 @@ For Containerd runtime, images built or pulled in the `k8s.io` namespace are acc
 
 ### Customizing the VM
 
-The default VM created by Colima has 2 CPUs, 4GiB memory and 60GiB storage.
+The default VM created by Colima has 2 CPUs, 2GiB memory and 60GiB storage.
 
 The VM can be customized by passing `--cpu`, `--memory` and `--disk` to `colima start`.
 If VM is already created, stop the VM and apply the flags when starting it.
