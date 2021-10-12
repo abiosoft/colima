@@ -48,8 +48,8 @@ It is recommended to specify '--' to differentiate from Colima flags.
 var nerdctlLinkFunc = func() *cobra.Command {
 	return &cobra.Command{
 		Use:   "install",
-		Short: "install nerdctl binary on the host",
-		Long:  `Install nerdctl binary on the host. The binary will be installed at ` + nerdctlDefaultInstallPath + `.`,
+		Short: "install nerdctl alias script on the host",
+		Long:  `Install nerdctl alias script on the host. The script will be installed at ` + nerdctlDefaultInstallPath + `.`,
 		PreRun: func(cmd *cobra.Command, args []string) {
 			// check if /usr/local/bin is writeable and no need for sudo
 
