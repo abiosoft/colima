@@ -51,15 +51,26 @@ func (d dockerRuntime) isUserPermissionFixed() bool {
 	return err == nil
 }
 
+func (d dockerRuntime) isSymlinkCreated() bool {
+	symlink, err := d.host.RunOutput("readlink", socket)
+	if err != nil {
+		return false
+	}
+	return symlink == socketSymlink()
+}
+
 func (d dockerRuntime) Provision() error {
 	a := d.Init()
 	a.Stage("provisioning")
 
-	// check installation
-	if !d.isInstalled() {
+	// check symlink
+	if !d.isSymlinkCreated() {
 		a.Stage("setting up socket")
 		a.Add(d.setupSocketSymlink)
+	}
 
+	// check installation
+	if !d.isInstalled() {
 		a.Stage("provisioning in VM")
 		a.Add(d.setupInVM)
 	}
