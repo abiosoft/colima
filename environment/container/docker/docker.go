@@ -89,6 +89,9 @@ func (d dockerRuntime) Provision() error {
 	})
 	a.Add(func() error { return createLaunchdScript(d.launchd) })
 
+	// daemon.json
+	a.Add(d.setupDaemonFile)
+
 	return a.Exec()
 }
 
