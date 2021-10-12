@@ -30,7 +30,7 @@ func (d dockerRuntime) setupInVM() error {
 		return fmt.Errorf("error installing in VM: %w", err)
 	}
 
-	return nil
+	return d.createDaemonFile(daemonFile())
 }
 
 func (d dockerRuntime) fixUserPermission() error {
@@ -58,7 +58,16 @@ func init() {
 	daemonJson.ExecOpts = append(daemonJson.ExecOpts, "native.cgroupdriver=cgroupfs")
 }
 
+func daemonFile() string {
+	return filepath.Join(config.Dir(), "docker", "daemon.json")
+}
+
 func (d dockerRuntime) createDaemonFile(fileName string) error {
+	// ensure directory
+	if err := d.host.RunQuiet("mkdir", "-p", filepath.Dir(fileName)); err != nil {
+		return fmt.Errorf("error creating config directory: %w", err)
+	}
+
 	b, err := json.MarshalIndent(daemonJson, "", "    ")
 	if err != nil {
 		return fmt.Errorf("error marshaling deamon.json: %w", err)
@@ -68,12 +77,8 @@ func (d dockerRuntime) createDaemonFile(fileName string) error {
 
 func (d dockerRuntime) setupDaemonFile() error {
 	log := d.Logger()
-	daemonFile := filepath.Join(config.Dir(), "docker", "daemon.json")
 
-	// ensure config directory
-	if err := d.host.RunQuiet("mkdir", "-p", filepath.Dir(daemonFile)); err != nil {
-		return fmt.Errorf("error creating config directory: %w", err)
-	}
+	daemonFile := daemonFile()
 
 	// check daemon.json or create default
 	if _, err := d.host.Stat(daemonFile); err != nil {
