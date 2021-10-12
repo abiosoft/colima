@@ -67,8 +67,11 @@ var nerdctlLinkFunc = func() *cobra.Command {
 		},
 
 		RunE: func(cmd *cobra.Command, args []string) error {
+			exists := false
 			if _, err := os.Stat(nerdctlCmdArgs.path); err == nil && !nerdctlCmdArgs.force {
 				return fmt.Errorf("%s exists, use --force to replace", nerdctlCmdArgs.path)
+			} else if err == nil {
+				exists = true
 			}
 
 			t, err := template.New("").Parse(nerdctlScript)
@@ -84,11 +87,22 @@ var nerdctlLinkFunc = func() *cobra.Command {
 			// /usr/local/bin writeable i.e. sudo not needed
 			// or user-specified install path, we assume user specified path is writeable
 			if nerdctlCmdArgs.usrBinWriteable || nerdctlCmdArgs.path != nerdctlDefaultInstallPath {
+				if exists {
+					if err := os.Rename(nerdctlCmdArgs.path, nerdctlCmdArgs.path+".moved"); err != nil {
+						return fmt.Errorf("error backing up existing file: %w", err)
+					}
+				}
 				return os.WriteFile(nerdctlCmdArgs.path, buf.Bytes(), 0755)
 			}
 
 			// sudo is needed for the default path
 			log.Println("/usr/local/bin not writeable, sudo password required to install nerdctl binary")
+			if exists {
+				c := cli.CommandInteractive("sudo", "mv", nerdctlCmdArgs.path, nerdctlCmdArgs.path+".moved")
+				if err := c.Run(); err != nil {
+					return fmt.Errorf("error backing up existing file: %w", err)
+				}
+			}
 			{
 				c := cli.CommandInteractive("sudo", "sh", "-c", "cat > "+nerdctlCmdArgs.path)
 				c.Stdin = &buf
