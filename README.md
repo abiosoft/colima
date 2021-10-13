@@ -14,12 +14,12 @@ Container runtimes on macOS with minimal setup.
 - Volume mounts
 - Kubernetes
 
-
 ## Getting Started
 
 ### Prerequisites
 
-Colima requires [Lima](https://github.com/lima-vm/lima), Docker client (for Docker runtime) and kubectl (if Kubernetes will be enabled).
+Colima requires [Lima](https://github.com/lima-vm/lima), Docker client (for Docker runtime) and kubectl (if Kubernetes
+will be enabled).
 
 ```
 brew install lima docker kubectl
@@ -44,16 +44,29 @@ colima --help
 colima start --help
 ```
 
+### Building from Source
+
+Requires [Go](https://golang.org).
+
+```sh
+# clone repo and cd into it
+git clone https://github.com/abiosoft/colima
+cd colima
+
+make install # or `sudo make install` if /usr/local/bin requires root
+```
+
 ## Usage
 
 ### Docker
 
-`colima start` starts and setup Docker by default.
-You can use the `docker` client on macOS after `colima start` with no additional setup.
+`colima start` starts and setup Docker by default. You can use the `docker` client on macOS after `colima start` with no
+additional setup.
 
 ### Containerd
 
-`colima start --runtime containerd` starts and setup Containerd. You can use `colima nerdctl` to interact with Containerd using [nerdctl](https://github.com/containerd/nerdctl). 
+`colima start --runtime containerd` starts and setup Containerd. You can use `colima nerdctl` to interact with
+Containerd using [nerdctl](https://github.com/containerd/nerdctl).
 
 It is recommended to run `colima nerdctl install` to install `nerdctl` alias script in $PATH.
 
@@ -71,13 +84,12 @@ For Docker runtime, images built or pulled with Docker are accessible to Kuberne
 
 For Containerd runtime, images built or pulled in the `k8s.io` namespace are accessible to Kubernetes.
 
-
 ### Customizing the VM
 
 The default VM created by Colima has 2 CPUs, 2GiB memory and 60GiB storage.
 
-The VM can be customized by passing `--cpu`, `--memory` and `--disk` to `colima start`.
-If VM is already created, stop the VM and apply the flags when starting it.
+The VM can be customized by passing `--cpu`, `--memory` and `--disk` to `colima start`. If VM is already created, stop
+the VM and apply the flags when starting it.
 
 **NOTE** that only cpu and memory can be changed at anytime. Disk size cannot be changed after the VM is created.
 
@@ -112,7 +124,8 @@ Since Lima is aka Linux on Mac. By transitivity, Colima can also mean Containers
 <summary>Can it run alongside Docker for Mac?</summary>
 <p>
 
-No, except when started with Containerd runtime. Colima assumes to be the default Docker context and will conflict with Docker for Mac. You should run either, not both.
+No, except when started with Containerd runtime. Colima assumes to be the default Docker context and will conflict with
+Docker for Mac. You should run either, not both.
 
 </p>
 </details>
@@ -121,10 +134,11 @@ No, except when started with Containerd runtime. Colima assumes to be the defaul
 <summary>How to enable writable volumes?</summary>
 <p>
 
-By default, Colima mounts the host's $HOME directory as readonly in the VM. Volume mounts and Compose should work as expected but only readonly.
+By default, Colima mounts the host's $HOME directory as readonly in the VM. Volume mounts and Compose should work as
+expected but only readonly.
 
-Colima uses Lima for the VM and Lima's support for writable volumes is still experimental.
-It is recommended to only mount the necessary directories as writable rather than the entire $HOME directory.
+Colima uses Lima for the VM and Lima's support for writable volumes is still experimental. It is recommended to only
+mount the necessary directories as writable rather than the entire $HOME directory.
 
 The following mounts $HOME/projects and $HOME/work directories as writable.
 
@@ -152,7 +166,9 @@ Simply modify the daemon.json file accordingly and restart Colima.
 
 ### For Kubernetes
 
-Yes, you can create a Kubernetes cluster with minikube (with Docker driver), Kind or K3d instead of enabling Kubernetes in Colima. Those are better options if you need multiple clusters, or do not need Docker and Kubernetes to share the same images and runtime.
+Yes, you can create a Kubernetes cluster with minikube (with Docker driver), Kind or K3d instead of enabling Kubernetes
+in Colima. Those are better options if you need multiple clusters, or do not need Docker and Kubernetes to share the
+same images and runtime.
 
 ### For Docker
 
@@ -160,8 +176,8 @@ Minikube with Docker runtime can expose the cluster's Docker with `minikube dock
 
 - Kubernetes is not optional, even if you only need Docker.
 
-- All of minikube's free drivers for macOS fall-short in one of performance, port forwarding or volumes.
-  While port-forwarding and volumes are non-issue for Kubernetes, they can be a deal breaker for Docker-only use.
+- All of minikube's free drivers for macOS fall-short in one of performance, port forwarding or volumes. While
+  port-forwarding and volumes are non-issue for Kubernetes, they can be a deal breaker for Docker-only use.
 
 </p>
 </details>
