@@ -1,4 +1,4 @@
-package colima
+package app
 
 import (
 	"fmt"

@@ -1,14 +1,14 @@
 package cmd
 
 import (
-	"github.com/abiosoft/colima"
+	"github.com/abiosoft/colima/app"
 	"github.com/sirupsen/logrus"
 )
 
-func newApp() colima.App {
-	app, err := colima.New()
+func newApp() app.App {
+	colimaApp, err := app.New()
 	if err != nil {
 		logrus.Fatal("Error: ", err)
 	}
-	return app
+	return colimaApp
 }
