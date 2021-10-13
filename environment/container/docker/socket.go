@@ -31,7 +31,6 @@ func createSocketForwardingScript(vmUser string, sshPort int) error {
 		if stat.IsDir() {
 			return fmt.Errorf("forwarding script: directory not expected at '%s'", scriptFile)
 		}
-		return nil
 	}
 
 	// write socket script to file
