@@ -8,6 +8,7 @@ import (
 	"github.com/abiosoft/colima/environment/container/docker"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"net"
 	"strings"
 )
 
@@ -29,6 +30,9 @@ The --runtime flag is only used on initial start and ignored on subsequent start
 		return newApp().Start(startCmdArgs.Config)
 	},
 	PreRunE: func(cmd *cobra.Command, args []string) error {
+		// set port
+		startCmdArgs.VM.SSHPort = randomAvailablePort()
+
 		current, err := config.Load()
 		if err != nil {
 			// not fatal, will proceed with defaults
@@ -45,7 +49,6 @@ The --runtime flag is only used on initial start and ignored on subsequent start
 		// set it to the current settings
 		startCmdArgs.Runtime = current.Runtime
 		startCmdArgs.VM.Disk = current.VM.Disk
-		startCmdArgs.VM.SSHPort = current.VM.SSHPort
 		startCmdArgs.Kubernetes.Version = current.Kubernetes.Version
 
 		// use current settings for unchanged configs
@@ -77,12 +80,24 @@ const (
 	defaultCPU               = 2
 	defaultMemory            = 2
 	defaultDisk              = 60
-	defaultSSHPort           = 41122
 	defaultKubernetesVersion = "v1.22.2"
 )
 
 var startCmdArgs struct {
 	config.Config
+}
+
+func randomAvailablePort() int {
+	listener, err := net.Listen("tcp", ":0")
+	if err != nil {
+		log.Fatal(fmt.Errorf("error picking an available port: %w", err))
+	}
+
+	if err := listener.Close(); err != nil {
+		log.Fatal(fmt.Errorf("error closing temporary port listener: %w", err))
+	}
+
+	return listener.Addr().(*net.TCPAddr).Port
 }
 
 func init() {
@@ -103,10 +118,6 @@ func init() {
 	startCmd.Flags().StringVar(&startCmdArgs.Kubernetes.Version, "kubernetes-version", defaultKubernetesVersion, "the Kubernetes version")
 	// not so familiar with k3s versioning atm, hide for now.
 	_ = startCmd.Flags().MarkHidden("kubernetes-version")
-
-	// internal
-	startCmd.Flags().IntVar(&startCmdArgs.VM.SSHPort, "ssh-port", defaultSSHPort, "SSH port for the VM")
-	_ = startCmd.Flags().MarkHidden("ssh-port")
 
 	// not sure of the usefulness of env vars for now considering that interactions will be with the containers, not the VM.
 	// leaving it undocumented until there is a need.

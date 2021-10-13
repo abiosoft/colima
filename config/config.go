@@ -138,10 +138,12 @@ type Kubernetes struct {
 
 // VM is virtual machine configuration.
 type VM struct {
-	CPU     int `yaml:"cpu"`
-	Disk    int `yaml:"disk"`
-	Memory  int `yaml:"memory"`
-	SSHPort int `yaml:"sshPort"`
+	CPU    int `yaml:"cpu"`
+	Disk   int `yaml:"disk"`
+	Memory int `yaml:"memory"`
+
+	// auto generated
+	SSHPort int `yaml:"-"`
 
 	// volume mounts
 	Mounts []string `yaml:"mounts"`
