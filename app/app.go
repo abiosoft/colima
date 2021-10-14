@@ -209,33 +209,30 @@ func (c colimaApp) Status() error {
 }
 
 func (c colimaApp) Version() error {
-	name := config.Profile()
-	version := config.AppVersion()
-	fmt.Println(name, "version", version.Version)
-	fmt.Println("git commit:", version.Revision)
+	if !c.guest.Running() {
+		return nil
+	}
 
-	if c.guest.Running() {
-		containerRuntimes, err := c.currentContainerEnvironments()
-		if err != nil {
-			return err
-		}
+	containerRuntimes, err := c.currentContainerEnvironments()
+	if err != nil {
+		return err
+	}
 
-		var kube environment.Container
-		for _, cont := range containerRuntimes {
-			if cont.Name() == kubernetes.Name {
-				kube = cont
-				continue
-			}
-			fmt.Println()
-			fmt.Println("runtime:", cont.Name())
-			fmt.Println(cont.Version())
+	var kube environment.Container
+	for _, cont := range containerRuntimes {
+		if cont.Name() == kubernetes.Name {
+			kube = cont
+			continue
 		}
+		fmt.Println()
+		fmt.Println("runtime:", cont.Name())
+		fmt.Println(cont.Version())
+	}
 
-		if kube != nil && kube.Version() != "" {
-			fmt.Println()
-			fmt.Println("kubernetes")
-			fmt.Println(kube.Version())
-		}
+	if kube != nil && kube.Version() != "" {
+		fmt.Println()
+		fmt.Println(kubernetes.Name)
+		fmt.Println(kube.Version())
 	}
 
 	return nil
