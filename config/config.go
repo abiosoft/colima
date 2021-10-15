@@ -123,7 +123,7 @@ type Config struct {
 	// Virtual Machine
 	VM VM `yaml:"vm"`
 
-	// Runtime is one of docker, containerd.
+	// Runtime is one of docker, containerd, podman.
 	Runtime string `yaml:"runtime"`
 
 	// Kubernetes sets if kubernetes should be enabled.
