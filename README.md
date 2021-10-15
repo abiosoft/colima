@@ -16,52 +16,38 @@ Container runtimes on macOS with minimal setup.
 
 ## Getting Started
 
-### Prerequisites
-
-Colima requires [Lima](https://github.com/lima-vm/lima), Docker client (for Docker runtime) and kubectl (if Kubernetes
-will be enabled).
-
-```
-brew install lima docker kubectl
-```
-
 ### Installation
 
-```
-curl -LO https://github.com/abiosoft/colima/releases/download/v0.2.2/colima-amd64 && sudo install colima-amd64 /usr/local/bin/colima
-```
-
-Verify install
+Colima is available on Homebrew. Check [here](INSTALL.md) for other installation options.
 
 ```
-colima version
+brew install colima
 ```
 
-Command line usages
+## Usage
+
+Start Colima with defaults
+
+```
+colima start
+```
+
+For more usage options
 
 ```
 colima --help
 colima start --help
 ```
 
-### Building from Source
+## Runtimes
 
-Requires [Go](https://golang.org).
-
-```sh
-# clone repo and cd into it
-git clone https://github.com/abiosoft/colima
-cd colima
-
-make install # or `sudo make install` if /usr/local/bin requires root
-```
-
-## Usage
+On initial startup, Colima initiates with a user specified runtime that defaults to Docker.
 
 ### Docker
 
-`colima start` starts and setup Docker by default. You can use the `docker` client on macOS after `colima start` with no
-additional setup.
+Docker client is required for Docker runtime. Installable with brew `brew install docker`.
+
+You can use the `docker` client on macOS after `colima start` with no additional setup.
 
 ### Containerd
 
@@ -71,6 +57,8 @@ Containerd using [nerdctl](https://github.com/containerd/nerdctl).
 It is recommended to run `colima nerdctl install` to install `nerdctl` alias script in $PATH.
 
 ### Kubernetes
+
+kubectl is required for Kubernetes. Installable with `brew install kubectl`.
 
 To enable Kubernetes, start Colima with `--with-kubernetes` flag.
 
@@ -194,7 +182,7 @@ Colima is written to support M1 macs but not tested, as the author do not curren
 
 ## Help Wanted
 
-- Homebrew formula
+- ~~Homebrew formula~~
 - Documentation page
 - Testing on M1 Macs
 
