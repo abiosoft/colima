@@ -1,13 +1,17 @@
 package environment
 
 import (
-	"github.com/abiosoft/colima/config"
 	"os"
+
+	"github.com/abiosoft/colima/config"
 )
 
 type runActions interface {
 	// Run runs command
 	Run(args ...string) error
+	// RunBackground runs command without waiting for completion
+	// Useful for commands that are blocking
+	RunBackground(args ...string) error
 	// RunQuiet runs command whilst suppressing the output.
 	// Useful for commands that only the exit code matters.
 	RunQuiet(args ...string) error

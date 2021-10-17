@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/util/terminal"
-	"os"
-	"strings"
 )
 
 // New creates a new host environment using env as environment variables.
@@ -60,6 +61,25 @@ func (h hostEnv) RunQuiet(args ...string) error {
 	cmd.Stderr = nil
 
 	return cmd.Run()
+}
+
+func (h hostEnv) RunBackground(args ...string) error {
+	if len(args) == 0 {
+		return errors.New("args not specified")
+	}
+	cmd := cli.Command(args[0], args[1:]...)
+	cmd.Env = append(os.Environ(), h.env...)
+
+	out := terminal.NewVerboseWriter(4)
+
+	cmd.Stdout = out
+	cmd.Stderr = out
+
+	err := cmd.Start()
+	if err == nil {
+		return out.Close()
+	}
+	return err
 }
 
 func (h hostEnv) RunOutput(args ...string) (string, error) {

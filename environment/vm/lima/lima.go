@@ -4,15 +4,16 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/yamlutil"
-	"os"
-	"path/filepath"
-	"strconv"
-	"time"
 )
 
 // New creates a new virtual machine.
@@ -222,6 +223,17 @@ func (l limaVM) RunInteractive(args ...string) error {
 
 	a.Add(func() error {
 		return l.host.RunInteractive(args...)
+	})
+
+	return a.Exec()
+}
+
+func (l limaVM) RunBackground(args ...string) error {
+	args = append([]string{lima}, args...)
+	a := l.Init()
+
+	a.Add(func() error {
+		return l.host.RunBackground(args...)
 	})
 
 	return a.Exec()
