@@ -80,7 +80,36 @@ type podmanConnections struct {
 	URI      string
 }
 
-func (p podmanRuntime) checkIfPodmanRemoteConnectionIsValid(sshPort string) (bool, error) {
+type limaVM struct {
+	Name         string
+	Status       string
+	Dir          string
+	Arch         string
+	SSHLocalPort int
+	HostAgentPID int
+	QemuPID      int
+}
+
+func (p podmanRuntime) getSSHPortFromLimactl() (int, error) {
+	// get ssh port from limactl since sshport environment seems to be always different
+	limaVMJSON, err := p.host.RunOutput("limactl", "list", "--json")
+	if err != nil {
+		return 0, fmt.Errorf("Can't get lima VMs on host: %v", err)
+	}
+	for _, vmJSON := range strings.Split(limaVMJSON, "\n") {
+		var vm limaVM
+		err = json.Unmarshal([]byte(vmJSON), &vm)
+		if err != nil {
+			return 0, fmt.Errorf("Can't unmarshal lima VMs json %v", err)
+		}
+		if vm.Name == "colima" {
+			return vm.SSHLocalPort, nil
+		}
+	}
+	return 0, fmt.Errorf("Colima VM wasn't found in lima vms")
+}
+
+func (p podmanRuntime) checkIfPodmanRemoteConnectionIsValid(sshPort int) (bool, error) {
 	connectionJSON, err := p.host.RunOutput("podman", "system", "connection", "list", "--format", "json")
 	if err != nil {
 		return false, fmt.Errorf("Can't get podman connections on host: %v", err)
@@ -95,19 +124,22 @@ func (p podmanRuntime) checkIfPodmanRemoteConnectionIsValid(sshPort string) (boo
 	for _, connection := range connections {
 		if re.MatchString(connection.Name) {
 			//ssh://foo@bar:SSHPORT
-			return strings.Split(connection.URI, ":")[2] == sshPort, nil
+			return strings.Split(connection.URI, ":")[2] == strconv.Itoa(sshPort), nil
 		}
 	}
 	return false, nil
 }
 
 func (p podmanRuntime) checkIfPodmanSocketIsRunning() (bool, error) {
-	cmd := "ps -elf | grep 'podman system socket' | wc -l"
+	cmd := "ps -ef | grep 'podman system socket' | wc -l"
 	output, err := p.guest.RunOutput("bash", "-c", cmd)
 	if err != nil {
 		return false, fmt.Errorf("Can't check if podman Socket is running in VM: %v", err)
 	}
 	wordCount, err := strconv.Atoi(output)
+	if err != nil {
+		return false, err
+	}
 	// bash command itself and grep command should be excluded
 	return wordCount != 2, nil
 }

@@ -2,7 +2,6 @@ package podman
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/abiosoft/colima/cli"
@@ -48,21 +47,17 @@ func (p podmanRuntime) Provision() error {
 		a.Stage("provisioning in VM")
 		a.Add(p.setupInVM)
 	}
-	port := p.guest.Get(environment.SSHPortKey)
-	added, err := p.checkIfPodmanRemoteConnectionIsValid(port)
+	sshPort, err := p.getSSHPortFromLimactl()
 	if err != nil {
-		return fmt.Errorf("Can't check remote podman connection: %v", err)
+		return err
 	}
-	if !added {
+	valid, err := p.checkIfPodmanRemoteConnectionIsValid(sshPort)
+	if err != nil {
+		return err
+	}
+	if !valid {
 		a.Add(func() error {
-			port, err := strconv.Atoi(p.guest.Get(environment.SSHPortKey))
-			if err != nil {
-				return fmt.Errorf("invalid SSH port: %w", err)
-			}
-			if port == 0 {
-				return fmt.Errorf("SSH port config missing in VM")
-			}
-			return p.createPodmanConnectionOnHost(port, "colima")
+			return p.createPodmanConnectionOnHost(sshPort, "colima")
 		})
 	}
 

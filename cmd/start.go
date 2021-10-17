@@ -115,7 +115,8 @@ func init() {
 	// mounts
 	startCmd.Flags().StringSliceVarP(&startCmdArgs.VM.Mounts, "mount", "v", nil, "directories to mount, suffix ':w' for writable")
 
-	fmt.Println(podman.Name)
+	// Podman Package needs to be imported for the init function to run :/
+	log.Debug(podman.Name)
 
 	// k8s
 	startCmd.Flags().BoolVarP(&startCmdArgs.Kubernetes.Enabled, "with-kubernetes", "k", false, "start VM with Kubernetes")
