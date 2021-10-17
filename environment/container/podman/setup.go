@@ -46,21 +46,12 @@ func (p podmanRuntime) setupInVM() error {
 	}
 
 	// Interactive, because fuse.conf wants to be overwritten
+	// TODO: Find a way to run it noninteractive
 	err = p.guest.RunInteractive("sudo", "apt", "-y", "install", "podman")
 	if err != nil {
 		return fmt.Errorf("error installing podman in VM: %v", err)
 	}
 
-	// fix service unit to run in endless loop
-	// cmd = "sudo sed -i 's#system service#system service -t 0 unix:///home/hoehl.linux/podman.sock#g' /lib/systemd/system/podman.service"
-	// err = p.guest.Run("bash", "-c", cmd)
-	// if err != nil {
-	// return fmt.Errorf("error changing system unit file of podman in VM: %v", err)
-	// }
-	// err = p.guest.Run("sudo", "systemctl", "daemon-reload")
-	// if err != nil {
-	// return fmt.Errorf("error reloading systemd daemon in VM: %w", err)
-	// }
 	return nil
 }
 

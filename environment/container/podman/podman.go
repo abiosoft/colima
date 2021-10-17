@@ -123,7 +123,8 @@ func (p podmanRuntime) Version() string {
 
 // Running returns if the container runtime is currently running.
 func (p podmanRuntime) Running() bool {
-	panic("not implemented") // TODO: Implement
+	running, _ := p.checkIfPodmanSocketIsRunning()
+	return running
 }
 
 // Dependencies are dependencies that must exist on the host.
