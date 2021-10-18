@@ -2,13 +2,16 @@ package kubernetes
 
 import (
 	_ "embed"
+	"fmt"
+	"runtime"
+	"strings"
+
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/environment/container/docker"
+	"github.com/abiosoft/colima/environment/container/podman"
 	"github.com/abiosoft/colima/util/downloader"
-	"runtime"
-	"strings"
 )
 
 const k3sVersion = "v1.22.2+k3s2"
@@ -96,6 +99,10 @@ func installK3sCluster(host environment.HostActions, guest environment.GuestActi
 		args = append(args, "--docker")
 	case containerd.Name:
 		args = append(args, "--container-runtime-endpoint", "unix:///run/containerd/containerd.sock")
+	case podman.Name:
+		a.Add(func() error {
+			return fmt.Errorf("Podman runtime is not supported for k3s")
+		})
 	}
 	a.Add(func() error {
 		return guest.Run("sh", "-c", "INSTALL_K3S_SKIP_DOWNLOAD=true INSTALL_K3S_SKIP_ENABLE=true k3s-install.sh "+strings.Join(args, " "))

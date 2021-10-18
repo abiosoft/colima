@@ -6,5 +6,5 @@ ssh -p "{{.SSHPort}}" \
     -o IdentitiesOnly=yes \
     -F /dev/null \
     -o NoHostAuthenticationForLocalhost=yes \
-    -L "{{.SocketFile}}:/var/run/docker.sock" \
+    -L "{{.SocketFile}}:{{.RemoteSocket}}" \
     -N "127.0.0.1"

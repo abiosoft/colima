@@ -96,7 +96,7 @@ func (d dockerRuntime) Provision() error {
 		if port == 0 {
 			return fmt.Errorf("SSH port config missing in VM")
 		}
-		return createSocketForwardingScript(user, port)
+		return CreateSocketForwardingScript(user, port, "/var/run/docker.sock", socketSymlink())
 	})
 	a.Add(func() error { return createLaunchdScript(d.launchd) })
 

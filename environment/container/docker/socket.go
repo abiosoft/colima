@@ -24,7 +24,7 @@ func socketSymlink() string {
 	return filepath.Join(config.Dir(), "docker.sock")
 }
 
-func createSocketForwardingScript(vmUser string, sshPort int) error {
+func CreateSocketForwardingScript(vmUser string, sshPort int, remoteSocketPath string, socketFile string) error {
 	scriptFile := socketForwardingScriptFile()
 	// do nothing if previously created
 	if stat, err := os.Stat(scriptFile); err == nil {
@@ -35,10 +35,11 @@ func createSocketForwardingScript(vmUser string, sshPort int) error {
 
 	// write socket script to file
 	var values = struct {
-		SocketFile string
-		SSHPort    int
-		VMUser     string
-	}{SocketFile: socketSymlink(), SSHPort: sshPort, VMUser: vmUser}
+		SocketFile   string
+		SSHPort      int
+		VMUser       string
+		RemoteSocket string
+	}{SocketFile: socketFile, SSHPort: sshPort, VMUser: vmUser, RemoteSocket: remoteSocketPath}
 
 	err := util.WriteTemplate(socketForwardingScript, scriptFile, values)
 	if err != nil {

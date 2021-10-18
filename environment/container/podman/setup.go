@@ -3,7 +3,6 @@ package podman
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"os/user"
 	"regexp"
 	"strconv"
@@ -62,16 +61,15 @@ func (p podmanRuntime) isInstalled() bool {
 
 // podman system connection add --identity ~/.ssh/dev_rsa testing ssh://root@server.fubar.com:2222
 // createPodmanConnectionOnHost adds the remote connection to the host podman environment and sets it to default
-func (p podmanRuntime) createPodmanConnectionOnHost(port int, vmName string) error {
-	user, err := user.Current()
-	if err != nil {
-		return fmt.Errorf("Couldn't read current user: %v", err)
-	}
+func (p podmanRuntime) createPodmanConnectionOnHost(user *user.User, port int, vmName, rootfullSocketPath, rootlessSocketPath string) error {
 	sshURI := fmt.Sprintf("ssh://%v@localhost:%v", user.Username, port)
-	homeDir, _ := os.UserHomeDir()
-
-	socketPath := fmt.Sprintf("/run/user/%v/podman/podman.sock", user.Uid)
-	return p.host.Run("podman", "system", "connection", "add", "--socket-path", socketPath, "-d", vmName, "--identity", fmt.Sprintf("%v/.lima/_config/user", homeDir), sshURI)
+	// rootless setup (default in podman)
+	err := p.host.Run("podman", "system", "connection", "add", "--socket-path", rootlessSocketPath, "-d", vmName, "--identity", fmt.Sprintf("%v/.lima/_config/user", user.HomeDir), sshURI)
+	if err != nil {
+		return err
+	}
+	//rootfull
+	return p.host.Run("podman", "system", "connection", "add", "--socket-path", rootfullSocketPath, vmName+"-root", "--identity", fmt.Sprintf("%v/.lima/_config/user", user.HomeDir), sshURI)
 }
 
 type podmanConnections struct {
@@ -109,7 +107,7 @@ func (p podmanRuntime) getSSHPortFromLimactl() (int, error) {
 	return 0, fmt.Errorf("Colima VM wasn't found in lima vms")
 }
 
-func (p podmanRuntime) checkIfPodmanRemoteConnectionIsValid(sshPort int) (bool, error) {
+func (p podmanRuntime) checkIfPodmanRemoteConnectionIsValid(sshPort int, vmName string) (bool, error) {
 	connectionJSON, err := p.host.RunOutput("podman", "system", "connection", "list", "--format", "json")
 	if err != nil {
 		return false, fmt.Errorf("Can't get podman connections on host: %v", err)
@@ -119,8 +117,7 @@ func (p podmanRuntime) checkIfPodmanRemoteConnectionIsValid(sshPort int) (bool, 
 	if err != nil {
 		return false, fmt.Errorf("Can't unmarshal podman connections json: %v", err)
 	}
-	re := regexp.MustCompile(`colima.*`)
-
+	re := regexp.MustCompile(fmt.Sprintf(`%v.*`, vmName))
 	for _, connection := range connections {
 		if re.MatchString(connection.Name) {
 			//ssh://foo@bar:SSHPORT
@@ -130,8 +127,8 @@ func (p podmanRuntime) checkIfPodmanRemoteConnectionIsValid(sshPort int) (bool, 
 	return false, nil
 }
 
-func (p podmanRuntime) checkIfPodmanSocketIsRunning() (bool, error) {
-	cmd := "ps -ef | grep 'podman system socket' | wc -l"
+func (p podmanRuntime) checkIfPodmanIsRunning() (bool, error) {
+	cmd := "ps -ef | grep 'podman system service' | wc -l"
 	output, err := p.guest.RunOutput("bash", "-c", cmd)
 	if err != nil {
 		return false, fmt.Errorf("Can't check if podman Socket is running in VM: %v", err)

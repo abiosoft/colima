@@ -2,14 +2,21 @@ package podman
 
 import (
 	"fmt"
+	"os/user"
 	"strings"
 
 	"github.com/abiosoft/colima/cli"
+	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/environment/container/docker"
 )
 
-// Name is container runtime name.
-const Name = "podman"
+const (
+	// Name is container runtime name.
+	Name = "podman"
+	// podman has a compatabil api to docker, so port-forwarding podman.sock as docker.sock works for docker native apps
+	dockerSocketPath = "/var/run/docker.sock"
+)
 
 var _ environment.Container = (*podmanRuntime)(nil)
 
@@ -40,6 +47,11 @@ func (p podmanRuntime) Name() string {
 // Provision provisions/installs the container runtime.
 // Should be idempotent.
 func (p podmanRuntime) Provision() error {
+	user, err := user.Current()
+	if err != nil {
+		return fmt.Errorf("Couldn't read current user: %v", err)
+	}
+
 	a := p.Init()
 	a.Stage("Provisioning")
 	// check installation
@@ -47,19 +59,38 @@ func (p podmanRuntime) Provision() error {
 		a.Stage("provisioning in VM")
 		a.Add(p.setupInVM)
 	}
+	rootfullSocketPath := p.getPodmanSocket(user, true)
+	rootlessSocketPath := p.getPodmanSocket(user, false)
+	// check symlink
+	if !p.isSymlinkCreated(dockerSocketPath) {
+		a.Stage("setting up socket")
+		a.Add(func() error {
+			return p.setupSocketSymlink(dockerSocketPath)
+		})
+	}
 	sshPort, err := p.getSSHPortFromLimactl()
 	if err != nil {
 		return err
 	}
-	valid, err := p.checkIfPodmanRemoteConnectionIsValid(sshPort)
+	validRootless, err := p.checkIfPodmanRemoteConnectionIsValid(sshPort, "colima")
 	if err != nil {
 		return err
 	}
-	if !valid {
+
+	validRootfull, err := p.checkIfPodmanRemoteConnectionIsValid(sshPort, "colima-root")
+	if !validRootfull || !validRootless {
 		a.Add(func() error {
-			return p.createPodmanConnectionOnHost(sshPort, "colima")
+			return p.createPodmanConnectionOnHost(user, sshPort, "colima", rootfullSocketPath, rootlessSocketPath)
 		})
 	}
+	a.Stage("forwarding podman socket")
+	// socket file
+	a.Add(func() error {
+		return docker.CreateSocketForwardingScript(user.Name, sshPort, rootfullSocketPath, socketSymlink())
+	})
+	a.Add(func() error {
+		return p.host.RunBackground("sh", "-c", config.Dir()+"/socket.sh")
+	})
 
 	return a.Exec()
 }
@@ -68,13 +99,30 @@ func (p podmanRuntime) Provision() error {
 func (p podmanRuntime) Start() error {
 	a := p.Init()
 	a.Stage("starting")
-	running, err := p.checkIfPodmanSocketIsRunning()
+	running, err := p.checkIfPodmanIsRunning()
 	if err != nil {
 		return err
 	}
 	if !running {
+		// rootless
 		a.Add(func() error {
 			return p.guest.RunBackground("podman", "system", "service", "-t=0")
+		})
+		// rootfull
+		a.Add(func() error {
+			err := p.guest.RunBackground("sudo", "podman", "system", "service", "-t=0")
+			if err != nil {
+				return fmt.Errorf("Error running rootfull podman: %v", err)
+			}
+			p.guest.Run("sleep", "5")
+			// set permissions of rootfull podman socket to user for accessing via ssh
+			// docker has the docker group which podman doesnt have :/
+			user, err := user.Current()
+			if err != nil {
+				return fmt.Errorf("Couldn't read current user: %v", err)
+			}
+			return p.guest.Run("sudo", "chown", user.Name+":"+user.Name, "-R", "/run/podman/")
+
 		})
 	}
 	return a.Exec()
@@ -104,6 +152,9 @@ func (p podmanRuntime) Teardown() error {
 	// no need to uninstall as the VM teardown will remove all components
 	// only host configurations should be removed
 	a.Add(func() error {
+		return p.host.Run("podman", "system", "connection", "rm", "colima-root")
+	})
+	a.Add(func() error {
 		return p.host.Run("podman", "system", "connection", "rm", "colima")
 	})
 	return a.Exec()
@@ -118,7 +169,7 @@ func (p podmanRuntime) Version() string {
 
 // Running returns if the container runtime is currently running.
 func (p podmanRuntime) Running() bool {
-	running, _ := p.checkIfPodmanSocketIsRunning()
+	running, _ := p.checkIfPodmanIsRunning()
 	return running
 }
 
