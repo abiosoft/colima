@@ -9,7 +9,6 @@ import (
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/docker"
-	"github.com/abiosoft/colima/environment/container/podman"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -114,9 +113,6 @@ func init() {
 
 	// mounts
 	startCmd.Flags().StringSliceVarP(&startCmdArgs.VM.Mounts, "mount", "v", nil, "directories to mount, suffix ':w' for writable")
-
-	// Podman Package needs to be imported for the init function to run :/
-	log.Debug(podman.Name)
 
 	// k8s
 	startCmd.Flags().BoolVarP(&startCmdArgs.Kubernetes.Enabled, "with-kubernetes", "k", false, "start VM with Kubernetes")
