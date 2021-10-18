@@ -70,16 +70,9 @@ func (h hostEnv) RunBackground(args ...string) error {
 	cmd := cli.Command(args[0], args[1:]...)
 	cmd.Env = append(os.Environ(), h.env...)
 
-	out := terminal.NewVerboseWriter(4)
-
-	cmd.Stdout = out
-	cmd.Stderr = out
-
-	err := cmd.Start()
-	if err == nil {
-		return out.Close()
-	}
-	return err
+	cmd.Stdout = nil
+	cmd.Stderr = nil
+	return cmd.Start()
 }
 
 func (h hostEnv) RunOutput(args ...string) (string, error) {
