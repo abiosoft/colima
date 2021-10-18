@@ -14,7 +14,7 @@ import (
 const (
 	// Name is container runtime name.
 	Name = "podman"
-	// podman has a compatabil api to docker, so port-forwarding podman.sock as docker.sock works for docker native apps
+	// podman has a compatible api to docker, so port-forwarding podman.sock as docker.sock works for docker native apps
 	dockerSocketPath = "/var/run/docker.sock"
 )
 
@@ -49,7 +49,7 @@ func (p podmanRuntime) Name() string {
 func (p podmanRuntime) Provision() error {
 	user, err := user.Current()
 	if err != nil {
-		return fmt.Errorf("Couldn't read current user: %v", err)
+		return fmt.Errorf("Couldn't read current user: %w", err)
 	}
 
 	a := p.Init()
@@ -112,14 +112,14 @@ func (p podmanRuntime) Start() error {
 		a.Add(func() error {
 			err := p.guest.RunBackground("sudo", "podman", "system", "service", "-t=0")
 			if err != nil {
-				return fmt.Errorf("Error running rootfull podman: %v", err)
+				return fmt.Errorf("Error running rootfull podman: %w", err)
 			}
 			p.guest.Run("sleep", "5")
 			// set permissions of rootfull podman socket to user for accessing via ssh
 			// docker has the docker group which podman doesnt have :/
 			user, err := user.Current()
 			if err != nil {
-				return fmt.Errorf("Couldn't read current user: %v", err)
+				return fmt.Errorf("Couldn't read current user: %w", err)
 			}
 			return p.guest.Run("sudo", "chown", user.Name+":"+user.Name, "-R", "/run/podman/")
 
@@ -135,7 +135,7 @@ func (p podmanRuntime) Stop() error {
 	a.Add(func() error {
 		output, err := p.guest.RunOutput("pidof", "podman")
 		if err != nil {
-			return fmt.Errorf("Can't get pids of podman system socket process in VM: %v", err)
+			return fmt.Errorf("Can't get pids of podman system socket process in VM: %w", err)
 		}
 
 		pids := strings.Split(output, " ")
