@@ -1,11 +1,12 @@
 package root
 
 import (
+	"log"
+
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"log"
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -14,12 +15,12 @@ var rootCmd = &cobra.Command{
 	Short: "container runtimes on macOS with minimal setup",
 	Long:  `Colima provides container runtimes on macOS with minimal setup.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		if rootCmdArgs.Profile != config.AppName && rootCmdArgs.Profile != "" {
+		if rootArgs.Profile != config.AppName && rootArgs.Profile != "" {
 			// if custom profile is specified,
 			// use a prefix to prevent possible name clashes
-			config.SetProfile(config.AppName + "-" + rootCmdArgs.Profile)
+			config.SetProfile(config.AppName + "-" + rootArgs.Profile)
 		}
-		if err := initLog(rootCmdArgs.DryRun); err != nil {
+		if err := initLog(rootArgs.DryRun); err != nil {
 			return err
 		}
 
@@ -34,10 +35,18 @@ func Cmd() *cobra.Command {
 	return rootCmd
 }
 
-var rootCmdArgs struct {
+// RootCmdArgs returns the currently set rootArgs of the command
+func RootCmdArgs() rootCmdArgs {
+	return rootArgs
+}
+
+type rootCmdArgs struct {
 	DryRun  bool
 	Profile string
+	Verbose bool
 }
+
+var rootArgs rootCmdArgs
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
@@ -48,8 +57,9 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().BoolVar(&rootCmdArgs.DryRun, "dry-run", rootCmdArgs.DryRun, "perform a dry run instead")
-	rootCmd.PersistentFlags().StringVarP(&rootCmdArgs.Profile, "profile", "p", config.AppName, "use different profile")
+	rootCmd.PersistentFlags().BoolVar(&rootArgs.DryRun, "dry-run", rootArgs.DryRun, "perform a dry run instead")
+	rootCmd.PersistentFlags().BoolVar(&rootArgs.Verbose, "verbose", rootArgs.Verbose, "verbose terminal output")
+	rootCmd.PersistentFlags().StringVarP(&rootArgs.Profile, "profile", "p", config.AppName, "use different profile")
 
 	// decide if these should be public
 	// implementations are currently half-baked, only for test during development

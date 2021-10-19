@@ -2,14 +2,16 @@ package app
 
 import (
 	"fmt"
+	"strconv"
+
 	"github.com/abiosoft/colima/cli"
+	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/kubernetes"
 	"github.com/abiosoft/colima/environment/host"
 	"github.com/abiosoft/colima/environment/vm/lima"
 	log "github.com/sirupsen/logrus"
-	"strconv"
 )
 
 type App interface {
@@ -28,7 +30,7 @@ var _ App = (*colimaApp)(nil)
 
 // New creates a new app.
 func New() (App, error) {
-	guest := lima.New(host.New())
+	guest := lima.New(host.New(root.RootCmdArgs().Verbose))
 	if err := host.IsInstalled(guest); err != nil {
 		return nil, fmt.Errorf("dependency check failed for VM: %w", err)
 	}

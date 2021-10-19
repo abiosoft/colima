@@ -3,12 +3,13 @@ package terminal
 import (
 	"bytes"
 	"fmt"
-	"github.com/fatih/color"
-	"golang.org/x/crypto/ssh/terminal"
 	"io"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/fatih/color"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 var _ io.WriteCloser = (*verboseWriter)(nil)

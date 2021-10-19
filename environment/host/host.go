@@ -4,26 +4,31 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
+	"os"
+	"strings"
+
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/util/terminal"
-	"os"
-	"strings"
 )
 
 // New creates a new host environment using env as environment variables.
-func New() environment.Host {
-	return &hostEnv{}
+func New(verbose bool) environment.Host {
+	return &hostEnv{verbose: verbose}
 }
 
 var _ environment.Host = (*hostEnv)(nil)
 
 type hostEnv struct {
-	env []string
+	env     []string
+	verbose bool
 }
 
 func (h hostEnv) WithEnv(env ...string) environment.HostActions {
 	var newHost hostEnv
+	// set verbose flag
+	newHost.verbose = h.verbose
 	// use current and new env vars
 	newHost.env = append(newHost.env, h.env...)
 	newHost.env = append(newHost.env, env...)
@@ -31,23 +36,24 @@ func (h hostEnv) WithEnv(env ...string) environment.HostActions {
 }
 
 func (h hostEnv) Run(args ...string) error {
+	var out io.WriteCloser
 	if len(args) == 0 {
 		return errors.New("args not specified")
 	}
 	cmd := cli.Command(args[0], args[1:]...)
 	cmd.Env = append(os.Environ(), h.env...)
 
-	out := terminal.NewVerboseWriter(4)
+	if h.verbose {
+		out = os.Stdout
+	} else {
+		out = terminal.NewVerboseWriter(4)
+		defer out.Close()
+	}
 
 	cmd.Stdout = out
 	cmd.Stderr = out
 
-	err := cmd.Run()
-	if err == nil {
-		return out.Close()
-	}
-
-	return err
+	return cmd.Run()
 }
 
 func (h hostEnv) RunQuiet(args ...string) error {
