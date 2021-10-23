@@ -2,12 +2,13 @@ package config
 
 import (
 	"fmt"
-	"github.com/abiosoft/colima/util/yamlutil"
-	"gopkg.in/yaml.v3"
 	"log"
 	"net"
 	"os"
 	"path/filepath"
+
+	"github.com/abiosoft/colima/util/yamlutil"
+	"gopkg.in/yaml.v3"
 )
 
 const AppName = "colima"
@@ -138,9 +139,10 @@ type Kubernetes struct {
 
 // VM is virtual machine configuration.
 type VM struct {
-	CPU    int `yaml:"cpu"`
-	Disk   int `yaml:"disk"`
-	Memory int `yaml:"memory"`
+	CPU    int    `yaml:"cpu"`
+	Disk   int    `yaml:"disk"`
+	Memory int    `yaml:"memory"`
+	Arch   string `yaml:"arch"`
 
 	// auto generated
 	SSHPort int `yaml:"-"`

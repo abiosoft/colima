@@ -65,6 +65,9 @@ The --runtime flag is only used on initial start and ignored on subsequent start
 		if !cmd.Flag("mount").Changed {
 			startCmdArgs.VM.Mounts = current.VM.Mounts
 		}
+		if !cmd.Flag("arch").Changed {
+			startCmdArgs.VM.Arch = current.VM.Arch
+		}
 
 		log.Println("using", current.Runtime, "runtime")
 
@@ -80,6 +83,7 @@ const (
 	defaultCPU               = 2
 	defaultMemory            = 2
 	defaultDisk              = 60
+	defaultArch              = "default"
 	defaultKubernetesVersion = "v1.22.2"
 )
 
@@ -109,6 +113,7 @@ func init() {
 	startCmd.Flags().IntVarP(&startCmdArgs.VM.Memory, "memory", "m", defaultMemory, "memory in GiB")
 	startCmd.Flags().IntVarP(&startCmdArgs.VM.Disk, "disk", "d", defaultDisk, "disk size in GiB")
 	startCmd.Flags().IPSliceVarP(&startCmdArgs.VM.DNS, "dns", "n", nil, "DNS servers for the VM")
+	startCmd.Flags().StringVarP(&startCmdArgs.VM.Arch, "arch", "a", defaultArch, "architecture (aarch64 / x86_64)")
 
 	// mounts
 	startCmd.Flags().StringSliceVarP(&startCmdArgs.VM.Mounts, "mount", "v", nil, "directories to mount, suffix ':w' for writable")
