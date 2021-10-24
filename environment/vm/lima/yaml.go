@@ -12,7 +12,7 @@ import (
 )
 
 func newConf(conf config.Config) (l Config, err error) {
-	l.Arch = "default"
+	l.Arch = conf.VM.Arch
 
 	l.Images = append(l.Images,
 		File{Arch: X8664, Location: "https://cloud-images.ubuntu.com/impish/current/impish-server-cloudimg-amd64.img"},
