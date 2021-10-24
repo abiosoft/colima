@@ -3,6 +3,7 @@ package lima
 import (
 	"fmt"
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/util"
 	"net"
@@ -12,11 +13,11 @@ import (
 )
 
 func newConf(conf config.Config) (l Config, err error) {
-	l.Arch = conf.VM.Arch
+	l.Arch = limaArch(environment.Arch(conf.VM.Arch))
 
 	l.Images = append(l.Images,
-		File{Arch: X8664, Location: "https://cloud-images.ubuntu.com/impish/current/impish-server-cloudimg-amd64.img"},
-		File{Arch: AARCH64, Location: "https://cloud-images.ubuntu.com/impish/current/impish-server-cloudimg-arm64.img"})
+		File{Arch: environment.X8664, Location: "https://cloud-images.ubuntu.com/impish/current/impish-server-cloudimg-amd64.img"},
+		File{Arch: environment.AARCH64, Location: "https://cloud-images.ubuntu.com/impish/current/impish-server-cloudimg-arm64.img"})
 
 	l.CPUs = conf.VM.CPU
 	l.Memory = fmt.Sprintf("%dGiB", conf.VM.Memory)
@@ -71,7 +72,7 @@ func newConf(conf config.Config) (l Config, err error) {
 
 // Config is lima config. Code copied from lima and modified.
 type Config struct {
-	Arch            Arch              `yaml:"arch,omitempty"`
+	Arch            environment.Arch  `yaml:"arch,omitempty"`
 	Images          []File            `yaml:"images"`
 	CPUs            int               `yaml:"cpus,omitempty"`
 	Memory          string            `yaml:"memory,omitempty"`
@@ -85,16 +86,24 @@ type Config struct {
 	UseHostResolver bool              `yaml:"useHostResolver"`
 }
 
-type Arch = string
+// limaArch returns the Lima equivalent value for the architecture.
+func limaArch(a environment.Arch) environment.Arch {
+	switch a {
+	case environment.X8664, environment.AARCH64:
+		return a
+	// accept amd, amd64, arm and arm64 values
+	case "amd", "amd64":
+		return environment.X8664
+	case "arm", "arm64":
+		return environment.AARCH64
+	}
 
-const (
-	X8664   Arch = "x86_64"
-	AARCH64 Arch = "aarch64"
-)
+	return "default"
+}
 
 type File struct {
-	Location string `yaml:"location"` // REQUIRED
-	Arch     Arch   `yaml:"arch,omitempty"`
+	Location string           `yaml:"location"` // REQUIRED
+	Arch     environment.Arch `yaml:"arch,omitempty"`
 }
 
 type Mount struct {
