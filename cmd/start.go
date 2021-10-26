@@ -68,6 +68,9 @@ The --runtime, --disk and --arch flags are only used on initial start and ignore
 		if !cmd.Flag("mount").Changed {
 			startCmdArgs.VM.Mounts = current.VM.Mounts
 		}
+		if !cmd.Flag("port-interface").Changed {
+			startCmdArgs.PortInterface = current.PortInterface
+		}
 
 		log.Println("using", current.Runtime, "runtime")
 
@@ -106,6 +109,7 @@ func randomAvailablePort() int {
 func init() {
 	runtimes := strings.Join(environment.ContainerRuntimes(), ", ")
 	defaultArch := string(environment.Arch(runtime.GOARCH).Value())
+	defaultPortInterface := net.ParseIP("127.0.0.1")
 
 	root.Cmd().AddCommand(startCmd)
 	startCmd.Flags().StringVarP(&startCmdArgs.Runtime, "runtime", "r", docker.Name, "container runtime ("+runtimes+")")
@@ -117,6 +121,9 @@ func init() {
 
 	// mounts
 	startCmd.Flags().StringSliceVarP(&startCmdArgs.VM.Mounts, "mount", "v", nil, "directories to mount, suffix ':w' for writable")
+
+	// port forwarding
+	startCmd.Flags().IPVarP(&startCmdArgs.PortInterface, "port-interface", "i", defaultPortInterface, "interface to use for forwarded ports")
 
 	// k8s
 	startCmd.Flags().BoolVarP(&startCmdArgs.Kubernetes.Enabled, "with-kubernetes", "k", false, "start VM with Kubernetes")

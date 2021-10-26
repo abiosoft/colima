@@ -145,6 +145,9 @@ type Config struct {
 
 	// Kubernetes sets if kubernetes should be enabled.
 	Kubernetes Kubernetes `yaml:"kubernetes"`
+
+	// Network address to forward VM ports to.
+	PortInterface net.IP
 }
 
 // Kubernetes is kubernetes configuration
