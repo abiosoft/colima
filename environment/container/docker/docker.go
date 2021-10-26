@@ -27,7 +27,7 @@ type dockerRuntime struct {
 
 // NewContainer creates a new docker runtime.
 func newRuntime(host environment.HostActions, guest environment.GuestActions) environment.Container {
-	launchdPkg := "com.abiosoft." + config.Profile()
+	launchdPkg := "com.abiosoft." + config.Profile().ID
 
 	return &dockerRuntime{
 		host:         host,

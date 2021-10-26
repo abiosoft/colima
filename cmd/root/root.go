@@ -14,10 +14,8 @@ var rootCmd = &cobra.Command{
 	Short: "container runtimes on macOS with minimal setup",
 	Long:  `Colima provides container runtimes on macOS with minimal setup.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		if rootCmdArgs.Profile != config.AppName && rootCmdArgs.Profile != "" {
-			// if custom profile is specified,
-			// use a prefix to prevent possible name clashes
-			config.SetProfile(config.AppName + "-" + rootCmdArgs.Profile)
+		if rootCmdArgs.Profile != "" {
+			config.SetProfile(rootCmdArgs.Profile)
 		}
 		if err := initLog(rootCmdArgs.DryRun); err != nil {
 			return err
@@ -49,12 +47,11 @@ func Execute() {
 
 func init() {
 	rootCmd.PersistentFlags().BoolVar(&rootCmdArgs.DryRun, "dry-run", rootCmdArgs.DryRun, "perform a dry run instead")
-	rootCmd.PersistentFlags().StringVarP(&rootCmdArgs.Profile, "profile", "p", config.AppName, "use different profile")
+	rootCmd.PersistentFlags().StringVarP(&rootCmdArgs.Profile, "profile", "p", config.AppName, "profile name, for multiple instances")
 
 	// decide if these should be public
 	// implementations are currently half-baked, only for test during development
 	_ = rootCmd.PersistentFlags().MarkHidden("dry-run")
-	_ = rootCmd.PersistentFlags().MarkHidden("profile")
 
 }
 
