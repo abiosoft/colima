@@ -3,7 +3,6 @@ package kubernetes
 import (
 	_ "embed"
 	"fmt"
-	"runtime"
 	"strings"
 
 	"github.com/abiosoft/colima/cli"

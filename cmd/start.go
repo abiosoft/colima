@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"net"
+	"runtime"
 	"strings"
 
 	"github.com/abiosoft/colima/cmd/root"
