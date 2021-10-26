@@ -14,9 +14,8 @@ var versionCmd = &cobra.Command{
 	Short: "print the version of Colima",
 	Long:  `Print the version of Colima`,
 	Run: func(cmd *cobra.Command, args []string) {
-		name := config.Profile()
 		version := config.AppVersion()
-		fmt.Println(name, "version", version.Version)
+		fmt.Println(config.AppName, "version", version.Version)
 		fmt.Println("git commit:", version.Revision)
 
 		if colimaApp, err := app.New(); err == nil {

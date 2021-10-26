@@ -15,7 +15,7 @@ func (d dockerRuntime) setupContext() error {
 		return nil
 	}
 
-	profile := config.Profile()
+	profile := config.Profile().Name
 
 	return d.host.Run("docker", "context", "create", profile,
 		"--description", profile,
@@ -24,7 +24,7 @@ func (d dockerRuntime) setupContext() error {
 }
 
 func (d dockerRuntime) useContext() error {
-	return d.host.Run("docker", "context", "use", config.Profile())
+	return d.host.Run("docker", "context", "use", config.Profile().Name)
 }
 
 func (d dockerRuntime) teardownContext() error {
@@ -32,5 +32,5 @@ func (d dockerRuntime) teardownContext() error {
 		return nil
 	}
 
-	return d.host.Run("docker", "context", "rm", "--force", config.Profile())
+	return d.host.Run("docker", "context", "rm", "--force", config.Profile().Name)
 }

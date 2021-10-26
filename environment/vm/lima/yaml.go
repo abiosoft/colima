@@ -38,7 +38,7 @@ func newConf(conf config.Config) (l Config, err error) {
 	if len(conf.VM.Mounts) == 0 {
 		l.Mounts = append(l.Mounts,
 			Mount{Location: "~", Writable: false},
-			Mount{Location: filepath.Join("/tmp", config.Profile()), Writable: true},
+			Mount{Location: filepath.Join("/tmp", config.Profile().Name), Writable: true},
 		)
 	} else {
 		// overlapping mounts are problematic in Lima https://github.com/lima-vm/lima/issues/302

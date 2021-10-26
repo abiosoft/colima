@@ -33,13 +33,14 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 		return fmt.Errorf("error retrieving home directory on host")
 	}
 
+	profile := config.Profile().Name
 	hostKubeDir := filepath.Join(hostHome, ".kube")
 	a.Add(func() error {
-		return c.host.Run("mkdir", "-p", filepath.Join(hostKubeDir, "."+config.Profile()))
+		return c.host.Run("mkdir", "-p", filepath.Join(hostKubeDir, "."+profile))
 	})
 
 	kubeconfFile := filepath.Join(hostKubeDir, "config")
-	tmpkubeconfFile := filepath.Join(hostKubeDir, "."+config.Profile(), "colima-temp")
+	tmpkubeconfFile := filepath.Join(hostKubeDir, "."+profile, "colima-temp")
 
 	// manipulate in VM and save to host
 	a.Add(func() error {
@@ -48,7 +49,7 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 			return err
 		}
 		// replace name
-		kubeconfig = strings.ReplaceAll(kubeconfig, ": default", ": "+config.Profile())
+		kubeconfig = strings.ReplaceAll(kubeconfig, ": default", ": "+profile)
 
 		// save on the host
 		return c.host.Write(tmpkubeconfFile, kubeconfig)
@@ -89,7 +90,7 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 
 	// set new context
 	a.Add(func() error {
-		out, err := c.host.RunOutput("kubectl", "config", "use-context", config.Profile())
+		out, err := c.host.RunOutput("kubectl", "config", "use-context", profile)
 		if err != nil {
 			return err
 		}
@@ -106,14 +107,15 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 }
 
 func (c kubernetesRuntime) unsetKubeconfig(a *cli.ActiveCommandChain) {
+	profile := config.Profile().Name
 	a.Add(func() error {
-		return c.host.Run("kubectl", "config", "unset", "users."+config.Profile())
+		return c.host.Run("kubectl", "config", "unset", "users."+profile)
 	})
 	a.Add(func() error {
-		return c.host.Run("kubectl", "config", "unset", "contexts."+config.Profile())
+		return c.host.Run("kubectl", "config", "unset", "contexts."+profile)
 	})
 	a.Add(func() error {
-		return c.host.Run("kubectl", "config", "unset", "clusters."+config.Profile())
+		return c.host.Run("kubectl", "config", "unset", "clusters."+profile)
 	})
 }
 

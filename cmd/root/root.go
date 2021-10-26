@@ -15,9 +15,7 @@ var rootCmd = &cobra.Command{
 	Long:  `Colima provides container runtimes on macOS with minimal setup.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		if rootCmdArgs.Profile != config.AppName && rootCmdArgs.Profile != "" {
-			// if custom profile is specified,
-			// use a prefix to prevent possible name clashes
-			config.SetProfile(config.AppName + "-" + rootCmdArgs.Profile)
+			config.SetProfile(rootCmdArgs.Profile)
 		}
 		if err := initLog(rootCmdArgs.DryRun); err != nil {
 			return err
