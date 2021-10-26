@@ -29,23 +29,23 @@ func (d dockerRuntime) setupInVM() error {
 	if err != nil {
 		return fmt.Errorf("error installing in VM: %w", err)
 	}
-	err := d.guest.Run("curl -fsSLo /tmp/docker.pem https://download.docker.com/linux/ubuntu/gpg")
+	err = d.guest.Run("curl -fsSLo /tmp/docker.pem https://download.docker.com/linux/ubuntu/gpg")
 	if err != nil {
 		return fmt.Errorf("error installing in VM: %w", err)
 	}
-	err := d.guest.Run("sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg")
+	err = d.guest.Run("sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg")
 	if err != nil {
 		return fmt.Errorf("error installing in VM: %w", err)
 	}
-	err := d.guest.Run("bash", "-c", "echo \"deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null")
+	err = d.guest.Run("bash", "-c", "echo \"deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null")
 	if err != nil {
 		return fmt.Errorf("error installing in VM: %w", err)
 	}
-	err := d.guest.Run("sudo", "apt-get", "update")
+	err = d.guest.Run("sudo", "apt-get", "update")
 	if err != nil {
 		return fmt.Errorf("error installing in VM: %w", err)
 	}
-	err := d.guest.Run("sudo", "apt-get", "-y", "install", "docker-ce", "docker-ce-cli", "containerd.io")
+	err = d.guest.Run("sudo", "apt-get", "-y", "install", "docker-ce", "docker-ce-cli", "containerd.io")
 	if err != nil {
 		return fmt.Errorf("error installing in VM: %w", err)
 	}
