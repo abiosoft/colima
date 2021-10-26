@@ -29,11 +29,7 @@ func (d dockerRuntime) setupInVM() error {
 	if err != nil {
 		return fmt.Errorf("error installing in VM: %w", err)
 	}
-	err = d.guest.Run("curl -fsSLo /tmp/docker.pem https://download.docker.com/linux/ubuntu/gpg")
-	if err != nil {
-		return fmt.Errorf("error installing in VM: %w", err)
-	}
-	err = d.guest.Run("sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg")
+	err = d.guest.Run("bash", "-c", "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg")
 	if err != nil {
 		return fmt.Errorf("error installing in VM: %w", err)
 	}
