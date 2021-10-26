@@ -314,3 +314,8 @@ func (l limaVM) Set(key, value string) error {
 func (l limaVM) User() (string, error) {
 	return l.RunOutput("whoami")
 }
+
+func (l limaVM) Arch() environment.Arch {
+	a, _ := l.RunOutput("uname", "-p")
+	return environment.Arch(a)
+}
