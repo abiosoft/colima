@@ -8,6 +8,7 @@ Container runtimes on macOS with minimal setup.
 
 ## Features
 
+- Intel and M1 Macs support
 - Simple CLI interface
 - Docker and Containerd support
 - Port Forwarding
@@ -112,8 +113,10 @@ Since Lima is aka Linux on Mac. By transitivity, Colima can also mean Containers
 <summary>Can it run alongside Docker for Mac?</summary>
 <p>
 
-No, except when started with Containerd runtime. Colima assumes to be the default Docker context and will conflict with
-Docker for Mac. You should run either, not both.
+~~No, except when started with Containerd runtime. Colima assumes to be the default Docker context and will conflict with
+Docker for Mac. You should run either, not both.~~
+
+Yes, from version v0.3.0, Colima can run alongside Docker for Mac.
 
 </p>
 </details>
@@ -175,7 +178,8 @@ Minikube with Docker runtime can expose the cluster's Docker with `minikube dock
 <summary>Are M1 macs supported?</summary>
 <p>
 
-Colima is written to support M1 macs but not tested, as the author do not currently possess an M1 device.
+Colima supports and works on M1 macs but not rigorously tested as the author do not currently possess an M1 device.
+Feedbacks would be appreciated.
 
 </p>
 </details>
@@ -183,7 +187,6 @@ Colima is written to support M1 macs but not tested, as the author do not curren
 ## Help Wanted
 
 - ~~Homebrew formula~~
-- Documentation page
 - Testing on M1 Macs
 
 ## License
