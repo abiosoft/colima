@@ -13,7 +13,8 @@ import (
 	"github.com/abiosoft/colima/util/terminal"
 )
 
-// New creates a new host environment using env as environment variables.
+// New creates a new host environment using env as environment variables 
+// and using verbose to specify if output should be verbose.
 func New(verbose bool) environment.Host {
 	return &hostEnv{verbose: verbose}
 }
@@ -44,16 +45,19 @@ func (h hostEnv) Run(args ...string) error {
 	cmd.Env = append(os.Environ(), h.env...)
 
 	if h.verbose {
-		out = os.Stdout
+		out = os.Stderr
 	} else {
 		out = terminal.NewVerboseWriter(4)
-		defer out.Close()
 	}
 
 	cmd.Stdout = out
 	cmd.Stderr = out
 
-	return cmd.Run()
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+	out.Close()
+	return nil
 }
 
 func (h hostEnv) RunQuiet(args ...string) error {

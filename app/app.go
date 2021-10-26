@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"github.com/abiosoft/colima/cli"
-	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/kubernetes"
@@ -29,8 +28,8 @@ type App interface {
 var _ App = (*colimaApp)(nil)
 
 // New creates a new app.
-func New() (App, error) {
-	guest := lima.New(host.New(root.RootCmdArgs().Verbose))
+func New(verbose bool) (App, error) {
+	guest := lima.New(host.New(verbose))
 	if err := host.IsInstalled(guest); err != nil {
 		return nil, fmt.Errorf("dependency check failed for VM: %w", err)
 	}

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+
 	"github.com/abiosoft/colima/app"
 	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
@@ -18,7 +19,7 @@ var versionCmd = &cobra.Command{
 		fmt.Println(config.AppName, "version", version.Version)
 		fmt.Println("git commit:", version.Revision)
 
-		if colimaApp, err := app.New(); err == nil {
+		if colimaApp, err := app.New(root.RootCmdArgs.Verbose); err == nil {
 			_ = colimaApp.Version()
 		}
 	},

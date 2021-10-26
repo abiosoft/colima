@@ -2,15 +2,16 @@ package cmd
 
 import (
 	"fmt"
+	"net"
+	"runtime"
+	"strings"
+
 	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/docker"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"net"
-	"runtime"
-	"strings"
 )
 
 // startCmd represents the start command
