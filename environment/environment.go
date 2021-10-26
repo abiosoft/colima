@@ -59,6 +59,8 @@ type GuestActions interface {
 	Set(key, value string) error
 	// User returns the username of the user in the VM.
 	User() (string, error)
+	// Arch returns the architecture of the VM.
+	Arch() Arch
 }
 
 // Dependencies are dependencies that must exist on the host.

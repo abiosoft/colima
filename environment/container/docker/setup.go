@@ -7,25 +7,25 @@ import (
 	"path/filepath"
 )
 
-func (d dockerRuntime) setupSocketSymlink() error {
-	log := d.Logger()
-	// remove existing socket (if any)
-	log.Println("sudo password may be required to set up docker socket")
-	err := d.host.RunInteractive("sudo", "rm", "-rf", socket)
-	if err != nil {
-		return fmt.Errorf("error setting up socket: %w", err)
-	}
-	// create new symlink
-	err = d.host.RunInteractive("sudo", "ln", "-s", socketSymlink(), socket)
-	if err != nil {
-		return fmt.Errorf("error setting up socket: %w", err)
-	}
-	return nil
-}
-
 func (d dockerRuntime) setupInVM() error {
 	// install in VM
-	err := d.guest.Run("sudo", "apt", "-y", "install", "docker.io")
+	err := d.guest.Run("sudo", "apt-get", "-y", "install", "apt-transport-https", "ca-certificates", "curl", "gnupg", "lsb-release")
+	if err != nil {
+		return fmt.Errorf("error installing in VM: %w", err)
+	}
+	err = d.guest.Run("bash", "-c", "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg")
+	if err != nil {
+		return fmt.Errorf("error installing in VM: %w", err)
+	}
+	err = d.guest.Run("bash", "-c", "echo \"deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null")
+	if err != nil {
+		return fmt.Errorf("error installing in VM: %w", err)
+	}
+	err = d.guest.Run("sudo", "apt-get", "update")
+	if err != nil {
+		return fmt.Errorf("error installing in VM: %w", err)
+	}
+	err = d.guest.Run("sudo", "apt-get", "-y", "install", "docker-ce", "docker-ce-cli", "containerd.io")
 	if err != nil {
 		return fmt.Errorf("error installing in VM: %w", err)
 	}

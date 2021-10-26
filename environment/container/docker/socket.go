@@ -9,10 +9,6 @@ import (
 	"path/filepath"
 )
 
-const (
-	socket = "/var/run/docker.sock"
-)
-
 //go:embed socket.sh
 var socketForwardingScript string
 

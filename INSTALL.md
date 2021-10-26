@@ -2,8 +2,16 @@
 
 ## Homebrew
 
+Stable Version
+
 ```
 brew install colima
+```
+
+Development Version
+
+```
+brew install --HEAD colima
 ```
 
 ## Binary

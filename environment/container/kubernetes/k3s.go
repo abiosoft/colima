@@ -30,7 +30,7 @@ func installK3sBinary(host environment.HostActions, guest environment.GuestActio
 	// install k3s last to ensure it is the last step
 	downloadPath := "/tmp/k3s"
 	url := "https://github.com/k3s-io/k3s/releases/download/" + k3sVersion + "/k3s"
-	if runtime.GOARCH == "arm64" {
+	if guest.Arch().GoArch() == "arm64" {
 		url += "-arm64"
 	}
 	a.Add(func() error {
@@ -42,7 +42,7 @@ func installK3sBinary(host environment.HostActions, guest environment.GuestActio
 }
 
 func installK3sCache(host environment.HostActions, guest environment.GuestActions, a *cli.ActiveCommandChain, containerRuntime string) {
-	imageTar := "k3s-airgap-images-" + runtime.GOARCH + ".tar"
+	imageTar := "k3s-airgap-images-" + guest.Arch().GoArch() + ".tar"
 	imageTarGz := imageTar + ".gz"
 	downloadPathTar := "/tmp/" + imageTar
 	downloadPathTarGz := "/tmp/" + imageTarGz

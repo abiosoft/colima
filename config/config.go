@@ -2,25 +2,42 @@ package config
 
 import (
 	"fmt"
-	"github.com/abiosoft/colima/util/yamlutil"
-	"gopkg.in/yaml.v3"
 	"log"
 	"net"
 	"os"
 	"path/filepath"
+
+	"github.com/abiosoft/colima/util/yamlutil"
+	"gopkg.in/yaml.v3"
 )
 
 const AppName = "colima"
 
-var profile = AppName
+var profile = ProfileInfo{ID: AppName, DisplayName: AppName}
 
 // SetProfile sets the profile name for the application.
 // This is an avenue to test Colima without breaking an existing stable setup.
 // Not perfect, but good enough for testing.
-func SetProfile(p string) { profile = p }
+func SetProfile(profileName string) {
+	switch profileName {
+	case "", AppName, "default":
+		return
+	}
+
+	// if custom profile is specified,
+	// use a prefix to prevent possible name clashes
+	profile.ID = "colima-" + profileName
+	profile.DisplayName = "colima [profile=" + profileName + "]"
+}
 
 // Profile returns the current application profile.
-func Profile() string { ensureInit(); return profile }
+func Profile() ProfileInfo { ensureInit(); return profile }
+
+// ProfileInfo is information about the colima profile.
+type ProfileInfo struct {
+	ID          string
+	DisplayName string
+}
 
 // VersionInfo is the application version info.
 type VersionInfo struct {
@@ -60,7 +77,7 @@ func ensureInit() {
 		if err != nil {
 			log.Fatal(fmt.Errorf("cannot fetch user config directory: %w", err))
 		}
-		configDir = filepath.Join(dir, "."+profile)
+		configDir = filepath.Join(dir, "."+profile.ID)
 		if err := os.MkdirAll(configDir, 0755); err != nil {
 			log.Fatal(fmt.Errorf("cannot create config directory: %w", err))
 		}
@@ -72,7 +89,7 @@ func ensureInit() {
 		if err != nil {
 			log.Fatal(fmt.Errorf("cannot fetch user config directory: %w", err))
 		}
-		cacheDir = filepath.Join(dir, profile)
+		cacheDir = filepath.Join(dir, profile.ID)
 		if err := os.MkdirAll(cacheDir, 0755); err != nil {
 			log.Fatal(fmt.Errorf("cannot create cache directory: %w", err))
 		}
@@ -128,6 +145,9 @@ type Config struct {
 
 	// Kubernetes sets if kubernetes should be enabled.
 	Kubernetes Kubernetes `yaml:"kubernetes"`
+
+	// Network address to forward VM ports to.
+	PortInterface net.IP
 }
 
 // Kubernetes is kubernetes configuration
@@ -138,9 +158,10 @@ type Kubernetes struct {
 
 // VM is virtual machine configuration.
 type VM struct {
-	CPU    int `yaml:"cpu"`
-	Disk   int `yaml:"disk"`
-	Memory int `yaml:"memory"`
+	CPU    int    `yaml:"cpu"`
+	Disk   int    `yaml:"disk"`
+	Memory int    `yaml:"memory"`
+	Arch   string `yaml:"arch"`
 
 	// auto generated
 	SSHPort int `yaml:"-"`

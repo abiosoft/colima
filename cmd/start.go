@@ -18,7 +18,7 @@ var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "start Colima",
 	Long: `Start Colima with the specified container runtime (and kubernetes if --with-kubernetes is passed).
-The --runtime flag is only used on initial start and ignored on subsequent starts.
+The --runtime, --disk and --arch flags are only used on initial start and ignored on subsequent starts.
 `,
 	Example: "  colima start\n" +
 		"  colima start --runtime containerd\n" +
@@ -26,7 +26,8 @@ The --runtime flag is only used on initial start and ignored on subsequent start
 		"  colima start --runtime containerd --with-kubernetes\n" +
 		"  colima start --cpu 4 --memory 8 --disk 100\n" +
 		"  colima start --dns 8.8.8.8 --dns 8.8.4.4\n" +
-		"  colima start --mount $HOME/projects:w\n",
+		"  colima start --mount $HOME/projects:w\n" +
+		"  colima start --arch aarch64\n",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return newApp().Start(startCmdArgs.Config)
 	},
@@ -46,10 +47,11 @@ The --runtime flag is only used on initial start and ignored on subsequent start
 			return nil
 		}
 
-		// runtime, ssh port, disk size and kubernetes version are only effective on VM create
+		// runtime, ssh port, disk size, kubernetes version and arch are only effective on VM create
 		// set it to the current settings
 		startCmdArgs.Runtime = current.Runtime
 		startCmdArgs.VM.Disk = current.VM.Disk
+		startCmdArgs.VM.Arch = current.VM.Arch
 		startCmdArgs.Kubernetes.Version = current.Kubernetes.Version
 
 		// use current settings for unchanged configs
@@ -65,6 +67,9 @@ The --runtime flag is only used on initial start and ignored on subsequent start
 		}
 		if !cmd.Flag("mount").Changed {
 			startCmdArgs.VM.Mounts = current.VM.Mounts
+		}
+		if !cmd.Flag("port-interface").Changed {
+			startCmdArgs.PortInterface = current.PortInterface
 		}
 
 		log.Println("using", current.Runtime, "runtime")
@@ -103,16 +108,22 @@ func randomAvailablePort() int {
 
 func init() {
 	runtimes := strings.Join(environment.ContainerRuntimes(), ", ")
+	defaultArch := string(environment.Arch(runtime.GOARCH).Value())
+	defaultPortInterface := net.ParseIP("127.0.0.1")
 
 	root.Cmd().AddCommand(startCmd)
-	startCmd.Flags().StringVarP(&startCmdArgs.Runtime, "runtime", "r", docker.Name, "container runtime, one of ["+runtimes+"]")
+	startCmd.Flags().StringVarP(&startCmdArgs.Runtime, "runtime", "r", docker.Name, "container runtime ("+runtimes+")")
 	startCmd.Flags().IntVarP(&startCmdArgs.VM.CPU, "cpu", "c", defaultCPU, "number of CPUs")
 	startCmd.Flags().IntVarP(&startCmdArgs.VM.Memory, "memory", "m", defaultMemory, "memory in GiB")
 	startCmd.Flags().IntVarP(&startCmdArgs.VM.Disk, "disk", "d", defaultDisk, "disk size in GiB")
 	startCmd.Flags().IPSliceVarP(&startCmdArgs.VM.DNS, "dns", "n", nil, "DNS servers for the VM")
+	startCmd.Flags().StringVarP(&startCmdArgs.VM.Arch, "arch", "a", defaultArch, "architecture (aarch64 / x86_64)")
 
 	// mounts
 	startCmd.Flags().StringSliceVarP(&startCmdArgs.VM.Mounts, "mount", "v", nil, "directories to mount, suffix ':w' for writable")
+
+	// port forwarding
+	startCmd.Flags().IPVarP(&startCmdArgs.PortInterface, "port-interface", "i", defaultPortInterface, "interface to use for forwarded ports")
 
 	// k8s
 	startCmd.Flags().BoolVarP(&startCmdArgs.Kubernetes.Enabled, "with-kubernetes", "k", false, "start VM with Kubernetes")

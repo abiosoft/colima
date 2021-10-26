@@ -18,7 +18,7 @@ import (
 
 // New creates a new virtual machine.
 func New(host environment.HostActions) environment.VM {
-	env := limaInstanceEnvVar + "=" + config.Profile()
+	env := limaInstanceEnvVar + "=" + config.Profile().ID
 
 	// consider making this truly flexible to support other VMs
 	return &limaVM{
@@ -35,7 +35,7 @@ const (
 
 func limaConfDir() string {
 	home := util.HomeDir()
-	return filepath.Join(home, ".lima", config.Profile())
+	return filepath.Join(home, ".lima", config.Profile().ID)
 }
 
 var _ environment.VM = (*limaVM)(nil)
@@ -63,7 +63,7 @@ func (l *limaVM) Start(conf config.Config) error {
 
 	a.Stage("creating and starting")
 
-	configFile := config.Profile() + ".yaml"
+	configFile := config.Profile().ID + ".yaml"
 
 	a.Add(func() error {
 		limaConf, err := newConf(conf)
@@ -111,7 +111,7 @@ func (l limaVM) resume(conf config.Config) error {
 
 	a.Stage("starting")
 	a.Add(func() error {
-		return l.host.Run(limactl, "start", config.Profile())
+		return l.host.Run(limactl, "start", config.Profile().ID)
 	})
 
 	l.applyDNS(a, conf)
@@ -161,7 +161,7 @@ func (l limaVM) Stop() error {
 	a.Stage("stopping")
 
 	a.Add(func() error {
-		return l.host.Run(limactl, "stop", config.Profile())
+		return l.host.Run(limactl, "stop", config.Profile().ID)
 	})
 
 	return a.Exec()
@@ -179,7 +179,7 @@ func (l limaVM) Teardown() error {
 	a.Stage("deleting")
 
 	a.Add(func() error {
-		return l.host.Run(limactl, "delete", config.Profile())
+		return l.host.Run(limactl, "delete", config.Profile().ID)
 	})
 
 	return a.Exec()
@@ -325,4 +325,9 @@ func (l limaVM) Set(key, value string) error {
 
 func (l limaVM) User() (string, error) {
 	return l.RunOutput("whoami")
+}
+
+func (l limaVM) Arch() environment.Arch {
+	a, _ := l.RunOutput("uname", "-m")
+	return environment.Arch(a)
 }
