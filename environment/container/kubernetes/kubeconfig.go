@@ -33,7 +33,7 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 		return fmt.Errorf("error retrieving home directory on host")
 	}
 
-	profile := config.Profile().Name
+	profile := config.Profile().ID
 	hostKubeDir := filepath.Join(hostHome, ".kube")
 	a.Add(func() error {
 		return c.host.Run("mkdir", "-p", filepath.Join(hostKubeDir, "."+profile))
@@ -107,7 +107,7 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 }
 
 func (c kubernetesRuntime) unsetKubeconfig(a *cli.ActiveCommandChain) {
-	profile := config.Profile().Name
+	profile := config.Profile().ID
 	a.Add(func() error {
 		return c.host.Run("kubectl", "config", "unset", "users."+profile)
 	})

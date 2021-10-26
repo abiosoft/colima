@@ -199,6 +199,7 @@ func (c colimaApp) Status() error {
 
 	log.Println(config.Profile().DisplayName, "is running")
 	log.Println("runtime:", currentRuntime)
+	log.Println("arch:", c.guest.Arch())
 
 	// kubernetes
 	if k, err := c.Kubernetes(); err == nil && k.Running() {
