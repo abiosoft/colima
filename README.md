@@ -25,6 +25,11 @@ Colima is available on Homebrew. Check [here](INSTALL.md) for other installation
 brew install colima
 ```
 
+Or stay on the bleeding edge
+```
+brew install --HEAD colima
+```
+
 ## Usage
 
 Start Colima with defaults
