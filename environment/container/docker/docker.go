@@ -51,23 +51,9 @@ func (d dockerRuntime) isUserPermissionFixed() bool {
 	return err == nil
 }
 
-func (d dockerRuntime) isSymlinkCreated() bool {
-	symlink, err := d.host.RunOutput("readlink", socket)
-	if err != nil {
-		return false
-	}
-	return symlink == socketSymlink()
-}
-
 func (d dockerRuntime) Provision() error {
 	a := d.Init()
 	a.Stage("provisioning")
-
-	// check symlink
-	if !d.isSymlinkCreated() {
-		a.Stage("setting up socket")
-		a.Add(d.setupSocketSymlink)
-	}
 
 	// check installation
 	if !d.isInstalled() {
@@ -102,6 +88,10 @@ func (d dockerRuntime) Provision() error {
 
 	// daemon.json
 	a.Add(d.setupDaemonFile)
+
+	// docker context
+	a.Add(d.setupContext)
+	a.Add(d.useContext)
 
 	return a.Exec()
 }
@@ -155,6 +145,9 @@ func (d dockerRuntime) Teardown() error {
 			return d.host.RunQuiet("rm", "-rf", d.launchd.File())
 		})
 	}
+
+	// clear docker context settings
+	a.Add(d.teardownContext)
 
 	return a.Exec()
 }
