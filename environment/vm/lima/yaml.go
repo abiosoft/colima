@@ -13,7 +13,7 @@ import (
 )
 
 func newConf(conf config.Config) (l Config, err error) {
-	l.Arch = limaArch(environment.Arch(conf.VM.Arch))
+	l.Arch = environment.Arch(conf.VM.Arch).Value()
 
 	l.Images = append(l.Images,
 		File{Arch: environment.X8664, Location: "https://cloud-images.ubuntu.com/impish/current/impish-server-cloudimg-amd64.img"},
@@ -84,21 +84,6 @@ type Config struct {
 	DNS             []net.IP          `yaml:"-"` // will be handled manually by colima
 	Firmware        Firmware          `yaml:"firmware"`
 	UseHostResolver bool              `yaml:"useHostResolver"`
-}
-
-// limaArch returns the Lima equivalent value for the architecture.
-func limaArch(a environment.Arch) environment.Arch {
-	switch a {
-	case environment.X8664, environment.AARCH64:
-		return a
-	// accept amd, amd64, arm and arm64 values
-	case "amd", "amd64":
-		return environment.X8664
-	case "arm", "arm64":
-		return environment.AARCH64
-	}
-
-	return "default"
 }
 
 type File struct {

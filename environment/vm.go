@@ -39,3 +39,18 @@ func (a Arch) GoArch() string {
 
 	return runtime.GOARCH
 }
+
+// Value converts the underlying architecture alias value to one of X8664 or AARCH64.
+func (a Arch) Value() Arch {
+	switch a {
+	case X8664, AARCH64:
+		return a
+	// accept amd, amd64, x86, x64, arm, arm64 and m1 values
+	case "amd", "amd64", "x86", "x64":
+		return X8664
+	case "arm", "arm64", "m1":
+		return AARCH64
+	}
+
+	return "default"
+}
