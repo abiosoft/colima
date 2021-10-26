@@ -35,6 +35,17 @@ func newConf(conf config.Config) (l Config, err error) {
 		l.Env[k] = v
 	}
 
+	// handle port forwarding to allow listening on 0.0.0.0
+	l.PortForwards = append(l.PortForwards,
+		PortForward{
+			GuestIP:        net.ParseIP("127.0.0.1"),
+			GuestPortRange: [2]int{1, 65535},
+			HostIP:         conf.PortInterface,
+			HostPortRange:  [2]int{1, 65535},
+			Proto:          TCP,
+		},
+	)
+
 	if len(conf.VM.Mounts) == 0 {
 		l.Mounts = append(l.Mounts,
 			Mount{Location: "~", Writable: false},
@@ -84,6 +95,7 @@ type Config struct {
 	DNS             []net.IP          `yaml:"-"` // will be handled manually by colima
 	Firmware        Firmware          `yaml:"firmware"`
 	UseHostResolver bool              `yaml:"useHostResolver"`
+	PortForwards    []PortForward     `yaml:"portForwards,omitempty"`
 }
 
 type File struct {
@@ -112,6 +124,23 @@ type Firmware struct {
 	// LegacyBIOS disables UEFI if set.
 	// LegacyBIOS is ignored for aarch64.
 	LegacyBIOS bool `yaml:"legacyBIOS"`
+}
+
+type Proto = string
+
+const (
+	TCP Proto = "tcp"
+)
+
+type PortForward struct {
+	GuestIP        net.IP `yaml:"guestIP,omitempty" json:"guestIP,omitempty"`
+	GuestPort      int    `yaml:"guestPort,omitempty" json:"guestPort,omitempty"`
+	GuestPortRange [2]int `yaml:"guestPortRange,omitempty" json:"guestPortRange,omitempty"`
+	HostIP         net.IP `yaml:"hostIP,omitempty" json:"hostIP,omitempty"`
+	HostPort       int    `yaml:"hostPort,omitempty" json:"hostPort,omitempty"`
+	HostPortRange  [2]int `yaml:"hostPortRange,omitempty" json:"hostPortRange,omitempty"`
+	Proto          Proto  `yaml:"proto,omitempty" json:"proto,omitempty"`
+	Ignore         bool   `yaml:"ignore,omitempty" json:"ignore,omitempty"`
 }
 
 type volumeMount string
