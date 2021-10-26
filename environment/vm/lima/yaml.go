@@ -3,6 +3,7 @@ package lima
 import (
 	"fmt"
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/util"
 	"net"
@@ -12,11 +13,11 @@ import (
 )
 
 func newConf(conf config.Config) (l Config, err error) {
-	l.Arch = "default"
+	l.Arch = environment.Arch(conf.VM.Arch).Value()
 
 	l.Images = append(l.Images,
-		File{Arch: X8664, Location: "https://cloud-images.ubuntu.com/impish/current/impish-server-cloudimg-amd64.img"},
-		File{Arch: AARCH64, Location: "https://cloud-images.ubuntu.com/impish/current/impish-server-cloudimg-arm64.img"})
+		File{Arch: environment.X8664, Location: "https://cloud-images.ubuntu.com/impish/current/impish-server-cloudimg-amd64.img"},
+		File{Arch: environment.AARCH64, Location: "https://cloud-images.ubuntu.com/impish/current/impish-server-cloudimg-arm64.img"})
 
 	l.CPUs = conf.VM.CPU
 	l.Memory = fmt.Sprintf("%dGiB", conf.VM.Memory)
@@ -34,10 +35,21 @@ func newConf(conf config.Config) (l Config, err error) {
 		l.Env[k] = v
 	}
 
+	// handle port forwarding to allow listening on 0.0.0.0
+	l.PortForwards = append(l.PortForwards,
+		PortForward{
+			GuestIP:        net.ParseIP("127.0.0.1"),
+			GuestPortRange: [2]int{1, 65535},
+			HostIP:         conf.PortInterface,
+			HostPortRange:  [2]int{1, 65535},
+			Proto:          TCP,
+		},
+	)
+
 	if len(conf.VM.Mounts) == 0 {
 		l.Mounts = append(l.Mounts,
 			Mount{Location: "~", Writable: false},
-			Mount{Location: filepath.Join("/tmp", config.Profile()), Writable: true},
+			Mount{Location: filepath.Join("/tmp", config.Profile().ID), Writable: true},
 		)
 	} else {
 		// overlapping mounts are problematic in Lima https://github.com/lima-vm/lima/issues/302
@@ -71,7 +83,7 @@ func newConf(conf config.Config) (l Config, err error) {
 
 // Config is lima config. Code copied from lima and modified.
 type Config struct {
-	Arch            Arch              `yaml:"arch,omitempty"`
+	Arch            environment.Arch  `yaml:"arch,omitempty"`
 	Images          []File            `yaml:"images"`
 	CPUs            int               `yaml:"cpus,omitempty"`
 	Memory          string            `yaml:"memory,omitempty"`
@@ -83,18 +95,12 @@ type Config struct {
 	DNS             []net.IP          `yaml:"-"` // will be handled manually by colima
 	Firmware        Firmware          `yaml:"firmware"`
 	UseHostResolver bool              `yaml:"useHostResolver"`
+	PortForwards    []PortForward     `yaml:"portForwards,omitempty"`
 }
 
-type Arch = string
-
-const (
-	X8664   Arch = "x86_64"
-	AARCH64 Arch = "aarch64"
-)
-
 type File struct {
-	Location string `yaml:"location"` // REQUIRED
-	Arch     Arch   `yaml:"arch,omitempty"`
+	Location string           `yaml:"location"` // REQUIRED
+	Arch     environment.Arch `yaml:"arch,omitempty"`
 }
 
 type Mount struct {
@@ -118,6 +124,23 @@ type Firmware struct {
 	// LegacyBIOS disables UEFI if set.
 	// LegacyBIOS is ignored for aarch64.
 	LegacyBIOS bool `yaml:"legacyBIOS"`
+}
+
+type Proto = string
+
+const (
+	TCP Proto = "tcp"
+)
+
+type PortForward struct {
+	GuestIP        net.IP `yaml:"guestIP,omitempty" json:"guestIP,omitempty"`
+	GuestPort      int    `yaml:"guestPort,omitempty" json:"guestPort,omitempty"`
+	GuestPortRange [2]int `yaml:"guestPortRange,omitempty" json:"guestPortRange,omitempty"`
+	HostIP         net.IP `yaml:"hostIP,omitempty" json:"hostIP,omitempty"`
+	HostPort       int    `yaml:"hostPort,omitempty" json:"hostPort,omitempty"`
+	HostPortRange  [2]int `yaml:"hostPortRange,omitempty" json:"hostPortRange,omitempty"`
+	Proto          Proto  `yaml:"proto,omitempty" json:"proto,omitempty"`
+	Ignore         bool   `yaml:"ignore,omitempty" json:"ignore,omitempty"`
 }
 
 type volumeMount string

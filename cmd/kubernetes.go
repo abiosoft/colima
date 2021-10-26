@@ -22,7 +22,7 @@ var kubernetesCmd = &cobra.Command{
 			return err
 		}
 		if !newApp().Active() {
-			return fmt.Errorf("%s is not running", config.Profile())
+			return fmt.Errorf("%s is not running", config.Profile().DisplayName)
 		}
 		return nil
 	},
