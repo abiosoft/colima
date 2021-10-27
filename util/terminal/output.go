@@ -3,7 +3,6 @@ package terminal
 import (
 	"bytes"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io"
 	"os"
 	"strings"
@@ -53,9 +52,9 @@ func (v *verboseWriter) Write(p []byte) (n int, err error) {
 }
 
 func (v *verboseWriter) printLineVerbose() {
-	line := "[verbose] " + v.buf.String()
+	line := "> " + v.sanitizeLine(v.buf.String())
 	line = color.HiBlackString(line)
-	logrus.Println(line)
+	_, _ = fmt.Fprintln(os.Stderr, line)
 }
 
 func (v *verboseWriter) refresh() error {
@@ -90,17 +89,22 @@ func (v *verboseWriter) Close() error {
 	return nil
 }
 
+func (v verboseWriter) sanitizeLine(line string) string {
+	// remove logrus noises
+	if strings.HasPrefix(line, "time=") {
+		line = line[strings.Index(line, "msg="):]
+	}
+
+	return line
+}
+
 func (v *verboseWriter) printScreen() error {
 	if err := v.updateTerm(); err != nil {
 		return err
 	}
 
 	for _, line := range v.lines {
-		// remove logrus noises
-		if strings.HasPrefix(line, "time=") {
-			line = line[strings.Index(line, "msg="):]
-		}
-		line = "> " + line
+		line = "> " + v.sanitizeLine(line)
 		if len(line) > v.termWidth {
 			line = line[:v.termWidth]
 		}
