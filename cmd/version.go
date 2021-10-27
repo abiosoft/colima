@@ -19,7 +19,7 @@ var versionCmd = &cobra.Command{
 		fmt.Println(config.AppName, "version", version.Version)
 		fmt.Println("git commit:", version.Revision)
 
-		if colimaApp, err := app.New(root.RootCmdArgs.Verbose); err == nil {
+		if colimaApp, err := app.New(); err == nil {
 			_ = colimaApp.Version()
 		}
 	},

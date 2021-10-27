@@ -3,6 +3,7 @@ package terminal
 import (
 	"bytes"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"io"
 	"os"
 	"strings"
@@ -51,6 +52,12 @@ func (v *verboseWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
+func (v *verboseWriter) printLineVerbose() {
+	line := "[verbose] " + v.buf.String()
+	line = color.HiBlackString(line)
+	logrus.Println(line)
+}
+
 func (v *verboseWriter) refresh() error {
 	v.clearScreen()
 	v.addLine()
@@ -58,11 +65,18 @@ func (v *verboseWriter) refresh() error {
 }
 
 func (v *verboseWriter) addLine() {
+	defer v.buf.Truncate(0)
+
+	// if height <=0, do not scroll
+	if v.lineHeight <= 0 {
+		v.printLineVerbose()
+		return
+	}
+
 	if len(v.lines) >= v.lineHeight {
 		v.lines = v.lines[1:]
 	}
 	v.lines = append(v.lines, v.buf.String())
-	v.buf.Truncate(0)
 }
 
 func (v *verboseWriter) Close() error {

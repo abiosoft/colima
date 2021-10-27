@@ -15,10 +15,10 @@ var rootCmd = &cobra.Command{
 	Short: "container runtimes on macOS with minimal setup",
 	Long:  `Colima provides container runtimes on macOS with minimal setup.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		if RootCmdArgs.Profile != "" {
-			config.SetProfile(RootCmdArgs.Profile)
+		if rootCmdArgs.Profile != "" {
+			config.SetProfile(rootCmdArgs.Profile)
 		}
-		if err := initLog(RootCmdArgs.DryRun); err != nil {
+		if err := initLog(); err != nil {
 			return err
 		}
 
@@ -33,8 +33,8 @@ func Cmd() *cobra.Command {
 	return rootCmd
 }
 
-// RootCmdArgs holds all flags configured in root Cmd
-var RootCmdArgs struct {
+// rootCmdArgs holds all flags configured in root Cmd
+var rootCmdArgs struct {
 	DryRun  bool
 	Profile string
 	Verbose bool
@@ -49,10 +49,9 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().BoolVar(&RootCmdArgs.DryRun, "dry-run", RootCmdArgs.DryRun, "perform a dry run instead")
-	rootCmd.PersistentFlags().BoolVar(&RootCmdArgs.Verbose, "verbose", RootCmdArgs.Verbose, "verbose terminal output")
-	rootCmd.PersistentFlags().BoolVar(&RootCmdArgs.DryRun, "dry-run", RootCmdArgs.DryRun, "perform a dry run instead")
-	rootCmd.PersistentFlags().StringVarP(&RootCmdArgs.Profile, "profile", "p", config.AppName, "profile name, for multiple instances")
+	rootCmd.PersistentFlags().BoolVar(&rootCmdArgs.DryRun, "dry-run", rootCmdArgs.DryRun, "perform a dry run instead")
+	rootCmd.PersistentFlags().BoolVar(&rootCmdArgs.Verbose, "verbose", rootCmdArgs.Verbose, "enable verbose log")
+	rootCmd.PersistentFlags().StringVarP(&rootCmdArgs.Profile, "profile", "p", config.AppName, "profile name, for multiple instances")
 
 	// decide if these should be public
 	// implementations are currently half-baked, only for test during development
@@ -60,13 +59,16 @@ func init() {
 
 }
 
-func initLog(dryRun bool) error {
+func initLog() error {
 	// general log output
 	log.SetOutput(logrus.New().Writer())
 	log.SetFlags(0)
 
-	if dryRun {
-		cli.DryRun(dryRun)
+	if rootCmdArgs.DryRun {
+		cli.DryRun(rootCmdArgs.DryRun)
+	}
+	if rootCmdArgs.Verbose {
+		cli.Settings.Verbose = rootCmdArgs.Verbose
 	}
 
 	return nil

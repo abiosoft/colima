@@ -4,32 +4,27 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
+	"github.com/abiosoft/colima/util/terminal"
 	"os"
 	"strings"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/environment"
-	"github.com/abiosoft/colima/util/terminal"
 )
 
-// New creates a new host environment using env as environment variables 
-// and using verbose to specify if output should be verbose.
-func New(verbose bool) environment.Host {
-	return &hostEnv{verbose: verbose}
+// New creates a new host environment using env as environment variables
+func New() environment.Host {
+	return &hostEnv{}
 }
 
 var _ environment.Host = (*hostEnv)(nil)
 
 type hostEnv struct {
-	env     []string
-	verbose bool
+	env []string
 }
 
 func (h hostEnv) WithEnv(env ...string) environment.HostActions {
 	var newHost hostEnv
-	// set verbose flag
-	newHost.verbose = h.verbose
 	// use current and new env vars
 	newHost.env = append(newHost.env, h.env...)
 	newHost.env = append(newHost.env, env...)
@@ -37,27 +32,26 @@ func (h hostEnv) WithEnv(env ...string) environment.HostActions {
 }
 
 func (h hostEnv) Run(args ...string) error {
-	var out io.WriteCloser
 	if len(args) == 0 {
 		return errors.New("args not specified")
 	}
 	cmd := cli.Command(args[0], args[1:]...)
 	cmd.Env = append(os.Environ(), h.env...)
 
-	if h.verbose {
-		out = os.Stderr
-	} else {
-		out = terminal.NewVerboseWriter(4)
+	lineHeight := 6
+	if cli.Settings.Verbose {
+		lineHeight = -1 // disable scrolling
 	}
 
+	out := terminal.NewVerboseWriter(lineHeight)
 	cmd.Stdout = out
 	cmd.Stderr = out
 
-	if err := cmd.Run(); err != nil {
-		return err
+	err := cmd.Run()
+	if err == nil {
+		return out.Close()
 	}
-	out.Close()
-	return nil
+	return err
 }
 
 func (h hostEnv) RunQuiet(args ...string) error {

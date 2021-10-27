@@ -10,6 +10,12 @@ import (
 
 var runner commandRunner = &defaultCommandRunner{}
 
+// Settings is global cli settings
+var Settings = struct {
+	// Verbose toggles verbose output for commands.
+	Verbose bool
+}{}
+
 // DryRun toggles the state of the command runner. If true, commands are only printed to the console
 // without execution.
 func DryRun(d bool) {

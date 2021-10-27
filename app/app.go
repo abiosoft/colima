@@ -28,8 +28,8 @@ type App interface {
 var _ App = (*colimaApp)(nil)
 
 // New creates a new app.
-func New(verbose bool) (App, error) {
-	guest := lima.New(host.New(verbose))
+func New() (App, error) {
+	guest := lima.New(host.New())
 	if err := host.IsInstalled(guest); err != nil {
 		return nil, fmt.Errorf("dependency check failed for VM: %w", err)
 	}
