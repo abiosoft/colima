@@ -52,7 +52,7 @@ func (v *verboseWriter) Write(p []byte) (n int, err error) {
 }
 
 func (v *verboseWriter) printLineVerbose() {
-	line := "> " + v.sanitizeLine(v.buf.String())
+	line := v.sanitizeLine(v.buf.String())
 	line = color.HiBlackString(line)
 	_, _ = fmt.Fprintln(os.Stderr, line)
 }
@@ -95,7 +95,7 @@ func (v verboseWriter) sanitizeLine(line string) string {
 		line = line[strings.Index(line, "msg="):]
 	}
 
-	return line
+	return "> " + line
 }
 
 func (v *verboseWriter) printScreen() error {
@@ -104,7 +104,7 @@ func (v *verboseWriter) printScreen() error {
 	}
 
 	for _, line := range v.lines {
-		line = "> " + v.sanitizeLine(line)
+		line = v.sanitizeLine(line)
 		if len(line) > v.termWidth {
 			line = line[:v.termWidth]
 		}
