@@ -1,11 +1,12 @@
 package root
 
 import (
+	"log"
+
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"log"
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -17,7 +18,7 @@ var rootCmd = &cobra.Command{
 		if rootCmdArgs.Profile != "" {
 			config.SetProfile(rootCmdArgs.Profile)
 		}
-		if err := initLog(rootCmdArgs.DryRun); err != nil {
+		if err := initLog(); err != nil {
 			return err
 		}
 
@@ -32,9 +33,11 @@ func Cmd() *cobra.Command {
 	return rootCmd
 }
 
+// rootCmdArgs holds all flags configured in root Cmd
 var rootCmdArgs struct {
 	DryRun  bool
 	Profile string
+	Verbose bool
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -47,6 +50,7 @@ func Execute() {
 
 func init() {
 	rootCmd.PersistentFlags().BoolVar(&rootCmdArgs.DryRun, "dry-run", rootCmdArgs.DryRun, "perform a dry run instead")
+	rootCmd.PersistentFlags().BoolVar(&rootCmdArgs.Verbose, "verbose", rootCmdArgs.Verbose, "enable verbose log")
 	rootCmd.PersistentFlags().StringVarP(&rootCmdArgs.Profile, "profile", "p", config.AppName, "profile name, for multiple instances")
 
 	// decide if these should be public
@@ -55,13 +59,16 @@ func init() {
 
 }
 
-func initLog(dryRun bool) error {
+func initLog() error {
 	// general log output
 	log.SetOutput(logrus.New().Writer())
 	log.SetFlags(0)
 
-	if dryRun {
-		cli.DryRun(dryRun)
+	if rootCmdArgs.DryRun {
+		cli.DryRun(rootCmdArgs.DryRun)
+	}
+	if rootCmdArgs.Verbose {
+		cli.Settings.Verbose = rootCmdArgs.Verbose
 	}
 
 	return nil

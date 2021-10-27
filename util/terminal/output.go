@@ -3,12 +3,13 @@ package terminal
 import (
 	"bytes"
 	"fmt"
-	"github.com/fatih/color"
-	"golang.org/x/crypto/ssh/terminal"
 	"io"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/fatih/color"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 var _ io.WriteCloser = (*verboseWriter)(nil)
@@ -50,6 +51,12 @@ func (v *verboseWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
+func (v *verboseWriter) printLineVerbose() {
+	line := v.sanitizeLine(v.buf.String())
+	line = color.HiBlackString(line)
+	_, _ = fmt.Fprintln(os.Stderr, line)
+}
+
 func (v *verboseWriter) refresh() error {
 	v.clearScreen()
 	v.addLine()
@@ -57,11 +64,18 @@ func (v *verboseWriter) refresh() error {
 }
 
 func (v *verboseWriter) addLine() {
+	defer v.buf.Truncate(0)
+
+	// if height <=0, do not scroll
+	if v.lineHeight <= 0 {
+		v.printLineVerbose()
+		return
+	}
+
 	if len(v.lines) >= v.lineHeight {
 		v.lines = v.lines[1:]
 	}
 	v.lines = append(v.lines, v.buf.String())
-	v.buf.Truncate(0)
 }
 
 func (v *verboseWriter) Close() error {
@@ -75,17 +89,22 @@ func (v *verboseWriter) Close() error {
 	return nil
 }
 
+func (v verboseWriter) sanitizeLine(line string) string {
+	// remove logrus noises
+	if strings.HasPrefix(line, "time=") {
+		line = line[strings.Index(line, "msg="):]
+	}
+
+	return "> " + line
+}
+
 func (v *verboseWriter) printScreen() error {
 	if err := v.updateTerm(); err != nil {
 		return err
 	}
 
 	for _, line := range v.lines {
-		// remove logrus noises
-		if strings.HasPrefix(line, "time=") {
-			line = line[strings.Index(line, "msg="):]
-		}
-		line = "> " + line
+		line = v.sanitizeLine(line)
 		if len(line) > v.termWidth {
 			line = line[:v.termWidth]
 		}

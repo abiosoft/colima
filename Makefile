@@ -6,6 +6,9 @@ clean:
 dev:
 	go get -v ./cmd/colima
 
+fmt:
+	go fmt ./...
+
 release:
 	sh scripts/release.sh ${VERSION}
 

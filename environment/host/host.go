@@ -4,14 +4,15 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/abiosoft/colima/cli"
-	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/util/terminal"
 	"os"
 	"strings"
+
+	"github.com/abiosoft/colima/cli"
+	"github.com/abiosoft/colima/environment"
 )
 
-// New creates a new host environment using env as environment variables.
+// New creates a new host environment using env as environment variables
 func New() environment.Host {
 	return &hostEnv{}
 }
@@ -37,8 +38,12 @@ func (h hostEnv) Run(args ...string) error {
 	cmd := cli.Command(args[0], args[1:]...)
 	cmd.Env = append(os.Environ(), h.env...)
 
-	out := terminal.NewVerboseWriter(4)
+	lineHeight := 6
+	if cli.Settings.Verbose {
+		lineHeight = -1 // disable scrolling
+	}
 
+	out := terminal.NewVerboseWriter(lineHeight)
 	cmd.Stdout = out
 	cmd.Stderr = out
 
@@ -46,7 +51,6 @@ func (h hostEnv) Run(args ...string) error {
 	if err == nil {
 		return out.Close()
 	}
-
 	return err
 }
 

@@ -2,6 +2,8 @@ package app
 
 import (
 	"fmt"
+	"strconv"
+
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
@@ -9,7 +11,6 @@ import (
 	"github.com/abiosoft/colima/environment/host"
 	"github.com/abiosoft/colima/environment/vm/lima"
 	log "github.com/sirupsen/logrus"
-	"strconv"
 )
 
 type App interface {

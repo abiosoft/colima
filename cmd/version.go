@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+
 	"github.com/abiosoft/colima/app"
 	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
