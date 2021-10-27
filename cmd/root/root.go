@@ -1,11 +1,12 @@
 package root
 
 import (
+	"log"
+
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"log"
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -14,10 +15,10 @@ var rootCmd = &cobra.Command{
 	Short: "container runtimes on macOS with minimal setup",
 	Long:  `Colima provides container runtimes on macOS with minimal setup.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		if rootCmdArgs.Profile != "" {
-			config.SetProfile(rootCmdArgs.Profile)
+		if RootCmdArgs.Profile != "" {
+			config.SetProfile(RootCmdArgs.Profile)
 		}
-		if err := initLog(rootCmdArgs.DryRun); err != nil {
+		if err := initLog(RootCmdArgs.DryRun); err != nil {
 			return err
 		}
 
@@ -32,9 +33,11 @@ func Cmd() *cobra.Command {
 	return rootCmd
 }
 
-var rootCmdArgs struct {
+// RootCmdArgs holds all flags configured in root Cmd
+var RootCmdArgs struct {
 	DryRun  bool
 	Profile string
+	Verbose bool
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -46,8 +49,10 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().BoolVar(&rootCmdArgs.DryRun, "dry-run", rootCmdArgs.DryRun, "perform a dry run instead")
-	rootCmd.PersistentFlags().StringVarP(&rootCmdArgs.Profile, "profile", "p", config.AppName, "profile name, for multiple instances")
+	rootCmd.PersistentFlags().BoolVar(&RootCmdArgs.DryRun, "dry-run", RootCmdArgs.DryRun, "perform a dry run instead")
+	rootCmd.PersistentFlags().BoolVar(&RootCmdArgs.Verbose, "verbose", RootCmdArgs.Verbose, "verbose terminal output")
+	rootCmd.PersistentFlags().BoolVar(&RootCmdArgs.DryRun, "dry-run", RootCmdArgs.DryRun, "perform a dry run instead")
+	rootCmd.PersistentFlags().StringVarP(&RootCmdArgs.Profile, "profile", "p", config.AppName, "profile name, for multiple instances")
 
 	// decide if these should be public
 	// implementations are currently half-baked, only for test during development
