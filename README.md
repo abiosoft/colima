@@ -106,6 +106,10 @@ the VM and apply the flags when starting it.
 
 To provide container runtimes on macOS with minimal setup.
 
+## Project Status
+
+⚠️ The project is still in active early stage development and updates may introduce breaking changes.
+
 ## What is with the name?
 
 Colima means Containers in Lima.
