@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/abiosoft/colima/util/terminal"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/abiosoft/colima/cli"
@@ -114,10 +115,8 @@ func (h hostEnv) Stat(fileName string) (os.FileInfo, error) {
 func IsInstalled(dependencies environment.Dependencies) error {
 	var missing []string
 	check := func(p string) error {
-		cmd := cli.Command("command", "-v", p)
-		cmd.Stderr = nil
-		cmd.Stdout = nil
-		return cmd.Run()
+		_, err := exec.LookPath(p)
+		return err
 	}
 	for _, p := range dependencies.Dependencies() {
 		if check(p) != nil {

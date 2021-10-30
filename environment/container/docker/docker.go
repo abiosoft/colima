@@ -96,6 +96,8 @@ func (d dockerRuntime) Provision() error {
 	return a.Exec()
 }
 
+const multiArchKey = "docker_multi_arch"
+
 func (d dockerRuntime) Start() error {
 	a := d.Init()
 	a.Stage("starting")
@@ -105,6 +107,17 @@ func (d dockerRuntime) Start() error {
 	})
 	a.Add(func() error {
 		return d.host.RunQuiet("launchctl", "load", d.launchd.File())
+	})
+	a.Add(func() error {
+		enabled, _ := strconv.ParseBool(d.guest.Get(multiArchKey))
+		if !enabled {
+			err := d.guest.RunQuiet("docker", "run", "--privileged", "--rm", "tonistiigi/binfmt", "--install", "all")
+			if err == nil {
+				_ = d.guest.Set(multiArchKey, "true")
+				_ = d.guest.Run("docker", "rmi", "-f", "tonistiigi/binfmt")
+			}
+		}
+		return nil
 	})
 
 	return a.Exec()
