@@ -3,6 +3,7 @@ package containerd
 import (
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/environment"
+	"strconv"
 )
 
 // Name is container runtime name
@@ -41,12 +42,27 @@ func (c containerdRuntime) Provision() error {
 	return nil
 }
 
+const multiArchKey = "containerd_multi_arch"
+
 func (c containerdRuntime) Start() error {
 	a := c.Init()
 	a.Stage("starting")
 	a.Add(func() error {
 		return c.guest.Run("sudo", "service", "containerd", "start")
 	})
+
+	a.Add(func() error {
+		enabled, _ := strconv.ParseBool(c.guest.Get(multiArchKey))
+		if !enabled {
+			err := c.guest.Run("sudo", "nerdctl", "run", "--privileged", "--rm", "tonistiigi/binfmt", "--install", "all")
+			if err == nil {
+				_ = c.guest.Set(multiArchKey, "true")
+				_ = c.guest.Run("sudo", "nerdctl", "rmi", "tonistiigi/binfmt")
+			}
+		}
+		return nil
+	})
+
 	return a.Exec()
 }
 
