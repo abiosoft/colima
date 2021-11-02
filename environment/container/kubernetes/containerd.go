@@ -11,8 +11,8 @@ import (
 func installContainerdDeps(guest environment.GuestActions, a *cli.ActiveCommandChain) {
 	// fix cni path
 	a.Add(func() error {
-		cniDir := "/opt/cni/bin"
-		if err := guest.RunQuiet("ls", cniDir); err == nil {
+		cniDir := "/usr/libexec/cni"
+		if err := guest.RunQuiet("sudo", "ls", "-l", cniDir); err == nil {
 			return nil
 		}
 

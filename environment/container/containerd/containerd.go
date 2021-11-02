@@ -3,6 +3,7 @@ package containerd
 import (
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/environment"
+	"time"
 )
 
 // Name is container runtime name
@@ -45,6 +46,7 @@ func (c containerdRuntime) Start() error {
 	a := c.Init()
 	a.Stage("starting")
 	a.Add(func() error {
+		defer time.Sleep(time.Second * 5) // service startup takes few seconds
 		return c.guest.Run("sudo", "service", "containerd", "start")
 	})
 

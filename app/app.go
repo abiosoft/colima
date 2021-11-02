@@ -84,15 +84,11 @@ func (c colimaApp) Start(conf config.Config) error {
 		return fmt.Errorf("error setting kubernetes version: %w", err)
 	}
 
-	// provision container runtimes
+	// provision and start container runtimes
 	for _, cont := range containers {
 		if err := cont.Provision(); err != nil {
 			return fmt.Errorf("error provisioning %s: %w", cont.Name(), err)
 		}
-	}
-
-	// start container runtimes
-	for _, cont := range containers {
 		if err := cont.Start(); err != nil {
 			return fmt.Errorf("error starting %s: %w", cont.Name(), err)
 		}

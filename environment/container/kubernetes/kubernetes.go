@@ -6,6 +6,7 @@ import (
 	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/environment/container/docker"
 	"strings"
+	"time"
 )
 
 // Name is container runtime name
@@ -41,7 +42,7 @@ func (c kubernetesRuntime) isInstalled() bool {
 }
 
 func (c kubernetesRuntime) Running() bool {
-	return c.guest.RunQuiet("service", "k3s", "status") == nil
+	return c.guest.RunQuiet("sudo", "service", "k3s", "status") == nil
 }
 
 func (c kubernetesRuntime) runtime() string {
@@ -76,6 +77,7 @@ func (c kubernetesRuntime) Start() error {
 	a.Stage("starting")
 
 	a.Add(func() error {
+		defer time.Sleep(time.Second * 5)
 		return c.guest.Run("sudo", "service", "k3s", "start")
 	})
 

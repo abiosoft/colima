@@ -7,32 +7,6 @@ import (
 	"path/filepath"
 )
 
-func (d dockerRuntime) setupInVM() error {
-	// install in VM
-	err := d.guest.Run("sudo", "apt-get", "-y", "install", "apt-transport-https", "ca-certificates", "curl", "gnupg", "lsb-release")
-	if err != nil {
-		return fmt.Errorf("error installing in VM: %w", err)
-	}
-	err = d.guest.Run("bash", "-c", "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg")
-	if err != nil {
-		return fmt.Errorf("error installing in VM: %w", err)
-	}
-	err = d.guest.Run("bash", "-c", "echo \"deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null")
-	if err != nil {
-		return fmt.Errorf("error installing in VM: %w", err)
-	}
-	err = d.guest.Run("sudo", "apt-get", "update")
-	if err != nil {
-		return fmt.Errorf("error installing in VM: %w", err)
-	}
-	err = d.guest.Run("sudo", "apt-get", "-y", "install", "docker-ce", "docker-ce-cli", "containerd.io")
-	if err != nil {
-		return fmt.Errorf("error installing in VM: %w", err)
-	}
-
-	return d.createDaemonFile(daemonFile())
-}
-
 func (d dockerRuntime) fixUserPermission() error {
 	user, err := d.guest.User()
 	if err != nil {
@@ -62,7 +36,13 @@ func daemonFile() string {
 	return filepath.Join(config.Dir(), "docker", "daemon.json")
 }
 
-func (d dockerRuntime) createDaemonFile(fileName string) error {
+func (d dockerRuntime) isDaemonFileCreated() bool {
+	_, err := d.host.Stat(daemonFile())
+	return err == nil
+}
+
+func (d dockerRuntime) createDaemonFile() error {
+	fileName := daemonFile()
 	// ensure directory
 	if err := d.host.RunQuiet("mkdir", "-p", filepath.Dir(fileName)); err != nil {
 		return fmt.Errorf("error creating config directory: %w", err)
@@ -83,7 +63,7 @@ func (d dockerRuntime) setupDaemonFile() error {
 	// check daemon.json or create default
 	if _, err := d.host.Stat(daemonFile); err != nil {
 		log.Warnln("daemon.json not found, falling back to default")
-		if err := d.createDaemonFile(daemonFile); err != nil {
+		if err := d.createDaemonFile(); err != nil {
 			return fmt.Errorf("error creating daemon.json: %w", err)
 		}
 	}
@@ -104,7 +84,7 @@ func (d dockerRuntime) setupDaemonFile() error {
 		return fmt.Errorf("error copying deamon.json: %w", err)
 	}
 
-	// config changed, restart is a must
+	// config changed, restart is a must. stop now, start will be done during start
 	if d.Running() {
 		return d.guest.RunQuiet("sudo", "service", "docker", "stop")
 	}

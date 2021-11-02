@@ -86,7 +86,7 @@ func installK3sCluster(host environment.HostActions, guest environment.GuestActi
 
 	args := []string{
 		"--write-kubeconfig-mode", "644",
-		"--resolv-conf", "/run/systemd/resolve/resolv.conf",
+		"--resolv-conf", "/etc/resolv.conf",
 		"--disable", "traefik",
 	}
 

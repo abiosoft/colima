@@ -110,7 +110,7 @@ func randomAvailablePort() int {
 func init() {
 	runtimes := strings.Join(environment.ContainerRuntimes(), ", ")
 	defaultArch := string(environment.Arch(runtime.GOARCH).Value())
-	defaultPortInterface := net.ParseIP("127.0.0.1")
+	defaultPortInterface := net.ParseIP("0.0.0.0")
 
 	root.Cmd().AddCommand(startCmd)
 	startCmd.Flags().StringVarP(&startCmdArgs.Runtime, "runtime", "r", docker.Name, "container runtime ("+runtimes+")")

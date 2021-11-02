@@ -3,7 +3,11 @@ package docker
 import (
 	"fmt"
 	"github.com/abiosoft/colima/config"
+	"path/filepath"
 )
+
+// HostSocketFile returns the path to the docker socket on host.
+func HostSocketFile() string { return filepath.Join(config.Dir(), "docker.sock") }
 
 func (d dockerRuntime) isContextCreated() bool {
 	command := fmt.Sprintf(`docker context ls -q | grep "^%s$"`, config.Profile().ID)
@@ -19,7 +23,7 @@ func (d dockerRuntime) setupContext() error {
 
 	return d.host.Run("docker", "context", "create", profile,
 		"--description", profile,
-		"--docker", "host=unix://"+socketSymlink(),
+		"--docker", "host=unix://"+HostSocketFile(),
 	)
 }
 
