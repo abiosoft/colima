@@ -1,3 +1,5 @@
 .idea/
 .vscode/
 _output/
+build/
+embedded/**/*.bin

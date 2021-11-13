@@ -147,7 +147,7 @@ type Config struct {
 	Kubernetes Kubernetes `yaml:"kubernetes"`
 
 	// Network address to forward VM ports to.
-	PortInterface net.IP
+	PortInterface net.IP `yaml:"port_interface"`
 }
 
 // Kubernetes is kubernetes configuration

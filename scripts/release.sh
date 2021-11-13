@@ -11,11 +11,12 @@ fi
 REVISION="$(git rev-parse HEAD)"
 PACKAGE="github.com/abiosoft/colima/config"
 
-mkdir -p _output
+OUTPUT_DIR=_output/binaries
+mkdir -p "$OUTPUT_DIR"
 
 go build \
     -ldflags "-X ${PACKAGE}.appVersion=${VERSION} -X ${PACKAGE}.revision=${REVISION}" \
-    -o _output/colima-amd64 \
+    -o "$OUTPUT_DIR/colima-${GOOS}-${GOARCH}" \
     ./cmd/colima
 
 if [ -n "$GITHUB" ]; then

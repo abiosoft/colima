@@ -19,10 +19,10 @@ func (d dockerRuntime) setupContext() error {
 		return nil
 	}
 
-	profile := config.Profile().ID
+	profile := config.Profile()
 
-	return d.host.Run("docker", "context", "create", profile,
-		"--description", profile,
+	return d.host.Run("docker", "context", "create", profile.ID,
+		"--description", profile.DisplayName,
 		"--docker", "host=unix://"+HostSocketFile(),
 	)
 }
