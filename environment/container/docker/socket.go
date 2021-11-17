@@ -32,13 +32,15 @@ func createSocketForwardingScript(vmUser string, sshPort int) error {
 
 	// write socket script to file
 	var values = struct {
-		SocketFile string
-		SSHPort    int
-		VMUser     string
+		SocketFile  string
+		SSHPort     int
+		VMUser      string
+		SSHAuthSock string
 	}{
-		SocketFile: socketSymlink(),
-		SSHPort:    sshPort,
-		VMUser:     vmUser,
+		SocketFile:  socketSymlink(),
+		SSHPort:     sshPort,
+		VMUser:      vmUser,
+		SSHAuthSock: os.Getenv("SSH_AUTH_SOCK"),
 	}
 
 	err := util.WriteTemplate(socketForwardingScript, scriptFile, values)

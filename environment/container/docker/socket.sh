@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 #
-# Forwards docker socket from the VM to the host and, when valid, $SSH_AUTH_SOCK to /run/host-services/ssh-auth.sock
+# Forwards docker socket from the VM to the host and, when valid, {{.SSHAuthSock}} to /run/host-services/ssh-auth.sock
 
 #######################################
-# Determine whether |SSH_AUTH_SOCK| is set and pointing to a socket.
+# Determine whether {{.SSHAuthSock}} is set and pointing to a socket.
 # Globals:
-#   SSH_AUTH_SOCK
+#   None
 # Arguments:
 #   None
-# Returns: failure when $SSH_AUTH_SOCK is either not set or not a socket.
+# Returns: failure when {{.SSHAuthSock}} is either not set or not a socket.
 #######################################
 function ssh_auth_socket_is_valid() {
-  if [[ -z $SSH_AUTH_SOCK || ! -S $SSH_AUTH_SOCK ]]; then
+  if [[ -z "{{.SSHAuthSock}}" || ! -S "{{.SSHAuthSock}}" ]]; then
     return 1
   fi
 }
@@ -19,7 +19,7 @@ function ssh_auth_socket_is_valid() {
 #######################################
 # Prepare local sockets
 # Globals:
-#   SSH_AUTH_SOCK
+#   None
 # Arguments:
 #   None
 #######################################
@@ -78,7 +78,7 @@ function install_remote_host_services() {
 }
 
 #######################################
-# Ensures that the remote directory for receiving the |SSH_AUTH_SOCK| is prepared (owned by $USER)
+# Ensures that the remote directory for receiving the {{.SSHAuthSock}} is prepared (owned by $USER)
 # Globals:
 #   None
 # Arguments:
@@ -108,7 +108,7 @@ function forward_sockets() {
   )
   if ssh_auth_socket_is_valid; then
     ssh_cmd+=(
-      -R "/run/host-services/ssh-auth.sock:${SSH_AUTH_SOCK}"
+      -R "/run/host-services/ssh-auth.sock:{{.SSHAuthSock}}"
     )
   fi
 
