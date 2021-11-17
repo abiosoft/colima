@@ -3,10 +3,11 @@ package docker
 import (
 	_ "embed"
 	"fmt"
-	"github.com/abiosoft/colima/config"
-	"github.com/abiosoft/colima/util"
 	"os"
 	"path/filepath"
+
+	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/util"
 )
 
 //go:embed socket.sh
@@ -34,7 +35,11 @@ func createSocketForwardingScript(vmUser string, sshPort int) error {
 		SocketFile string
 		SSHPort    int
 		VMUser     string
-	}{SocketFile: socketSymlink(), SSHPort: sshPort, VMUser: vmUser}
+	}{
+		SocketFile: socketSymlink(),
+		SSHPort:    sshPort,
+		VMUser:     vmUser,
+	}
 
 	err := util.WriteTemplate(socketForwardingScript, scriptFile, values)
 	if err != nil {
