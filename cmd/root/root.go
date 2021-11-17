@@ -1,10 +1,12 @@
 package root
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/embedded"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -20,6 +22,9 @@ var rootCmd = &cobra.Command{
 		}
 		if err := initLog(); err != nil {
 			return err
+		}
+		if err := embedded.Extract(); err != nil {
+			logrus.Warnln(fmt.Errorf("error extracting binaries: %w", err))
 		}
 
 		cmd.SilenceUsage = true

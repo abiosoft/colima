@@ -2,8 +2,9 @@ package docker
 
 import (
 	"fmt"
-	"github.com/abiosoft/colima/config"
 	"path/filepath"
+
+	"github.com/abiosoft/colima/config"
 )
 
 // HostSocketFile returns the path to the docker socket on host.

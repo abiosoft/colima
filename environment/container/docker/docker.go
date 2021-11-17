@@ -1,9 +1,11 @@
 package docker
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/environment"
-	"time"
 )
 
 // Name is container runtime name.
@@ -67,6 +69,7 @@ func (d dockerRuntime) Provision() error {
 
 func (d dockerRuntime) Start() error {
 	a := d.Init()
+	log := d.Logger()
 	a.Stage("starting")
 
 	a.Add(func() error {
@@ -75,7 +78,15 @@ func (d dockerRuntime) Start() error {
 	})
 
 	a.Add(func() error {
-		_ = d.guest.Run("docker", "run", "--privileged", "--rm", "tonistiigi/binfmt", "--install", "all")
+		if err := d.guest.Run("docker", "load", "-i", environment.BinfmtTarFile); err != nil {
+			log.Warnln(fmt.Errorf("could not enable multi-arch images: %w", err))
+		}
+		if err := d.guest.Run("docker", "run", "--privileged", "--rm", "colima-binfmt", "--install", "all"); err != nil {
+			log.Warnln(fmt.Errorf("could not enable multi-arch images: %w", err))
+		}
+		if err := d.guest.Run("docker", "rmi", "--force", "colima-binfmt"); err != nil {
+			log.Warnln(fmt.Errorf("could not clear image cache for multi-arch images: %w", err))
+		}
 		return nil
 	})
 

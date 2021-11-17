@@ -4,15 +4,16 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/yamlutil"
-	"os"
-	"path/filepath"
-	"strconv"
-	"time"
 )
 
 // New creates a new virtual machine.
@@ -168,17 +169,11 @@ func (l limaVM) Stop() error {
 
 func (l limaVM) Teardown() error {
 	a := l.Init()
-	if l.Running() {
-		// lima needs to be stopped before it can be deleted.
-		if err := l.Stop(); err != nil {
-			return err
-		}
-	}
 
 	a.Stage("deleting")
 
 	a.Add(func() error {
-		return l.host.Run(limactl, "delete", config.Profile().ID)
+		return l.host.Run(limactl, "delete", "--force", config.Profile().ID)
 	})
 
 	return a.Exec()

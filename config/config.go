@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/abiosoft/colima/util/yamlutil"
 	"gopkg.in/yaml.v3"
@@ -31,7 +32,7 @@ func SetProfile(profileName string) {
 }
 
 // Profile returns the current application profile.
-func Profile() ProfileInfo { ensureInit(); return profile }
+func Profile() ProfileInfo { return profile }
 
 // ProfileInfo is information about the colima profile.
 type ProfileInfo struct {
@@ -45,61 +46,71 @@ type VersionInfo struct {
 	Revision string
 }
 
-func AppVersion() VersionInfo {
-	ensureInit()
-	return VersionInfo{Version: appVersion, Revision: revision}
-}
+func AppVersion() VersionInfo { return VersionInfo{Version: appVersion, Revision: revision} }
 
 var (
 	appVersion = "development"
 	revision   = "unknown"
+)
 
-	configDir string
-	cacheDir  string
+// requiredDir is a directory that must exist on the filesystem
+type requiredDir struct {
+	once sync.Once
+	// dir is a func to enable deferring the value of the directory
+	// until execution time.
+	// if dir() returns an error, a fatal error is triggered.
+	dir func() (string, error)
+}
+
+// Dir returns the directory path.
+// It ensures the directory is created on the filesystem by calling
+// `mkdir` prior to returning the directory path.
+func (r *requiredDir) Dir() string {
+	dir, err := r.dir()
+	if err != nil {
+		log.Fatal(fmt.Errorf("cannot fetch required directory: %w", err))
+	}
+
+	r.once.Do(func() {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			log.Fatal(fmt.Errorf("cannot make required directory: %w", err))
+		}
+	})
+
+	return dir
+}
+
+var (
+	configDir requiredDir = requiredDir{
+		dir: func() (string, error) {
+			dir, err := os.UserHomeDir()
+			if err != nil {
+				return "", err
+			}
+			return filepath.Join(dir, "."+profile.ID), nil
+		},
+	}
+
+	cacheDir requiredDir = requiredDir{
+		dir: func() (string, error) {
+			dir, err := os.UserCacheDir()
+			if err != nil {
+				return "", err
+			}
+			return filepath.Join(dir, profile.ID), nil
+		},
+	}
 )
 
 // Dir returns the configuration directory.
-func Dir() string { ensureInit(); return configDir }
+func Dir() string { return configDir.Dir() }
 
 // CacheDir returns the cache directory.
-func CacheDir() string { ensureInit(); return cacheDir }
-
-var initDone = false
-
-func ensureInit() {
-	if initDone {
-		return
-	}
-
-	{
-		// prepare config directory
-		dir, err := os.UserHomeDir()
-		if err != nil {
-			log.Fatal(fmt.Errorf("cannot fetch user config directory: %w", err))
-		}
-		configDir = filepath.Join(dir, "."+profile.ID)
-		if err := os.MkdirAll(configDir, 0755); err != nil {
-			log.Fatal(fmt.Errorf("cannot create config directory: %w", err))
-		}
-	}
-
-	{
-		// prepare cache directory
-		dir, err := os.UserCacheDir()
-		if err != nil {
-			log.Fatal(fmt.Errorf("cannot fetch user config directory: %w", err))
-		}
-		cacheDir = filepath.Join(dir, profile.ID)
-		if err := os.MkdirAll(cacheDir, 0755); err != nil {
-			log.Fatal(fmt.Errorf("cannot create cache directory: %w", err))
-		}
-	}
-	initDone = true
-}
+func CacheDir() string { return cacheDir.Dir() }
 
 const configFileName = "colima.yaml"
 
-func configFile() string { ensureInit(); return filepath.Join(configDir, configFileName) }
+func configFile() string { return filepath.Join(configDir.Dir(), configFileName) }
 
 // Save saves the config.
 func Save(c Config) error {
@@ -129,8 +140,8 @@ func Load() (Config, error) {
 
 // Teardown deletes the config.
 func Teardown() error {
-	if _, err := os.Stat(configDir); err == nil {
-		return os.RemoveAll(configDir)
+	if _, err := os.Stat(configDir.Dir()); err == nil {
+		return os.RemoveAll(configDir.Dir())
 	}
 	return nil
 }

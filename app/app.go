@@ -146,7 +146,7 @@ func (c colimaApp) Delete() error {
 
 	// vm teardown would've sufficed but container provision
 	// may have created configurations on the host.
-	// it is essential to teardown containers as well.
+	// it is thereby necessary to teardown containers as well.
 
 	// teardown container runtimes
 	if c.guest.Running() {

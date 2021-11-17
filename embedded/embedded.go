@@ -3,26 +3,29 @@ package embedded
 import (
 	"embed"
 	"fmt"
-	"github.com/abiosoft/colima/config"
-	"github.com/sirupsen/logrus"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/abiosoft/colima/config"
 )
 
 // only include binaries suffixed with .bin.
 //go:embed binaries/*.bin
 var binaries embed.FS
 
-func init() {
+// Extract extracts the embedded binaries.
+func Extract() error {
 	if err := os.MkdirAll(extractDirectory(), 0755); err != nil {
-		logrus.Fatal(fmt.Errorf("cannot create extract directory"))
+		return fmt.Errorf("cannot create extract directory")
 	}
 	if err := extractAllBinaries(); err != nil {
-		logrus.Fatal(err)
+		return err
 	}
+
+	return nil
 }
 
 func extractAllBinaries() error {
