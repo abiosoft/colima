@@ -175,7 +175,8 @@ type VM struct {
 	Arch   string `yaml:"arch"`
 
 	// auto generated
-	SSHPort int `yaml:"-"`
+	SSHPort      int  `yaml:"-"`
+	ForwardAgent bool `yaml:"forward_agent"`
 
 	// volume mounts
 	Mounts []string `yaml:"mounts"`

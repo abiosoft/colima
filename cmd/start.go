@@ -72,6 +72,9 @@ The --runtime, --disk and --arch flags are only used on initial start and ignore
 		if !cmd.Flag("port-interface").Changed {
 			startCmdArgs.PortInterface = current.PortInterface
 		}
+		if !cmd.Flag("ssh-agent").Changed {
+			startCmdArgs.VM.ForwardAgent = current.VM.ForwardAgent
+		}
 
 		log.Println("using", current.Runtime, "runtime")
 
@@ -125,6 +128,9 @@ func init() {
 
 	// port forwarding
 	startCmd.Flags().IPVarP(&startCmdArgs.PortInterface, "port-interface", "i", defaultPortInterface, "interface to use for forwarded ports")
+
+	// ssh agent
+	startCmd.Flags().BoolVarP(&startCmdArgs.VM.ForwardAgent, "ssh-agent", "s", false, "forward SSH agent to the VM")
 
 	// k8s
 	startCmd.Flags().BoolVarP(&startCmdArgs.Kubernetes.Enabled, "with-kubernetes", "k", false, "start VM with Kubernetes")

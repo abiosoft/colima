@@ -1,12 +1,15 @@
 package lima
 
 import (
+	"bufio"
+	"bytes"
 	_ "embed"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/abiosoft/colima/cli"
@@ -313,4 +316,50 @@ func (l limaVM) User() (string, error) {
 func (l limaVM) Arch() environment.Arch {
 	a, _ := l.RunOutput("uname", "-m")
 	return environment.Arch(a)
+}
+
+// InstanceInfo is the information about a Lima instance
+type InstanceInfo struct {
+	Name   string `json:"name,omitempty"`
+	Status string `json:"status,omitempty"`
+	Arch   string `json:"arch,omitempty"`
+	CPU    int    `json:"cpus,omitempty"`
+	Memory int64  `json:"memory,omitempty"`
+	Disk   int64  `json:"disk,omitempty"`
+}
+
+// Instances returns Lima instances created by colima.
+func Instances() ([]InstanceInfo, error) {
+	var buf bytes.Buffer
+	cmd := cli.Command("limactl", "list", "--json")
+	cmd.Stdout = &buf
+
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("error retrieving instances: %w", err)
+	}
+
+	var instances []InstanceInfo
+	scanner := bufio.NewScanner(&buf)
+	for scanner.Scan() {
+		var i InstanceInfo
+		line := scanner.Bytes()
+		if err := json.Unmarshal(line, &i); err != nil {
+			return nil, fmt.Errorf("error retrieving instances: %w", err)
+		}
+
+		// limit to colima instances
+		if !strings.HasPrefix(i.Name, "colima") {
+			continue
+		}
+
+		// rename to local friendly names
+		if i.Name == "colima" {
+			i.Name = "default"
+		}
+		i.Name = strings.TrimPrefix(i.Name, "colima-")
+
+		instances = append(instances, i)
+	}
+
+	return instances, nil
 }

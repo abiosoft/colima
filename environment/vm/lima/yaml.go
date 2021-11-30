@@ -2,28 +2,30 @@ package lima
 
 import (
 	"fmt"
-	"github.com/abiosoft/colima/config"
-	"github.com/abiosoft/colima/environment"
-	"github.com/abiosoft/colima/environment/container/docker"
-	"github.com/abiosoft/colima/util"
 	"net"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/environment/container/docker"
+	"github.com/abiosoft/colima/util"
 )
 
 func newConf(conf config.Config) (l Config, err error) {
 	l.Arch = environment.Arch(conf.VM.Arch).Value()
 
 	l.Images = append(l.Images,
-		File{Arch: environment.X8664, Location: "https://cloud-images.ubuntu.com/impish/current/impish-server-cloudimg-amd64.img"},
-		File{Arch: environment.AARCH64, Location: "https://cloud-images.ubuntu.com/impish/current/impish-server-cloudimg-arm64.img"})
+		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.3.0/alpine-lima-clm-3.14.3-aarch64.iso", Digest: "sha512:0da261241ada39d5d4008348a7ea2658b02c18e2267617866578eb38bc4897a8b9e1236c91e747470eee1b25ee9a5162acf9c99a0be7bf756657d7d992c68867"},
+		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.3.0/alpine-lima-clm-3.14.3-x86_64.iso", Digest: "sha512:463a37c34e0e16bae16156cdf7a4ba751ddf78ec0859e5bf2dff8c7a4ab43fe3cbfad990919520bc2c32cec6a87100736950ecc8d6c3c12d5e3befe1c1dd933f"},
+	)
 
 	l.CPUs = conf.VM.CPU
 	l.Memory = fmt.Sprintf("%dGiB", conf.VM.Memory)
 	l.Disk = fmt.Sprintf("%dGiB", conf.VM.Disk)
 
-	l.SSH = SSH{LocalPort: conf.VM.SSHPort, LoadDotSSHPubKeys: false}
+	l.SSH = SSH{LocalPort: conf.VM.SSHPort, LoadDotSSHPubKeys: false, ForwardAgent: conf.VM.ForwardAgent}
 	l.Containerd = Containerd{System: false, User: false}
 	l.Firmware.LegacyBIOS = false
 
@@ -114,6 +116,7 @@ type Config struct {
 type File struct {
 	Location string           `yaml:"location"` // REQUIRED
 	Arch     environment.Arch `yaml:"arch,omitempty"`
+	Digest   string           `yaml:"digest,omitempty"`
 }
 
 type Mount struct {
@@ -126,6 +129,7 @@ type SSH struct {
 	// LoadDotSSHPubKeys loads ~/.ssh/*.pub in addition to $LIMA_HOME/_config/user.pub .
 	// Default: true
 	LoadDotSSHPubKeys bool `yaml:"loadDotSSHPubKeys"`
+	ForwardAgent      bool `yaml:"forwardAgent,omitempty"` // default: false
 }
 
 type Containerd struct {
