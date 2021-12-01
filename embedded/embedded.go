@@ -12,8 +12,7 @@ import (
 	"github.com/abiosoft/colima/config"
 )
 
-// only include binaries suffixed with .bin.
-//go:embed binaries/*.bin
+//go:embed binaries
 var binaries embed.FS
 
 // Extract extracts the embedded binaries.
