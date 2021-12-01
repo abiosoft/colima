@@ -17,15 +17,25 @@ import (
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/yamlutil"
+	"github.com/sirupsen/logrus"
 )
 
 // New creates a new virtual machine.
 func New(host environment.HostActions) environment.VM {
 	env := limaInstanceEnvVar + "=" + config.Profile().ID
 
+	home, err := limaHome()
+	if err != nil {
+		err = fmt.Errorf("error detecting Lima config directory: %w", err)
+		logrus.Warnln(err)
+		logrus.Warnln("falling back to default '$HOME/.lima'")
+		home = filepath.Join(util.HomeDir(), ".lima")
+	}
+
 	// consider making this truly flexible to support other VMs
 	return &limaVM{
 		host:         host.WithEnv(env),
+		home:         home,
 		CommandChain: cli.New("vm"),
 	}
 }
@@ -36,9 +46,27 @@ const (
 	limactl            = "limactl"
 )
 
-func limaConfDir() string {
-	home := util.HomeDir()
-	return filepath.Join(home, ".lima", config.Profile().ID)
+func limaHome() (string, error) {
+	var buf bytes.Buffer
+	cmd := cli.Command("limactl", "info")
+	cmd.Stdout = &buf
+
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("error retrieving lima info: %w", err)
+	}
+
+	var resp struct {
+		LimaHome string `json:"limaHome"`
+	}
+	if err := json.NewDecoder(&buf).Decode(&resp); err != nil {
+		return "", fmt.Errorf("error decoding json for lima info: %w", err)
+	}
+
+	return resp.LimaHome, nil
+}
+
+func (l limaVM) limaConfDir() string {
+	return filepath.Join(l.home, config.Profile().ID)
 }
 
 var _ environment.VM = (*limaVM)(nil)
@@ -49,6 +77,9 @@ type limaVM struct {
 
 	// keep config in case of restart
 	conf config.Config
+
+	// lima config directory
+	home string
 }
 
 func (l limaVM) Dependencies() []string {
@@ -102,7 +133,7 @@ func (l limaVM) resume(conf config.Config) error {
 		return nil
 	}
 
-	configFile := filepath.Join(limaConfDir(), "lima.yaml")
+	configFile := filepath.Join(l.limaConfDir(), "lima.yaml")
 
 	a.Add(func() error {
 		limaConf, err := newConf(conf)
@@ -264,7 +295,7 @@ func (l limaVM) Env(s string) (string, error) {
 }
 
 func (l limaVM) Created() bool {
-	stat, err := os.Stat(limaConfDir())
+	stat, err := os.Stat(l.limaConfDir())
 	return err == nil && stat.IsDir()
 }
 

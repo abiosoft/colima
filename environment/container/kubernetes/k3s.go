@@ -2,24 +2,21 @@ package kubernetes
 
 import (
 	_ "embed"
+	"strings"
+
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/environment/container/docker"
 	"github.com/abiosoft/colima/util/downloader"
-	"strings"
 )
 
-const k3sVersion = "v1.22.2+k3s2"
+const k3sVersion = "v1.22.4+k3s1"
 
 func installK3s(host environment.HostActions, guest environment.GuestActions, a *cli.ActiveCommandChain, containerRuntime string) {
 	installK3sBinary(host, guest, a)
 	installK3sCache(host, guest, a, containerRuntime)
 	installK3sCluster(host, guest, a, containerRuntime)
-
-	if containerRuntime == containerd.Name {
-		installContainerdDeps(guest, a)
-	}
 }
 
 func installK3sBinary(host environment.HostActions, guest environment.GuestActions, a *cli.ActiveCommandChain) {
