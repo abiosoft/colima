@@ -2,25 +2,57 @@ name: Go
 
 on:
   push:
-    branches: [ main, golang-rewrite ]
+    tags: ["v*"]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - name: Set up Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.17
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
 
-    - name: Build
-      run: go build -v ./...
+      - name: Build
+        run: go build -v ./...
 
-    - name: Test
-      run: go test -v ./...
+      - name: Test
+        run: go test -v ./...
 
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: generate macOS binaries
+        run: |
+          make GOOS=darwin GOARCH=amd64
+          make GOOS=darwin GOARCH=arm64
+
+      - name: generate Linux binaries
+        run: |
+          make GOOS=linux GOARCH=amd64
+          make GOOS=linux GOARCH=arm64
+
+      - name: create release
+        if: github.event_name != 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >
+          tag="${GITHUB_REF##*/}"
+
+          hub release create
+          -a _output/binaries/colima-darwin-amd64
+          -a _output/binaries/colima-darwin-amd64.sha256sum
+          -a _output/binaries/colima-darwin-arm64
+          -a _output/binaries/colima-darwin-arm64.sha256sum
+          -a _output/binaries/colima-linux-amd64
+          -a _output/binaries/colima-linux-amd64.sha256sum
+          -a _output/binaries/colima-linux-arm64
+          -a _output/binaries/colima-linux-arm64.sha256sum
+          -m "${tag}" --draft "${tag}"

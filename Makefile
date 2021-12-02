@@ -5,7 +5,7 @@ GOARCH_x86_64 = amd64
 GOARCH_aarch64 = arm64
 GOARCH ?= $(shell echo "$(GOARCH_$(ARCH))")
 
-all: release
+all: build 
 
 clean:
 	rm -rf _output
@@ -16,13 +16,8 @@ gopath:
 fmt:
 	go fmt ./...
 
-release:
-	GOOS=$(GOOS) GOARCH=$(GOARCH) sh scripts/release.sh ${VERSION}
-
-gh_release: gh_release-$(GOOS)-$(GOARCH)
-
-gh_release-$(GOOS)-$(GOARCH):
-	GOOS=$(GOOS) GOARCH=$(GOARCH) GITHUB=1 sh scripts/release.sh ${VERSION} -F CHANGELOG.md
+build:
+	GOOS=$(GOOS) GOARCH=$(GOARCH) sh scripts/build.sh
 
 install:
 	cp _output/binaries/colima-$(GOOS)-$(GOARCH) /usr/local/bin/colima

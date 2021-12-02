@@ -3,22 +3,18 @@
 set -ex
 
 VERSION="$(git describe --tags)"
-if [ -n "$1" ]; then
-    VERSION="$1"
-    shift
-fi
-
 REVISION="$(git rev-parse HEAD)"
 PACKAGE="github.com/abiosoft/colima/config"
 
 OUTPUT_DIR=_output/binaries
 mkdir -p "$OUTPUT_DIR"
 
+OUTPUT_BIN="colima-${GOOS}-${GOARCH}"
+
 go build \
     -ldflags "-X ${PACKAGE}.appVersion=${VERSION} -X ${PACKAGE}.revision=${REVISION}" \
-    -o "$OUTPUT_DIR/colima-${GOOS}-${GOARCH}" \
+    -o "$OUTPUT_DIR/$OUTPUT_BIN" \
     ./cmd/colima
 
-if [ -n "$GITHUB" ]; then
-    gh release create "$VERSION" --title "$VERSION" "$@" _output/colima*
-fi
+# sha256sum is not on macOS by default, fixable with `brew install coreutils`
+cd "${OUTPUT_DIR}" && sha256sum "${OUTPUT_BIN}" >"${OUTPUT_BIN}.sha256sum"
