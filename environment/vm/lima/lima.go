@@ -61,6 +61,9 @@ func limaHome() (string, error) {
 	if err := json.NewDecoder(&buf).Decode(&resp); err != nil {
 		return "", fmt.Errorf("error decoding json for lima info: %w", err)
 	}
+	if resp.LimaHome == "" {
+		return "", fmt.Errorf("error retrieving lima info, ensure lima version is >0.7.4")
+	}
 
 	return resp.LimaHome, nil
 }
