@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+
 	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment/container/kubernetes"
@@ -59,7 +60,7 @@ var kubernetesStopCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		if k.Version() == "" {
+		if !k.Running() {
 			return fmt.Errorf("%s is not enabled", kubernetes.Name)
 		}
 
@@ -78,7 +79,7 @@ var kubernetesDeleteCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		if k.Version() == "" {
+		if !k.Running() {
 			return fmt.Errorf("%s is not enabled", kubernetes.Name)
 		}
 

@@ -1,6 +1,9 @@
 package containerd
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/environment"
 )
@@ -43,14 +46,24 @@ func (c containerdRuntime) Provision() error {
 
 func (c containerdRuntime) Start() error {
 	a := c.Init()
+	log := c.Logger()
+
 	a.Stage("starting")
 	a.Add(func() error {
+		defer time.Sleep(time.Second * 5) // service startup takes few seconds
 		return c.guest.Run("sudo", "service", "containerd", "start")
 	})
 
-	// tonistiigi/binfmt
 	a.Add(func() error {
-		_ = c.guest.Run("sudo", "nerdctl", "run", "--privileged", "--rm", "tonistiigi/binfmt", "--install", "all")
+		if err := c.guest.Run("sudo", "nerdctl", "load", "-i", environment.BinfmtTarFile); err != nil {
+			log.Warnln(fmt.Errorf("could not enable multi-arch images: %w", err))
+		}
+		if err := c.guest.Run("sudo", "nerdctl", "run", "--privileged", "--rm", "colima-binfmt", "--install", "all"); err != nil {
+			log.Warnln(fmt.Errorf("could not enable multi-arch images: %w", err))
+		}
+		if err := c.guest.Run("sudo", "nerdctl", "rmi", "--force", "colima-binfmt"); err != nil {
+			log.Warnln(fmt.Errorf("could not clear image cache for multi-arch images: %w", err))
+		}
 		return nil
 	})
 

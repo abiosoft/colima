@@ -4,16 +4,17 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/abiosoft/colima/util/terminal"
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/abiosoft/colima/util/terminal"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/environment"
 )
 
-// New creates a new host environment using env as environment variables
+// New creates a new host environment.
 func New() environment.Host {
 	return &hostEnv{}
 }

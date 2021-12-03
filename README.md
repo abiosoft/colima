@@ -2,7 +2,7 @@
 
 [![Go](https://github.com/abiosoft/colima/actions/workflows/go.yml/badge.svg)](https://github.com/abiosoft/colima/actions/workflows/go.yml)
 
-Container runtimes on macOS with minimal setup.
+Container runtimes on macOS (and Linux) with minimal setup.
 
 ![Demonstration](colima.gif)
 
@@ -26,6 +26,7 @@ brew install colima
 ```
 
 Or stay on the bleeding edge
+
 ```
 brew install --HEAD colima
 ```
@@ -131,25 +132,6 @@ Yes, from version v0.3.0, Colima can run alongside Docker for Mac.
 </details>
 
 <details>
-<summary>How to enable writable volumes?</summary>
-<p>
-
-By default, Colima mounts the host's $HOME directory as readonly in the VM. Volume mounts and Compose should work as
-expected but only readonly.
-
-Colima uses Lima for the VM and Lima's support for writable volumes is still experimental. It is recommended to only
-mount the necessary directories as writable rather than the entire $HOME directory.
-
-The following mounts $HOME/projects and $HOME/work directories as writable.
-
-```
-colima start --mount $HOME/projects:w --mount $HOME/work:w
-```
-
-</p>
-</details>
-
-<details>
 <summary>How to customize Docker config e.g. add insecure registries?</summary>
 <p>
 
@@ -181,7 +163,6 @@ Minikube with Docker runtime can expose the cluster's Docker with `minikube dock
 
 </p>
 </details>
-
 
 <details>
 <summary>Are M1 macs supported?</summary>

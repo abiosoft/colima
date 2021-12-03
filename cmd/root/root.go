@@ -51,7 +51,7 @@ func Execute() {
 func init() {
 	rootCmd.PersistentFlags().BoolVar(&rootCmdArgs.DryRun, "dry-run", rootCmdArgs.DryRun, "perform a dry run instead")
 	rootCmd.PersistentFlags().BoolVar(&rootCmdArgs.Verbose, "verbose", rootCmdArgs.Verbose, "enable verbose log")
-	rootCmd.PersistentFlags().StringVarP(&rootCmdArgs.Profile, "profile", "p", config.AppName, "profile name, for multiple instances")
+	rootCmd.PersistentFlags().StringVarP(&rootCmdArgs.Profile, "profile", "p", "default", "profile name, for multiple instances")
 
 	// decide if these should be public
 	// implementations are currently half-baked, only for test during development
