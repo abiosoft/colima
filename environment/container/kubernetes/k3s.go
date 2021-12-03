@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	_ "embed"
 	"strings"
 
 	"github.com/abiosoft/colima/cli"

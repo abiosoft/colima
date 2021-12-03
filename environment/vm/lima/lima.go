@@ -3,7 +3,6 @@ package lima
 import (
 	"bufio"
 	"bytes"
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"os"
