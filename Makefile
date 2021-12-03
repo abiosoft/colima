@@ -1,8 +1,11 @@
-GOOS ?= $(shell uname | tr '[:upper:]' '[:lower:]')
 
+OS ?= $(shell uname)
 ARCH ?= $(shell uname -m)
+
+GOOS ?= $(shell echo "$(OS)" | tr '[:upper:]' '[:lower:]')
 GOARCH_x86_64 = amd64
 GOARCH_aarch64 = arm64
+GOARCH_arm64 = arm64
 GOARCH ?= $(shell echo "$(GOARCH_$(ARCH))")
 
 all: build 
@@ -17,8 +20,8 @@ fmt:
 	go fmt ./...
 
 build:
-	GOOS=$(GOOS) GOARCH=$(GOARCH) sh scripts/build.sh
+	GOOS=$(GOOS) GOARCH=$(GOARCH) OS=$(OS) ARCH=$(ARCH) sh scripts/build.sh
 
 install:
-	cp _output/binaries/colima-$(GOOS)-$(GOARCH) /usr/local/bin/colima
+	cp _output/binaries/colima-$(OS)-$(ARCH) /usr/local/bin/colima
 	chmod +x /usr/local/bin/colima

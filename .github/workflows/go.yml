@@ -31,13 +31,13 @@ jobs:
 
       - name: generate macOS binaries
         run: |
-          make GOOS=darwin GOARCH=amd64
-          make GOOS=darwin GOARCH=arm64
+          make OS=Darwin ARCH=x86_64
+          make OS=Darwin ARCH=arm64
 
       - name: generate Linux binaries
         run: |
-          make GOOS=linux GOARCH=amd64
-          make GOOS=linux GOARCH=arm64
+          make OS=Linux ARCH=x86_64
+          make OS=Linux ARCH=aarch64
 
       - name: create release
         if: github.event_name != 'pull_request'
@@ -47,12 +47,12 @@ jobs:
           tag="${GITHUB_REF##*/}"
 
           hub release create
-          -a _output/binaries/colima-darwin-amd64
-          -a _output/binaries/colima-darwin-amd64.sha256sum
-          -a _output/binaries/colima-darwin-arm64
-          -a _output/binaries/colima-darwin-arm64.sha256sum
-          -a _output/binaries/colima-linux-amd64
-          -a _output/binaries/colima-linux-amd64.sha256sum
-          -a _output/binaries/colima-linux-arm64
-          -a _output/binaries/colima-linux-arm64.sha256sum
+          -a _output/binaries/colima-Darwin-x86_64
+          -a _output/binaries/colima-Darwin-x86_64.sha256sum
+          -a _output/binaries/colima-Darwin-arm64
+          -a _output/binaries/colima-Darwin-arm64.sha256sum
+          -a _output/binaries/colima-Linux-x86_64
+          -a _output/binaries/colima-Linux-x86_64.sha256sum
+          -a _output/binaries/colima-Linux-aarch64
+          -a _output/binaries/colima-Linux-aarch64.sha256sum
           -m "${tag}" --draft "${tag}"

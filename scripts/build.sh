@@ -9,7 +9,7 @@ PACKAGE="github.com/abiosoft/colima/config"
 OUTPUT_DIR=_output/binaries
 mkdir -p "$OUTPUT_DIR"
 
-OUTPUT_BIN="colima-${GOOS}-${GOARCH}"
+OUTPUT_BIN="colima-${OS}-${ARCH}"
 
 go build \
     -ldflags "-X ${PACKAGE}.appVersion=${VERSION} -X ${PACKAGE}.revision=${REVISION}" \
