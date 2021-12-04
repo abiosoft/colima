@@ -3,19 +3,19 @@ package podman
 import (
 	"fmt"
 	"os/user"
-	"strings"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
-	"github.com/abiosoft/colima/environment/container/docker"
 )
 
 const (
 	// Name is container runtime name.
-	Name = "podman"
-	// podman has a compatible api to docker, so port-forwarding podman.sock as docker.sock works for docker native apps
-	dockerSocketPath = "/var/run/docker.sock"
+	Name          = "podman"
+	AARCH64Image  = "https://github.com/hown3d/alpine-lima/releases/download/podman-colima/alpine-lima-clmp-3.15.0-aarch64.iso"
+	AARCH64Digest = "sha512:29c740cbcea9acb1779e30a4f8540a8dafddc87d63d65fcbac1f0d7e2011de2abaeb4a33162243e94ed3fd14217a2a146e7da6e35a456b13d74e4a73761cfe50"
+	X86_64Image   = "https://github.com/hown3d/alpine-lima/releases/download/podman-colima/alpine-lima-clmp-3.15.0-x86_64.iso"
+	X86_64Digest  = "sha512:8e0a975c2da5477c66a49940900d806caf9abc4502cac26845486cba084c6141818c001b10975f2eb524916721896f7904fbd2d9738af6a5900be9e98a1f0289"
 )
 
 var _ environment.Container = (*podmanRuntime)(nil)
@@ -47,50 +47,11 @@ func (p podmanRuntime) Name() string {
 // Provision provisions/installs the container runtime.
 // Should be idempotent.
 func (p podmanRuntime) Provision() error {
-	user, err := user.Current()
-	if err != nil {
-		return fmt.Errorf("Couldn't read current user: %w", err)
-	}
-
 	a := p.Init()
-	a.Stage("Provisioning")
-	// check installation
-	if !p.isInstalled() {
-		a.Stage("provisioning in VM")
-		a.Add(p.setupInVM)
-	}
-	rootfullSocketPath := p.getPodmanSocket(user, true)
-	rootlessSocketPath := p.getPodmanSocket(user, false)
-	// check symlink
-	if !p.isSymlinkCreated(dockerSocketPath) {
-		a.Stage("setting up socket")
-		a.Add(func() error {
-			return p.setupSocketSymlink(dockerSocketPath)
-		})
-	}
-	sshPort, err := p.getSSHPortFromLimactl()
-	if err != nil {
-		return err
-	}
-	validRootless, err := p.checkIfPodmanRemoteConnectionIsValid(sshPort, "colima")
-	if err != nil {
-		return err
-	}
+	a.Stage("provisioning")
 
-	validRootfull, err := p.checkIfPodmanRemoteConnectionIsValid(sshPort, "colima-root")
-	if !validRootfull || !validRootless {
-		a.Add(func() error {
-			return p.createPodmanConnectionOnHost(user, sshPort, "colima", rootfullSocketPath, rootlessSocketPath)
-		})
-	}
-	a.Stage("forwarding podman socket")
-	// socket file
-	a.Add(func() error {
-		return docker.CreateSocketForwardingScript(user.Name, sshPort, rootfullSocketPath, socketSymlink())
-	})
-	a.Add(func() error {
-		return p.host.RunBackground("sh", "-c", config.Dir()+"/socket.sh")
-	})
+	// podman context
+	a.Add(p.setupConnection)
 
 	return a.Exec()
 }
@@ -99,18 +60,10 @@ func (p podmanRuntime) Provision() error {
 func (p podmanRuntime) Start() error {
 	a := p.Init()
 	a.Stage("starting")
-	running, err := p.checkIfPodmanIsRunning()
-	if err != nil {
-		return err
-	}
-	if !running {
-		// rootless
-		a.Add(func() error {
-			return p.guest.RunBackground("podman", "system", "service", "-t=0")
-		})
+	if !p.Running() {
 		// rootfull
 		a.Add(func() error {
-			err := p.guest.RunBackground("sudo", "podman", "system", "service", "-t=0")
+			err := p.guest.RunBackground("sudo", "service", "podman", "start")
 			if err != nil {
 				return fmt.Errorf("Error running rootfull podman: %w", err)
 			}
@@ -133,29 +86,23 @@ func (p podmanRuntime) Stop() error {
 	a := p.Init()
 	a.Stage("stopping")
 	a.Add(func() error {
-		output, err := p.guest.RunOutput("pidof", "podman")
-		if err != nil {
-			return fmt.Errorf("Can't get pids of podman system socket process in VM: %w", err)
+		if !p.Running() {
+			return nil
 		}
-
-		pids := strings.Split(output, " ")
-		args := append([]string{"kill", "-9"}, pids...)
-		return p.guest.Run(args...)
+		return p.guest.Run("sudo", "service", "podman", "stop")
 	})
+
 	return a.Exec()
 }
 
 // Teardown tears down/uninstall the container runtime.
 func (p podmanRuntime) Teardown() error {
 	a := p.Init()
-	a.Stage("deleting")
+	a.Stage("deleting context")
 	// no need to uninstall as the VM teardown will remove all components
 	// only host configurations should be removed
 	a.Add(func() error {
-		return p.host.Run("podman", "system", "connection", "rm", "colima-root")
-	})
-	a.Add(func() error {
-		return p.host.Run("podman", "system", "connection", "rm", "colima")
+		return p.host.Run("podman", "system", "connection", "rm", config.Profile().ID)
 	})
 	return a.Exec()
 }
@@ -169,8 +116,7 @@ func (p podmanRuntime) Version() string {
 
 // Running returns if the container runtime is currently running.
 func (p podmanRuntime) Running() bool {
-	running, _ := p.checkIfPodmanIsRunning()
-	return running
+	return p.guest.RunQuiet("service", "podman", "status") == nil
 }
 
 // Dependencies are dependencies that must exist on the host.

@@ -8,8 +8,14 @@ import (
 	"github.com/abiosoft/colima/environment"
 )
 
-// Name is container runtime name.
-const Name = "docker"
+const (
+	// Name is container runtime name.
+	Name          = "docker"
+	AARCH64Image  = "https://github.com/hown3d/alpine-lima/releases/download/podman-colima/alpine-lima-clmd-3.15.0-aarch64.iso"
+	AARCH64Digest = "sha512:1d4d8bd5d24affc59c65a49e5d3a5a6075f8ca68990f48e049f0710a2dc6c0d8ef8dc0a276eced934733ccdd74a874b723f506e90b3ab7d9c75dea3562f89893"
+	X86_64Image   = "https://github.com/hown3d/alpine-lima/releases/download/podman-colima/alpine-lima-clmd-3.15.0-x86_64.iso"
+	X86_64Digest  = "sha512:c93e709a37349dc1c65d20ed485e78a372a6afe88c2d7180ee31a199b0fd035c1393e479b8adbd846cff35f5e12f93ef9e6c4b3411ffc27278c5c83148235575"
+)
 
 var _ environment.Container = (*dockerRuntime)(nil)
 

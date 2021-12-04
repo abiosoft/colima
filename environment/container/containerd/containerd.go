@@ -8,8 +8,15 @@ import (
 	"github.com/abiosoft/colima/environment"
 )
 
-// Name is container runtime name
-const Name = "containerd"
+const (
+	// Name is container runtime name
+	Name         = "containerd"
+	AARCH64Image = "https://github.com/hown3d/alpine-lima/releases/download/podman-colima/alpine-lima-clmc-3.15.0-aarch64.iso"
+	//TODO: add digests
+	AARCH64Digest = ""
+	X86_64Image   = "https://github.com/hown3d/alpine-lima/releases/download/podman-colima/alpine-lima-clmc-3.15.0-x86_64.iso"
+	X86_64Digest  = ""
+)
 
 // This is written with assumption that Lima is the VM,
 // which provides nerdctl/containerd support out of the box.

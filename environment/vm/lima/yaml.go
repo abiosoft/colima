@@ -9,16 +9,63 @@ import (
 
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/environment/container/docker"
+	"github.com/abiosoft/colima/environment/container/podman"
 	"github.com/abiosoft/colima/util"
 )
+
+const ()
 
 func newConf(conf config.Config) (l Config, err error) {
 	l.Arch = environment.Arch(conf.VM.Arch).Value()
 
+	var (
+		aarch64Image  = "https://github.com/lima-vm/alpine-lima/releases/download/v0.2.2/alpine-lima-std-3.14.3-aarch64.iso"
+		aarch64Digest = "sha512:6ff651023fbc4ec56c437124392d29cfa8eb8fe6d34c0e797b85b21734a6629aec38226c298f475b9ed63bef7664d49ba1bd5adc667c621efd7aa43e7020cc27"
+		x86_64Image   = "https://github.com/lima-vm/alpine-lima/releases/download/v0.2.2/alpine-lima-std-3.14.3-x86_64.iso"
+		x86_64Digest  = "sha512:573964991fb135aac18e44c444c1c924cd6110d4c823e887451e134adbecd7abb98bb84d22872cec1c9ed5b2cd9d87f664817adb15938ca3a69a9a2c70d66837"
+	)
+
+	switch r := conf.Runtime; r {
+	case podman.Name:
+		aarch64Image = podman.AARCH64Image
+		aarch64Digest = podman.AARCH64Digest
+		x86_64Image = podman.X86_64Image
+		x86_64Digest = podman.X86_64Digest
+
+	case docker.Name:
+		aarch64Image = docker.AARCH64Image
+		aarch64Digest = docker.AARCH64Digest
+		x86_64Image = docker.X86_64Image
+		x86_64Digest = docker.X86_64Digest
+
+	case containerd.Name:
+		aarch64Image = containerd.AARCH64Image
+		aarch64Digest = containerd.AARCH64Digest
+		x86_64Image = containerd.X86_64Image
+		x86_64Digest = containerd.X86_64Digest
+	}
+
+	// use containerd image if using kubernetes
+	if conf.Kubernetes.Enabled {
+		aarch64Image = containerd.AARCH64Image
+		aarch64Digest = containerd.AARCH64Digest
+		x86_64Image = containerd.X86_64Image
+		x86_64Digest = containerd.X86_64Digest
+	}
+
 	l.Images = append(l.Images,
-		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.3.0-01/alpine-lima-clm-3.14.3-aarch64.iso", Digest: "sha512:b32dfef85d84de341b7c41cb0ec212f0e9f89e12e030f0e6761b8cc5c22e00edd1fbcb343817794ae4d7cf5468e94201453864b71f4cf12d67455078ce9a77bb"},
-		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.3.0-01/alpine-lima-clm-3.14.3-x86_64.iso", Digest: "sha512:41ab375082cee4a5327b76c7ef11c62730174481cfa1f572c8ec18241114fb461b880f1e70db92bc7d73caa42e70118ef02485fc4404b34ba1962f79d2de2743"},
+		File{
+			Arch:     environment.AARCH64,
+			Location: aarch64Image,
+			Digest:   aarch64Digest,
+		},
+		File{
+			Arch:     environment.X8664,
+			Location: x86_64Image,
+			Digest:   x86_64Digest,
+		},
 	)
 
 	l.CPUs = conf.VM.CPU
@@ -27,7 +74,7 @@ func newConf(conf config.Config) (l Config, err error) {
 
 	l.SSH = SSH{LocalPort: conf.VM.SSHPort, LoadDotSSHPubKeys: false, ForwardAgent: conf.VM.ForwardAgent}
 	l.Containerd = Containerd{System: false, User: false}
-	l.Firmware.LegacyBIOS = false
+	l.Firmware.LegacyBIOS = true
 
 	l.DNS = conf.VM.DNS
 	l.UseHostResolver = len(l.DNS) == 0 // use host resolver when no DNS is set
@@ -44,6 +91,16 @@ func newConf(conf config.Config) (l Config, err error) {
 			l.PortForwards = append(l.PortForwards,
 				PortForward{
 					GuestSocket: "/var/run/docker.sock",
+					HostSocket:  docker.HostSocketFile(),
+					Proto:       TCP,
+				})
+		}
+
+		// podman socket for docker compability
+		if conf.Runtime == podman.Name {
+			l.PortForwards = append(l.PortForwards,
+				PortForward{
+					GuestSocket: "/run/podman/podman.socket",
 					HostSocket:  docker.HostSocketFile(),
 					Proto:       TCP,
 				})
