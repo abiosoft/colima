@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	_ "embed"
 	"fmt"
 	"strings"
 
@@ -13,16 +12,12 @@ import (
 	"github.com/abiosoft/colima/util/downloader"
 )
 
-const k3sVersion = "v1.22.2+k3s2"
+const k3sVersion = "v1.22.4+k3s1"
 
 func installK3s(host environment.HostActions, guest environment.GuestActions, a *cli.ActiveCommandChain, containerRuntime string) {
 	installK3sBinary(host, guest, a)
 	installK3sCache(host, guest, a, containerRuntime)
 	installK3sCluster(host, guest, a, containerRuntime)
-
-	if containerRuntime == containerd.Name {
-		installContainerdDeps(guest, a)
-	}
 }
 
 func installK3sBinary(host environment.HostActions, guest environment.GuestActions, a *cli.ActiveCommandChain) {
@@ -89,7 +84,7 @@ func installK3sCluster(host environment.HostActions, guest environment.GuestActi
 
 	args := []string{
 		"--write-kubeconfig-mode", "644",
-		"--resolv-conf", "/run/systemd/resolve/resolv.conf",
+		"--resolv-conf", "/etc/resolv.conf",
 		"--disable", "traefik",
 	}
 

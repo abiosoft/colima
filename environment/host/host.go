@@ -5,14 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
+
+	"github.com/abiosoft/colima/util/terminal"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/environment"
-	"github.com/abiosoft/colima/util/terminal"
 )
 
-// New creates a new host environment using env as environment variables.
+// New creates a new host environment.
 func New() environment.Host {
 	return &hostEnv{}
 }
@@ -38,8 +40,12 @@ func (h hostEnv) Run(args ...string) error {
 	cmd := cli.Command(args[0], args[1:]...)
 	cmd.Env = append(os.Environ(), h.env...)
 
-	out := terminal.NewVerboseWriter(4)
+	lineHeight := 6
+	if cli.Settings.Verbose {
+		lineHeight = -1 // disable scrolling
+	}
 
+	out := terminal.NewVerboseWriter(lineHeight)
 	cmd.Stdout = out
 	cmd.Stderr = out
 
@@ -47,7 +53,6 @@ func (h hostEnv) Run(args ...string) error {
 	if err == nil {
 		return out.Close()
 	}
-
 	return err
 }
 
@@ -123,10 +128,8 @@ func (h hostEnv) Stat(fileName string) (os.FileInfo, error) {
 func IsInstalled(dependencies environment.Dependencies) error {
 	var missing []string
 	check := func(p string) error {
-		cmd := cli.Command("command", "-v", p)
-		cmd.Stderr = nil
-		cmd.Stdout = nil
-		return cmd.Run()
+		_, err := exec.LookPath(p)
+		return err
 	}
 	for _, p := range dependencies.Dependencies() {
 		if check(p) != nil {

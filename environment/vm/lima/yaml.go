@@ -2,29 +2,31 @@ package lima
 
 import (
 	"fmt"
-	"github.com/abiosoft/colima/config"
-	"github.com/abiosoft/colima/environment"
-	"github.com/abiosoft/colima/environment/container/containerd"
-	"github.com/abiosoft/colima/util"
 	"net"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/environment/container/docker"
+	"github.com/abiosoft/colima/util"
 )
 
 func newConf(conf config.Config) (l Config, err error) {
 	l.Arch = environment.Arch(conf.VM.Arch).Value()
 
 	l.Images = append(l.Images,
-		File{Arch: environment.X8664, Location: "https://cloud-images.ubuntu.com/impish/current/impish-server-cloudimg-amd64.img"},
-		File{Arch: environment.AARCH64, Location: "https://cloud-images.ubuntu.com/impish/current/impish-server-cloudimg-arm64.img"})
+		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.3.0-01/alpine-lima-clm-3.14.3-aarch64.iso", Digest: "sha512:b32dfef85d84de341b7c41cb0ec212f0e9f89e12e030f0e6761b8cc5c22e00edd1fbcb343817794ae4d7cf5468e94201453864b71f4cf12d67455078ce9a77bb"},
+		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.3.0-01/alpine-lima-clm-3.14.3-x86_64.iso", Digest: "sha512:41ab375082cee4a5327b76c7ef11c62730174481cfa1f572c8ec18241114fb461b880f1e70db92bc7d73caa42e70118ef02485fc4404b34ba1962f79d2de2743"},
+	)
 
 	l.CPUs = conf.VM.CPU
 	l.Memory = fmt.Sprintf("%dGiB", conf.VM.Memory)
 	l.Disk = fmt.Sprintf("%dGiB", conf.VM.Disk)
 
-	l.SSH = SSH{LocalPort: conf.VM.SSHPort, LoadDotSSHPubKeys: false}
-	l.Containerd = Containerd{System: conf.Runtime == containerd.Name, User: false}
+	l.SSH = SSH{LocalPort: conf.VM.SSHPort, LoadDotSSHPubKeys: false, ForwardAgent: conf.VM.ForwardAgent}
+	l.Containerd = Containerd{System: false, User: false}
 	l.Firmware.LegacyBIOS = false
 
 	l.DNS = conf.VM.DNS
@@ -35,20 +37,33 @@ func newConf(conf config.Config) (l Config, err error) {
 		l.Env[k] = v
 	}
 
-	// handle port forwarding to allow listening on 0.0.0.0
-	l.PortForwards = append(l.PortForwards,
-		PortForward{
-			GuestIP:        net.ParseIP("127.0.0.1"),
-			GuestPortRange: [2]int{1, 65535},
-			HostIP:         conf.PortInterface,
-			HostPortRange:  [2]int{1, 65535},
-			Proto:          TCP,
-		},
-	)
+	// port forwarding
+	{
+		// docker socket
+		if conf.Runtime == docker.Name {
+			l.PortForwards = append(l.PortForwards,
+				PortForward{
+					GuestSocket: "/var/run/docker.sock",
+					HostSocket:  docker.HostSocketFile(),
+					Proto:       TCP,
+				})
+		}
+
+		// handle port forwarding to allow listening on 0.0.0.0
+		l.PortForwards = append(l.PortForwards,
+			PortForward{
+				GuestIP:        net.ParseIP("127.0.0.1"),
+				GuestPortRange: [2]int{1, 65535},
+				HostIP:         conf.PortInterface,
+				HostPortRange:  [2]int{1, 65535},
+				Proto:          TCP,
+			},
+		)
+	}
 
 	if len(conf.VM.Mounts) == 0 {
 		l.Mounts = append(l.Mounts,
-			Mount{Location: "~", Writable: false},
+			Mount{Location: "~", Writable: true},
 			Mount{Location: filepath.Join("/tmp", config.Profile().ID), Writable: true},
 		)
 	} else {
@@ -101,6 +116,7 @@ type Config struct {
 type File struct {
 	Location string           `yaml:"location"` // REQUIRED
 	Arch     environment.Arch `yaml:"arch,omitempty"`
+	Digest   string           `yaml:"digest,omitempty"`
 }
 
 type Mount struct {
@@ -113,6 +129,7 @@ type SSH struct {
 	// LoadDotSSHPubKeys loads ~/.ssh/*.pub in addition to $LIMA_HOME/_config/user.pub .
 	// Default: true
 	LoadDotSSHPubKeys bool `yaml:"loadDotSSHPubKeys"`
+	ForwardAgent      bool `yaml:"forwardAgent,omitempty"` // default: false
 }
 
 type Containerd struct {
@@ -136,13 +153,14 @@ type PortForward struct {
 	GuestIP        net.IP `yaml:"guestIP,omitempty" json:"guestIP,omitempty"`
 	GuestPort      int    `yaml:"guestPort,omitempty" json:"guestPort,omitempty"`
 	GuestPortRange [2]int `yaml:"guestPortRange,omitempty" json:"guestPortRange,omitempty"`
+	GuestSocket    string `yaml:"guestSocket,omitempty" json:"guestSocket,omitempty"`
 	HostIP         net.IP `yaml:"hostIP,omitempty" json:"hostIP,omitempty"`
 	HostPort       int    `yaml:"hostPort,omitempty" json:"hostPort,omitempty"`
 	HostPortRange  [2]int `yaml:"hostPortRange,omitempty" json:"hostPortRange,omitempty"`
+	HostSocket     string `yaml:"hostSocket,omitempty" json:"hostSocket,omitempty"`
 	Proto          Proto  `yaml:"proto,omitempty" json:"proto,omitempty"`
 	Ignore         bool   `yaml:"ignore,omitempty" json:"ignore,omitempty"`
 }
-
 type volumeMount string
 
 func (v volumeMount) Writable() bool {

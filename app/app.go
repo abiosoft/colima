@@ -2,6 +2,8 @@ package app
 
 import (
 	"fmt"
+	"strconv"
+
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
@@ -9,7 +11,6 @@ import (
 	"github.com/abiosoft/colima/environment/host"
 	"github.com/abiosoft/colima/environment/vm/lima"
 	log "github.com/sirupsen/logrus"
-	"strconv"
 )
 
 type App interface {
@@ -83,15 +84,11 @@ func (c colimaApp) Start(conf config.Config) error {
 		return fmt.Errorf("error setting kubernetes version: %w", err)
 	}
 
-	// provision container runtimes
+	// provision and start container runtimes
 	for _, cont := range containers {
 		if err := cont.Provision(); err != nil {
 			return fmt.Errorf("error provisioning %s: %w", cont.Name(), err)
 		}
-	}
-
-	// start container runtimes
-	for _, cont := range containers {
 		if err := cont.Start(); err != nil {
 			return fmt.Errorf("error starting %s: %w", cont.Name(), err)
 		}
@@ -149,7 +146,7 @@ func (c colimaApp) Delete() error {
 
 	// vm teardown would've sufficed but container provision
 	// may have created configurations on the host.
-	// it is essential to teardown containers as well.
+	// it is thereby necessary to teardown containers as well.
 
 	// teardown container runtimes
 	if c.guest.Running() {

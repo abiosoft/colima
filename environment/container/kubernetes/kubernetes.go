@@ -1,11 +1,14 @@
 package kubernetes
 
 import (
+	"strings"
+	"time"
+
 	"github.com/abiosoft/colima/cli"
+	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/environment/container/docker"
-	"strings"
 )
 
 // Name is container runtime name
@@ -41,7 +44,7 @@ func (c kubernetesRuntime) isInstalled() bool {
 }
 
 func (c kubernetesRuntime) Running() bool {
-	return c.guest.RunQuiet("service", "k3s", "status") == nil
+	return c.guest.RunQuiet("sudo", "service", "k3s", "status") == nil
 }
 
 func (c kubernetesRuntime) runtime() string {
@@ -54,13 +57,16 @@ func (c kubernetesRuntime) kubernetesVersion() string {
 func (c *kubernetesRuntime) Provision() error {
 	a := c.Init()
 
-	if c.isInstalled() {
-		return nil
+	if !c.isInstalled() {
+		// k3s
+		a.Stage("downloading and installing")
+		installK3s(c.host, c.guest, a, c.runtime())
 	}
 
-	// k3s
-	a.Stage("downloading and installing")
-	installK3s(c.host, c.guest, a, c.runtime())
+	// this needs to happen on each startup
+	if c.runtime() == containerd.Name {
+		installContainerdDeps(c.guest, a)
+	}
 
 	return a.Exec()
 }
@@ -76,6 +82,7 @@ func (c kubernetesRuntime) Start() error {
 	a.Stage("starting")
 
 	a.Add(func() error {
+		defer time.Sleep(time.Second * 5)
 		return c.guest.Run("sudo", "service", "k3s", "start")
 	})
 
@@ -95,9 +102,7 @@ func (c kubernetesRuntime) Stop() error {
 
 	// k3s is buggy with external containerd for now
 	// cleanup is manual
-	a.Add(func() error {
-		return c.stopAllContainers()
-	})
+	a.Add(c.stopAllContainers)
 
 	return a.Exec()
 }
@@ -195,6 +200,6 @@ func (c kubernetesRuntime) Dependencies() []string {
 }
 
 func (c kubernetesRuntime) Version() string {
-	version, _ := c.guest.RunOutput("kubectl", "version", "--short")
+	version, _ := c.host.RunOutput("kubectl", "--context", config.Profile().ID, "version", "--short")
 	return version
 }

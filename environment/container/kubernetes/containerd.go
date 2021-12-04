@@ -2,17 +2,19 @@ package kubernetes
 
 import (
 	_ "embed"
-	"github.com/abiosoft/colima/cli"
-	"github.com/abiosoft/colima/environment"
+	"fmt"
 	"path/filepath"
 	"strconv"
+
+	"github.com/abiosoft/colima/cli"
+	"github.com/abiosoft/colima/environment"
 )
 
 func installContainerdDeps(guest environment.GuestActions, a *cli.ActiveCommandChain) {
 	// fix cni path
 	a.Add(func() error {
-		cniDir := "/opt/cni/bin"
-		if err := guest.RunQuiet("ls", cniDir); err == nil {
+		cniDir := "/usr/libexec/cni"
+		if err := guest.RunQuiet("sudo", "ls", "-l", cniDir); err == nil {
 			return nil
 		}
 
@@ -24,9 +26,16 @@ func installContainerdDeps(guest environment.GuestActions, a *cli.ActiveCommandC
 
 	// fix cni config
 	a.Add(func() error {
-		return guest.Run("sudo", "mkdir", "-p", "/etc/cni/net.d")
-	})
-	a.Add(func() error {
+		flannelFile := "/etc/cni/net.d/10-flannel.conflist"
+		cniConfDir := filepath.Dir(flannelFile)
+		if err := guest.RunQuiet("sudo", "ls", "-l", flannelFile); err == nil {
+			return nil
+		}
+
+		if err := guest.Run("sudo", "mkdir", "-p", cniConfDir); err != nil {
+			return fmt.Errorf("error creating cni config dir: %w", err)
+		}
+
 		return guest.Run("sudo", "sh", "-c", "echo "+strconv.Quote(k3sFlannelConflist)+" > /etc/cni/net.d/10-flannel.conflist")
 	})
 }

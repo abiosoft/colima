@@ -18,6 +18,10 @@ const (
 	KubernetesVersionKey = "kubernetes_version"
 	// SSHPortKey is the settings for the VM SSH port.
 	SSHPortKey = "ssh_port"
+
+	// BinfmtTarFile is the path in the VM to the binfmt oci image tar.
+	// TODO: decide if this should reside somewhere else.
+	BinfmtTarFile = "/usr/local/colima/binfmt.tar"
 )
 
 // Arch is the VM architecture.

@@ -20,10 +20,10 @@ Binaries are available with every release on the [releases page](https://github.
 
 ```sh
 # download binary
-curl -LO https://github.com/abiosoft/colima/releases/download/v0.2.2/colima-amd64
+curl -LO https://github.com/abiosoft/colima/releases/download/v0.3.0/colima-$(uname)-$(uname -m)
 
 # install in $PATH
-install colima-amd64 /usr/local/bin/colima # or sudo install if /usr/local/bin requires root.
+install colima-$(uname)-$(uname -m) /usr/local/bin/colima # or sudo install if /usr/local/bin requires root.
 ```
 
 ## Building from Source
@@ -34,6 +34,6 @@ Requires [Go](https://golang.org).
 # clone repo and cd into it
 git clone https://github.com/abiosoft/colima
 cd colima
-
+make
 make install # or `sudo make install` if /usr/local/bin requires root
 ```

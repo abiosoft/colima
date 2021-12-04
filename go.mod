@@ -11,6 +11,7 @@ require (
 )
 
 require (
+	github.com/docker/go-units v0.4.0
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mattn/go-isatty v0.0.12 // indirect

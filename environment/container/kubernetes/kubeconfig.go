@@ -46,7 +46,7 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 	a.Add(func() error {
 		kubeconfig, err := c.guest.RunOutput("cat", "/etc/rancher/k3s/k3s.yaml")
 		if err != nil {
-			return err
+			return fmt.Errorf("error fetching kubeconfig on guest: %w", err)
 		}
 		// replace name
 		kubeconfig = strings.ReplaceAll(kubeconfig, ": default", ": "+profile)

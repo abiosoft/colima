@@ -26,8 +26,6 @@ The --runtime, --disk and --arch flags are only used on initial start and ignore
 		"  colima start --with-kubernetes\n" +
 		"  colima start --runtime containerd --with-kubernetes\n" +
 		"  colima start --cpu 4 --memory 8 --disk 100\n" +
-		"  colima start --dns 8.8.8.8 --dns 8.8.4.4\n" +
-		"  colima start --mount $HOME/projects:w\n" +
 		"  colima start --arch aarch64\n",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return newApp().Start(startCmdArgs.Config)
@@ -72,6 +70,9 @@ The --runtime, --disk and --arch flags are only used on initial start and ignore
 		if !cmd.Flag("port-interface").Changed {
 			startCmdArgs.PortInterface = current.PortInterface
 		}
+		if !cmd.Flag("ssh-agent").Changed {
+			startCmdArgs.VM.ForwardAgent = current.VM.ForwardAgent
+		}
 
 		log.Println("using", current.Runtime, "runtime")
 
@@ -110,21 +111,23 @@ func randomAvailablePort() int {
 func init() {
 	runtimes := strings.Join(environment.ContainerRuntimes(), ", ")
 	defaultArch := string(environment.Arch(runtime.GOARCH).Value())
-	defaultPortInterface := net.ParseIP("127.0.0.1")
+	defaultPortInterface := net.ParseIP("0.0.0.0")
 
 	root.Cmd().AddCommand(startCmd)
 	startCmd.Flags().StringVarP(&startCmdArgs.Runtime, "runtime", "r", docker.Name, "container runtime ("+runtimes+")")
 	startCmd.Flags().IntVarP(&startCmdArgs.VM.CPU, "cpu", "c", defaultCPU, "number of CPUs")
 	startCmd.Flags().IntVarP(&startCmdArgs.VM.Memory, "memory", "m", defaultMemory, "memory in GiB")
 	startCmd.Flags().IntVarP(&startCmdArgs.VM.Disk, "disk", "d", defaultDisk, "disk size in GiB")
-	startCmd.Flags().IPSliceVarP(&startCmdArgs.VM.DNS, "dns", "n", nil, "DNS servers for the VM")
-	startCmd.Flags().StringVarP(&startCmdArgs.VM.Arch, "arch", "a", defaultArch, "architecture (aarch64 / x86_64)")
+	startCmd.Flags().StringVarP(&startCmdArgs.VM.Arch, "arch", "a", defaultArch, "architecture (aarch64, x86_64)")
 
 	// mounts
 	startCmd.Flags().StringSliceVarP(&startCmdArgs.VM.Mounts, "mount", "v", nil, "directories to mount, suffix ':w' for writable")
 
 	// port forwarding
 	startCmd.Flags().IPVarP(&startCmdArgs.PortInterface, "port-interface", "i", defaultPortInterface, "interface to use for forwarded ports")
+
+	// ssh agent
+	startCmd.Flags().BoolVarP(&startCmdArgs.VM.ForwardAgent, "ssh-agent", "s", false, "forward SSH agent to the VM")
 
 	// k8s
 	startCmd.Flags().BoolVarP(&startCmdArgs.Kubernetes.Enabled, "with-kubernetes", "k", false, "start VM with Kubernetes")
@@ -136,4 +139,10 @@ func init() {
 	// leaving it undocumented until there is a need.
 	startCmd.Flags().StringToStringVarP(&startCmdArgs.VM.Env, "env", "e", nil, "environment variables for the VM")
 	_ = startCmd.Flags().MarkHidden("env")
+
+	// dns application is not as straightforward in alpine
+	// coupled with the fact that Lima now supports DNS propagation from the host
+	// this is no longer priority
+	startCmd.Flags().IPSliceVarP(&startCmdArgs.VM.DNS, "dns", "n", nil, "DNS servers for the VM")
+	_ = startCmd.Flags().MarkHidden("dns")
 }
