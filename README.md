@@ -179,6 +179,10 @@ Feedbacks would be appreciated.
 - ~~Homebrew formula~~
 - Testing on M1 Macs
 
+## Sponsoring the Project
+
+If you (or your company) are benefiting from the project and would like to support the contributors, kindly support the project on [Patreon](https://patreon.com/colima).
+
 ## License
 
 MIT
