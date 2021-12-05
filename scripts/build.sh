@@ -2,7 +2,7 @@
 
 set -ex
 
-VERSION="$(git describe --tags)"
+VERSION="$(git describe --tags --always)"
 REVISION="$(git rev-parse HEAD)"
 PACKAGE="github.com/abiosoft/colima/config"
 
