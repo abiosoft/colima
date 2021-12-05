@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/abiosoft/colima/cli"
@@ -8,13 +9,14 @@ import (
 	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/environment/container/docker"
 	"github.com/abiosoft/colima/util/downloader"
+	"github.com/sirupsen/logrus"
 )
 
 const k3sVersion = "v1.22.4+k3s1"
 
-func installK3s(host environment.HostActions, guest environment.GuestActions, a *cli.ActiveCommandChain, containerRuntime string) {
+func installK3s(host environment.HostActions, guest environment.GuestActions, a *cli.ActiveCommandChain, log *logrus.Entry, containerRuntime string) {
 	installK3sBinary(host, guest, a)
-	installK3sCache(host, guest, a, containerRuntime)
+	installK3sCache(host, guest, a, log, containerRuntime)
 	installK3sCluster(host, guest, a, containerRuntime)
 }
 
@@ -33,7 +35,7 @@ func installK3sBinary(host environment.HostActions, guest environment.GuestActio
 	})
 }
 
-func installK3sCache(host environment.HostActions, guest environment.GuestActions, a *cli.ActiveCommandChain, containerRuntime string) {
+func installK3sCache(host environment.HostActions, guest environment.GuestActions, a *cli.ActiveCommandChain, log *logrus.Entry, containerRuntime string) {
 	imageTar := "k3s-airgap-images-" + guest.Arch().GoArch() + ".tar"
 	imageTarGz := imageTar + ".gz"
 	downloadPathTar := "/tmp/" + imageTar
@@ -54,16 +56,26 @@ func installK3sCache(host environment.HostActions, guest environment.GuestAction
 		return guest.Run("sudo", "cp", downloadPathTar, airGapDir)
 	})
 
+	// load OCI images for K3s
+	// this can be safely ignored if failed as the images would be pulled afterwards.
 	switch containerRuntime {
 	case containerd.Name:
-		a.Stage("loading containerd images")
+		a.Stage("loading oci images")
 		a.Add(func() error {
-			return guest.Run("sudo", "ctr", "-n", "k8s.io", "images", "import", downloadPathTar)
+			if err := guest.Run("sudo", "ctr", "-n", "k8s.io", "images", "import", downloadPathTar); err != nil {
+				log.Warnln(fmt.Errorf("error loading oci images: %w", err))
+				log.Warnln("startup may delay a bit as images will be pulled from oci registry")
+			}
+			return nil
 		})
 	case docker.Name:
-		a.Stage("loading docker images")
+		a.Stage("loading oci images")
 		a.Add(func() error {
-			return guest.Run("sudo", "docker", "load", "-i", downloadPathTar)
+			if err := guest.Run("sudo", "docker", "load", "-i", downloadPathTar); err != nil {
+				log.Warnln(fmt.Errorf("error loading oci images: %w", err))
+				log.Warnln("startup may delay a bit as images will be pulled from oci registry")
+			}
+			return nil
 		})
 	}
 
