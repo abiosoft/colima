@@ -73,8 +73,12 @@ func (d dockerRuntime) Start() error {
 	a.Stage("starting")
 
 	a.Add(func() error {
-		defer time.Sleep(time.Second * 5) // service startup takes few seconds
 		return d.guest.Run("sudo", "service", "docker", "start")
+	})
+
+	// service startup takes few seconds, retry at most 5 times before giving up.
+	a.Retry("waiting for startup to complete", time.Second*5, 10, func() error {
+		return d.guest.RunQuiet("sudo", "docker", "info")
 	})
 
 	a.Add(func() error {
