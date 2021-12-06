@@ -53,8 +53,8 @@ func (c containerdRuntime) Start() error {
 		return c.guest.Run("sudo", "service", "containerd", "start")
 	})
 
-	// service startup takes few seconds, retry at most 5 times before giving up.
-	a.Retry("waiting for startup to complete", time.Second*5, 5, func() error {
+	// service startup takes few seconds, retry at most 10 times before giving up.
+	a.Retry("waiting for startup to complete", time.Second*5, 10, func() error {
 		return c.guest.RunQuiet("sudo", "nerdctl", "info")
 	})
 

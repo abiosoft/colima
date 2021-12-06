@@ -77,7 +77,7 @@ func (d dockerRuntime) Start() error {
 	})
 
 	// service startup takes few seconds, retry at most 5 times before giving up.
-	a.Retry("waiting for startup to complete", time.Second*5, 5, func() error {
+	a.Retry("waiting for startup to complete", time.Second*5, 10, func() error {
 		return d.guest.RunQuiet("sudo", "docker", "info")
 	})
 
