@@ -2,6 +2,8 @@ package cli
 
 import (
 	"fmt"
+	"time"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -93,4 +95,17 @@ func (a ActiveCommandChain) Exec() error {
 		return fmt.Errorf("error at '%s': %w", a.lastStage, err)
 	}
 	return nil
+}
+
+// Retry retries `f` up to `count` times at interval.
+// If after `count` attempts there is an error, the command chain is terminated with the final error.
+func (a *ActiveCommandChain) Retry(stage string, interval time.Duration, count int, f func() error) {
+	a.Add(func() (err error) {
+		var i int
+		for err = f(); i < count && err != nil; i, err = i+1, f() {
+			time.Sleep(interval)
+			a.log.Println(stage, "...")
+		}
+		return err
+	})
 }
