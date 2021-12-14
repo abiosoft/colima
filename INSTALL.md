@@ -14,6 +14,20 @@ Development Version
 brew install --HEAD colima
 ```
 
+## Nix
+
+Only stable Version
+
+```
+nix-env -i colima
+```
+
+Or using solely in a `nix-shell`
+
+```
+nix-shell -p colima
+```
+
 ## Binary
 
 Binaries are available with every release on the [releases page](https://github.com/abiosoft/colima/releases).
