@@ -15,7 +15,7 @@ const (
 	AARCH64Image  = "https://github.com/hown3d/alpine-lima/releases/download/podman-colima/alpine-lima-clmp-3.15.0-aarch64.iso"
 	AARCH64Digest = "sha512:29c740cbcea9acb1779e30a4f8540a8dafddc87d63d65fcbac1f0d7e2011de2abaeb4a33162243e94ed3fd14217a2a146e7da6e35a456b13d74e4a73761cfe50"
 	X86_64Image   = "https://github.com/hown3d/alpine-lima/releases/download/podman-colima/alpine-lima-clmp-3.15.0-x86_64.iso"
-	X86_64Digest  = "sha512:8e0a975c2da5477c66a49940900d806caf9abc4502cac26845486cba084c6141818c001b10975f2eb524916721896f7904fbd2d9738af6a5900be9e98a1f0289"
+	X86_64Digest  = "sha512:c6cbe92587ee8b8521dae1b859302a2a972a385f1568e094fe4d0aec273bb0a81b949ff546ab72a680efbf13e90715ce782ac3e94f2ba65ee0dfeac2f899f389"
 )
 
 var _ environment.Container = (*podmanRuntime)(nil)
@@ -74,7 +74,7 @@ func (p podmanRuntime) Start() error {
 			if err != nil {
 				return fmt.Errorf("Couldn't read current user: %w", err)
 			}
-			return p.guest.Run("sudo", "chown", user.Name+":"+user.Name, "-R", "/run/podman/")
+			return p.guest.Run("sudo", "chown", user.Uid, "-R", "/run/podman/")
 
 		})
 	}
