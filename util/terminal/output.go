@@ -122,7 +122,7 @@ func (v verboseWriter) clearScreen() {
 
 func (v *verboseWriter) updateTerm() error {
 	// no need to refresh so quickly
-	if time.Now().Sub(v.lastUpdate) < time.Second*2 {
+	if time.Since(v.lastUpdate) < time.Second*2 {
 		return nil
 	}
 	v.lastUpdate = time.Now().UTC()
