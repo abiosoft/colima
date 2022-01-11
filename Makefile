@@ -7,7 +7,7 @@ GOARCH_x86_64 = amd64
 GOARCH_aarch64 = arm64
 GOARCH_arm64 = arm64
 GOARCH ?= $(shell echo "$(GOARCH_$(ARCH))")
-GOLANGCI_LINT_VER = "1.41.1"
+GOLANGCI_LINT_VER = "1.43.0"
 
 all: build 
 
