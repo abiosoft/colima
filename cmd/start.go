@@ -26,7 +26,7 @@ The --runtime, --disk and --arch flags are only used on initial start and ignore
 		"  colima start --with-kubernetes\n" +
 		"  colima start --runtime containerd --with-kubernetes\n" +
 		"  colima start --cpu 4 --memory 8 --disk 100\n" +
-		"  colima start --arch aarch64\n",
+		"  colima start --arch aarch64",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return newApp().Start(startCmdArgs.Config)
 	},

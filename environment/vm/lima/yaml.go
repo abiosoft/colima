@@ -17,8 +17,8 @@ func newConf(conf config.Config) (l Config, err error) {
 	l.Arch = environment.Arch(conf.VM.Arch).Value()
 
 	l.Images = append(l.Images,
-		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.3.0-01/alpine-lima-clm-3.14.3-aarch64.iso", Digest: "sha512:b32dfef85d84de341b7c41cb0ec212f0e9f89e12e030f0e6761b8cc5c22e00edd1fbcb343817794ae4d7cf5468e94201453864b71f4cf12d67455078ce9a77bb"},
-		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.3.0-01/alpine-lima-clm-3.14.3-x86_64.iso", Digest: "sha512:41ab375082cee4a5327b76c7ef11c62730174481cfa1f572c8ec18241114fb461b880f1e70db92bc7d73caa42e70118ef02485fc4404b34ba1962f79d2de2743"},
+		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.3.0-02/alpine-lima-clm-3.14.3-aarch64.iso", Digest: "sha512:9daf680b4ea579a2d4d910d710bf66d749f08fcd79b0d05c140bfbf712a51b5f063662ca8538513698b969333a8ee7c2625be316f25acb5260f2cad6ad2d70b1"},
+		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.3.0-02/alpine-lima-clm-3.14.3-x86_64.iso", Digest: "sha512:7d2ae2964583ca2aec4e68bb6a0bb229c2bd528cfea2d9e532f80980da343fe584cc86bfce1d828138290f85abb4aa2cdfb7f678af9d56e10d3ee86e4ec4de34"},
 	)
 
 	l.CPUs = conf.VM.CPU
@@ -181,7 +181,7 @@ func (v volumeMount) Path() (string, error) {
 		return "", fmt.Errorf("relative paths not supported for mount '%s'", string(v))
 	}
 
-	return str, nil
+	return strings.TrimSuffix(str, "/") + "/", nil
 }
 
 func checkOverlappingMounts(mounts []string) error {
