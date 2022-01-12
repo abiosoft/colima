@@ -181,7 +181,7 @@ func (v volumeMount) Path() (string, error) {
 		return "", fmt.Errorf("relative paths not supported for mount '%s'", string(v))
 	}
 
-	return str, nil
+	return strings.TrimSuffix(str, "/") + "/", nil
 }
 
 func checkOverlappingMounts(mounts []string) error {
