@@ -35,6 +35,15 @@ Or stay on the bleeding edge (only Homebrew)
 brew install --HEAD colima
 ```
 
+### Upgrading
+
+If upgrading from v0.2.2 or lower, it is required to start afresh by deleting existing instance.
+
+```sh
+colima delete # delete existing instance
+colima start
+```
+
 ## Usage
 
 Start Colima with defaults
