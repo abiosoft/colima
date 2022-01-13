@@ -25,3 +25,7 @@ build:
 install:
 	cp _output/binaries/colima-$(OS)-$(ARCH) /usr/local/bin/colima
 	chmod +x /usr/local/bin/colima
+
+.PHONY: lint
+lint: ## Assumes that golangci-lint is installed and in the path.  To install: https://golangci-lint.run/usage/install/
+	golangci-lint --timeout 3m run

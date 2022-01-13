@@ -52,11 +52,9 @@ func (d downloader) downloadFile(url string) (err error) {
 	}
 
 	// get rid of curl's initial progress bar by getting the redirect url directly.
-	downloadURL := url
-	if u, err := d.host.RunOutput("curl", "-Ls", "-o", "/dev/null", "-w", "%{url_effective}", url); err != nil {
+	downloadURL, err := d.host.RunOutput("curl", "-Ls", "-o", "/dev/null", "-w", "%{url_effective}", url)
+	if err != nil {
 		return fmt.Errorf("error retrieving redirect url: %w", err)
-	} else {
-		downloadURL = u
 	}
 
 	// ask curl to resume previous download if possible "-C -"
