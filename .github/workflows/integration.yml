@@ -18,9 +18,9 @@ jobs:
         with:
           go-version: 1.17
 
-      - name: Install CLI tools
+      - name: Install CLI deps
         run: |
-          brew install kubectl docker
+          brew install kubectl docker coreutils
 
       - name: Build and Install Colima
         run: make && sudo make install
@@ -47,9 +47,9 @@ jobs:
         with:
           go-version: 1.17
 
-      - name: Install CLI tools
+      - name: Install CLI deps
         run: |
-          brew install kubectl docker
+          brew install kubectl docker coreutils
 
       - name: Build and Install Colima
         run: make && sudo make install
