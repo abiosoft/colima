@@ -20,7 +20,7 @@ jobs:
 
       - name: Install CLI deps
         run: |
-          brew install kubectl docker coreutils
+          brew install kubectl docker coreutils lima
 
       - name: Build and Install Colima
         run: make && sudo make install
@@ -49,7 +49,7 @@ jobs:
 
       - name: Install CLI deps
         run: |
-          brew install kubectl docker coreutils
+          brew install kubectl docker coreutils lima
 
       - name: Build and Install Colima
         run: make && sudo make install
