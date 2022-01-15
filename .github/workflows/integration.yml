@@ -1,0 +1,67 @@
+name: Integration
+
+on:
+  push:
+    tags: ["v*"]
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  docker:
+    runs-on: macos-11
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+
+      - name: Install CLI tools
+        run: |
+          brew install kubectl docker
+
+      - name: Build and Install Colima
+        run: make && sudo make install
+
+      - name: Start Colima
+        run: colima start --runtime docker
+
+      - name: Delay
+        run: sleep 5
+
+      - name: Test Docker
+        run: docker ps && docker info
+
+      - name: Teardown
+        run: colima delete -f
+
+  containerd:
+    runs-on: macos-11
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+
+      - name: Install CLI tools
+        run: |
+          brew install kubectl docker
+
+      - name: Build and Install Colima
+        run: make && sudo make install
+
+      - name: Start Colima
+        run: colima start --runtime containerd
+
+      - name: Delay
+        run: sleep 5
+
+      - name: Test Docker
+        run: colima nerdctl ps && colima nerdctl info
+
+      - name: Teardown
+        run: colima delete -f
