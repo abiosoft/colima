@@ -1,6 +1,7 @@
 # Colima
 
 [![Go](https://github.com/abiosoft/colima/actions/workflows/go.yml/badge.svg)](https://github.com/abiosoft/colima/actions/workflows/go.yml)
+[![Integration](https://github.com/abiosoft/colima/actions/workflows/integration.yml/badge.svg)](https://github.com/abiosoft/colima/actions/workflows/integration.yml)
 
 Container runtimes on macOS (and Linux) with minimal setup.
 
