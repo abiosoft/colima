@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/kubernetes"
@@ -134,11 +133,6 @@ func (c colimaApp) Stop() error {
 }
 
 func (c colimaApp) Delete() error {
-	y := cli.Prompt("are you sure you want to delete " + config.Profile().DisplayName + " and all settings")
-	if !y {
-		return nil
-	}
-
 	log.Println("deleting", config.Profile().DisplayName)
 
 	// the order for teardown is:
