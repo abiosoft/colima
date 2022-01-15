@@ -37,6 +37,18 @@ jobs:
       - name: Build Image
         run: docker build integration
 
+      - name: Stop
+        run: colima stop
+
+      - name: Kubernetes
+        run: colima start --runtime docker --with-kubernetes
+
+      - name: Delay
+        run: sleep 5
+
+      - name: Validate Kubernetes
+        run: kubectl cluster-info && kubectl version && kubectl get nodes -o wide
+
       - name: Teardown
         run: colima delete -f
 
@@ -68,6 +80,18 @@ jobs:
 
       - name: Build Image
         run: colima nerdctl -- build integration
+
+      - name: Stop
+        run: colima stop
+
+      - name: Kubernetes
+        run: colima start --runtime containerd --with-kubernetes
+
+      - name: Delay
+        run: sleep 5
+
+      - name: Validate Kubernetes
+        run: kubectl cluster-info && kubectl version && kubectl get nodes -o wide
 
       - name: Teardown
         run: colima delete -f
