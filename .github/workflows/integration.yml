@@ -31,8 +31,11 @@ jobs:
       - name: Delay
         run: sleep 5
 
-      - name: Test Docker
+      - name: Validate Docker
         run: docker ps && docker info
+
+      - name: Build Image
+        run: docker build integration
 
       - name: Teardown
         run: colima delete -f
@@ -60,8 +63,11 @@ jobs:
       - name: Delay
         run: sleep 5
 
-      - name: Test Docker
+      - name: Validate Containerd
         run: colima nerdctl ps && colima nerdctl info
+
+      - name: Build Image
+        run: colima nerdctl -- build integration
 
       - name: Teardown
         run: colima delete -f
