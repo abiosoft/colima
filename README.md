@@ -142,7 +142,7 @@ Docker for Mac. You should run either, not both.~~
 
 Yes, from version v0.3.0, Colima can run alongside Docker for Mac.
 
-to switch between them, use `docker contexts`
+to switch between them, use `docker context`
 ```shell
 $ docker context list
 NAME                TYPE                DESCRIPTION                               DOCKER ENDPOINT                              KUBERNETES ENDPOINT   ORCHESTRATOR
