@@ -16,5 +16,10 @@ go build \
     -o "$OUTPUT_DIR/$OUTPUT_BIN" \
     ./cmd/colima
 
-# sha256sum is not on macOS by default, fixable with `brew install coreutils`
-cd "${OUTPUT_DIR}" && sha256sum "${OUTPUT_BIN}" >"${OUTPUT_BIN}.sha256sum"
+# sha256sum is not on macOS by default, use shasum
+SHA256SUM=sha256sum
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    SHA256SUM="shasum -a 256"
+fi
+
+cd "${OUTPUT_DIR}" && ${SHA256SUM} "${OUTPUT_BIN}" >"${OUTPUT_BIN}.sha256sum"
