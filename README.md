@@ -140,7 +140,9 @@ Since Lima is aka Linux on Mac. By transitivity, Colima can also mean Containers
 ~~No, except when started with Containerd runtime. Colima assumes to be the default Docker context and will conflict with
 Docker for Mac. You should run either, not both.~~
 
-Yes, from version v0.3.0, Colima can run alongside Docker for Mac.
+Yes, from version v0.3.0 Colima leverages Docker contexts and can thereby run alongside Docker for Mac.
+
+`docker context list` can list all contexts and `docker context use` can be used to change the active context.
 
 </p>
 </details>
