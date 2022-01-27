@@ -24,7 +24,10 @@ jobs:
             args: --timeout 3m0s
 
       - name: Build
-        run: go build -v ./...
+        uses: goreleaser/goreleaser-action@v2
+        with:
+          version: latest
+          args: release --rm-dist --skip-publish --snapshot --skip-sign --debug
 
       - name: Test
         run: go test -v ./...
