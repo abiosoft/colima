@@ -2,3 +2,5 @@
 .vscode/
 _output/
 bin/
+
+dist/
