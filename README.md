@@ -27,7 +27,7 @@ Colima is available on Homebrew and Nix. Check [here](INSTALL.md) for other inst
 brew install colima
 
 # Nix
-nix-env -i colima
+nix-env -iA nixpkgs.colima
 ```
 
 Or stay on the bleeding edge (only Homebrew)
