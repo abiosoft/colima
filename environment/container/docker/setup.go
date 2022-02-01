@@ -50,7 +50,7 @@ func (d dockerRuntime) createDaemonFile() error {
 
 	b, err := json.MarshalIndent(daemonJson, "", "    ")
 	if err != nil {
-		return fmt.Errorf("error marshaling deamon.json: %w", err)
+		return fmt.Errorf("error marshaling daemon.json: %w", err)
 	}
 	return d.host.Write(fileName, string(b))
 }
@@ -81,7 +81,7 @@ func (d dockerRuntime) setupDaemonFile() error {
 	}
 
 	if err := d.guest.RunQuiet("sudo", "cp", daemonFileInVM, "/etc/docker/daemon.json"); err != nil {
-		return fmt.Errorf("error copying deamon.json: %w", err)
+		return fmt.Errorf("error copying daemon.json: %w", err)
 	}
 
 	// config changed, restart is a must. stop now, start will be done during start
