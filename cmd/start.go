@@ -26,7 +26,8 @@ The --runtime, --disk and --arch flags are only used on initial start and ignore
 		"  colima start --with-kubernetes\n" +
 		"  colima start --runtime containerd --with-kubernetes\n" +
 		"  colima start --cpu 4 --memory 8 --disk 100\n" +
-		"  colima start --arch aarch64",
+		"  colima start --arch aarch64\n" +
+		"  colima start --dns 1.1.1.1 --dns 8.8.8.8",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return newApp().Start(startCmdArgs.Config)
 	},
@@ -72,6 +73,9 @@ The --runtime, --disk and --arch flags are only used on initial start and ignore
 		}
 		if !cmd.Flag("ssh-agent").Changed {
 			startCmdArgs.VM.ForwardAgent = current.VM.ForwardAgent
+		}
+		if !cmd.Flag("dns").Changed {
+			startCmdArgs.VM.DNS = current.VM.DNS
 		}
 
 		log.Println("using", current.Runtime, "runtime")
@@ -140,9 +144,5 @@ func init() {
 	startCmd.Flags().StringToStringVarP(&startCmdArgs.VM.Env, "env", "e", nil, "environment variables for the VM")
 	_ = startCmd.Flags().MarkHidden("env")
 
-	// dns application is not as straightforward in alpine
-	// coupled with the fact that Lima now supports DNS propagation from the host
-	// this is no longer priority
 	startCmd.Flags().IPSliceVarP(&startCmdArgs.VM.DNS, "dns", "n", nil, "DNS servers for the VM")
-	_ = startCmd.Flags().MarkHidden("dns")
 }

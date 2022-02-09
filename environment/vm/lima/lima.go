@@ -156,29 +156,45 @@ func (l limaVM) resume(conf config.Config) error {
 }
 
 func (l limaVM) applyDNS(a *cli.ActiveCommandChain, conf config.Config) {
-	// manually set the domain using systemd-resolve.
+	// manually set the DNS by modifying the resolve file.
 	//
 	// Lima's DNS settings is fixed at VM create and cannot be changed afterwards.
 	// this is a better approach as it only applies on VM startup and gets reset at shutdown.
-	// this is specific to ubuntu, may be different for other distros.
+	// this is specific to Alpine , may be different for other distros.
+	log := l.Logger()
+	dnsFile := "/etc/resolv.conf"
+	dnsFileBak := dnsFile + ".lima"
 
-	if len(conf.VM.DNS) == 0 {
-		return
-	}
-
-	a.Stage("applying DNS config")
-
-	// apply settings
 	a.Add(func() error {
-		args := []string{"sudo", "systemd-resolve", "--interface", "eth0"}
-		for _, ip := range conf.VM.DNS {
-			args = append(args, "--set-dns", ip.String())
+		// backup the original dns file (if not previously done)
+		if l.RunQuiet("stat", dnsFileBak) != nil {
+			err := l.RunQuiet("sudo", "cp", dnsFile, dnsFileBak)
+			if err != nil {
+				// custom DNS config failure should not prevent the VM from starting
+				// as the default config will be used.
+				// Rather, warn and terminate setting the DNS config.
+				log.Warnln(fmt.Errorf("error backing up default DNS config: %w", err))
+				return nil
+			}
 		}
-		return l.Run(args...)
+		return nil
 	})
-	// restart service, should not be needed but to ascertain
+
 	a.Add(func() error {
-		return l.Run("sudo", "systemctl", "restart", "systemd-resolved")
+		// empty the file
+		if err := l.RunQuiet("sudo", "rm", "-f", dnsFile); err != nil {
+			return fmt.Errorf("error initiating DNS config: %w", err)
+		}
+
+		for _, dns := range conf.VM.DNS {
+			line := fmt.Sprintf(`echo nameserver %s >> %s`, dns.String(), dnsFile)
+			if err := l.RunQuiet("sudo", "sh", "-c", line); err != nil {
+				return fmt.Errorf("error applying DNS config: %w", err)
+			}
+		}
+
+		// append the actual DNS in the end as a fallback
+		return l.RunQuiet("sudo", "sh", "-c", fmt.Sprintf("cat %s >> %s", dnsFileBak, dnsFile))
 	})
 }
 
