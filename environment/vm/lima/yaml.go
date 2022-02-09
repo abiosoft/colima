@@ -30,7 +30,9 @@ func newConf(conf config.Config) (l Config, err error) {
 	l.Firmware.LegacyBIOS = false
 
 	l.DNS = conf.VM.DNS
-	l.UseHostResolver = len(l.DNS) == 0 // use host resolver when no DNS is set
+	// always use host resolver to generate Lima's default resolv.conf file
+	// colima will override this in VM when custom DNS is set
+	l.UseHostResolver = true
 
 	l.Env = map[string]string{}
 	for k, v := range conf.VM.Env {
