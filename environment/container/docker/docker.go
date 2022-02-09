@@ -1,10 +1,14 @@
 package docker
 
 import (
+	"fmt"
+	"path/filepath"
 	"time"
 
 	"github.com/abiosoft/colima/cli"
+	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/util"
 )
 
 // Name is container runtime name.
@@ -63,6 +67,9 @@ func (d dockerRuntime) Provision() error {
 	a.Add(d.setupContext)
 	a.Add(d.useContext)
 
+	// docker certs
+	a.Add(d.copyCerts)
+
 	return a.Exec()
 }
 
@@ -118,4 +125,35 @@ func (d dockerRuntime) Dependencies() []string {
 func (d dockerRuntime) Version() string {
 	version, _ := d.host.RunOutput("docker", "version", "--format", `client: v{{.Client.Version}}{{printf "\n"}}server: v{{.Server.Version}}`)
 	return version
+}
+
+func (d dockerRuntime) copyCerts() error {
+	log := d.Logger()
+	err := func() error {
+		dockerCertsDirHost := filepath.Join(util.HomeDir(), ".docker", "certs.d")
+		dockerCertsDirGuest := "/etc/docker/certs.d"
+		if _, err := d.host.Stat(dockerCertsDirHost); err != nil {
+			// no certs found
+			return nil
+		}
+
+		// we are utilising the host cache path as it is the only guaranteed mounted path.
+
+		dockerCertsCacheDir := filepath.Join(config.CacheDir(), "docker-certs")
+		if err := d.host.RunQuiet("mkdir", "-p", dockerCertsCacheDir); err != nil {
+			return err
+		}
+
+		if err := d.guest.RunQuiet("sudo", "mkdir", "-p", dockerCertsDirGuest); err != nil {
+			return err
+		}
+
+		return d.guest.RunQuiet("sudo", "cp", "-R", dockerCertsCacheDir+"/.", dockerCertsDirGuest)
+	}()
+
+	// not a fatal error, a warning suffices.
+	if err != nil {
+		log.Warnln(fmt.Errorf("cannot copy docker certs to vm: %w", err))
+	}
+	return nil
 }
