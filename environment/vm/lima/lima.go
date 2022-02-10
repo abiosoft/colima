@@ -115,6 +115,9 @@ func (l *limaVM) Start(conf config.Config) error {
 		return os.Remove(configFile)
 	})
 
+	// registry certs
+	a.Add(l.copyCerts)
+
 	l.applyDNS(a, conf)
 
 	// adding it to command chain to execute only after successful startup.
@@ -149,6 +152,9 @@ func (l limaVM) resume(conf config.Config) error {
 	a.Add(func() error {
 		return l.host.Run(limactl, "start", config.Profile().ID)
 	})
+
+	// registry certs
+	a.Add(l.copyCerts)
 
 	l.applyDNS(a, conf)
 
