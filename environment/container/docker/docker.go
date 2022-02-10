@@ -139,15 +139,19 @@ func (d dockerRuntime) copyCerts() error {
 
 		// we are utilising the host cache path as it is the only guaranteed mounted path.
 
+		// copy to cache dir
 		dockerCertsCacheDir := filepath.Join(config.CacheDir(), "docker-certs")
 		if err := d.host.RunQuiet("mkdir", "-p", dockerCertsCacheDir); err != nil {
 			return err
 		}
-
-		if err := d.guest.RunQuiet("sudo", "mkdir", "-p", dockerCertsDirGuest); err != nil {
+		if err := d.host.RunQuiet("cp", "-R", dockerCertsDirHost+"/.", dockerCertsCacheDir); err != nil {
 			return err
 		}
 
+		// copy from cache to vm
+		if err := d.guest.RunQuiet("sudo", "mkdir", "-p", dockerCertsDirGuest); err != nil {
+			return err
+		}
 		return d.guest.RunQuiet("sudo", "cp", "-R", dockerCertsCacheDir+"/.", dockerCertsDirGuest)
 	}()
 
