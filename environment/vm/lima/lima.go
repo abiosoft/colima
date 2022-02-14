@@ -199,7 +199,11 @@ func (l limaVM) applyDNS(a *cli.ActiveCommandChain, conf config.Config) {
 			}
 		}
 
-		// append the actual DNS in the end as a fallback
+		if len(conf.VM.DNS) > 0 {
+			return nil
+		}
+
+		// use the default Lima dns if no dns is set
 		return l.RunQuiet("sudo", "sh", "-c", fmt.Sprintf("cat %s >> %s", dnsFileBak, dnsFile))
 	})
 }

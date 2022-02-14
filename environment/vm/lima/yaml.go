@@ -32,7 +32,7 @@ func newConf(conf config.Config) (l Config, err error) {
 	l.DNS = conf.VM.DNS
 	// always use host resolver to generate Lima's default resolv.conf file
 	// colima will override this in VM when custom DNS is set
-	l.UseHostResolver = true
+	l.HostResolver.Enabled = true
 
 	l.Env = map[string]string{}
 	for k, v := range conf.VM.Env {
@@ -100,19 +100,19 @@ func newConf(conf config.Config) (l Config, err error) {
 
 // Config is lima config. Code copied from lima and modified.
 type Config struct {
-	Arch            environment.Arch  `yaml:"arch,omitempty"`
-	Images          []File            `yaml:"images"`
-	CPUs            int               `yaml:"cpus,omitempty"`
-	Memory          string            `yaml:"memory,omitempty"`
-	Disk            string            `yaml:"disk,omitempty"`
-	Mounts          []Mount           `yaml:"mounts,omitempty"`
-	SSH             SSH               `yaml:"ssh,omitempty"`
-	Containerd      Containerd        `yaml:"containerd"`
-	Env             map[string]string `yaml:"env,omitempty"`
-	DNS             []net.IP          `yaml:"-"` // will be handled manually by colima
-	Firmware        Firmware          `yaml:"firmware"`
-	UseHostResolver bool              `yaml:"useHostResolver"`
-	PortForwards    []PortForward     `yaml:"portForwards,omitempty"`
+	Arch         environment.Arch  `yaml:"arch,omitempty"`
+	Images       []File            `yaml:"images"`
+	CPUs         int               `yaml:"cpus,omitempty"`
+	Memory       string            `yaml:"memory,omitempty"`
+	Disk         string            `yaml:"disk,omitempty"`
+	Mounts       []Mount           `yaml:"mounts,omitempty"`
+	SSH          SSH               `yaml:"ssh,omitempty"`
+	Containerd   Containerd        `yaml:"containerd"`
+	Env          map[string]string `yaml:"env,omitempty"`
+	DNS          []net.IP          `yaml:"-"` // will be handled manually by colima
+	Firmware     Firmware          `yaml:"firmware"`
+	HostResolver HostResolver      `yaml:"hostResolver,omitempty"`
+	PortForwards []PortForward     `yaml:"portForwards,omitempty"`
 }
 
 type File struct {
@@ -163,6 +163,12 @@ type PortForward struct {
 	Proto          Proto  `yaml:"proto,omitempty" json:"proto,omitempty"`
 	Ignore         bool   `yaml:"ignore,omitempty" json:"ignore,omitempty"`
 }
+
+type HostResolver struct {
+	Enabled bool `yaml:"enabled,omitempty" json:"enabled,omitempty"`
+	IPv6    bool `yaml:"ipv6,omitempty" json:"ipv6,omitempty"`
+}
+
 type volumeMount string
 
 func (v volumeMount) Writable() bool {
