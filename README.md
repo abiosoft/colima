@@ -20,11 +20,14 @@ Container runtimes on macOS (and Linux) with minimal setup.
 
 ### Installation
 
-Colima is available on Homebrew and Nix. Check [here](INSTALL.md) for other installation options.
+Colima is available on Homebrew, MacPorts, and Nix. Check [here](INSTALL.md) for other installation options.
 
 ```
 # Homebrew
 brew install colima
+
+# MacPorts
+sudo port install colima
 
 # Nix
 nix-env -iA nixpkgs.colima

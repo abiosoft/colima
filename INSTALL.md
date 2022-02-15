@@ -14,6 +14,14 @@ Development Version
 brew install --HEAD colima
 ```
 
+## MacPorts
+
+Stable version
+
+```
+sudo port install colima
+```
+
 ## Nix
 
 Only stable Version
