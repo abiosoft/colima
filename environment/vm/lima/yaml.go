@@ -17,8 +17,8 @@ func newConf(conf config.Config) (l Config, err error) {
 	l.Arch = environment.Arch(conf.VM.Arch).Value()
 
 	l.Images = append(l.Images,
-		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.3.3/alpine-lima-clm-3.14.3-aarch64.iso", Digest: "sha512:fc736729eb5c8d0ee505b34884dee1c9d095013eb3f69d64d4bc9d0b9f5916ed6f1523fde63ad47862f6b43ccc29afc7d3f803a26953c16f92a1f0edd0e6a165"},
-		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.3.3/alpine-lima-clm-3.14.3-x86_64.iso", Digest: "sha512:2f78114cd4a6e9f1c25286e86b54ce7b1f060a6c456e5c49f9b70e0d131affa1233a7f6befd4f1a23f4baefdac1c1fba28feafe0c7d60948a3bbc0317384ebae"},
+		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.3.3-1/alpine-lima-clm-3.14.3-aarch64.iso", Digest: "sha512:07d5b98f93c48e103cc0a3610a99980c17a5c8ca3ea81ca66ee53de2a182d41568e6701c146728270ecf2b8a944abc34f25ebb0edcea3378f2c17c75a287f85c"},
+		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.3.3-1/alpine-lima-clm-3.14.3-x86_64.iso", Digest: "sha512:1bcdf1fec1f7de5938a1dd6effad9546d20ff6caf6eefc8224a66af74891f0337f6f1e9bb8c2b3231e1364be004c3b25457cbc427968e27750d60662093538aa"},
 	)
 
 	l.CPUs = conf.VM.CPU
@@ -111,7 +111,7 @@ type Config struct {
 	Env          map[string]string `yaml:"env,omitempty"`
 	DNS          []net.IP          `yaml:"-"` // will be handled manually by colima
 	Firmware     Firmware          `yaml:"firmware"`
-	HostResolver HostResolver      `yaml:"hostResolver,omitempty"`
+	HostResolver HostResolver      `yaml:"hostResolver"`
 	PortForwards []PortForward     `yaml:"portForwards,omitempty"`
 }
 
@@ -165,7 +165,7 @@ type PortForward struct {
 }
 
 type HostResolver struct {
-	Enabled bool `yaml:"enabled,omitempty" json:"enabled,omitempty"`
+	Enabled bool `yaml:"enabled" json:"enabled"`
 	IPv6    bool `yaml:"ipv6,omitempty" json:"ipv6,omitempty"`
 }
 
