@@ -17,8 +17,8 @@ func newConf(conf config.Config) (l Config, err error) {
 	l.Arch = environment.Arch(conf.VM.Arch).Value()
 
 	l.Images = append(l.Images,
-		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.3.2/alpine-lima-clm-3.14.3-aarch64.iso", Digest: "sha512:1f93efbfb3093203446f605647438d04d239d3ee591c06b85e79f067180eff5d6b24b9133d147731a0a68d6d3b8d233eed844c99453e2f697e8df70f5b9cb1eb"},
-		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.3.2/alpine-lima-clm-3.14.3-x86_64.iso", Digest: "sha512:875482176ff2f43bf9472f84137d8b9a56d692ae19243436079c7f2f78cb6b13576601eef9102aaea796629215fc60308e69b590c81fe4139e9e84f1ec4a57f5"},
+		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.3.3-1/alpine-lima-clm-3.14.3-aarch64.iso", Digest: "sha512:07d5b98f93c48e103cc0a3610a99980c17a5c8ca3ea81ca66ee53de2a182d41568e6701c146728270ecf2b8a944abc34f25ebb0edcea3378f2c17c75a287f85c"},
+		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.3.3-1/alpine-lima-clm-3.14.3-x86_64.iso", Digest: "sha512:1bcdf1fec1f7de5938a1dd6effad9546d20ff6caf6eefc8224a66af74891f0337f6f1e9bb8c2b3231e1364be004c3b25457cbc427968e27750d60662093538aa"},
 	)
 
 	l.CPUs = conf.VM.CPU
@@ -30,7 +30,9 @@ func newConf(conf config.Config) (l Config, err error) {
 	l.Firmware.LegacyBIOS = false
 
 	l.DNS = conf.VM.DNS
-	l.UseHostResolver = len(l.DNS) == 0 // use host resolver when no DNS is set
+	// always use host resolver to generate Lima's default resolv.conf file
+	// colima will override this in VM when custom DNS is set
+	l.HostResolver.Enabled = true
 
 	l.Env = map[string]string{}
 	for k, v := range conf.VM.Env {
@@ -98,19 +100,19 @@ func newConf(conf config.Config) (l Config, err error) {
 
 // Config is lima config. Code copied from lima and modified.
 type Config struct {
-	Arch            environment.Arch  `yaml:"arch,omitempty"`
-	Images          []File            `yaml:"images"`
-	CPUs            int               `yaml:"cpus,omitempty"`
-	Memory          string            `yaml:"memory,omitempty"`
-	Disk            string            `yaml:"disk,omitempty"`
-	Mounts          []Mount           `yaml:"mounts,omitempty"`
-	SSH             SSH               `yaml:"ssh,omitempty"`
-	Containerd      Containerd        `yaml:"containerd"`
-	Env             map[string]string `yaml:"env,omitempty"`
-	DNS             []net.IP          `yaml:"-"` // will be handled manually by colima
-	Firmware        Firmware          `yaml:"firmware"`
-	UseHostResolver bool              `yaml:"useHostResolver"`
-	PortForwards    []PortForward     `yaml:"portForwards,omitempty"`
+	Arch         environment.Arch  `yaml:"arch,omitempty"`
+	Images       []File            `yaml:"images"`
+	CPUs         int               `yaml:"cpus,omitempty"`
+	Memory       string            `yaml:"memory,omitempty"`
+	Disk         string            `yaml:"disk,omitempty"`
+	Mounts       []Mount           `yaml:"mounts,omitempty"`
+	SSH          SSH               `yaml:"ssh,omitempty"`
+	Containerd   Containerd        `yaml:"containerd"`
+	Env          map[string]string `yaml:"env,omitempty"`
+	DNS          []net.IP          `yaml:"-"` // will be handled manually by colima
+	Firmware     Firmware          `yaml:"firmware"`
+	HostResolver HostResolver      `yaml:"hostResolver"`
+	PortForwards []PortForward     `yaml:"portForwards,omitempty"`
 }
 
 type File struct {
@@ -161,6 +163,12 @@ type PortForward struct {
 	Proto          Proto  `yaml:"proto,omitempty" json:"proto,omitempty"`
 	Ignore         bool   `yaml:"ignore,omitempty" json:"ignore,omitempty"`
 }
+
+type HostResolver struct {
+	Enabled bool `yaml:"enabled" json:"enabled"`
+	IPv6    bool `yaml:"ipv6,omitempty" json:"ipv6,omitempty"`
+}
+
 type volumeMount string
 
 func (v volumeMount) Writable() bool {

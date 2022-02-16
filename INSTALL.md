@@ -42,7 +42,7 @@ Binaries are available with every release on the [releases page](https://github.
 
 ```sh
 # download binary
-curl -LO https://github.com/abiosoft/colima/releases/download/v0.3.2/colima-$(uname)-$(uname -m)
+curl -LO https://github.com/abiosoft/colima/releases/download/v0.3.3/colima-$(uname)-$(uname -m)
 
 # install in $PATH
 install colima-$(uname)-$(uname -m) /usr/local/bin/colima # or sudo install if /usr/local/bin requires root.

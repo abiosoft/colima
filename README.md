@@ -130,11 +130,22 @@ To provide container runtimes on macOS with minimal setup.
 
 ## What is with the name?
 
-Colima means Containers in Lima.
+Colima means Containers in [Lima](https://github.com/lima-vm/lima).
 
 Since Lima is aka Linux on Mac. By transitivity, Colima can also mean Containers on Linux on Mac.
 
 ## FAQ
+
+<details>
+<summary>How does Colima compare to Lima?</summary>
+<p>
+
+Colima is basically a higher level usage of Lima and utilises Lima to provide Docker, Containerd and/or Kubernetes.
+
+If you want more control over the underlying VM, you can either use Lima directly or override Colima's VM settings with [Lima overrides](https://github.com/lima-vm/lima/blob/873a39c6652fe5fcb07ee08418f39ccaeeea6979/pkg/limayaml/default.yaml#L271).
+
+</p>
+</details>
 
 <details>
 <summary>Can it run alongside Docker for Mac?</summary>
@@ -195,7 +206,7 @@ Feedbacks would be appreciated.
 
 ## Help Wanted
 
-- ~~Homebrew formula~~
+- Documentation
 - Testing on M1 Macs
 
 ## Sponsoring the Project
