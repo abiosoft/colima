@@ -17,8 +17,8 @@ func newConf(conf config.Config) (l Config, err error) {
 	l.Arch = environment.Arch(conf.VM.Arch).Value()
 
 	l.Images = append(l.Images,
-		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.3.3-1/alpine-lima-clm-3.14.3-aarch64.iso", Digest: "sha512:07d5b98f93c48e103cc0a3610a99980c17a5c8ca3ea81ca66ee53de2a182d41568e6701c146728270ecf2b8a944abc34f25ebb0edcea3378f2c17c75a287f85c"},
-		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.3.3-1/alpine-lima-clm-3.14.3-x86_64.iso", Digest: "sha512:1bcdf1fec1f7de5938a1dd6effad9546d20ff6caf6eefc8224a66af74891f0337f6f1e9bb8c2b3231e1364be004c3b25457cbc427968e27750d60662093538aa"},
+		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.3.4/alpine-lima-clm-3.14.3-aarch64.iso", Digest: "sha512:9a964a8709e6813cfdfc4ac58a5c811de04aa6eb1a41c13fe9662b39a28af8222d2684e501637d6e294f3857328a46d69969c3e6b8868eb633478596733f168e"},
+		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.3.4/alpine-lima-clm-3.14.3-x86_64.iso", Digest: "sha512:20237c13bf6e4769d4b027934d7084d436f3b930f4d8289aaba85d1db3025d28f0eabf7ea4aba8adef48ce3de1de3616a72b2fa8b31e818a6d30f4904483b8d9"},
 	)
 
 	l.CPUs = conf.VM.CPU
@@ -33,6 +33,9 @@ func newConf(conf config.Config) (l Config, err error) {
 	// always use host resolver to generate Lima's default resolv.conf file
 	// colima will override this in VM when custom DNS is set
 	l.HostResolver.Enabled = true
+	l.HostResolver.Hosts = map[string]string{
+		"host.docker.internal": "host.lima.internal",
+	}
 
 	l.Env = map[string]string{}
 	for k, v := range conf.VM.Env {
@@ -52,11 +55,23 @@ func newConf(conf config.Config) (l Config, err error) {
 		}
 
 		// handle port forwarding to allow listening on 0.0.0.0
+		// bind 0.0.0.0
+		l.PortForwards = append(l.PortForwards,
+			PortForward{
+				GuestIPMustBeZero: true,
+				GuestIP:           net.ParseIP("0.0.0.0"),
+				GuestPortRange:    [2]int{1, 65535},
+				HostIP:            net.ParseIP("0.0.0.0"),
+				HostPortRange:     [2]int{1, 65535},
+				Proto:             TCP,
+			},
+		)
+		// bind 127.0.0.1
 		l.PortForwards = append(l.PortForwards,
 			PortForward{
 				GuestIP:        net.ParseIP("127.0.0.1"),
 				GuestPortRange: [2]int{1, 65535},
-				HostIP:         conf.PortInterface,
+				HostIP:         net.ParseIP("127.0.0.1"),
 				HostPortRange:  [2]int{1, 65535},
 				Proto:          TCP,
 			},
@@ -152,21 +167,23 @@ const (
 )
 
 type PortForward struct {
-	GuestIP        net.IP `yaml:"guestIP,omitempty" json:"guestIP,omitempty"`
-	GuestPort      int    `yaml:"guestPort,omitempty" json:"guestPort,omitempty"`
-	GuestPortRange [2]int `yaml:"guestPortRange,omitempty" json:"guestPortRange,omitempty"`
-	GuestSocket    string `yaml:"guestSocket,omitempty" json:"guestSocket,omitempty"`
-	HostIP         net.IP `yaml:"hostIP,omitempty" json:"hostIP,omitempty"`
-	HostPort       int    `yaml:"hostPort,omitempty" json:"hostPort,omitempty"`
-	HostPortRange  [2]int `yaml:"hostPortRange,omitempty" json:"hostPortRange,omitempty"`
-	HostSocket     string `yaml:"hostSocket,omitempty" json:"hostSocket,omitempty"`
-	Proto          Proto  `yaml:"proto,omitempty" json:"proto,omitempty"`
-	Ignore         bool   `yaml:"ignore,omitempty" json:"ignore,omitempty"`
+	GuestIPMustBeZero bool   `yaml:"guestIPMustBeZero,omitempty" json:"guestIPMustBeZero,omitempty"`
+	GuestIP           net.IP `yaml:"guestIP,omitempty" json:"guestIP,omitempty"`
+	GuestPort         int    `yaml:"guestPort,omitempty" json:"guestPort,omitempty"`
+	GuestPortRange    [2]int `yaml:"guestPortRange,omitempty" json:"guestPortRange,omitempty"`
+	GuestSocket       string `yaml:"guestSocket,omitempty" json:"guestSocket,omitempty"`
+	HostIP            net.IP `yaml:"hostIP,omitempty" json:"hostIP,omitempty"`
+	HostPort          int    `yaml:"hostPort,omitempty" json:"hostPort,omitempty"`
+	HostPortRange     [2]int `yaml:"hostPortRange,omitempty" json:"hostPortRange,omitempty"`
+	HostSocket        string `yaml:"hostSocket,omitempty" json:"hostSocket,omitempty"`
+	Proto             Proto  `yaml:"proto,omitempty" json:"proto,omitempty"`
+	Ignore            bool   `yaml:"ignore,omitempty" json:"ignore,omitempty"`
 }
 
 type HostResolver struct {
-	Enabled bool `yaml:"enabled" json:"enabled"`
-	IPv6    bool `yaml:"ipv6,omitempty" json:"ipv6,omitempty"`
+	Enabled bool              `yaml:"enabled" json:"enabled"`
+	IPv6    bool              `yaml:"ipv6,omitempty" json:"ipv6,omitempty"`
+	Hosts   map[string]string `yaml:"hosts,omitempty" json:"hosts,omitempty"`
 }
 
 type volumeMount string
