@@ -55,11 +55,23 @@ func newConf(conf config.Config) (l Config, err error) {
 		}
 
 		// handle port forwarding to allow listening on 0.0.0.0
+		// bind 0.0.0.0
+		l.PortForwards = append(l.PortForwards,
+			PortForward{
+				GuestIPMustBeZero: true,
+				GuestIP:           net.ParseIP("0.0.0.0"),
+				GuestPortRange:    [2]int{1, 65535},
+				HostIP:            net.ParseIP("0.0.0.0"),
+				HostPortRange:     [2]int{1, 65535},
+				Proto:             TCP,
+			},
+		)
+		// bind 127.0.0.1
 		l.PortForwards = append(l.PortForwards,
 			PortForward{
 				GuestIP:        net.ParseIP("127.0.0.1"),
 				GuestPortRange: [2]int{1, 65535},
-				HostIP:         conf.PortInterface,
+				HostIP:         net.ParseIP("127.0.0.1"),
 				HostPortRange:  [2]int{1, 65535},
 				Proto:          TCP,
 			},
