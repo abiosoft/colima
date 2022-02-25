@@ -142,7 +142,9 @@ Since Lima is aka Linux on Mac. By transitivity, Colima can also mean Containers
 
 Colima is basically a higher level usage of Lima and utilises Lima to provide Docker, Containerd and/or Kubernetes.
 
-If you want more control over the underlying VM, you can either use Lima directly or override Colima's VM settings with [Lima overrides](https://github.com/lima-vm/lima/blob/873a39c6652fe5fcb07ee08418f39ccaeeea6979/pkg/limayaml/default.yaml#L271).
+If you want more control over the underlying VM, you can either use Lima directly or override Colima's VM settings with [Lima overrides](https://github.com/lima-vm/lima/blob/873a39c6652fe5fcb07ee08418f39ccaeeea6979/pkg/limayaml/default.yaml#L271). 
+
+Be aware that any settings in your `override.yaml` will override Colima's settings, and certain settings in lima's default are incompatible with Colima. For example, you must remove the `image` section from the lima repository since Colima is already using a custom image. 
 
 </p>
 </details>
