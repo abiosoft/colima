@@ -21,6 +21,7 @@ Use with caution. This deletes everything and a startup afterwards is like the
 initial startup of Colima.
 
 If you simply want to reset the Kubernetes cluster, run 'colima kubernetes reset'.`,
+	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if !deleteCmdArgs.force {
 			y := cli.Prompt("are you sure you want to delete " + config.Profile().DisplayName + " and all settings")

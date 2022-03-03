@@ -28,6 +28,7 @@ The --runtime, --disk and --arch flags are only used on initial start and ignore
 		"  colima start --cpu 4 --memory 8 --disk 100\n" +
 		"  colima start --arch aarch64\n" +
 		"  colima start --dns 1.1.1.1 --dns 8.8.8.8",
+	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return newApp().Start(startCmdArgs.Config)
 	},
