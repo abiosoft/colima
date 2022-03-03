@@ -34,6 +34,7 @@ var kubernetesStartCmd = &cobra.Command{
 	Use:   "start",
 	Short: "start the Kubernetes cluster",
 	Long:  `Start the Kubernetes cluster.`,
+	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		app := newApp()
 		k, err := app.Kubernetes()
@@ -54,6 +55,7 @@ var kubernetesStopCmd = &cobra.Command{
 	Use:   "stop",
 	Short: "stop the Kubernetes cluster",
 	Long:  `Stop the Kubernetes cluster.`,
+	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		app := newApp()
 		k, err := app.Kubernetes()
@@ -73,6 +75,7 @@ var kubernetesDeleteCmd = &cobra.Command{
 	Use:   "delete",
 	Short: "delete the Kubernetes cluster",
 	Long:  `Delete the Kubernetes cluster.`,
+	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		app := newApp()
 		k, err := app.Kubernetes()
@@ -97,6 +100,7 @@ This resets the Kubernetes cluster and all Kubernetes objects
 will be deleted.
 
 The Kubernetes images are cached making the startup (after reset) much faster.`,
+	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		app := newApp()
 		k, err := app.Kubernetes()

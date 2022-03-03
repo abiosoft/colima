@@ -14,6 +14,7 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "print the version of Colima",
 	Long:  `Print the version of Colima`,
+	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		version := config.AppVersion()
 		fmt.Println(config.AppName, "version", version.Version)

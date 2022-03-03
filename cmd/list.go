@@ -19,6 +19,7 @@ var listCmd = &cobra.Command{
 	Long: `List all created instances.
 
 A new instance can be created during 'colima start' by specifying the '--profile' flag.`,
+	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		instances, err := lima.Instances()
 		if err != nil {

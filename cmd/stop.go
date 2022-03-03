@@ -13,6 +13,7 @@ var stopCmd = &cobra.Command{
 
 The state of the VM is persisted at stop. A start afterwards
 should return it back to its previous state.`,
+	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return newApp().Stop()
 	},
