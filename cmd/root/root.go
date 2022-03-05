@@ -15,6 +15,17 @@ var rootCmd = &cobra.Command{
 	Short: "container runtimes on macOS with minimal setup",
 	Long:  `Colima provides container runtimes on macOS with minimal setup.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+
+		switch cmd.Name() {
+		// special case handling for commands directly interacting with the VM
+		// start, stop, delete, status, version
+		case "start", "stop", "delete", "status", "version":
+			// if an arg is passed, assume it to be the profile (provided --profile is unset)
+			// i.e. colima start docker == colima start --profile=docker
+			if len(args) > 0 && !cmd.Flag("profile").Changed {
+				rootCmdArgs.Profile = args[0]
+			}
+		}
 		if rootCmdArgs.Profile != "" {
 			config.SetProfile(rootCmdArgs.Profile)
 		}

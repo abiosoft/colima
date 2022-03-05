@@ -16,7 +16,7 @@ import (
 
 // startCmd represents the start command
 var startCmd = &cobra.Command{
-	Use:   "start",
+	Use:   "start [profile]",
 	Short: "start Colima",
 	Long: `Start Colima with the specified container runtime (and kubernetes if --with-kubernetes is passed).
 The --runtime, --disk and --arch flags are only used on initial start and ignored on subsequent starts.
@@ -28,7 +28,7 @@ The --runtime, --disk and --arch flags are only used on initial start and ignore
 		"  colima start --cpu 4 --memory 8 --disk 100\n" +
 		"  colima start --arch aarch64\n" +
 		"  colima start --dns 1.1.1.1 --dns 8.8.8.8",
-	Args: cobra.NoArgs,
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return newApp().Start(startCmdArgs.Config)
 	},
