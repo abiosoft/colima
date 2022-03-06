@@ -69,9 +69,6 @@ The --runtime, --disk and --arch flags are only used on initial start and ignore
 		if !cmd.Flag("mount").Changed {
 			startCmdArgs.VM.Mounts = current.VM.Mounts
 		}
-		if !cmd.Flag("port-interface").Changed {
-			startCmdArgs.PortInterface = current.PortInterface
-		}
 		if !cmd.Flag("ssh-agent").Changed {
 			startCmdArgs.VM.ForwardAgent = current.VM.ForwardAgent
 		}
@@ -116,7 +113,6 @@ func randomAvailablePort() int {
 func init() {
 	runtimes := strings.Join(environment.ContainerRuntimes(), ", ")
 	defaultArch := string(environment.Arch(runtime.GOARCH).Value())
-	defaultPortInterface := net.ParseIP("0.0.0.0")
 
 	root.Cmd().AddCommand(startCmd)
 	startCmd.Flags().StringVarP(&startCmdArgs.Runtime, "runtime", "r", docker.Name, "container runtime ("+runtimes+")")
@@ -127,9 +123,6 @@ func init() {
 
 	// mounts
 	startCmd.Flags().StringSliceVarP(&startCmdArgs.VM.Mounts, "mount", "v", nil, "directories to mount, suffix ':w' for writable")
-
-	// port forwarding
-	startCmd.Flags().IPVarP(&startCmdArgs.PortInterface, "port-interface", "i", defaultPortInterface, "interface to use for forwarded ports")
 
 	// ssh agent
 	startCmd.Flags().BoolVarP(&startCmdArgs.VM.ForwardAgent, "ssh-agent", "s", false, "forward SSH agent to the VM")
