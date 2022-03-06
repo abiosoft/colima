@@ -25,7 +25,7 @@ func newConf(conf config.Config) (l Config, err error) {
 	l.Memory = fmt.Sprintf("%dGiB", conf.VM.Memory)
 	l.Disk = fmt.Sprintf("%dGiB", conf.VM.Disk)
 
-	l.SSH = SSH{LocalPort: conf.VM.SSHPort, LoadDotSSHPubKeys: false, ForwardAgent: conf.VM.ForwardAgent}
+	l.SSH = SSH{LocalPort: 0, LoadDotSSHPubKeys: false, ForwardAgent: conf.VM.ForwardAgent}
 	l.Containerd = Containerd{System: false, User: false}
 	l.Firmware.LegacyBIOS = false
 
@@ -142,7 +142,7 @@ type Mount struct {
 }
 
 type SSH struct {
-	LocalPort int `yaml:"localPort,omitempty"` // REQUIRED
+	LocalPort int `yaml:"localPort,omitempty"`
 	// LoadDotSSHPubKeys loads ~/.ssh/*.pub in addition to $LIMA_HOME/_config/user.pub .
 	// Default: true
 	LoadDotSSHPubKeys bool `yaml:"loadDotSSHPubKeys"`

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"net"
 	"runtime"
 	"strings"
 
@@ -33,9 +32,6 @@ The --runtime, --disk and --arch flags are only used on initial start and ignore
 		return newApp().Start(startCmdArgs.Config)
 	},
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		// set port
-		startCmdArgs.VM.SSHPort = randomAvailablePort()
-
 		current, err := config.Load()
 		if err != nil {
 			// not fatal, will proceed with defaults
@@ -95,19 +91,6 @@ const (
 
 var startCmdArgs struct {
 	config.Config
-}
-
-func randomAvailablePort() int {
-	listener, err := net.Listen("tcp", ":0")
-	if err != nil {
-		log.Fatal(fmt.Errorf("error picking an available port: %w", err))
-	}
-
-	if err := listener.Close(); err != nil {
-		log.Fatal(fmt.Errorf("error closing temporary port listener: %w", err))
-	}
-
-	return listener.Addr().(*net.TCPAddr).Port
 }
 
 func init() {
