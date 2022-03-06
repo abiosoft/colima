@@ -121,7 +121,7 @@ type Config struct {
 	Memory       string            `yaml:"memory,omitempty"`
 	Disk         string            `yaml:"disk,omitempty"`
 	Mounts       []Mount           `yaml:"mounts,omitempty"`
-	SSH          SSH               `yaml:"ssh,omitempty"`
+	SSH          SSH               `yaml:"ssh"`
 	Containerd   Containerd        `yaml:"containerd"`
 	Env          map[string]string `yaml:"env,omitempty"`
 	DNS          []net.IP          `yaml:"-"` // will be handled manually by colima
@@ -142,11 +142,11 @@ type Mount struct {
 }
 
 type SSH struct {
-	LocalPort int `yaml:"localPort,omitempty"`
+	LocalPort int `yaml:"localPort"`
 	// LoadDotSSHPubKeys loads ~/.ssh/*.pub in addition to $LIMA_HOME/_config/user.pub .
 	// Default: true
 	LoadDotSSHPubKeys bool `yaml:"loadDotSSHPubKeys"`
-	ForwardAgent      bool `yaml:"forwardAgent,omitempty"` // default: false
+	ForwardAgent      bool `yaml:"forwardAgent"` // default: false
 }
 
 type Containerd struct {
