@@ -431,13 +431,10 @@ func ShowSSH(name, format string) error {
 		return fmt.Errorf("error retrieving ssh config: %w", err)
 	}
 
-	out := buf.String()
-
-	if format == "config" {
-		from := "Host lima-" + name
-		to := "Host " + name
-		out = strings.ReplaceAll(buf.String(), from, to)
-	}
+	// TODO: this is a lazy approach, edge cases may not be covered
+	from := "lima-" + name
+	to := name
+	out := strings.ReplaceAll(buf.String(), from, to)
 
 	fmt.Println(out)
 	return nil
