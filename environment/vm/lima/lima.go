@@ -412,13 +412,37 @@ func Instances() ([]InstanceInfo, error) {
 		}
 
 		// rename to local friendly names
-		if i.Name == "colima" {
-			i.Name = "default"
-		}
-		i.Name = strings.TrimPrefix(i.Name, "colima-")
+		i.Name = toUserFriendlyName(i.Name)
 
 		instances = append(instances, i)
 	}
 
 	return instances, nil
+}
+
+// ShowSSH runs the show-ssh command in Lima.
+func ShowSSH(name, format string) error {
+	var buf bytes.Buffer
+	cmd := cli.Command("limactl", "show-ssh", "--format", format, name)
+	cmd.Stdout = &buf
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("error retrieving ssh config: %w", err)
+	}
+
+	// TODO: this is a lazy approach, edge cases may not be covered
+	from := "lima-" + name
+	to := name
+	out := strings.ReplaceAll(buf.String(), from, to)
+
+	fmt.Println(out)
+	return nil
+}
+
+func toUserFriendlyName(name string) string {
+	if name == "colima" {
+		name = "default"
+	}
+	return strings.TrimPrefix(name, "colima-")
 }

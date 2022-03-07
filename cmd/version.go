@@ -11,10 +11,10 @@ import (
 
 // versionCmd represents the version command
 var versionCmd = &cobra.Command{
-	Use:   "version",
+	Use:   "version [profile]",
 	Short: "print the version of Colima",
 	Long:  `Print the version of Colima`,
-	Args: cobra.NoArgs,
+	Args:  cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		version := config.AppVersion()
 		fmt.Println(config.AppName, "version", version.Version)

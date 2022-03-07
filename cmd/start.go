@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"net"
 	"runtime"
 	"strings"
 
@@ -16,7 +15,7 @@ import (
 
 // startCmd represents the start command
 var startCmd = &cobra.Command{
-	Use:   "start",
+	Use:   "start [profile]",
 	Short: "start Colima",
 	Long: `Start Colima with the specified container runtime (and kubernetes if --with-kubernetes is passed).
 The --runtime, --disk and --arch flags are only used on initial start and ignored on subsequent starts.
@@ -28,14 +27,11 @@ The --runtime, --disk and --arch flags are only used on initial start and ignore
 		"  colima start --cpu 4 --memory 8 --disk 100\n" +
 		"  colima start --arch aarch64\n" +
 		"  colima start --dns 1.1.1.1 --dns 8.8.8.8",
-	Args: cobra.NoArgs,
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return newApp().Start(startCmdArgs.Config)
 	},
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		// set port
-		startCmdArgs.VM.SSHPort = randomAvailablePort()
-
 		current, err := config.Load()
 		if err != nil {
 			// not fatal, will proceed with defaults
@@ -69,9 +65,6 @@ The --runtime, --disk and --arch flags are only used on initial start and ignore
 		if !cmd.Flag("mount").Changed {
 			startCmdArgs.VM.Mounts = current.VM.Mounts
 		}
-		if !cmd.Flag("port-interface").Changed {
-			startCmdArgs.PortInterface = current.PortInterface
-		}
 		if !cmd.Flag("ssh-agent").Changed {
 			startCmdArgs.VM.ForwardAgent = current.VM.ForwardAgent
 		}
@@ -100,23 +93,9 @@ var startCmdArgs struct {
 	config.Config
 }
 
-func randomAvailablePort() int {
-	listener, err := net.Listen("tcp", ":0")
-	if err != nil {
-		log.Fatal(fmt.Errorf("error picking an available port: %w", err))
-	}
-
-	if err := listener.Close(); err != nil {
-		log.Fatal(fmt.Errorf("error closing temporary port listener: %w", err))
-	}
-
-	return listener.Addr().(*net.TCPAddr).Port
-}
-
 func init() {
 	runtimes := strings.Join(environment.ContainerRuntimes(), ", ")
 	defaultArch := string(environment.Arch(runtime.GOARCH).Value())
-	defaultPortInterface := net.ParseIP("0.0.0.0")
 
 	root.Cmd().AddCommand(startCmd)
 	startCmd.Flags().StringVarP(&startCmdArgs.Runtime, "runtime", "r", docker.Name, "container runtime ("+runtimes+")")
@@ -127,9 +106,6 @@ func init() {
 
 	// mounts
 	startCmd.Flags().StringSliceVarP(&startCmdArgs.VM.Mounts, "mount", "v", nil, "directories to mount, suffix ':w' for writable")
-
-	// port forwarding
-	startCmd.Flags().IPVarP(&startCmdArgs.PortInterface, "port-interface", "i", defaultPortInterface, "interface to use for forwarded ports")
 
 	// ssh agent
 	startCmd.Flags().BoolVarP(&startCmdArgs.VM.ForwardAgent, "ssh-agent", "s", false, "forward SSH agent to the VM")

@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
@@ -74,9 +73,6 @@ func (c colimaApp) Start(conf config.Config) error {
 	// persist runtime for future reference.
 	if err := c.setRuntime(conf.Runtime); err != nil {
 		return fmt.Errorf("error setting current runtime: %w", err)
-	}
-	if err := c.setSSHPort(conf.VM.SSHPort); err != nil {
-		return fmt.Errorf("error setting SSH port: %w", err)
 	}
 	// persist kubernetes version for future reference.
 	if err := c.setKubernetesVersion(conf.Kubernetes.Version); err != nil {
@@ -250,10 +246,6 @@ func (c colimaApp) setRuntime(runtime string) error {
 
 func (c colimaApp) setKubernetesVersion(version string) error {
 	return c.guest.Set(environment.KubernetesVersionKey, version)
-}
-
-func (c colimaApp) setSSHPort(sshPort int) error {
-	return c.guest.Set(environment.SSHPortKey, strconv.Itoa(sshPort))
 }
 
 func (c colimaApp) currentContainerEnvironments() ([]environment.Container, error) {

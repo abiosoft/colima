@@ -16,8 +16,6 @@ const (
 	ContainerRuntimeKey = "runtime"
 	// KubernetesVersionKey is the settings key for kubernetes version.
 	KubernetesVersionKey = "kubernetes_version"
-	// SSHPortKey is the settings for the VM SSH port.
-	SSHPortKey = "ssh_port"
 
 	// BinfmtTarFile is the path in the VM to the binfmt oci image tar.
 	// TODO: decide if this should reside somewhere else.

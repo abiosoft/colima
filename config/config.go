@@ -156,9 +156,6 @@ type Config struct {
 
 	// Kubernetes sets if kubernetes should be enabled.
 	Kubernetes Kubernetes `yaml:"kubernetes"`
-
-	// Network address to forward VM ports to.
-	PortInterface net.IP `yaml:"port_interface"`
 }
 
 // Kubernetes is kubernetes configuration
@@ -174,8 +171,6 @@ type VM struct {
 	Memory int    `yaml:"memory"`
 	Arch   string `yaml:"arch"`
 
-	// auto generated
-	SSHPort      int  `yaml:"-"`
 	ForwardAgent bool `yaml:"forward_agent"`
 
 	// volume mounts
