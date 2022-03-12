@@ -3,8 +3,9 @@ package docker
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/abiosoft/colima/config"
 	"path/filepath"
+
+	"github.com/abiosoft/colima/config"
 )
 
 func (d dockerRuntime) fixUserPermission() error {

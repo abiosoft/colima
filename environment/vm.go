@@ -16,10 +16,6 @@ const (
 	ContainerRuntimeKey = "runtime"
 	// KubernetesVersionKey is the settings key for kubernetes version.
 	KubernetesVersionKey = "kubernetes_version"
-
-	// BinfmtTarFile is the path in the VM to the binfmt oci image tar.
-	// TODO: decide if this should reside somewhere else.
-	BinfmtTarFile = "/usr/local/colima/binfmt.tar"
 )
 
 // Arch is the VM architecture.

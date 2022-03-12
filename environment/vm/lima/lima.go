@@ -99,7 +99,7 @@ func (l *limaVM) Start(conf config.Config) error {
 
 	a.Stage("creating and starting")
 
-	configFile := config.Profile().ID + ".yaml"
+	configFile := filepath.Join(os.TempDir(), config.Profile().ID+".yaml")
 
 	a.Add(func() error {
 		limaConf, err := newConf(conf)
