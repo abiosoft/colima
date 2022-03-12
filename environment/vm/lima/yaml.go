@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/abiosoft/colima/config"
@@ -40,6 +41,14 @@ func newConf(conf config.Config) (l Config, err error) {
 	l.Env = map[string]string{}
 	for k, v := range conf.VM.Env {
 		l.Env[k] = v
+	}
+
+	// networking on Lima is limited to macOS
+	if runtime.GOOS == "darwin" {
+		l.Networks = append(l.Networks, Network{
+			VNL:        "/tmp/vde-" + conf.Runtime + ".ptp",
+			SwitchPort: 65535, // this is fixed
+		})
 	}
 
 	// port forwarding
@@ -128,6 +137,7 @@ type Config struct {
 	Firmware     Firmware          `yaml:"firmware"`
 	HostResolver HostResolver      `yaml:"hostResolver"`
 	PortForwards []PortForward     `yaml:"portForwards,omitempty"`
+	Networks     []Network         `yaml:"networks,omitempty"`
 }
 
 type File struct {
@@ -184,6 +194,13 @@ type HostResolver struct {
 	Enabled bool              `yaml:"enabled" json:"enabled"`
 	IPv6    bool              `yaml:"ipv6,omitempty" json:"ipv6,omitempty"`
 	Hosts   map[string]string `yaml:"hosts,omitempty" json:"hosts,omitempty"`
+}
+
+type Network struct {
+	// VNL is a Virtual Network Locator (https://github.com/rd235/vdeplug4/commit/089984200f447abb0e825eb45548b781ba1ebccd).
+	// On macOS, only VDE2-compatible form (optionally with vde:// prefix) is supported.
+	VNL        string `yaml:"vnl,omitempty" json:"vnl,omitempty"`
+	SwitchPort uint16 `yaml:"switchPort,omitempty" json:"switchPort,omitempty"` // VDE Switch port, not TCP/UDP port (only used by VDE networking)
 }
 
 type volumeMount string
