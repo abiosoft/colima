@@ -5,6 +5,7 @@ set -ex
 export DIR_BUILD=$PWD/_build/network
 export DIR_VMNET=$DIR_BUILD/vde_vmnet
 export DIR_VDE=$DIR_BUILD/vde-2
+export EMBED_DIR=$PWD/embedded/network
 
 clone() (
     if [ ! -d "$2" ]; then
@@ -41,6 +42,15 @@ build_x86_64() (
         make PREFIX=$PREFIX
         make PREFIX=$PREFIX install.bin
     )
+
+    # copy to embed directory
+    (
+        mkdir -p $EMBED_DIR
+        VMNET_FILE=$PREFIX/bin/vde_vmnet
+        cp $VMNET_FILE $EMBED_DIR
+        tar cvfz $EMBED_DIR/vmnet_x86_64.tar.gz $VMNET_FILE
+        rm $EMBED_DIR/vde_vmnet
+    )
 )
 
 build_arm64() (
@@ -73,6 +83,15 @@ build_arm64() (
         cd $DIR_VMNET
         make PREFIX=$PREFIX
         make PREFIX=$PREFIX install.bin
+    )
+
+    # copy to embed directory
+    (
+        mkdir -p $EMBED_DIR
+        VMNET_FILE=$PREFIX/bin/vde_vmnet
+        cp $VMNET_FILE $EMBED_DIR
+        tar cvfz $EMBED_DIR/vmnet_arm64.tar.gz $VMNET_FILE
+        rm $EMBED_DIR/vde_vmnet
     )
 
 )
