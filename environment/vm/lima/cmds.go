@@ -51,7 +51,9 @@ func Instances() ([]InstanceInfo, error) {
 		}
 
 		if i.Status == "Running" {
-			i.IPAddress = getIPAddress(i.Name, "lima0")
+			if len(i.Network) > 0 && i.Network[0].Interface != "" {
+				i.IPAddress = getIPAddress(i.Name, i.Network[0].Interface)
+			}
 		}
 
 		// rename to local friendly names
