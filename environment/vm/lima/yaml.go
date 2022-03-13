@@ -8,10 +8,12 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/abiosoft/colima/cmd/vmnet"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/docker"
 	"github.com/abiosoft/colima/util"
+	"github.com/sirupsen/logrus"
 )
 
 func newConf(conf config.Config) (l Config, err error) {
@@ -45,10 +47,15 @@ func newConf(conf config.Config) (l Config, err error) {
 
 	// networking on Lima is limited to macOS
 	if runtime.GOOS == "darwin" {
-		l.Networks = append(l.Networks, Network{
-			VNL:        "/tmp/vde-" + conf.Runtime + ".ptp",
-			SwitchPort: 65535, // this is fixed
-		})
+		ptpFile, err := vmnet.PTPFile()
+		if err != nil {
+			logrus.Warn("error setting up networking, VM will not have a reachable IP address: %w", err)
+		} else {
+			l.Networks = append(l.Networks, Network{
+				VNL:        ptpFile,
+				SwitchPort: 65535, // this is fixed
+			})
+		}
 	}
 
 	// port forwarding
