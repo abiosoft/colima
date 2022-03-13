@@ -36,6 +36,7 @@ func New(host environment.HostActions) environment.VM {
 		host:         host.WithEnv(env),
 		home:         home,
 		CommandChain: cli.New("vm"),
+		vmnet:        launchdManager{host: host},
 	}
 }
 
@@ -82,11 +83,39 @@ type limaVM struct {
 
 	// lima config directory
 	home string
+
+	// vmnetManager
+	vmnet launchdManager
 }
 
 func (l limaVM) Dependencies() []string {
 	return []string{
 		"lima",
+	}
+}
+
+func (l limaVM) prepareNetwork() {
+	a := l.Init()
+	log := l.Logger()
+
+	a.Stage("preparing network")
+
+	a.Add(func() error {
+		if l.vmnet.Running() {
+			l.vmnet.Kill()
+		}
+		return nil
+	})
+
+	a.Add(l.vmnet.createVmnetScript)
+	a.Add(l.vmnet.Start)
+
+	// network failure is not fatal
+	if err := a.Exec(); err != nil {
+		log.Warnln(fmt.Errorf("error starting network: %w", err))
+	} else {
+		// delay a bit to prevent race condition with vmnet
+		time.Sleep(time.Second * 2)
 	}
 }
 
@@ -97,8 +126,9 @@ func (l *limaVM) Start(conf config.Config) error {
 		return l.resume(conf)
 	}
 
-	a.Stage("creating and starting")
+	l.prepareNetwork() // this is correct, the file should exist
 
+	a.Stage("creating and starting")
 	configFile := filepath.Join(os.TempDir(), config.Profile().ID+".yaml")
 
 	a.Add(func() error {
@@ -137,6 +167,8 @@ func (l limaVM) resume(conf config.Config) error {
 		log.Println("already running")
 		return nil
 	}
+
+	l.prepareNetwork()
 
 	configFile := filepath.Join(l.limaConfDir(), "lima.yaml")
 

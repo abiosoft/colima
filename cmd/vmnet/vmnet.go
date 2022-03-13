@@ -25,15 +25,16 @@ const vmnetBinary = "/opt/colima/bin/vde_vmnet"
 
 // PTPFile returns path to the ptp socket file.
 func PTPFile() (string, error) {
-	s, err := networkPath()
+	dir, err := Dir()
 	if err != nil {
-		return s, err
+		return dir, err
 	}
 
-	return filepath.Join(s, vmnetFileName+".ptp"), nil
+	return filepath.Join(dir, vmnetFileName+".ptp"), nil
 }
 
-func networkPath() (string, error) {
+// Dir is the network configuration directory.
+func Dir() (string, error) {
 	dir := filepath.Join(config.Dir(), "network")
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return "", fmt.Errorf("error creating network directory: %w", err)
@@ -41,18 +42,18 @@ func networkPath() (string, error) {
 	return dir, nil
 }
 
-// rootCmd represents the base command when called without any subcommands
+// vmnetCmd represents the base command when called without any subcommands
 var vmnetCmd = &cobra.Command{
 	Use:   "vmnet",
-	Short: "vde_vmnet manager",
-	Long:  `vde_vmnet manager to start and stop vde_vmnet daemons.`,
+	Short: "vde_vmnet runner",
+	Long:  `vde_vmnet runner for vde_vmnet daemons.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		cmd.SilenceUsage = true
 		cmd.SilenceErrors = true
 	},
 }
 
-// kubernetesStartCmd represents the kubernetes start command
+// startCmd represents the kubernetes start command
 var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "start daemon",
