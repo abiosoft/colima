@@ -12,8 +12,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const k3sVersion = "v1.22.4+k3s1"
-
 func installK3s(host environment.HostActions, guest environment.GuestActions, a *cli.ActiveCommandChain, log *logrus.Entry, containerRuntime string) {
 	installK3sBinary(host, guest, a)
 	installK3sCache(host, guest, a, log, containerRuntime)
@@ -23,7 +21,7 @@ func installK3s(host environment.HostActions, guest environment.GuestActions, a 
 func installK3sBinary(host environment.HostActions, guest environment.GuestActions, a *cli.ActiveCommandChain) {
 	// install k3s last to ensure it is the last step
 	downloadPath := "/tmp/k3s"
-	url := "https://github.com/k3s-io/k3s/releases/download/" + k3sVersion + "/k3s"
+	url := "https://github.com/k3s-io/k3s/releases/download/" + guest.Get(environment.KubernetesVersionKey) + "/k3s"
 	if guest.Arch().GoArch() == "arm64" {
 		url += "-arm64"
 	}
@@ -40,7 +38,7 @@ func installK3sCache(host environment.HostActions, guest environment.GuestAction
 	imageTarGz := imageTar + ".gz"
 	downloadPathTar := "/tmp/" + imageTar
 	downloadPathTarGz := "/tmp/" + imageTarGz
-	url := "https://github.com/k3s-io/k3s/releases/download/" + k3sVersion + "/" + imageTarGz
+	url := "https://github.com/k3s-io/k3s/releases/download/" + guest.Get(environment.KubernetesVersionKey) + "/" + imageTarGz
 	a.Add(func() error {
 		return downloader.Download(host, guest, url, downloadPathTarGz)
 	})
@@ -84,7 +82,7 @@ func installK3sCache(host environment.HostActions, guest environment.GuestAction
 func installK3sCluster(host environment.HostActions, guest environment.GuestActions, a *cli.ActiveCommandChain, containerRuntime string) {
 	// install k3s last to ensure it is the last step
 	downloadPath := "/tmp/k3s-install.sh"
-	url := "https://raw.githubusercontent.com/k3s-io/k3s/" + k3sVersion + "/install.sh"
+	url := "https://raw.githubusercontent.com/k3s-io/k3s/" + guest.Get(environment.KubernetesVersionKey) + "/install.sh"
 	a.Add(func() error {
 		return downloader.Download(host, guest, url, downloadPath)
 	})

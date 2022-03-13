@@ -83,10 +83,10 @@ The --runtime, --disk and --arch flags are only used on initial start and ignore
 }
 
 const (
-	defaultCPU               = 2
-	defaultMemory            = 2
-	defaultDisk              = 60
-	defaultKubernetesVersion = "v1.22.2"
+	defaultCPU        = 2
+	defaultMemory     = 2
+	defaultDisk       = 60
+	defaultK3sVersion = "v1.22.4+k3s1"
 )
 
 var startCmdArgs struct {
@@ -112,9 +112,7 @@ func init() {
 
 	// k8s
 	startCmd.Flags().BoolVarP(&startCmdArgs.Kubernetes.Enabled, "with-kubernetes", "k", false, "start VM with Kubernetes")
-	startCmd.Flags().StringVar(&startCmdArgs.Kubernetes.Version, "kubernetes-version", defaultKubernetesVersion, "the Kubernetes version")
-	// not so familiar with k3s versioning atm, hide for now.
-	_ = startCmd.Flags().MarkHidden("kubernetes-version")
+	startCmd.Flags().StringVar(&startCmdArgs.Kubernetes.Version, "kubernetes-version", defaultK3sVersion, "the Kubernetes (https://k3s.io) version")
 
 	// not sure of the usefulness of env vars for now considering that interactions will be with the containers, not the VM.
 	// leaving it undocumented until there is a need.
