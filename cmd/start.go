@@ -26,6 +26,7 @@ The --runtime, --disk and --arch flags are only used on initial start and ignore
 		"  colima start --runtime containerd --with-kubernetes\n" +
 		"  colima start --cpu 4 --memory 8 --disk 100\n" +
 		"  colima start --arch aarch64\n" +
+		"  colima start --mount-type 9p\n" +
 		"  colima start --dns 1.1.1.1 --dns 8.8.8.8",
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -65,6 +66,9 @@ The --runtime, --disk and --arch flags are only used on initial start and ignore
 		if !cmd.Flag("mount").Changed {
 			startCmdArgs.VM.Mounts = current.VM.Mounts
 		}
+		if !cmd.Flag("mount-type").Changed {
+			startCmdArgs.VM.MountType = current.VM.MountType
+		}
 		if !cmd.Flag("ssh-agent").Changed {
 			startCmdArgs.VM.ForwardAgent = current.VM.ForwardAgent
 		}
@@ -87,6 +91,7 @@ const (
 	defaultMemory            = 2
 	defaultDisk              = 60
 	defaultKubernetesVersion = "v1.22.2"
+	defaultMountType         = ""
 )
 
 var startCmdArgs struct {
@@ -106,6 +111,7 @@ func init() {
 
 	// mounts
 	startCmd.Flags().StringSliceVarP(&startCmdArgs.VM.Mounts, "mount", "v", nil, "directories to mount, suffix ':w' for writable")
+	startCmd.Flags().StringVarP(&startCmdArgs.VM.MountType, "mount-type", "t", defaultMountType, "mount type (reverse-sshfs, 9p)")
 
 	// ssh agent
 	startCmd.Flags().BoolVarP(&startCmdArgs.VM.ForwardAgent, "ssh-agent", "s", false, "forward SSH agent to the VM")

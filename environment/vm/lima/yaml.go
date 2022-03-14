@@ -124,6 +124,10 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		)
 	}
 
+	if conf.VM.MountType != "" {
+		l.MountType = conf.VM.MountType
+	}
+
 	if len(conf.VM.Mounts) == 0 {
 		l.Mounts = append(l.Mounts,
 			Mount{Location: "~", Writable: true},
@@ -167,6 +171,7 @@ type Config struct {
 	Memory       string            `yaml:"memory,omitempty"`
 	Disk         string            `yaml:"disk,omitempty"`
 	Mounts       []Mount           `yaml:"mounts,omitempty"`
+	MountType    string            `yaml:"mountType,omitempty"`
 	SSH          SSH               `yaml:"ssh"`
 	Containerd   Containerd        `yaml:"containerd"`
 	Env          map[string]string `yaml:"env,omitempty"`

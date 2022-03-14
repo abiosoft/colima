@@ -176,7 +176,8 @@ type VM struct {
 	ForwardAgent bool `yaml:"forward_agent"`
 
 	// volume mounts
-	Mounts []string `yaml:"mounts"`
+	Mounts    []string `yaml:"mounts"`
+	MountType string   `yaml:"mountType"`
 
 	// do not persist. i.e. discarded on VM shutdown
 	DNS []net.IP          `yaml:"-"` // DNS nameservers
