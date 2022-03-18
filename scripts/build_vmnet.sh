@@ -48,7 +48,7 @@ build_x86_64() (
         mkdir -p $EMBED_DIR
         VMNET_FILE=$PREFIX/bin/vde_vmnet
         cp $VMNET_FILE $EMBED_DIR
-        tar cvfz $EMBED_DIR/vmnet_x86_64.tar.gz $VMNET_FILE
+        cd "$(dirname ${VMNET_FILE})" && tar cvfz $EMBED_DIR/vmnet_x86_64.tar.gz "$(basename ${VMNET_FILE})"
         rm $EMBED_DIR/vde_vmnet
     )
 )
@@ -90,7 +90,7 @@ build_arm64() (
         mkdir -p $EMBED_DIR
         VMNET_FILE=$PREFIX/bin/vde_vmnet
         cp $VMNET_FILE $EMBED_DIR
-        tar cvfz $EMBED_DIR/vmnet_arm64.tar.gz $VMNET_FILE
+        cd "$(dirname ${VMNET_FILE})" && tar cvfz $EMBED_DIR/vmnet_arm64.tar.gz "$(basename ${VMNET_FILE})"
         rm $EMBED_DIR/vde_vmnet
     )
 
