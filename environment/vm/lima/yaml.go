@@ -8,10 +8,10 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/abiosoft/colima/cmd/vmnet"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/docker"
+	"github.com/abiosoft/colima/environment/vm/lima/network"
 	"github.com/abiosoft/colima/util"
 	"github.com/sirupsen/logrus"
 )
@@ -49,7 +49,7 @@ func newConf(conf config.Config) (l Config, err error) {
 	if runtime.GOOS == "darwin" {
 		// only set network settings if vmnet startup is successful
 		func() {
-			ptpFile, err := vmnet.PTPFile()
+			ptpFile, err := network.PTPFile()
 			if err != nil {
 				logrus.Warn(fmt.Errorf("error setting up networking, VM will not have a reachable IP address: %w", err))
 				return

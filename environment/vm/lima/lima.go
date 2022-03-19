@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"time"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/environment/vm/lima/network"
 	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/yamlutil"
 	"github.com/sirupsen/logrus"
@@ -34,7 +36,7 @@ func New(host environment.HostActions) environment.VM {
 		host:         host.WithEnv(env),
 		home:         home,
 		CommandChain: cli.New("vm"),
-		vmnet:        launchdManager{host: host},
+		network:      network.NewManager(host),
 	}
 }
 
@@ -82,8 +84,8 @@ type limaVM struct {
 	// lima config directory
 	home string
 
-	// vmnetManager
-	vmnet launchdManager
+	// network between host and the vm
+	network network.NetworkManager
 }
 
 func (l limaVM) Dependencies() []string {
@@ -93,27 +95,31 @@ func (l limaVM) Dependencies() []string {
 }
 
 func (l limaVM) prepareNetwork() {
+	// limited to macOS for now
+	if runtime.GOOS != "darwin" {
+		return
+	}
+
 	a := l.Init()
 	log := l.Logger()
 
 	a.Stage("preparing network")
-
 	a.Add(func() error {
-		if l.vmnet.Running() {
-			l.vmnet.Kill()
+		if !l.network.DependenciesInstalled() {
+			log.Println("network dependencies missing")
+			log.Println("sudo password may be required for setting up network dependencies")
+			return l.network.InstallDependencies()
 		}
 		return nil
 	})
-
-	a.Add(l.vmnet.createVmnetScript)
-	a.Add(l.vmnet.Start)
+	a.Add(l.network.Start)
 
 	// network failure is not fatal
 	if err := a.Exec(); err != nil {
 		log.Warnln(fmt.Errorf("error starting network: %w", err))
 	} else {
 		// delay a bit to prevent race condition with vmnet
-		time.Sleep(time.Second * 2)
+		time.Sleep(time.Second * 5)
 	}
 }
 
@@ -124,7 +130,7 @@ func (l *limaVM) Start(conf config.Config) error {
 		return l.resume(conf)
 	}
 
-	l.prepareNetwork() // this is correct, the file should exist
+	l.prepareNetwork()
 
 	a.Stage("creating and starting")
 	configFile := filepath.Join(os.TempDir(), config.Profile().ID+".yaml")

@@ -1,13 +1,12 @@
 package vmnet
 
 import (
-	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/environment/vm/lima/network"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -18,28 +17,6 @@ func Execute() {
 	if err := vmnetCmd.Execute(); err != nil {
 		logrus.Fatal(err)
 	}
-}
-
-const vmnetFileName = "vmnet"
-const vmnetBinary = "/opt/colima/bin/vde_vmnet"
-
-// PTPFile returns path to the ptp socket file.
-func PTPFile() (string, error) {
-	dir, err := Dir()
-	if err != nil {
-		return dir, err
-	}
-
-	return filepath.Join(dir, vmnetFileName+".ptp"), nil
-}
-
-// Dir is the network configuration directory.
-func Dir() (string, error) {
-	dir := filepath.Join(config.Dir(), "network")
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return "", fmt.Errorf("error creating network directory: %w", err)
-	}
-	return dir, nil
 }
 
 // vmnetCmd represents the base command when called without any subcommands
@@ -62,7 +39,7 @@ var startCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		config.SetProfile(args[0])
 
-		ptp, err := PTPFile()
+		ptp, err := network.PTPFile()
 		if err != nil {
 			logrus.Warnln("ptp file error: %w", err) // this should never happen
 		}
@@ -73,7 +50,7 @@ var startCmd = &cobra.Command{
 		_ = forceDeleteFileIfExists(ptp)
 		_ = forceDeleteFileIfExists(ptp + "+") // created by running qemu instance
 
-		command := cli.CommandInteractive(vmnetBinary,
+		command := cli.CommandInteractive(network.VmnetBinary,
 			"--vmnet-mode", "shared",
 			"--vmnet-gateway", "192.168.106.1",
 			"--vmnet-dhcp-end", "192.168.106.254",

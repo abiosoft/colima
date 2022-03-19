@@ -1,11 +1,10 @@
-package lima
+package network
 
 import (
 	"fmt"
 	"os"
 	"path/filepath"
 
-	"github.com/abiosoft/colima/cmd/vmnet"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/embedded"
 	"github.com/abiosoft/colima/environment"
@@ -34,6 +33,9 @@ func (l launchdManager) Running() bool {
 }
 
 func (l launchdManager) Start() error {
+	if err := l.createVmnetScript(); err != nil {
+		return err
+	}
 	return l.host.RunQuiet("launchctl", "load", l.File())
 }
 
@@ -55,7 +57,7 @@ func (l launchdManager) createVmnetScript() error {
 		}
 	}
 
-	vmnetDir, err := vmnet.Dir()
+	vmnetDir, err := Dir()
 	if err != nil {
 		return fmt.Errorf("error starting network: %w", err)
 	}
