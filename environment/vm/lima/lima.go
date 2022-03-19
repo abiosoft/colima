@@ -256,7 +256,7 @@ func (l limaVM) Running() bool {
 	return l.RunQuiet("uname") == nil
 }
 
-func (l limaVM) Stop() error {
+func (l limaVM) Stop(force bool) error {
 	log := l.Logger()
 	a := l.Init()
 	if !l.Running() {
@@ -267,6 +267,9 @@ func (l limaVM) Stop() error {
 	a.Stage("stopping")
 
 	a.Add(func() error {
+		if force {
+			return l.host.Run(limactl, "stop", "--force", config.Profile().ID)
+		}
 		return l.host.Run(limactl, "stop", config.Profile().ID)
 	})
 
@@ -294,7 +297,7 @@ func (l limaVM) Restart() error {
 		return fmt.Errorf("cannot restart, VM not previously started")
 	}
 
-	if err := l.Stop(); err != nil {
+	if err := l.Stop(false); err != nil {
 		return err
 	}
 
