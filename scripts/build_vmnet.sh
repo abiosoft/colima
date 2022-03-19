@@ -19,6 +19,7 @@ clone https://github.com/virtualsquare/vde-2.git $DIR_VDE
 
 build_x86_64() (
     export PREFIX=/opt/colima
+    sudo rm -rf $PREFIX
     sudo mkdir -p $PREFIX
 
     # vde-2
