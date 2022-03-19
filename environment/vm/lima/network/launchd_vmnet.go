@@ -82,11 +82,11 @@ func (l launchdManager) createVmnetScript() error {
 		PidFile: filepath.Join(vmnetDir, "vmnet.pid"),
 	}
 
-	plist, err := embedded.FS.ReadFile("network/vmnet.plist")
+	plist, err := embedded.ReadString("network/vmnet.plist")
 	if err != nil {
 		return fmt.Errorf("error preparing launchd file: %w", err)
 	}
-	if err := util.WriteTemplate(string(plist), l.File(), values); err != nil {
+	if err := util.WriteTemplate(plist, l.File(), values); err != nil {
 		return fmt.Errorf("error writing launchd file: %w", err)
 	}
 

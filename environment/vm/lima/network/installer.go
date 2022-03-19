@@ -39,7 +39,7 @@ func (s sudoerFile) Path() string     { return "/etc/sudoers.d/colima" }
 func (s sudoerFile) Executable() bool { return false }
 func (s sudoerFile) Install(host environment.HostActions) error {
 	// read embedded file contents
-	txt, err := embedded.FS.ReadFile("network/sudo.txt")
+	txt, err := embedded.ReadString("network/sudo.txt")
 	if err != nil {
 		return fmt.Errorf("error retrieving embedded sudo file: %w", err)
 	}
@@ -48,7 +48,7 @@ func (s sudoerFile) Install(host environment.HostActions) error {
 		return fmt.Errorf("error preparing sudoers directory: %w", err)
 	}
 	// persist file to desired location
-	if err := host.RunInteractive("sudo", "sh", "-c", fmt.Sprintf(`echo "%s" > %s`, string(txt), s.Path())); err != nil {
+	if err := host.RunInteractive("sudo", "sh", "-c", fmt.Sprintf(`echo "%s" > %s`, txt, s.Path())); err != nil {
 		return fmt.Errorf("error writing sudoers file: %w", err)
 	}
 	return nil
@@ -69,7 +69,7 @@ func (s vmnetFile) Install(host environment.HostActions) error {
 	}
 
 	// read the embedded file
-	gz, err := embedded.FS.ReadFile("network/vmnet_" + arch + ".tar.gz")
+	gz, err := embedded.Read("network/vmnet_" + arch + ".tar.gz")
 	if err != nil {
 		return fmt.Errorf("error retrieving embedded vmnet file: %w", err)
 	}
