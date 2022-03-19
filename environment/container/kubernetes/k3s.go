@@ -5,9 +5,11 @@ import (
 	"strings"
 
 	"github.com/abiosoft/colima/cli"
+	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/environment/container/docker"
+	"github.com/abiosoft/colima/environment/vm/lima"
 	"github.com/abiosoft/colima/util/downloader"
 	"github.com/sirupsen/logrus"
 )
@@ -96,6 +98,12 @@ func installK3sCluster(host environment.HostActions, guest environment.GuestActi
 		"--write-kubeconfig-mode", "644",
 		"--resolv-conf", "/etc/resolv.conf",
 		"--disable", "traefik",
+	}
+
+	// replace ip address if networking is enabled
+	ipAddress := lima.IPAddress(config.Profile().ID)
+	if ipAddress != "127.0.0.1" {
+		args = append(args, "--bind-address", ipAddress)
 	}
 
 	switch containerRuntime {

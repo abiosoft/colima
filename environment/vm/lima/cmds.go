@@ -76,6 +76,30 @@ func getIPAddress(profile, interfaceName string) string {
 	return strings.TrimSpace(buf.String())
 }
 
+// IPAddress returns the ip address for profile.
+// It returns the PTP address is networking is enabled or falls back to 127.0.0.1
+// TODO: unnecessary round-trip is done to get instance details from Lima.
+func IPAddress(profile string) string {
+	profile = toUserFriendlyName(profile)
+
+	const fallback = "127.0.0.1"
+	instances, err := Instances()
+	if err != nil {
+		return fallback
+	}
+
+	for _, instance := range instances {
+		if instance.Name == profile {
+			if instance.IPAddress != "" {
+				return instance.IPAddress
+			}
+			break
+		}
+	}
+
+	return fallback
+}
+
 // ShowSSH runs the show-ssh command in Lima.
 func ShowSSH(name, format string) error {
 	var buf bytes.Buffer
