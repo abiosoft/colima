@@ -103,7 +103,9 @@ func (a *ActiveCommandChain) Retry(stage string, interval time.Duration, count i
 	a.Add(func() (err error) {
 		var i int
 		for err = f(); i < count && err != nil; i, err = i+1, f() {
-			a.log.Println(stage, "...")
+			if stage != "" {
+				a.log.Println(stage, "...")
+			}
 			time.Sleep(interval)
 		}
 		return err

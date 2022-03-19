@@ -26,7 +26,6 @@ type NetworkManager interface {
 // NewManager creates a new network manager.
 func NewManager(host environment.HostActions) NetworkManager {
 	return &limaNetworkManager{
-		host:      host,
 		launchd:   launchdManager{host},
 		installer: rootfulInstaller{host},
 	}
@@ -35,7 +34,6 @@ func NewManager(host environment.HostActions) NetworkManager {
 var _ NetworkManager = (*limaNetworkManager)(nil)
 
 type limaNetworkManager struct {
-	host      environment.HostActions
 	launchd   launchdManager
 	installer rootfulInstaller
 }
@@ -70,9 +68,11 @@ func (l limaNetworkManager) Start() error {
 }
 func (l limaNetworkManager) Stop() error {
 	if l.launchd.Running() {
-		return l.launchd.Kill()
+		if err := l.launchd.Kill(); err != nil {
+			return err
+		}
 	}
-	return nil
+	return l.launchd.Delete()
 }
 
 const vmnetFileName = "vmnet"

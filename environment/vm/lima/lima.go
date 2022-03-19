@@ -114,12 +114,19 @@ func (l limaVM) prepareNetwork() {
 	})
 	a.Add(l.network.Start)
 
+	// delay a bit to prevent race condition with vmnet
+	a.Retry("", time.Second*1, 5, func() error {
+		ptpFile, err := network.PTPFile()
+		if err != nil {
+			return err
+		}
+		_, err = l.host.Stat(ptpFile)
+		return err
+	})
+
 	// network failure is not fatal
 	if err := a.Exec(); err != nil {
 		log.Warnln(fmt.Errorf("error starting network: %w", err))
-	} else {
-		// delay a bit to prevent race condition with vmnet
-		time.Sleep(time.Second * 5)
 	}
 }
 
@@ -152,6 +159,7 @@ func (l *limaVM) Start(conf config.Config) error {
 	// registry certs
 	a.Add(l.copyCerts)
 
+	// dns
 	l.applyDNS(a, conf)
 
 	// adding it to command chain to execute only after successful startup.
@@ -262,6 +270,8 @@ func (l limaVM) Stop() error {
 		return l.host.Run(limactl, "stop", config.Profile().ID)
 	})
 
+	a.Add(l.network.Stop)
+
 	return a.Exec()
 }
 
@@ -273,6 +283,8 @@ func (l limaVM) Teardown() error {
 	a.Add(func() error {
 		return l.host.Run(limactl, "delete", "--force", config.Profile().ID)
 	})
+
+	a.Add(l.network.Stop)
 
 	return a.Exec()
 }

@@ -43,6 +43,10 @@ func (l launchdManager) Kill() error {
 	return l.host.RunQuiet("launchctl", "unload", l.File())
 }
 
+func (l launchdManager) Delete() error {
+	return l.host.RunQuiet("rm", "-rf", l.File())
+}
+
 const packageNamePrefix = "com.abiosoft.colima"
 const colimaVmnetBinary = "/opt/colima/bin/colima-vmnet"
 

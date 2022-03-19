@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/embedded"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/docker"
 	"github.com/abiosoft/colima/environment/vm/lima/network"
@@ -45,18 +46,36 @@ func newConf(conf config.Config) (l Config, err error) {
 		l.Env[k] = v
 	}
 
+	// add user to docker group
+	// "sudo", "usermod", "-aG", "docker", user
+	l.Provision = append(l.Provision, Provision{
+		Mode:   ProvisionModeUser,
+		Script: `sudo usermod -aG docker $USER`,
+	})
+
 	// networking on Lima is limited to macOS
 	if runtime.GOOS == "darwin" {
 		// only set network settings if vmnet startup is successful
 		func() {
 			ptpFile, err := network.PTPFile()
 			if err != nil {
-				logrus.Warn(fmt.Errorf("error setting up networking, VM will not have a reachable IP address: %w", err))
+				logrus.Warn(fmt.Errorf("error setting up network, VM will not have a reachable IP address: %w", err))
 				return
 			}
+			dhcpScript, err := embedded.ReadString("network/dhcp.sh")
+			if err != nil {
+				logrus.Warn(fmt.Errorf("error setting up network, VM will not have a reachable IP address: %w", err))
+				return
+			}
+
 			l.Networks = append(l.Networks, Network{
 				VNL:        ptpFile,
 				SwitchPort: 65535, // this is fixed
+			})
+
+			l.Provision = append(l.Provision, Provision{
+				Mode:   ProvisionModeSystem,
+				Script: dhcpScript,
 			})
 		}()
 	}
@@ -148,6 +167,7 @@ type Config struct {
 	HostResolver HostResolver      `yaml:"hostResolver"`
 	PortForwards []PortForward     `yaml:"portForwards,omitempty"`
 	Networks     []Network         `yaml:"networks,omitempty"`
+	Provision    []Provision       `yaml:"provision,omitempty" json:"provision,omitempty"`
 }
 
 type File struct {
@@ -211,6 +231,18 @@ type Network struct {
 	// On macOS, only VDE2-compatible form (optionally with vde:// prefix) is supported.
 	VNL        string `yaml:"vnl,omitempty" json:"vnl,omitempty"`
 	SwitchPort uint16 `yaml:"switchPort,omitempty" json:"switchPort,omitempty"` // VDE Switch port, not TCP/UDP port (only used by VDE networking)
+}
+
+type ProvisionMode = string
+
+const (
+	ProvisionModeSystem ProvisionMode = "system"
+	ProvisionModeUser   ProvisionMode = "user"
+)
+
+type Provision struct {
+	Mode   ProvisionMode `yaml:"mode" json:"mode"` // default: "system"
+	Script string        `yaml:"script" json:"script"`
 }
 
 type volumeMount string
