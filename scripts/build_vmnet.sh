@@ -18,8 +18,9 @@ clone https://github.com/lima-vm/vde_vmnet.git $DIR_VMNET
 clone https://github.com/virtualsquare/vde-2.git $DIR_VDE
 
 build_x86_64() (
-    export PREFIX=$DIR_BUILD/dist/x86_64
-    mkdir -p $PREFIX
+    export PREFIX=/opt/colima
+    sudo rm -rf $PREFIX
+    sudo mkdir -p $PREFIX
 
     # vde-2
     (
@@ -31,7 +32,7 @@ build_x86_64() (
         ./configure --prefix=$PREFIX
 
         make PREFIX=$PREFIX
-        make PREFIX=$PREFIX install
+        sudo make PREFIX=$PREFIX install
         # cleanup
         make distclean
     )
@@ -40,22 +41,23 @@ build_x86_64() (
     (
         cd $DIR_VMNET
         make PREFIX=$PREFIX
-        make PREFIX=$PREFIX install.bin
+        sudo make PREFIX=$PREFIX install.bin
     )
 
     # copy to embed directory
     (
-        mkdir -p $EMBED_DIR
-        VMNET_FILE=$PREFIX/bin/vde_vmnet
-        cp $VMNET_FILE $EMBED_DIR
-        cd "$(dirname ${VMNET_FILE})" && tar cvfz $EMBED_DIR/vmnet_x86_64.tar.gz "$(basename ${VMNET_FILE})"
-        rm $EMBED_DIR/vde_vmnet
+        mkdir -p $EMBED_DIR/vmnet/bin $EMBED_DIR/vmnet/lib
+        cp $PREFIX/bin/vde_vmnet $EMBED_DIR/vmnet/bin
+        cp $PREFIX/lib/libvdeplug.3.dylib $EMBED_DIR/vmnet/lib
+        cd $EMBED_DIR/vmnet && tar cvfz $EMBED_DIR/vmnet_x86_64.tar.gz bin/vde_vmnet lib/libvdeplug.3.dylib
+        rm -rf $EMBED_DIR/vmnet
+        sudo rm -rf /opt/colima
     )
 )
 
 build_arm64() (
-    export PREFIX=$DIR_BUILD/dist/arm64
-    mkdir -p $PREFIX
+    export PREFIX=/opt/colima
+    sudo mkdir -p $PREFIX
 
     export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
     export CC=$(xcrun --sdk macosx --find clang)
@@ -73,7 +75,7 @@ build_arm64() (
         ./configure --prefix=$PREFIX --host=arm-apple-darwin --target=arm-apple-darwin --build=x86_64-apple-darwin
 
         make PREFIX=$PREFIX
-        make PREFIX=$PREFIX install
+        sudo make PREFIX=$PREFIX install
         # cleanup
         make distclean
     )
@@ -82,16 +84,17 @@ build_arm64() (
     (
         cd $DIR_VMNET
         make PREFIX=$PREFIX
-        make PREFIX=$PREFIX install.bin
+        sudo make PREFIX=$PREFIX install.bin
     )
 
     # copy to embed directory
     (
-        mkdir -p $EMBED_DIR
-        VMNET_FILE=$PREFIX/bin/vde_vmnet
-        cp $VMNET_FILE $EMBED_DIR
-        cd "$(dirname ${VMNET_FILE})" && tar cvfz $EMBED_DIR/vmnet_arm64.tar.gz "$(basename ${VMNET_FILE})"
-        rm $EMBED_DIR/vde_vmnet
+        mkdir -p $EMBED_DIR/vmnet/bin $EMBED_DIR/vmnet/lib
+        cp $PREFIX/bin/vde_vmnet $EMBED_DIR/vmnet/bin
+        cp $PREFIX/lib/libvdeplug.3.dylib $EMBED_DIR/vmnet/lib
+        cd $EMBED_DIR/vmnet && tar cvfz $EMBED_DIR/vmnet_arm64.tar.gz bin/vde_vmnet lib/libvdeplug.3.dylib
+        rm -rf $EMBED_DIR/vmnet
+        sudo rm -rf /opt/colima
     )
 
 )
