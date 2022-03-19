@@ -62,7 +62,7 @@ func (l limaNetworkManager) InstallDependencies() error {
 
 func (l limaNetworkManager) Start() error {
 	if l.launchd.Running() {
-		l.launchd.Kill()
+		_ = l.launchd.Kill()
 	}
 	return l.launchd.Start()
 }
