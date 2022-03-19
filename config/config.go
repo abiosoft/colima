@@ -14,7 +14,7 @@ import (
 
 const AppName = "colima"
 
-var profile = ProfileInfo{ID: AppName, DisplayName: AppName}
+var profile = ProfileInfo{ID: AppName, DisplayName: AppName, ShortName: AppName}
 
 // SetProfile sets the profile name for the application.
 // This is an avenue to test Colima without breaking an existing stable setup.
@@ -29,6 +29,7 @@ func SetProfile(profileName string) {
 	// use a prefix to prevent possible name clashes
 	profile.ID = "colima-" + profileName
 	profile.DisplayName = "colima [profile=" + profileName + "]"
+	profile.ShortName = profileName
 }
 
 // Profile returns the current application profile.
@@ -38,6 +39,7 @@ func Profile() ProfileInfo { return profile }
 type ProfileInfo struct {
 	ID          string
 	DisplayName string
+	ShortName   string
 }
 
 // VersionInfo is the application version info.

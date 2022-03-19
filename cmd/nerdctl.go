@@ -54,7 +54,7 @@ var nerdctlLinkFunc = func() *cobra.Command {
 		Use:   "install",
 		Short: "install nerdctl alias script on the host",
 		Long:  `Install nerdctl alias script on the host. The script will be installed at ` + nerdctlDefaultInstallPath + `.`,
-		Args: cobra.NoArgs,
+		Args:  cobra.NoArgs,
 		PreRun: func(cmd *cobra.Command, args []string) {
 			// check if /usr/local/bin is writeable and no need for sudo
 

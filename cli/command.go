@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strconv"
-	"strings"
 )
 
 var runner commandRunner = &defaultCommandRunner{}
@@ -15,16 +13,6 @@ var Settings = struct {
 	// Verbose toggles verbose output for commands.
 	Verbose bool
 }{}
-
-// DryRun toggles the state of the command runner. If true, commands are only printed to the console
-// without execution.
-func DryRun(d bool) {
-	if d {
-		runner = dryRunCommandRunner{}
-		return
-	}
-	runner = &defaultCommandRunner{}
-}
 
 // Command creates a new command.
 func Command(command string, args ...string) *exec.Cmd { return runner.Command(command, args...) }
@@ -56,28 +44,6 @@ func (d defaultCommandRunner) CommandInteractive(command string, args ...string)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd
-}
-
-var _ commandRunner = (*dryRunCommandRunner)(nil)
-
-type dryRunCommandRunner struct{}
-
-func (d dryRunCommandRunner) Command(command string, args ...string) *exec.Cmd {
-	d.printArgs("run:", command, args...)
-	return exec.Command("echo")
-}
-
-func (d dryRunCommandRunner) CommandInteractive(command string, args ...string) *exec.Cmd {
-	d.printArgs("interactive run:", command, args...)
-	return exec.Command("echo")
-}
-func (d dryRunCommandRunner) printArgs(prefix, command string, args ...string) {
-	var str []string
-	str = append(str, prefix, strconv.Quote(command))
-	for _, arg := range args {
-		str = append(str, strconv.Quote(arg))
-	}
-	fmt.Println(strings.Join(str, " "))
 }
 
 // Prompt prompts for input with a question. It returns true only if answer is y or Y.

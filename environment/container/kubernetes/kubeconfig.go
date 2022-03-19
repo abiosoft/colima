@@ -2,12 +2,13 @@ package kubernetes
 
 import (
 	"fmt"
-	"github.com/abiosoft/colima/cli"
-	"github.com/abiosoft/colima/config"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/abiosoft/colima/cli"
+	"github.com/abiosoft/colima/config"
 )
 
 const kubeconfigKey = "kubeconfig"

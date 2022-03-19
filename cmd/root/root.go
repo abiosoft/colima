@@ -46,7 +46,6 @@ func Cmd() *cobra.Command {
 
 // rootCmdArgs holds all flags configured in root Cmd
 var rootCmdArgs struct {
-	DryRun  bool
 	Profile string
 	Verbose bool
 }
@@ -60,14 +59,8 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().BoolVar(&rootCmdArgs.DryRun, "dry-run", rootCmdArgs.DryRun, "perform a dry run instead")
 	rootCmd.PersistentFlags().BoolVar(&rootCmdArgs.Verbose, "verbose", rootCmdArgs.Verbose, "enable verbose log")
 	rootCmd.PersistentFlags().StringVarP(&rootCmdArgs.Profile, "profile", "p", "default", "profile name, for multiple instances")
-
-	// decide if these should be public
-	// implementations are currently half-baked, only for test during development
-	_ = rootCmd.PersistentFlags().MarkHidden("dry-run")
-
 }
 
 func initLog() error {
@@ -75,9 +68,6 @@ func initLog() error {
 	log.SetOutput(logrus.New().Writer())
 	log.SetFlags(0)
 
-	if rootCmdArgs.DryRun {
-		cli.DryRun(rootCmdArgs.DryRun)
-	}
 	if rootCmdArgs.Verbose {
 		cli.Settings.Verbose = rootCmdArgs.Verbose
 	}

@@ -1,19 +1,19 @@
 package lima
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/environment/vm/lima/network"
 	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/yamlutil"
 	"github.com/sirupsen/logrus"
@@ -36,6 +36,7 @@ func New(host environment.HostActions) environment.VM {
 		host:         host.WithEnv(env),
 		home:         home,
 		CommandChain: cli.New("vm"),
+		network:      network.NewManager(host),
 	}
 }
 
@@ -82,11 +83,50 @@ type limaVM struct {
 
 	// lima config directory
 	home string
+
+	// network between host and the vm
+	network network.NetworkManager
 }
 
 func (l limaVM) Dependencies() []string {
 	return []string{
 		"lima",
+	}
+}
+
+func (l limaVM) prepareNetwork() {
+	// limited to macOS for now
+	if runtime.GOOS != "darwin" {
+		return
+	}
+
+	a := l.Init()
+	log := l.Logger()
+
+	a.Stage("preparing network")
+	a.Add(func() error {
+		if !l.network.DependenciesInstalled() {
+			log.Println("network dependencies missing")
+			log.Println("sudo password may be required for setting up network dependencies")
+			return l.network.InstallDependencies()
+		}
+		return nil
+	})
+	a.Add(l.network.Start)
+
+	// delay a bit to prevent race condition with vmnet
+	a.Retry("", time.Second*1, 5, func() error {
+		ptpFile, err := network.PTPFile()
+		if err != nil {
+			return err
+		}
+		_, err = l.host.Stat(ptpFile)
+		return err
+	})
+
+	// network failure is not fatal
+	if err := a.Exec(); err != nil {
+		log.Warnln(fmt.Errorf("error starting network: %w", err))
 	}
 }
 
@@ -97,9 +137,10 @@ func (l *limaVM) Start(conf config.Config) error {
 		return l.resume(conf)
 	}
 
-	a.Stage("creating and starting")
+	l.prepareNetwork()
 
-	configFile := config.Profile().ID + ".yaml"
+	a.Stage("creating and starting")
+	configFile := filepath.Join(os.TempDir(), config.Profile().ID+".yaml")
 
 	a.Add(func() error {
 		limaConf, err := newConf(conf)
@@ -118,6 +159,7 @@ func (l *limaVM) Start(conf config.Config) error {
 	// registry certs
 	a.Add(l.copyCerts)
 
+	// dns
 	l.applyDNS(a, conf)
 
 	// adding it to command chain to execute only after successful startup.
@@ -137,6 +179,8 @@ func (l limaVM) resume(conf config.Config) error {
 		log.Println("already running")
 		return nil
 	}
+
+	l.prepareNetwork()
 
 	configFile := filepath.Join(l.limaConfDir(), "lima.yaml")
 
@@ -212,7 +256,7 @@ func (l limaVM) Running() bool {
 	return l.RunQuiet("uname") == nil
 }
 
-func (l limaVM) Stop() error {
+func (l limaVM) Stop(force bool) error {
 	log := l.Logger()
 	a := l.Init()
 	if !l.Running() {
@@ -223,8 +267,13 @@ func (l limaVM) Stop() error {
 	a.Stage("stopping")
 
 	a.Add(func() error {
+		if force {
+			return l.host.Run(limactl, "stop", "--force", config.Profile().ID)
+		}
 		return l.host.Run(limactl, "stop", config.Profile().ID)
 	})
+
+	a.Add(l.network.Stop)
 
 	return a.Exec()
 }
@@ -238,6 +287,8 @@ func (l limaVM) Teardown() error {
 		return l.host.Run(limactl, "delete", "--force", config.Profile().ID)
 	})
 
+	a.Add(l.network.Stop)
+
 	return a.Exec()
 }
 
@@ -246,7 +297,7 @@ func (l limaVM) Restart() error {
 		return fmt.Errorf("cannot restart, VM not previously started")
 	}
 
-	if err := l.Stop(); err != nil {
+	if err := l.Stop(false); err != nil {
 		return err
 	}
 
@@ -375,74 +426,4 @@ func (l limaVM) User() (string, error) {
 func (l limaVM) Arch() environment.Arch {
 	a, _ := l.RunOutput("uname", "-m")
 	return environment.Arch(a)
-}
-
-// InstanceInfo is the information about a Lima instance
-type InstanceInfo struct {
-	Name   string `json:"name,omitempty"`
-	Status string `json:"status,omitempty"`
-	Arch   string `json:"arch,omitempty"`
-	CPU    int    `json:"cpus,omitempty"`
-	Memory int64  `json:"memory,omitempty"`
-	Disk   int64  `json:"disk,omitempty"`
-}
-
-// Instances returns Lima instances created by colima.
-func Instances() ([]InstanceInfo, error) {
-	var buf bytes.Buffer
-	cmd := cli.Command("limactl", "list", "--json")
-	cmd.Stdout = &buf
-
-	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("error retrieving instances: %w", err)
-	}
-
-	var instances []InstanceInfo
-	scanner := bufio.NewScanner(&buf)
-	for scanner.Scan() {
-		var i InstanceInfo
-		line := scanner.Bytes()
-		if err := json.Unmarshal(line, &i); err != nil {
-			return nil, fmt.Errorf("error retrieving instances: %w", err)
-		}
-
-		// limit to colima instances
-		if !strings.HasPrefix(i.Name, "colima") {
-			continue
-		}
-
-		// rename to local friendly names
-		i.Name = toUserFriendlyName(i.Name)
-
-		instances = append(instances, i)
-	}
-
-	return instances, nil
-}
-
-// ShowSSH runs the show-ssh command in Lima.
-func ShowSSH(name, format string) error {
-	var buf bytes.Buffer
-	cmd := cli.Command("limactl", "show-ssh", "--format", format, name)
-	cmd.Stdout = &buf
-	cmd.Stderr = os.Stderr
-
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("error retrieving ssh config: %w", err)
-	}
-
-	// TODO: this is a lazy approach, edge cases may not be covered
-	from := "lima-" + name
-	to := name
-	out := strings.ReplaceAll(buf.String(), from, to)
-
-	fmt.Println(out)
-	return nil
-}
-
-func toUserFriendlyName(name string) string {
-	if name == "colima" {
-		name = "default"
-	}
-	return strings.TrimPrefix(name, "colima-")
 }

@@ -1,0 +1,1 @@
+%staff ALL=(root:wheel) NOPASSWD:NOSETENV: /opt/colima/bin/colima-vmnet

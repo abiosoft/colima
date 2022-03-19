@@ -11,7 +11,7 @@ GOARCH ?= $(shell echo "$(GOARCH_$(ARCH))")
 all: build 
 
 clean:
-	rm -rf _output
+	rm -rf _output _build
 
 gopath:
 	go get -v ./cmd/colima
@@ -21,6 +21,9 @@ fmt:
 
 build:
 	GOOS=$(GOOS) GOARCH=$(GOARCH) OS=$(OS) ARCH=$(ARCH) sh scripts/build.sh
+
+vmnet:
+	sh scripts/build_vmnet.sh
 
 install:
 	cp _output/binaries/colima-$(OS)-$(ARCH) /usr/local/bin/colima

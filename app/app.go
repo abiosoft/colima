@@ -14,7 +14,7 @@ import (
 type App interface {
 	Active() bool
 	Start(config.Config) error
-	Stop() error
+	Stop(force bool) error
 	Delete() error
 	SSH(...string) error
 	Status() error
@@ -93,14 +93,14 @@ func (c colimaApp) Start(conf config.Config) error {
 	return nil
 }
 
-func (c colimaApp) Stop() error {
+func (c colimaApp) Stop(force bool) error {
 	log.Println("stopping", config.Profile().DisplayName)
 
 	// the order for stop is:
 	//   container stop -> vm stop
 
-	// stop container runtimes
-	if c.guest.Running() {
+	// stop container runtimes if not a forceful shutdown
+	if c.guest.Running() && !force {
 		containers, err := c.currentContainerEnvironments()
 		if err != nil {
 			log.Warnln(fmt.Errorf("error retrieving runtimes: %w", err))
@@ -120,7 +120,7 @@ func (c colimaApp) Stop() error {
 
 	// stop vm
 	// no need to check running status, it may be in a state that requires stopping.
-	if err := c.guest.Stop(); err != nil {
+	if err := c.guest.Stop(force); err != nil {
 		return fmt.Errorf("error stopping vm: %w", err)
 	}
 
