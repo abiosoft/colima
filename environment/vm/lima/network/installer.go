@@ -14,19 +14,23 @@ import (
 type rootfulInstaller struct{ host environment.HostActions }
 
 func (r rootfulInstaller) Installed(file rootfulFile) bool {
-	stat, err := os.Stat(file.Path())
-	if err != nil {
-		return false
-	}
-	if file.Executable() {
-		return stat.Mode()&0100 != 0
+	for _, f := range file.Paths() {
+		stat, err := os.Stat(f)
+		if err != nil {
+			return false
+		}
+		if file.Executable() {
+			if stat.Mode()&0100 == 0 {
+				return false
+			}
+		}
 	}
 	return true
 }
 func (r rootfulInstaller) Install(file rootfulFile) error { return file.Install(r.host) }
 
 type rootfulFile interface {
-	Path() string
+	Paths() []string
 	Executable() bool
 	Install(host environment.HostActions) error
 }
@@ -35,7 +39,7 @@ var _ rootfulFile = sudoerFile{}
 
 type sudoerFile struct{}
 
-func (s sudoerFile) Path() string     { return "/etc/sudoers.d/colima" }
+func (s sudoerFile) Paths() []string  { return []string{"/etc/sudoers.d/colima"} }
 func (s sudoerFile) Executable() bool { return false }
 func (s sudoerFile) Install(host environment.HostActions) error {
 	// read embedded file contents
@@ -44,11 +48,13 @@ func (s sudoerFile) Install(host environment.HostActions) error {
 		return fmt.Errorf("error retrieving embedded sudo file: %w", err)
 	}
 	// ensure parent directory exists
-	if err := host.RunInteractive("sudo", "mkdir", "-p", filepath.Dir(s.Path())); err != nil {
+	path := s.Paths()[0]
+	dir := filepath.Dir(path)
+	if err := host.RunInteractive("sudo", "mkdir", "-p", dir); err != nil {
 		return fmt.Errorf("error preparing sudoers directory: %w", err)
 	}
 	// persist file to desired location
-	if err := host.RunInteractive("sudo", "sh", "-c", fmt.Sprintf(`echo "%s" > %s`, txt, s.Path())); err != nil {
+	if err := host.RunInteractive("sudo", "sh", "-c", fmt.Sprintf(`echo "%s" > %s`, txt, path)); err != nil {
 		return fmt.Errorf("error writing sudoers file: %w", err)
 	}
 	return nil
@@ -57,10 +63,13 @@ func (s sudoerFile) Install(host environment.HostActions) error {
 var _ rootfulFile = vmnetFile{}
 
 const VmnetBinary = "/opt/colima/bin/vde_vmnet"
+const vmnetLibrary = "/opt/colima/lib/libvdeplug.3.dylib"
 
 type vmnetFile struct{}
 
-func (s vmnetFile) Path() string     { return VmnetBinary }
+func (s vmnetFile) Paths() []string {
+	return []string{VmnetBinary, vmnetLibrary}
+}
 func (s vmnetFile) Executable() bool { return true }
 func (s vmnetFile) Install(host environment.HostActions) error {
 	arch := "x86_64"
@@ -85,7 +94,7 @@ func (s vmnetFile) Install(host environment.HostActions) error {
 	_ = f.Close() // not a fatal error
 
 	// extract tar to desired location
-	dir := filepath.Dir(s.Path())
+	dir := "/opt/colima"
 	if err := host.RunInteractive("sudo", "mkdir", "-p", dir); err != nil {
 		return fmt.Errorf("error preparing colima privileged dir: %w", err)
 	}
@@ -99,14 +108,14 @@ var _ rootfulFile = colimaVmnetFile{}
 
 type colimaVmnetFile struct{}
 
-func (s colimaVmnetFile) Path() string     { return "/opt/colima/bin/colima-vmnet" }
+func (s colimaVmnetFile) Paths() []string  { return []string{"/opt/colima/bin/colima-vmnet"} }
 func (s colimaVmnetFile) Executable() bool { return true }
 func (s colimaVmnetFile) Install(host environment.HostActions) error {
 	arg0, _ := exec.LookPath(os.Args[0])
 	if arg0 == "" { // should never happen
 		arg0 = os.Args[0]
 	}
-	if err := host.RunInteractive("sudo", "ln", "-sfn", arg0, s.Path()); err != nil {
+	if err := host.RunInteractive("sudo", "ln", "-sfn", arg0, s.Paths()[0]); err != nil {
 		return fmt.Errorf("error creating colima-vmnet binary: %w", err)
 	}
 	return nil
