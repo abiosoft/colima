@@ -56,16 +56,18 @@ func newConf(conf config.Config) (l Config, err error) {
 	// networking on Lima is limited to macOS
 	if runtime.GOOS == "darwin" {
 		// only set network settings if vmnet startup is successful
-		func() {
+		if err := func() error {
 			ptpFile, err := network.PTPFile()
 			if err != nil {
-				logrus.Warn(fmt.Errorf("error setting up network, VM will not have a reachable IP address: %w", err))
-				return
+				return err
+			}
+			// ensure the ptp file exists
+			if _, err := os.Stat(ptpFile); err != nil {
+				return err
 			}
 			dhcpScript, err := embedded.ReadString("network/dhcp.sh")
 			if err != nil {
-				logrus.Warn(fmt.Errorf("error setting up network, VM will not have a reachable IP address: %w", err))
-				return
+				return err
 			}
 
 			l.Networks = append(l.Networks, Network{
@@ -77,7 +79,10 @@ func newConf(conf config.Config) (l Config, err error) {
 				Mode:   ProvisionModeSystem,
 				Script: dhcpScript,
 			})
-		}()
+			return nil
+		}(); err != nil {
+			logrus.Warn(fmt.Errorf("error setting up network, VM will not have a reachable IP address: %w", err))
+		}
 	}
 
 	// port forwarding
