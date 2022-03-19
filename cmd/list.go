@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"text/tabwriter"
 
@@ -10,6 +11,10 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
+
+var listCmdArgs struct {
+	json bool
+}
 
 // listCmd represents the version command
 var listCmd = &cobra.Command{
@@ -24,6 +29,17 @@ A new instance can be created during 'colima start' by specifying the '--profile
 		instances, err := lima.Instances()
 		if err != nil {
 			return err
+		}
+
+		if listCmdArgs.json {
+			encoder := json.NewEncoder(cmd.OutOrStdout())
+			// print instance per line to conform with Lima's output
+			for _, instance := range instances {
+				if err := encoder.Encode(instance); err != nil {
+					return err
+				}
+			}
+			return nil
 		}
 
 		w := tabwriter.NewWriter(cmd.OutOrStdout(), 4, 8, 4, ' ', 0)
@@ -51,4 +67,6 @@ A new instance can be created during 'colima start' by specifying the '--profile
 
 func init() {
 	root.Cmd().AddCommand(listCmd)
+
+	listCmd.Flags().BoolVarP(&listCmdArgs.json, "json", "j", false, "print json output")
 }
