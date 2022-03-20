@@ -1,6 +1,7 @@
 package lima
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -17,7 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func newConf(conf config.Config) (l Config, err error) {
+func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	l.Arch = environment.Arch(conf.VM.Arch).Value()
 
 	l.Images = append(l.Images,
@@ -54,7 +55,8 @@ func newConf(conf config.Config) (l Config, err error) {
 	})
 
 	// networking on Lima is limited to macOS
-	if runtime.GOOS == "darwin" {
+	networkEnabled, _ := ctx.Value(ctxKeyNetwork).(bool)
+	if runtime.GOOS == "darwin" && networkEnabled {
 		// only set network settings if vmnet startup is successful
 		if err := func() error {
 			ptpFile, err := network.PTPFile()
@@ -81,7 +83,7 @@ func newConf(conf config.Config) (l Config, err error) {
 			})
 			return nil
 		}(); err != nil {
-			logrus.Warn(fmt.Errorf("error setting up network, VM will not have a reachable IP address: %w", err))
+			logrus.Warn(fmt.Errorf("error setting up network: %w", err))
 		}
 	}
 

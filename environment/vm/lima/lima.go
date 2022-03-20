@@ -2,6 +2,7 @@ package lima
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -94,12 +95,15 @@ func (l limaVM) Dependencies() []string {
 	}
 }
 
-func (l limaVM) prepareNetwork() {
+var ctxKeyNetwork = struct{ name string }{name: "network"}
+
+func (l limaVM) prepareNetwork(ctx cli.Context) error {
 	// limited to macOS for now
 	if runtime.GOOS != "darwin" {
-		return
+		return nil
 	}
 
+	// use a nested chain for convenience
 	a := l.Init()
 	log := l.Logger()
 
@@ -129,7 +133,11 @@ func (l limaVM) prepareNetwork() {
 	// network failure is not fatal
 	if err := a.Exec(); err != nil {
 		log.Warnln(fmt.Errorf("error starting network: %w", err))
+	} else {
+		ctx.SetContext(context.WithValue(ctx, ctxKeyNetwork, true))
 	}
+
+	return nil
 }
 
 func (l *limaVM) Start(conf config.Config) error {
@@ -139,13 +147,14 @@ func (l *limaVM) Start(conf config.Config) error {
 		return l.resume(conf)
 	}
 
-	l.prepareNetwork()
+	a.AddCtx(l.prepareNetwork)
+	// l.prepareNetwork()
 
 	a.Stage("creating and starting")
 	configFile := filepath.Join(os.TempDir(), config.Profile().ID+".yaml")
 
-	a.Add(func() error {
-		limaConf, err := newConf(conf)
+	a.AddCtx(func(ctx cli.Context) error {
+		limaConf, err := newConf(ctx, conf)
 		if err != nil {
 			return err
 		}
@@ -182,12 +191,12 @@ func (l limaVM) resume(conf config.Config) error {
 		return nil
 	}
 
-	l.prepareNetwork()
+	a.AddCtx(l.prepareNetwork)
 
 	configFile := filepath.Join(l.limaConfDir(), "lima.yaml")
 
-	a.Add(func() error {
-		limaConf, err := newConf(conf)
+	a.AddCtx(func(ctx cli.Context) error {
+		limaConf, err := newConf(ctx, conf)
 		if err != nil {
 			return err
 		}

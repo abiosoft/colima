@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -14,9 +15,24 @@ func New(name string) CommandChain {
 	}
 }
 
+// Context is CommandChain context.
+type Context interface {
+	context.Context
+	SetContext(context.Context)
+}
+
+var _ Context = (*cCtx)(nil)
+
+type cCtx struct {
+	context.Context
+}
+
+func (c *cCtx) SetContext(ctx context.Context) { c.Context = ctx }
+
 type cFunc struct {
-	f func() error
-	s string
+	f  func() error
+	fc func(Context) error
+	s  string
 }
 
 // CommandChain is a chain of commands.
@@ -60,6 +76,11 @@ func (a *ActiveCommandChain) Add(f func() error) {
 	a.funcs = append(a.funcs, cFunc{f: f})
 }
 
+// Add adds a new function to the runner.
+func (a *ActiveCommandChain) AddCtx(f func(Context) error) {
+	a.funcs = append(a.funcs, cFunc{fc: f})
+}
+
 // Stage sets the current stage of the runner.
 func (a *ActiveCommandChain) Stage(s string) {
 	a.funcs = append(a.funcs, cFunc{s: s})
@@ -75,8 +96,9 @@ func (a *ActiveCommandChain) Stagef(format string, s ...interface{}) {
 // The first errored function terminates the chain and the
 // error is returned. Otherwise, returns nil.
 func (a ActiveCommandChain) Exec() error {
+	ctx := &cCtx{context.Background()}
 	for _, f := range a.funcs {
-		if f.f == nil {
+		if f.f == nil && f.fc == nil {
 			if f.s != "" {
 				a.log.Println(f.s, "...")
 				a.lastStage = f.s
@@ -84,9 +106,18 @@ func (a ActiveCommandChain) Exec() error {
 			continue
 		}
 
-		err := f.f()
-		if err == nil {
-			continue
+		var err error
+		if f.f != nil {
+			err = f.f()
+			if err == nil {
+				continue
+			}
+		}
+		if f.fc != nil {
+			err = f.fc(ctx)
+			if err == nil {
+				continue
+			}
 		}
 
 		if a.lastStage == "" {
