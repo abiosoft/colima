@@ -5,9 +5,12 @@ import (
 )
 
 //go:embed network
-var FS embed.FS
+var fs embed.FS
 
-func read(file string) ([]byte, error) { return FS.ReadFile(file) }
+// FS returns the underying embed.FS
+func FS() embed.FS { return fs }
+
+func read(file string) ([]byte, error) { return fs.ReadFile(file) }
 
 // Read reads the content of file
 func Read(file string) ([]byte, error) { return read(file) }

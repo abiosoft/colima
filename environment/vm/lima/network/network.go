@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
@@ -21,11 +22,13 @@ type NetworkManager interface {
 	InstallDependencies() error
 	Start() error
 	Stop() error
+	Running() (bool, error)
 }
 
 // NewManager creates a new network manager.
 func NewManager(host environment.HostActions) NetworkManager {
 	return &limaNetworkManager{
+		host:      host,
 		launchd:   launchdManager{host},
 		installer: rootfulInstaller{host},
 	}
@@ -34,6 +37,7 @@ func NewManager(host environment.HostActions) NetworkManager {
 var _ NetworkManager = (*limaNetworkManager)(nil)
 
 type limaNetworkManager struct {
+	host      environment.HostActions
 	launchd   launchdManager
 	installer rootfulInstaller
 }
@@ -73,6 +77,22 @@ func (l limaNetworkManager) Stop() error {
 		}
 	}
 	return l.launchd.Delete()
+}
+
+func (l limaNetworkManager) Running() (bool, error) {
+	// validate that the vmnet socket and pid are created
+	ptpFile, err := PTPFile()
+	if err != nil {
+		return false, err
+	}
+	ptpSocket := strings.TrimSuffix(ptpFile, ".ptp") + ".pid"
+	if _, err := l.host.Stat(ptpFile); err != nil {
+		return false, err
+	}
+	if _, err := l.host.Stat(ptpSocket); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 const vmnetFileName = "vmnet"

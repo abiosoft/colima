@@ -1,5 +1,7 @@
 #!/usr/bin/env sh
 
+# this script is meant to be executed on x86_64 host
+
 set -ex
 
 export DIR_BUILD=$PWD/_build/network

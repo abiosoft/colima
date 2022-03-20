@@ -114,13 +114,15 @@ func (l limaVM) prepareNetwork() {
 	})
 	a.Add(l.network.Start)
 
-	// delay a bit to prevent race condition with vmnet
-	a.Retry("", time.Second*1, 5, func() error {
-		ptpFile, err := network.PTPFile()
+	// delay to ensure that the network is running
+	a.Retry("", time.Second*1, 15, func() error {
+		ok, err := l.network.Running()
 		if err != nil {
 			return err
 		}
-		_, err = l.host.Stat(ptpFile)
+		if !ok {
+			return fmt.Errorf("network process is not running")
+		}
 		return err
 	})
 
