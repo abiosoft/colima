@@ -77,6 +77,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 				SwitchPort: 65535, // this is fixed
 			})
 
+			// credit: https://github.com/abiosoft/colima/issues/140#issuecomment-1072599309
 			l.Provision = append(l.Provision, Provision{
 				Mode:   ProvisionModeSystem,
 				Script: dhcpScript,
