@@ -3,7 +3,6 @@ package network
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 
@@ -111,11 +110,12 @@ type colimaVmnetFile struct{}
 func (s colimaVmnetFile) Paths() []string  { return []string{"/opt/colima/bin/colima-vmnet"} }
 func (s colimaVmnetFile) Executable() bool { return true }
 func (s colimaVmnetFile) Install(host environment.HostActions) error {
-	arg0, _ := exec.LookPath(os.Args[0])
-	if arg0 == "" { // should never happen
-		arg0 = os.Args[0]
+	execPath, err := os.Executable()
+	if err != nil {
+		execPath = os.Args[0]
 	}
-	if err := host.RunInteractive("sudo", "ln", "-sfn", arg0, s.Paths()[0]); err != nil {
+
+	if err := host.RunInteractive("sudo", "ln", "-sfn", execPath, s.Paths()[0]); err != nil {
 		return fmt.Errorf("error creating colima-vmnet binary: %w", err)
 	}
 	return nil
