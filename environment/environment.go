@@ -33,6 +33,8 @@ type HostActions interface {
 	WithEnv(env ...string) HostActions
 	// Env retrieves environment variable on the host.
 	Env(string) string
+	// Port finds a random, unused port on the host.
+	Port() (int, error)
 }
 
 // GuestActions are actions performed on the guest i.e. VM.

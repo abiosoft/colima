@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/abiosoft/colima/cli"
@@ -19,7 +20,7 @@ const k3sVersion = "v1.22.4+k3s1"
 func installK3s(host environment.HostActions, guest environment.GuestActions, a *cli.ActiveCommandChain, log *logrus.Entry, containerRuntime string) {
 	installK3sBinary(host, guest, a)
 	installK3sCache(host, guest, a, log, containerRuntime)
-	installK3sCluster(host, guest, a, containerRuntime)
+	installK3sCluster(host, guest, a, log, containerRuntime)
 }
 
 func installK3sBinary(host environment.HostActions, guest environment.GuestActions, a *cli.ActiveCommandChain) {
@@ -83,7 +84,8 @@ func installK3sCache(host environment.HostActions, guest environment.GuestAction
 
 }
 
-func installK3sCluster(host environment.HostActions, guest environment.GuestActions, a *cli.ActiveCommandChain, containerRuntime string) {
+func installK3sCluster(host environment.HostActions, guest environment.GuestActions, a *cli.ActiveCommandChain,
+	log *logrus.Entry, containerRuntime string) {
 	// install k3s last to ensure it is the last step
 	downloadPath := "/tmp/k3s-install.sh"
 	url := "https://raw.githubusercontent.com/k3s-io/k3s/" + k3sVersion + "/install.sh"
@@ -104,6 +106,13 @@ func installK3sCluster(host environment.HostActions, guest environment.GuestActi
 	ipAddress := lima.IPAddress(config.Profile().ID)
 	if ipAddress != "127.0.0.1" {
 		args = append(args, "--bind-address", ipAddress)
+	} else {
+		port, err := host.Port()
+		if err != nil {
+			log.Warnln(fmt.Errorf("error determining free port: %w", err))
+		} else {
+			args = append(args, "--https-listen-port", strconv.Itoa(port))
+		}
 	}
 
 	switch containerRuntime {

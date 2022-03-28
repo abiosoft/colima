@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"strings"
@@ -110,6 +111,17 @@ func (h hostEnv) Write(fileName, body string) error {
 
 func (h hostEnv) Stat(fileName string) (os.FileInfo, error) {
 	return os.Stat(fileName)
+}
+
+func (h hostEnv) Port() (int, error) {
+	l, err := net.Listen("tcp4", ":0")
+	if err != nil {
+		return 0, err
+	}
+	defer func() {
+		_ = l.Close()
+	}()
+	return l.Addr().(*net.TCPAddr).Port, nil
 }
 
 // IsInstalled checks if dependencies are installed.
