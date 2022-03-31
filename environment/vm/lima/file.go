@@ -31,8 +31,11 @@ func (l *limaVM) Write(fileName, body string) error {
 	}
 
 	// transfer to desired location in the vm
+	if err := l.RunQuiet("sudo", "mkdir", "-p", filepath.Dir(fileName)); err != nil {
+		return fmt.Errorf("error making parent dir for file %s in vm: %w", fileName, err)
+	}
 	if err := l.RunQuiet("sudo", "cp", tmpName, fileName); err != nil {
-		return fmt.Errorf("error file %s in vm: %w", fileName, err)
+		return fmt.Errorf("error writing file %s in vm: %w", fileName, err)
 	}
 	_ = l.host.RunQuiet("rm", "-f", tmpName)
 

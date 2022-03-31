@@ -227,7 +227,7 @@ func (l *limaVM) applyDNS(a *cli.ActiveCommandChain, conf config.Config) {
 		dnses = append(dnses, conf.VM.DNS...)
 
 		// check if network is enabled
-		if enabled, _ := ctx.Value(ctxKeyNetwork).(bool); enabled {
+		if enabled, _ := ctx.Value(ctxKeyNetwork).(bool); enabled && len(dnses) == 0 {
 			dnses = append(dnses, net.ParseIP(network.VmnetGateway))
 		}
 
