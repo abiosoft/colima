@@ -95,7 +95,6 @@ func (l limaVM) Dependencies() []string {
 	}
 }
 
-var ctxKeyConfig = struct{ name string }{name: "config"}
 var ctxKeyNetwork = struct{ name string }{name: "network"}
 
 func (l limaVM) prepareNetwork(ctx cli.Context) error {
