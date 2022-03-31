@@ -14,7 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const k3sVersion = "v1.22.4+k3s1"
+const k3sVersion = "v1.23.4+k3s1"
 
 func installK3s(host environment.HostActions, guest environment.GuestActions, a *cli.ActiveCommandChain, log *logrus.Entry, containerRuntime string) {
 	installK3sBinary(host, guest, a)
@@ -108,7 +108,7 @@ func installK3sCluster(host environment.HostActions, guest environment.GuestActi
 
 	switch containerRuntime {
 	case docker.Name:
-		args = append(args, "--docker")
+		args = append(args, "--container-runtime-endpoint", "unix:///run/cri-dockerd.sock")
 	case containerd.Name:
 		args = append(args, "--container-runtime-endpoint", "unix:///run/containerd/containerd.sock")
 	}

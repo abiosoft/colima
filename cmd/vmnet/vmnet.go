@@ -52,7 +52,7 @@ var startCmd = &cobra.Command{
 
 		command := cli.CommandInteractive(network.VmnetBinary,
 			"--vmnet-mode", "shared",
-			"--vmnet-gateway", "192.168.106.1",
+			"--vmnet-gateway", network.VmnetGateway,
 			"--vmnet-dhcp-end", "192.168.106.254",
 			"--pidfile", pid,
 			ptp+"[]",

@@ -22,8 +22,8 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	l.Arch = environment.Arch(conf.VM.Arch).Value()
 
 	l.Images = append(l.Images,
-		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.3.4-1/alpine-lima-clm-3.14.3-aarch64.iso", Digest: "sha512:363baa91e4087dfd04ec5eebadcb29b9aef45c2663642f951105b3989e93143ce45f94ba9101c01c5db46c3fc6b601340b39baad29b1a48bb4f735790048daaa"},
-		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.3.4-1/alpine-lima-clm-3.14.3-x86_64.iso", Digest: "sha512:cd7ad0ef76088ea3d9f428e70fcddcbbcc72999568aaee0de953052299a01df251454fa5db3a0fdcfa70896bd152bc5d92f9ad81d682f3ec44cfbd2149ae3856"},
+		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.4.0/alpine-lima-clm-3.15.2-aarch64.iso", Digest: "sha512:48f905edfe67fe1ec0c690002e221d1c164717f867bff57878bae36ab72856fd041cfd1233c1b9e6be0946f2c0f493cffad14700597a7227402b5f662acf318c"},
+		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.4.0/alpine-lima-clm-3.15.2-x86_64.iso", Digest: "sha512:0650e3ac31100c4aaf717d6cf2605d089845b0e8bd09d5839203f4ae9e687e71f7a54a71ee5ec9328048f7a87ab6856b8866b1c3206bbc08cb50c57e9c25589f"},
 	)
 
 	l.CPUs = conf.VM.CPU
@@ -35,6 +35,9 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	l.Firmware.LegacyBIOS = false
 
 	l.DNS = conf.VM.DNS
+
+	networkEnabled, _ := ctx.Value(ctxKeyNetwork).(bool)
+
 	// always use host resolver to generate Lima's default resolv.conf file
 	// colima will override this in VM when custom DNS is set
 	l.HostResolver.Enabled = true
@@ -55,7 +58,6 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	})
 
 	// networking on Lima is limited to macOS
-	networkEnabled, _ := ctx.Value(ctxKeyNetwork).(bool)
 	if runtime.GOOS == "darwin" && networkEnabled {
 		// only set network settings if vmnet startup is successful
 		if err := func() error {

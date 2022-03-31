@@ -2,13 +2,14 @@ package terminal
 
 import (
 	"fmt"
-	"golang.org/x/crypto/ssh/terminal"
 	"os"
+
+	"golang.org/x/crypto/ssh/terminal"
 )
 
-// ClearLine clears the previous line of the terminal
 var isTerminal = terminal.IsTerminal(int(os.Stdout.Fd()))
 
+// ClearLine clears the previous line of the terminal
 func ClearLine() {
 	if !isTerminal {
 		return

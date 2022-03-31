@@ -38,6 +38,7 @@ type HostActions interface {
 // GuestActions are actions performed on the guest i.e. VM.
 type GuestActions interface {
 	runActions
+	fileActions
 	// Start starts up the VM
 	Start(config.Config) error
 	// Stop shuts down the VM

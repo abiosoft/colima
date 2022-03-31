@@ -49,6 +49,7 @@ func (l launchdManager) Delete() error {
 
 const packageNamePrefix = "com.abiosoft.colima"
 const colimaVmnetBinary = "/opt/colima/bin/colima-vmnet"
+const VmnetGateway = "192.168.106.1"
 
 func (l launchdManager) createVmnetScript() error {
 	if err := os.MkdirAll(l.Dir(), 0755); err != nil {

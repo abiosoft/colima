@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -148,7 +149,6 @@ func (l *limaVM) Start(conf config.Config) error {
 	}
 
 	a.AddCtx(l.prepareNetwork)
-	// l.prepareNetwork()
 
 	a.Stage("creating and starting")
 	configFile := filepath.Join(os.TempDir(), config.Profile().ID+".yaml")
@@ -216,50 +216,31 @@ func (l limaVM) resume(conf config.Config) error {
 	return a.Exec()
 }
 
-func (l limaVM) applyDNS(a *cli.ActiveCommandChain, conf config.Config) {
-	// manually set the DNS by modifying the resolve file.
-	//
+func (l *limaVM) applyDNS(a *cli.ActiveCommandChain, conf config.Config) {
 	// Lima's DNS settings is fixed at VM create and cannot be changed afterwards.
 	// this is a better approach as it only applies on VM startup and gets reset at shutdown.
-	// this is specific to Alpine , may be different for other distros.
 	log := l.Logger()
-	dnsFile := "/etc/resolv.conf"
-	dnsFileBak := dnsFile + ".lima"
 
-	a.Add(func() error {
-		// backup the original dns file (if not previously done)
-		if l.RunQuiet("stat", dnsFileBak) != nil {
-			err := l.RunQuiet("sudo", "cp", dnsFile, dnsFileBak)
-			if err != nil {
-				// custom DNS config failure should not prevent the VM from starting
-				// as the default config will be used.
-				// Rather, warn and terminate setting the DNS config.
-				log.Warnln(fmt.Errorf("error backing up default DNS config: %w", err))
-				return nil
-			}
+	dns := network.NewDNSManager(l)
+	a.AddCtx(func(ctx cli.Context) error {
+		var dnses []net.IP
+		dnses = append(dnses, conf.VM.DNS...)
+
+		// check if network is enabled
+		if enabled, _ := ctx.Value(ctxKeyNetwork).(bool); enabled {
+			dnses = append(dnses, net.ParseIP(network.VmnetGateway))
+		}
+
+		// custom DNS config failure should not prevent the VM from starting
+		// as the default config will be used.
+		// Rather, warn and terminate setting the DNS config.
+		if err := dns.Provision(dnses); err != nil {
+			log.Warnln(fmt.Errorf("error provisioning dns, will fall back to defaults: %w", err))
+		}
+		if err := dns.Start(); err != nil {
+			log.Warnln(fmt.Errorf("error starting dns, will fall back to defaults: %w", err))
 		}
 		return nil
-	})
-
-	a.Add(func() error {
-		// empty the file
-		if err := l.RunQuiet("sudo", "rm", "-f", dnsFile); err != nil {
-			return fmt.Errorf("error initiating DNS config: %w", err)
-		}
-
-		for _, dns := range conf.VM.DNS {
-			line := fmt.Sprintf(`echo nameserver %s >> %s`, dns.String(), dnsFile)
-			if err := l.RunQuiet("sudo", "sh", "-c", line); err != nil {
-				return fmt.Errorf("error applying DNS config: %w", err)
-			}
-		}
-
-		if len(conf.VM.DNS) > 0 {
-			return nil
-		}
-
-		// use the default Lima dns if no dns is set
-		return l.RunQuiet("sudo", "sh", "-c", fmt.Sprintf("cat %s >> %s", dnsFileBak, dnsFile))
 	})
 }
 

@@ -11,17 +11,24 @@ import (
 )
 
 func installContainerdDeps(guest environment.GuestActions, a *cli.ActiveCommandChain) {
-	// fix cni path
+	binaries := []string{"flannel"}
+
+	// fix missing cni plugins that are bundled with k3s
 	a.Add(func() error {
 		cniDir := "/usr/libexec/cni"
-		if err := guest.RunQuiet("sudo", "ls", "-l", cniDir); err == nil {
-			return nil
-		}
+		k3sBinDir := "/var/lib/rancher/k3s/data/current/bin"
+		for _, bin := range binaries {
+			binDest := filepath.Join(cniDir, bin)
+			if err := guest.RunQuiet("sudo", "ls", "-l", binDest); err == nil {
+				continue
+			}
 
-		if err := guest.Run("sudo", "mkdir", "-p", filepath.Dir(cniDir)); err != nil {
-			return err
+			binSource := filepath.Join(k3sBinDir, bin)
+			if err := guest.Run("sudo", "ln", "-s", binSource, binDest); err != nil {
+				return fmt.Errorf("error setting up cni plugin '%s': %w", bin, err)
+			}
 		}
-		return guest.Run("sudo", "ln", "-s", "/var/lib/rancher/k3s/data/current/bin", cniDir)
+		return nil
 	})
 
 	// fix cni config

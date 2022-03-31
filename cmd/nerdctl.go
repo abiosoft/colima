@@ -116,7 +116,7 @@ var nerdctlLinkFunc = func() *cobra.Command {
 			}
 
 			// sudo is needed for the default path
-			log.Println("/usr/local/bin not writeable, sudo password required to install nerdctl binary")
+			log.Println("/usr/local/bin not writable, sudo password required to install nerdctl binary")
 			if exists && !nerdctlCmdArgs.isColimaScript {
 				c := cli.CommandInteractive("sudo", "mv", nerdctlCmdArgs.path, nerdctlCmdArgs.path+".moved")
 				if err := c.Run(); err != nil {

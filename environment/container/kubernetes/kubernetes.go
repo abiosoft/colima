@@ -65,8 +65,13 @@ func (c *kubernetesRuntime) Provision() error {
 	}
 
 	// this needs to happen on each startup
-	if c.runtime() == containerd.Name {
+	switch c.runtime() {
+	case containerd.Name:
 		installContainerdDeps(c.guest, a)
+	case docker.Name:
+		a.Retry("waiting for docker cri", time.Second*2, 5, func() error {
+			return c.guest.Run("sudo", "service", "cri-dockerd", "start")
+		})
 	}
 
 	return a.Exec()
