@@ -42,6 +42,7 @@ func (d dockerRuntime) isUserPermissionFixed() bool {
 
 func (d dockerRuntime) Provision() error {
 	a := d.Init()
+	log := d.Logger()
 	a.Stage("provisioning")
 
 	// check user permission
@@ -57,7 +58,13 @@ func (d dockerRuntime) Provision() error {
 	}
 
 	// daemon.json
-	a.Add(d.setupDaemonFile)
+	a.Add(func() error {
+		// not a fatal error
+		if err := d.setupDaemonFile(); err != nil {
+			log.Warnln(err)
+		}
+		return nil
+	})
 
 	// docker context
 	a.Add(d.setupContext)
