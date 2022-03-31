@@ -75,11 +75,13 @@ The --runtime, --disk and --arch flags are only used on initial start and ignore
 		if !cmd.Flag("dns").Changed {
 			startCmdArgs.VM.DNS = current.VM.DNS
 		}
-		if !cmd.Flag("network-address").Changed {
-			startCmdArgs.VM.Network.Address = current.VM.Network.Address
-		}
-		if !cmd.Flag("network-user-mode").Changed {
-			startCmdArgs.VM.Network.UserMode = current.VM.Network.UserMode
+		if util.MacOS() {
+			if !cmd.Flag("network-address").Changed {
+				startCmdArgs.VM.Network.Address = current.VM.Network.Address
+			}
+			if !cmd.Flag("network-user-mode").Changed {
+				startCmdArgs.VM.Network.UserMode = current.VM.Network.UserMode
+			}
 		}
 
 		log.Println("using", current.Runtime, "runtime")
