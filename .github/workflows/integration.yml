@@ -44,7 +44,7 @@ jobs:
         run: colima start --runtime docker --with-kubernetes
 
       - name: Delay
-        run: sleep 5
+        run: sleep 20
 
       - name: Validate Kubernetes
         run: kubectl cluster-info && kubectl version && kubectl get nodes -o wide
@@ -88,7 +88,7 @@ jobs:
         run: colima start --runtime containerd --with-kubernetes
 
       - name: Delay
-        run: sleep 5
+        run: sleep 20
 
       - name: Validate Kubernetes
         run: kubectl cluster-info && kubectl version && kubectl get nodes -o wide
