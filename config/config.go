@@ -14,7 +14,7 @@ import (
 
 const AppName = "colima"
 
-var profile = ProfileInfo{ID: AppName, DisplayName: AppName, ShortName: AppName}
+var profile = ProfileInfo{ID: AppName, DisplayName: AppName, ShortName: "default"}
 
 // SetProfile sets the profile name for the application.
 // This is an avenue to test Colima without breaking an existing stable setup.
@@ -89,7 +89,7 @@ var (
 			if err != nil {
 				return "", err
 			}
-			return filepath.Join(dir, "."+profile.ID), nil
+			return filepath.Join(dir, ".colima", profile.ShortName), nil
 		},
 	}
 
