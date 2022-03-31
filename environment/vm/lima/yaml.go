@@ -20,6 +20,11 @@ import (
 
 func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	l.Arch = environment.Arch(conf.VM.Arch).Value()
+	if conf.VM.CPUType != "" {
+		l.CPUType = map[environment.Arch]string{
+			l.Arch: conf.VM.CPUType,
+		}
+	}
 
 	l.Images = append(l.Images,
 		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.4.0/alpine-lima-clm-3.15.2-aarch64.iso", Digest: "sha512:48f905edfe67fe1ec0c690002e221d1c164717f867bff57878bae36ab72856fd041cfd1233c1b9e6be0946f2c0f493cffad14700597a7227402b5f662acf318c"},
@@ -58,7 +63,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	})
 
 	// networking on Lima is limited to macOS
-	if runtime.GOOS == "darwin" && networkEnabled {
+	if runtime.GOOS == "darwin" && networkEnabled && conf.VM.Network.Address {
 		// only set network settings if vmnet startup is successful
 		if err := func() error {
 			ptpFile, err := network.PTPFile()
@@ -79,11 +84,14 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 				SwitchPort: 65535, // this is fixed
 			})
 
-			// credit: https://github.com/abiosoft/colima/issues/140#issuecomment-1072599309
-			l.Provision = append(l.Provision, Provision{
-				Mode:   ProvisionModeSystem,
-				Script: dhcpScript,
-			})
+			// disable user-mode as default route when disabled
+			if !conf.VM.Network.UserMode {
+				// credit: https://github.com/abiosoft/colima/issues/140#issuecomment-1072599309
+				l.Provision = append(l.Provision, Provision{
+					Mode:   ProvisionModeSystem,
+					Script: dhcpScript,
+				})
+			}
 			return nil
 		}(); err != nil {
 			logrus.Warn(fmt.Errorf("error setting up network: %w", err))
@@ -161,9 +169,11 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	return
 }
 
+type Arch = environment.Arch
+
 // Config is lima config. Code copied from lima and modified.
 type Config struct {
-	Arch         environment.Arch  `yaml:"arch,omitempty"`
+	Arch         Arch              `yaml:"arch,omitempty"`
 	Images       []File            `yaml:"images"`
 	CPUs         int               `yaml:"cpus,omitempty"`
 	Memory       string            `yaml:"memory,omitempty"`
@@ -178,12 +188,13 @@ type Config struct {
 	PortForwards []PortForward     `yaml:"portForwards,omitempty"`
 	Networks     []Network         `yaml:"networks,omitempty"`
 	Provision    []Provision       `yaml:"provision,omitempty" json:"provision,omitempty"`
+	CPUType      map[Arch]string   `yaml:"cpuType,omitempty" json:"cpuType,omitempty"`
 }
 
 type File struct {
-	Location string           `yaml:"location"` // REQUIRED
-	Arch     environment.Arch `yaml:"arch,omitempty"`
-	Digest   string           `yaml:"digest,omitempty"`
+	Location string `yaml:"location"` // REQUIRED
+	Arch     Arch   `yaml:"arch,omitempty"`
+	Digest   string `yaml:"digest,omitempty"`
 }
 
 type Mount struct {

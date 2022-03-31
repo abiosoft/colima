@@ -59,6 +59,9 @@ The --runtime, --disk and --arch flags are only used on initial start and ignore
 		if !cmd.Flag("cpu").Changed {
 			startCmdArgs.VM.CPU = current.VM.CPU
 		}
+		if !cmd.Flag("cpu-type").Changed {
+			startCmdArgs.VM.CPUType = current.VM.CPUType
+		}
 		if !cmd.Flag("memory").Changed {
 			startCmdArgs.VM.Memory = current.VM.Memory
 		}
@@ -70,6 +73,12 @@ The --runtime, --disk and --arch flags are only used on initial start and ignore
 		}
 		if !cmd.Flag("dns").Changed {
 			startCmdArgs.VM.DNS = current.VM.DNS
+		}
+		if !cmd.Flag("network-address").Changed {
+			startCmdArgs.VM.Network.Address = current.VM.Network.Address
+		}
+		if !cmd.Flag("network-user-mode").Changed {
+			startCmdArgs.VM.Network.UserMode = current.VM.Network.UserMode
 		}
 
 		log.Println("using", current.Runtime, "runtime")
@@ -100,9 +109,14 @@ func init() {
 	root.Cmd().AddCommand(startCmd)
 	startCmd.Flags().StringVarP(&startCmdArgs.Runtime, "runtime", "r", docker.Name, "container runtime ("+runtimes+")")
 	startCmd.Flags().IntVarP(&startCmdArgs.VM.CPU, "cpu", "c", defaultCPU, "number of CPUs")
+	startCmd.Flags().StringVar(&startCmdArgs.VM.CPUType, "cpu-type", "", "the Qemu CPU type")
 	startCmd.Flags().IntVarP(&startCmdArgs.VM.Memory, "memory", "m", defaultMemory, "memory in GiB")
 	startCmd.Flags().IntVarP(&startCmdArgs.VM.Disk, "disk", "d", defaultDisk, "disk size in GiB")
 	startCmd.Flags().StringVarP(&startCmdArgs.VM.Arch, "arch", "a", defaultArch, "architecture (aarch64, x86_64)")
+
+	// network
+	startCmd.Flags().BoolVar(&startCmdArgs.VM.Network.Address, "network-address", true, "assign reachable IP address to the VM")
+	startCmd.Flags().BoolVar(&startCmdArgs.VM.Network.UserMode, "network-user-mode", true, "use Qemu user-mode network for internet, ignored if --network-address=false")
 
 	// mounts
 	startCmd.Flags().StringSliceVarP(&startCmdArgs.VM.Mounts, "mount", "v", nil, "directories to mount, suffix ':w' for writable")

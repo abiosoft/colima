@@ -96,6 +96,7 @@ func (l limaVM) Dependencies() []string {
 	}
 }
 
+var ctxKeyConfig = struct{ name string }{name: "config"}
 var ctxKeyNetwork = struct{ name string }{name: "network"}
 
 func (l limaVM) prepareNetwork(ctx cli.Context) error {
@@ -148,7 +149,9 @@ func (l *limaVM) Start(conf config.Config) error {
 		return l.resume(conf)
 	}
 
-	a.AddCtx(l.prepareNetwork)
+	if conf.VM.Network.Address {
+		a.AddCtx(l.prepareNetwork)
+	}
 
 	a.Stage("creating and starting")
 	configFile := filepath.Join(os.TempDir(), config.Profile().ID+".yaml")
@@ -191,7 +194,9 @@ func (l limaVM) resume(conf config.Config) error {
 		return nil
 	}
 
-	a.AddCtx(l.prepareNetwork)
+	if conf.VM.Network.Address {
+		a.AddCtx(l.prepareNetwork)
+	}
 
 	configFile := filepath.Join(l.limaConfDir(), "lima.yaml")
 

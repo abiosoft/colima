@@ -168,12 +168,13 @@ type Kubernetes struct {
 
 // VM is virtual machine configuration.
 type VM struct {
-	CPU    int    `yaml:"cpu"`
-	Disk   int    `yaml:"disk"`
-	Memory int    `yaml:"memory"`
-	Arch   string `yaml:"arch"`
-
-	ForwardAgent bool `yaml:"forward_agent"`
+	CPU          int     `yaml:"cpu"`
+	Disk         int     `yaml:"disk"`
+	Memory       int     `yaml:"memory"`
+	Arch         string  `yaml:"arch"`
+	CPUType      string  `yaml:"cpuType"`
+	ForwardAgent bool    `yaml:"forward_agent"`
+	Network      Network `yaml:"network"`
 
 	// volume mounts
 	Mounts []string `yaml:"mounts"`
@@ -181,6 +182,12 @@ type VM struct {
 	// do not persist. i.e. discarded on VM shutdown
 	DNS []net.IP          `yaml:"-"` // DNS nameservers
 	Env map[string]string `yaml:"-"` // environment variables
+}
+
+// Network is VM network configuration
+type Network struct {
+	Address  bool `yaml:"address"`
+	UserMode bool `yaml:"userMode"`
 }
 
 // Empty checks if the configuration is empty.
