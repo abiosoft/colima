@@ -8,7 +8,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"time"
 
@@ -101,7 +100,7 @@ var ctxKeyNetwork = struct{ name string }{name: "network"}
 
 func (l limaVM) prepareNetwork(ctx cli.Context) error {
 	// limited to macOS for now
-	if runtime.GOOS != "darwin" {
+	if !util.MacOS() {
 		return nil
 	}
 

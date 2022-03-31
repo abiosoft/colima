@@ -6,7 +6,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/abiosoft/colima/config"
@@ -63,7 +62,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	})
 
 	// networking on Lima is limited to macOS
-	if runtime.GOOS == "darwin" && networkEnabled && conf.VM.Network.Address {
+	if util.MacOS() && networkEnabled && conf.VM.Network.Address {
 		// only set network settings if vmnet startup is successful
 		if err := func() error {
 			ptpFile, err := network.PTPFile()

@@ -9,6 +9,7 @@ import (
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/docker"
+	"github.com/abiosoft/colima/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -115,8 +116,10 @@ func init() {
 	startCmd.Flags().StringVarP(&startCmdArgs.VM.Arch, "arch", "a", defaultArch, "architecture (aarch64, x86_64)")
 
 	// network
-	startCmd.Flags().BoolVar(&startCmdArgs.VM.Network.Address, "network-address", true, "assign reachable IP address to the VM")
-	startCmd.Flags().BoolVar(&startCmdArgs.VM.Network.UserMode, "network-user-mode", true, "use Qemu user-mode network for internet, ignored if --network-address=false")
+	if util.MacOS() {
+		startCmd.Flags().BoolVar(&startCmdArgs.VM.Network.Address, "network-address", true, "assign reachable IP address to the VM")
+		startCmd.Flags().BoolVar(&startCmdArgs.VM.Network.UserMode, "network-user-mode", true, "use Qemu user-mode network for internet, ignored if --network-address=false")
+	}
 
 	// mounts
 	startCmd.Flags().StringSliceVarP(&startCmdArgs.VM.Mounts, "mount", "v", nil, "directories to mount, suffix ':w' for writable")
