@@ -73,24 +73,30 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 			if _, err := os.Stat(ptpFile); err != nil {
 				return err
 			}
-			dhcpScript, err := embedded.ReadString("network/dhcp.sh")
+			tpl, err := embedded.ReadString("network/dhcp.sh")
 			if err != nil {
 				return err
 			}
 
+			ifaceToDisable := "eth0"
+			if conf.VM.Network.UserMode {
+				ifaceToDisable = network.VmnetIface
+			}
+			values := struct{ Interface string }{Interface: ifaceToDisable}
+			dhcpScript, err := util.ParseTemplate(tpl, values)
+
 			l.Networks = append(l.Networks, Network{
 				VNL:        ptpFile,
 				SwitchPort: 65535, // this is fixed
+				Interface:  network.VmnetIface,
 			})
 
-			// disable user-mode as default route when disabled
-			if !conf.VM.Network.UserMode {
-				// credit: https://github.com/abiosoft/colima/issues/140#issuecomment-1072599309
-				l.Provision = append(l.Provision, Provision{
-					Mode:   ProvisionModeSystem,
-					Script: dhcpScript,
-				})
-			}
+			// disable one of the default routes accordingly
+			// credit: https://github.com/abiosoft/colima/issues/140#issuecomment-1072599309
+			l.Provision = append(l.Provision, Provision{
+				Mode:   ProvisionModeSystem,
+				Script: string(dhcpScript),
+			})
 			return nil
 		}(); err != nil {
 			logrus.Warn(fmt.Errorf("error setting up network: %w", err))
@@ -251,6 +257,7 @@ type Network struct {
 	// On macOS, only VDE2-compatible form (optionally with vde:// prefix) is supported.
 	VNL        string `yaml:"vnl,omitempty" json:"vnl,omitempty"`
 	SwitchPort uint16 `yaml:"switchPort,omitempty" json:"switchPort,omitempty"` // VDE Switch port, not TCP/UDP port (only used by VDE networking)
+	Interface  string `yaml:"interface,omitempty" json:"interface,omitempty"`
 }
 
 type ProvisionMode = string

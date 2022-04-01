@@ -10,6 +10,7 @@ import (
 	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/environment/container/docker"
 	"github.com/abiosoft/colima/environment/vm/lima"
+	"github.com/abiosoft/colima/environment/vm/lima/network"
 	"github.com/abiosoft/colima/util/downloader"
 	"github.com/sirupsen/logrus"
 )
@@ -104,6 +105,8 @@ func installK3sCluster(host environment.HostActions, guest environment.GuestActi
 	ipAddress := lima.IPAddress(config.Profile().ID)
 	if ipAddress != "127.0.0.1" {
 		args = append(args, "--bind-address", ipAddress)
+		args = append(args, "--advertise-address", ipAddress)
+		args = append(args, "--flannel-iface", network.VmnetIface)
 	}
 
 	switch containerRuntime {
