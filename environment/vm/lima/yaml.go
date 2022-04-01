@@ -84,6 +84,9 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 			}
 			values := struct{ Interface string }{Interface: ifaceToDisable}
 			dhcpScript, err := util.ParseTemplate(tpl, values)
+			if err != nil {
+				return err
+			}
 
 			l.Networks = append(l.Networks, Network{
 				VNL:        ptpFile,
