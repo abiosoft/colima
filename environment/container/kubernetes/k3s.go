@@ -98,12 +98,13 @@ func installK3sCluster(host environment.HostActions, guest environment.GuestActi
 	args := []string{
 		"--write-kubeconfig-mode", "644",
 		"--resolv-conf", "/etc/resolv.conf",
-		"--disable", "traefik",
 	}
 
-	// replace ip address if networking is enabled
+	// replace ip address and enable traefik if networking is enabled
 	ipAddress := lima.IPAddress(config.Profile().ID)
-	if ipAddress != "127.0.0.1" {
+	if ipAddress == "127.0.0.1" {
+		args = append(args, "--disable", "traefik")
+	} else {
 		args = append(args, "--bind-address", ipAddress)
 		args = append(args, "--advertise-address", ipAddress)
 		args = append(args, "--flannel-iface", network.VmnetIface)

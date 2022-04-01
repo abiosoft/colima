@@ -103,6 +103,27 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		}
 	}
 
+	// disable ports 80 and 443 when k8s is enabled and there is a reachable IP address
+	// to prevent ingress (traefik) from occupying relevant host ports.
+	if networkEnabled && conf.Kubernetes.Enabled {
+		l.PortForwards = append(l.PortForwards,
+			PortForward{
+				GuestIP:           net.ParseIP("0.0.0.0"),
+				GuestPort:         80,
+				GuestIPMustBeZero: true,
+				Ignore:            true,
+				Proto:             TCP,
+			},
+			PortForward{
+				GuestIP:           net.ParseIP("0.0.0.0"),
+				GuestPort:         443,
+				GuestIPMustBeZero: true,
+				Ignore:            true,
+				Proto:             TCP,
+			},
+		)
+	}
+
 	// port forwarding
 	{
 		// docker socket
