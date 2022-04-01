@@ -15,7 +15,7 @@ import (
 )
 
 func (l limaVM) Read(fileName string) (string, error) {
-	s, err := l.RunOutput("sudo", "sh", "-c", "cat", fileName)
+	s, err := l.RunOutput("sudo", "cat", fileName)
 	if err != nil {
 		return "", fmt.Errorf("cannot read file: %s", fileName)
 	}

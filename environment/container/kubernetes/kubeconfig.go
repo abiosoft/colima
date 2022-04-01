@@ -45,7 +45,7 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 
 	// manipulate in VM and save to host
 	a.Add(func() error {
-		kubeconfig, err := c.guest.RunOutput("cat", "/etc/rancher/k3s/k3s.yaml")
+		kubeconfig, err := c.guest.Read("/etc/rancher/k3s/k3s.yaml")
 		if err != nil {
 			return fmt.Errorf("error fetching kubeconfig on guest: %w", err)
 		}
