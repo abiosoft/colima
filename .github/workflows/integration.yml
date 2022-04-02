@@ -9,7 +9,7 @@ on:
 
 jobs:
   docker:
-    runs-on: macos-12
+    runs-on: macos-11
     steps:
       - uses: actions/checkout@v2
 
@@ -53,7 +53,7 @@ jobs:
         run: colima delete -f
 
   containerd:
-    runs-on: macos-12
+    runs-on: macos-11
     steps:
       - uses: actions/checkout@v2
 
