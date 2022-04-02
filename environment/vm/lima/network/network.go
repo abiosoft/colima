@@ -10,6 +10,11 @@ import (
 	"github.com/abiosoft/colima/environment"
 )
 
+const colimaVmnetBinary = "/opt/colima/bin/colima-vmnet"
+const VmnetGateway = "192.168.106.1"
+const VmnetDHCPEnd = "192.168.106.254"
+const VmnetIface = "col0"
+
 var requiredInstalls = []rootfulFile{
 	sudoerFile{},
 	vmnetFile{},
@@ -29,7 +34,6 @@ type NetworkManager interface {
 func NewManager(host environment.HostActions) NetworkManager {
 	return &limaNetworkManager{
 		host:      host,
-		launchd:   launchdManager{host},
 		installer: rootfulInstaller{host},
 	}
 }
@@ -38,7 +42,6 @@ var _ NetworkManager = (*limaNetworkManager)(nil)
 
 type limaNetworkManager struct {
 	host      environment.HostActions
-	launchd   launchdManager
 	installer rootfulInstaller
 }
 
@@ -65,18 +68,11 @@ func (l limaNetworkManager) InstallDependencies() error {
 }
 
 func (l limaNetworkManager) Start() error {
-	if l.launchd.Running() {
-		_ = l.launchd.Kill()
-	}
-	return l.launchd.Start()
+	_ = l.Stop() // this is safe, nothing is done when not running
+	return l.host.Run("sudo", colimaVmnetBinary, "start", config.Profile().ShortName)
 }
 func (l limaNetworkManager) Stop() error {
-	if l.launchd.Running() {
-		if err := l.launchd.Kill(); err != nil {
-			return err
-		}
-	}
-	return l.launchd.Delete()
+	return l.host.Run("sudo", colimaVmnetBinary, "stop", config.Profile().ShortName)
 }
 
 func (l limaNetworkManager) Running() (bool, error) {
