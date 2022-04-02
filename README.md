@@ -165,7 +165,7 @@ Yes, from version v0.3.0 Colima leverages Docker contexts and can thereby run al
 <summary>How to customize Docker config e.g. add insecure registries?</summary>
 <p>
 
-On first startup, Colima generates Docker daemon.json file at `$HOME/.colima/docker/daemon.json`.
+On first startup, Colima generates Docker daemon.json file at `$HOME/.colima/default/docker/daemon.json`.
 
 Simply modify the daemon.json file accordingly and restart Colima.
 
