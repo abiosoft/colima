@@ -117,7 +117,7 @@ func configFile() string { return filepath.Join(configDir.Dir(), configFileName)
 
 // oldConfigFile returns the path to config file of versions <0.4.0.
 // TODO: remove later, only for backward compatibility
-func oldConfigFile() string { return filepath.Join(os.Getenv("HOME"), "."+profile.ID) }
+func oldConfigFile() string { return filepath.Join(os.Getenv("HOME"), "."+profile.ID, configFileName) }
 
 // Save saves the config.
 func Save(c Config) error {

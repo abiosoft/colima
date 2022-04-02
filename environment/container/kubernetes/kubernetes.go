@@ -88,8 +88,10 @@ func (c kubernetesRuntime) Start() error {
 	a.Stage("starting")
 
 	a.Add(func() error {
-		defer time.Sleep(time.Second * 5)
 		return c.guest.Run("sudo", "service", "k3s", "start")
+	})
+	a.Retry("", time.Second*2, 10, func() error {
+		return c.guest.RunQuiet("kubectl", "cluster-info")
 	})
 
 	if err := a.Exec(); err != nil {
