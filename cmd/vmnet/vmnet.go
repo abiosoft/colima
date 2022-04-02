@@ -50,10 +50,7 @@ var startCmd = &cobra.Command{
 			return nil
 		}
 
-		ptp, err := network.PTPFile()
-		if err != nil {
-			logrus.Warnln("ptp file error: %w", err) // this should never happen
-		}
+		ptp := network.PTPFile()
 		pid := strings.TrimSuffix(ptp, ".ptp") + ".pid"
 
 		// delete existing sockets if exist
@@ -82,10 +79,7 @@ var stopCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		config.SetProfile(args[0])
 
-		info, err := info()
-		if err != nil {
-			return err
-		}
+		info := info()
 
 		// ideally, killing vmnet should kill the deamon, but just to ensure
 		for _, pidFile := range []string{info.VmnetPidFile, info.PidFile} {
@@ -117,26 +111,20 @@ type daemonInfo struct {
 	VmnetPidFile string
 }
 
-func info() (d daemonInfo, e error) {
-	dir, err := network.Dir()
-	if err != nil {
-		return d, err
-	}
+func info() (d daemonInfo) {
+	dir := network.Dir()
 
 	d.PidFile = filepath.Join(dir, "colima-daemon.pid")
 	d.LogFile = filepath.Join(dir, "vmnet.stderr")
 	d.VmnetPidFile = filepath.Join(dir, "vmnet.pid")
-	return d, nil
+	return d
 }
 
 // daemonize creates the deamon and returns if this is a child process
 // To terminate the daemon use:
 //  kill `cat sample.pid`
 func daemonize() (child bool, err error) {
-	info, err := info()
-	if err != nil {
-		return false, err
-	}
+	info := info()
 	ctx := &daemon.Context{
 		PidFileName: info.PidFile,
 		PidFilePerm: 0644,

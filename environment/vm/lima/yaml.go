@@ -65,10 +65,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	if util.MacOS() && networkEnabled && conf.VM.Network.Address {
 		// only set network settings if vmnet startup is successful
 		if err := func() error {
-			ptpFile, err := network.PTPFile()
-			if err != nil {
-				return err
-			}
+			ptpFile := network.PTPFile()
 			// ensure the ptp file exists
 			if _, err := os.Stat(ptpFile); err != nil {
 				return err

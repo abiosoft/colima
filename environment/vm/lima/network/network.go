@@ -69,6 +69,12 @@ func (l limaNetworkManager) InstallDependencies() error {
 
 func (l limaNetworkManager) Start() error {
 	_ = l.Stop() // this is safe, nothing is done when not running
+
+	// dependencies for network
+	if err := os.MkdirAll(Dir(), 0755); err != nil {
+		return fmt.Errorf("error preparing network: %w", err)
+	}
+
 	return l.host.Run("sudo", colimaVmnetBinary, "start", config.Profile().ShortName)
 }
 func (l limaNetworkManager) Stop() error {
@@ -77,10 +83,7 @@ func (l limaNetworkManager) Stop() error {
 
 func (l limaNetworkManager) Running() (bool, error) {
 	// validate that the vmnet socket and pid are created
-	ptpFile, err := PTPFile()
-	if err != nil {
-		return false, err
-	}
+	ptpFile := PTPFile()
 	ptpSocket := strings.TrimSuffix(ptpFile, ".ptp") + ".pid"
 	if _, err := l.host.Stat(ptpFile); err != nil {
 		return false, err
@@ -94,20 +97,7 @@ func (l limaNetworkManager) Running() (bool, error) {
 const vmnetFileName = "vmnet"
 
 // PTPFile returns path to the ptp socket file.
-func PTPFile() (string, error) {
-	dir, err := Dir()
-	if err != nil {
-		return dir, err
-	}
-
-	return filepath.Join(dir, vmnetFileName+".ptp"), nil
-}
+func PTPFile() string { return filepath.Join(Dir(), vmnetFileName+".ptp") }
 
 // Dir is the network configuration directory.
-func Dir() (string, error) {
-	dir := filepath.Join(config.Dir(), "network")
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return "", fmt.Errorf("error creating network directory: %w", err)
-	}
-	return dir, nil
-}
+func Dir() string { return filepath.Join(config.Dir(), "network") }
