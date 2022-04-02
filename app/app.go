@@ -5,6 +5,7 @@ import (
 
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/environment/container/docker"
 	"github.com/abiosoft/colima/environment/container/kubernetes"
 	"github.com/abiosoft/colima/environment/host"
 	"github.com/abiosoft/colima/environment/vm/lima"
@@ -185,8 +186,11 @@ func (c colimaApp) Status() error {
 	}
 
 	log.Println(config.Profile().DisplayName, "is running")
-	log.Println("runtime:", currentRuntime)
 	log.Println("arch:", c.guest.Arch())
+	log.Println("runtime:", currentRuntime)
+	if currentRuntime == docker.Name {
+		log.Println("socket:", "unix://"+docker.HostSocketFile())
+	}
 
 	// kubernetes
 	if k, err := c.Kubernetes(); err == nil && k.Running() {
