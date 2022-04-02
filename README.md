@@ -33,7 +33,7 @@ sudo port install colima
 nix-env -iA nixpkgs.colima
 ```
 
-Or stay on the bleeding edge (only Homebrew)
+Or stay on the bleeding edge (only Homebrew).
 
 ```
 brew install --HEAD colima
