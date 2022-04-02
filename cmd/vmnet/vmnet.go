@@ -151,7 +151,9 @@ func daemonize() (child bool, err error) {
 	if d != nil {
 		return false, nil
 	}
-	defer ctx.Release()
+	defer func() {
+		_ = ctx.Release()
+	}()
 
 	logrus.Info("- - - - - - - - - - - - - - -")
 	logrus.Info("colima-vmnet daemon started")
