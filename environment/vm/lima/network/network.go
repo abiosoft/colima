@@ -1,8 +1,6 @@
 package network
 
 import (
-	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -34,7 +32,8 @@ type NetworkManager interface {
 func NewManager(host environment.HostActions) NetworkManager {
 	return &limaNetworkManager{
 		host:      host,
-		installer: rootfulInstaller{host},
+		installer: rootfulInstaller{host: host},
+		vmnet:     vmnetManager{host: host},
 	}
 }
 
@@ -42,6 +41,7 @@ var _ NetworkManager = (*limaNetworkManager)(nil)
 
 type limaNetworkManager struct {
 	host      environment.HostActions
+	vmnet     vmnetManager
 	installer rootfulInstaller
 }
 
@@ -68,17 +68,10 @@ func (l limaNetworkManager) InstallDependencies() error {
 }
 
 func (l limaNetworkManager) Start() error {
-	_ = l.Stop() // this is safe, nothing is done when not running
-
-	// dependencies for network
-	if err := os.MkdirAll(Dir(), 0755); err != nil {
-		return fmt.Errorf("error preparing network: %w", err)
-	}
-
-	return l.host.Run("sudo", colimaVmnetBinary, "start", config.Profile().ShortName)
+	return l.vmnet.Start()
 }
 func (l limaNetworkManager) Stop() error {
-	return l.host.Run("sudo", colimaVmnetBinary, "stop", config.Profile().ShortName)
+	return l.vmnet.Stop()
 }
 
 func (l limaNetworkManager) Running() (bool, error) {

@@ -94,6 +94,15 @@ var stopCmd = &cobra.Command{
 			}
 		}
 
+		// in the rarest of cases that the pidfiles got deleted and the process is still active,
+		// manually killing the process will do. ugly but works
+		// TODO remove this if there is adverse effect
+		filter := fmt.Sprintf(`\-\-pidfile %s`, info.VmnetPidFile)
+		if err := cli.CommandInteractive("sh", "-c", `ps ax | grep "`+filter+`"`).Run(); err == nil {
+			// process found
+			return cli.CommandInteractive("pkill", "-f", filter).Run()
+		}
+
 		return nil
 	},
 }
