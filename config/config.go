@@ -100,7 +100,7 @@ var (
 			if err != nil {
 				return "", err
 			}
-			return filepath.Join(dir, profile.ID), nil
+			return filepath.Join(dir, "colima"), nil
 		},
 	}
 )
