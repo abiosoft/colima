@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/abiosoft/colima/cli"
+	"github.com/abiosoft/colima/embedded"
 	"github.com/abiosoft/colima/environment"
 )
 
@@ -33,14 +34,14 @@ func installContainerdDeps(guest environment.GuestActions, a *cli.ActiveCommandC
 	a.Add(func() error {
 		flannelFile := "/etc/cni/net.d/10-flannel.conflist"
 		cniConfDir := filepath.Dir(flannelFile)
-
 		if err := guest.Run("sudo", "mkdir", "-p", cniConfDir); err != nil {
 			return fmt.Errorf("error creating cni config dir: %w", err)
 		}
 
-		return guest.Write(flannelFile, k3sFlannelConflist)
+		flannel, err := embedded.ReadString("k3s/flannel.json")
+		if err != nil {
+			return fmt.Errorf("error reading embedded flannel config: %w", err)
+		}
+		return guest.Write(flannelFile, flannel)
 	})
 }
-
-//go:embed k3s-flannel.json
-var k3sFlannelConflist string
