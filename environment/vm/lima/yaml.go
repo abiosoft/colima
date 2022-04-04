@@ -18,10 +18,11 @@ import (
 )
 
 func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
-	l.Arch = environment.Arch(conf.VM.Arch).Value()
-	if conf.VM.CPUType != "" {
+	l.Arch = environment.Arch(conf.Arch).Value()
+
+	if conf.CPUType != "" {
 		l.CPUType = map[environment.Arch]string{
-			l.Arch: conf.VM.CPUType,
+			l.Arch: conf.CPUType,
 		}
 	}
 
@@ -30,15 +31,22 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.4.0/alpine-lima-clm-3.15.2-x86_64.iso", Digest: "sha512:0650e3ac31100c4aaf717d6cf2605d089845b0e8bd09d5839203f4ae9e687e71f7a54a71ee5ec9328048f7a87ab6856b8866b1c3206bbc08cb50c57e9c25589f"},
 	)
 
-	l.CPUs = conf.VM.CPU
-	l.Memory = fmt.Sprintf("%dGiB", conf.VM.Memory)
-	l.Disk = fmt.Sprintf("%dGiB", conf.VM.Disk)
-
-	l.SSH = SSH{LocalPort: 0, LoadDotSSHPubKeys: false, ForwardAgent: conf.VM.ForwardAgent}
+	if conf.CPU > 0 {
+		l.CPUs = &conf.CPU
+	}
+	if conf.Memory > 0 {
+		l.Memory = fmt.Sprintf("%dGiB", conf.Memory)
+	}
+	if conf.Disk > 0 {
+		l.Disk = fmt.Sprintf("%dGiB", conf.Disk)
+	}
+	if conf.ForwardAgent {
+		l.SSH = SSH{LocalPort: 0, LoadDotSSHPubKeys: false, ForwardAgent: conf.ForwardAgent}
+	}
 	l.Containerd = Containerd{System: false, User: false}
 	l.Firmware.LegacyBIOS = false
 
-	l.DNS = conf.VM.DNS
+	l.DNS = conf.DNS
 
 	networkEnabled, _ := ctx.Value(ctxKeyNetwork).(bool)
 
@@ -49,10 +57,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		"host.docker.internal": "host.lima.internal",
 	}
 
-	l.Env = map[string]string{}
-	for k, v := range conf.VM.Env {
-		l.Env[k] = v
-	}
+	l.Env = conf.Env
 
 	// add user to docker group
 	// "sudo", "usermod", "-aG", "docker", user
@@ -62,7 +67,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	})
 
 	// networking on Lima is limited to macOS
-	if util.MacOS() && networkEnabled && conf.VM.Network.Address {
+	if util.MacOS() && networkEnabled && conf.Network.Address {
 		// only set network settings if vmnet startup is successful
 		if err := func() error {
 			ptpFile := network.PTPFile()
@@ -76,7 +81,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 			}
 
 			ifaceToDisable := "eth0"
-			if conf.VM.Network.UserMode {
+			if conf.Network.UserMode {
 				ifaceToDisable = network.VmnetIface
 			}
 			values := struct{ Interface string }{Interface: ifaceToDisable}
@@ -160,14 +165,14 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		)
 	}
 
-	if len(conf.VM.Mounts) == 0 {
+	if len(conf.Mounts) == 0 {
 		l.Mounts = append(l.Mounts,
 			Mount{Location: "~", Writable: true},
 			Mount{Location: filepath.Join("/tmp", config.Profile().ID), Writable: true},
 		)
 	} else {
 		// overlapping mounts are problematic in Lima https://github.com/lima-vm/lima/issues/302
-		if err = checkOverlappingMounts(conf.VM.Mounts); err != nil {
+		if err = checkOverlappingMounts(conf.Mounts); err != nil {
 			err = fmt.Errorf("overlapping mounts not supported: %w", err)
 			return
 		}
@@ -175,7 +180,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		l.Mounts = append(l.Mounts, Mount{Location: config.CacheDir(), Writable: false})
 		cacheOverlapFound := false
 
-		for _, v := range conf.VM.Mounts {
+		for _, v := range conf.Mounts {
 			m := volumeMount(v)
 			var location string
 			location, err = m.Path()
@@ -201,11 +206,11 @@ type Arch = environment.Arch
 type Config struct {
 	Arch         Arch              `yaml:"arch,omitempty"`
 	Images       []File            `yaml:"images"`
-	CPUs         int               `yaml:"cpus,omitempty"`
+	CPUs         *int              `yaml:"cpus,omitempty"`
 	Memory       string            `yaml:"memory,omitempty"`
 	Disk         string            `yaml:"disk,omitempty"`
 	Mounts       []Mount           `yaml:"mounts,omitempty"`
-	SSH          SSH               `yaml:"ssh"`
+	SSH          SSH               `yaml:"ssh,omitempty"`
 	Containerd   Containerd        `yaml:"containerd"`
 	Env          map[string]string `yaml:"env,omitempty"`
 	DNS          []net.IP          `yaml:"-"` // will be handled manually by colima

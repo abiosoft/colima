@@ -4,7 +4,7 @@ import (
 	"embed"
 )
 
-//go:embed network k3s
+//go:embed network k3s defaults
 var fs embed.FS
 
 // FS returns the underying embed.FS

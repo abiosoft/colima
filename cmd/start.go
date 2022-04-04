@@ -48,8 +48,8 @@ The --runtime, --disk and --arch flags are only used on initial start and ignore
 		// runtime, ssh port, disk size, kubernetes version and arch are only effective on VM create
 		// set it to the current settings
 		startCmdArgs.Runtime = current.Runtime
-		startCmdArgs.VM.Disk = current.VM.Disk
-		startCmdArgs.VM.Arch = current.VM.Arch
+		startCmdArgs.Disk = current.Disk
+		startCmdArgs.Arch = current.Arch
 		startCmdArgs.Kubernetes.Version = current.Kubernetes.Version
 
 		// use current settings for unchanged configs
@@ -58,29 +58,29 @@ The --runtime, --disk and --arch flags are only used on initial start and ignore
 			startCmdArgs.Kubernetes.Enabled = current.Kubernetes.Enabled
 		}
 		if !cmd.Flag("cpu").Changed {
-			startCmdArgs.VM.CPU = current.VM.CPU
+			startCmdArgs.CPU = current.CPU
 		}
 		if !cmd.Flag("cpu-type").Changed {
-			startCmdArgs.VM.CPUType = current.VM.CPUType
+			startCmdArgs.CPUType = current.CPUType
 		}
 		if !cmd.Flag("memory").Changed {
-			startCmdArgs.VM.Memory = current.VM.Memory
+			startCmdArgs.Memory = current.Memory
 		}
 		if !cmd.Flag("mount").Changed {
-			startCmdArgs.VM.Mounts = current.VM.Mounts
+			startCmdArgs.Mounts = current.Mounts
 		}
 		if !cmd.Flag("ssh-agent").Changed {
-			startCmdArgs.VM.ForwardAgent = current.VM.ForwardAgent
+			startCmdArgs.ForwardAgent = current.ForwardAgent
 		}
 		if !cmd.Flag("dns").Changed {
-			startCmdArgs.VM.DNS = current.VM.DNS
+			startCmdArgs.DNS = current.DNS
 		}
 		if util.MacOS() {
 			if !cmd.Flag("network-address").Changed {
-				startCmdArgs.VM.Network.Address = current.VM.Network.Address
+				startCmdArgs.Network.Address = current.Network.Address
 			}
 			if !cmd.Flag("network-user-mode").Changed {
-				startCmdArgs.VM.Network.UserMode = current.VM.Network.UserMode
+				startCmdArgs.Network.UserMode = current.Network.UserMode
 			}
 		}
 
@@ -98,7 +98,7 @@ const (
 	defaultCPU               = 2
 	defaultMemory            = 2
 	defaultDisk              = 60
-	defaultKubernetesVersion = "v1.22.2"
+	defaultKubernetesVersion = "v1.23.4"
 )
 
 var startCmdArgs struct {
@@ -111,23 +111,23 @@ func init() {
 
 	root.Cmd().AddCommand(startCmd)
 	startCmd.Flags().StringVarP(&startCmdArgs.Runtime, "runtime", "r", docker.Name, "container runtime ("+runtimes+")")
-	startCmd.Flags().IntVarP(&startCmdArgs.VM.CPU, "cpu", "c", defaultCPU, "number of CPUs")
-	startCmd.Flags().StringVar(&startCmdArgs.VM.CPUType, "cpu-type", "", "the Qemu CPU type")
-	startCmd.Flags().IntVarP(&startCmdArgs.VM.Memory, "memory", "m", defaultMemory, "memory in GiB")
-	startCmd.Flags().IntVarP(&startCmdArgs.VM.Disk, "disk", "d", defaultDisk, "disk size in GiB")
-	startCmd.Flags().StringVarP(&startCmdArgs.VM.Arch, "arch", "a", defaultArch, "architecture (aarch64, x86_64)")
+	startCmd.Flags().IntVarP(&startCmdArgs.CPU, "cpu", "c", defaultCPU, "number of CPUs")
+	startCmd.Flags().StringVar(&startCmdArgs.CPUType, "cpu-type", "", "the Qemu CPU type")
+	startCmd.Flags().IntVarP(&startCmdArgs.Memory, "memory", "m", defaultMemory, "memory in GiB")
+	startCmd.Flags().IntVarP(&startCmdArgs.Disk, "disk", "d", defaultDisk, "disk size in GiB")
+	startCmd.Flags().StringVarP(&startCmdArgs.Arch, "arch", "a", defaultArch, "architecture (aarch64, x86_64)")
 
 	// network
 	if util.MacOS() {
-		startCmd.Flags().BoolVar(&startCmdArgs.VM.Network.Address, "network-address", true, "assign reachable IP address to the VM")
-		startCmd.Flags().BoolVar(&startCmdArgs.VM.Network.UserMode, "network-user-mode", true, "use Qemu user-mode network for internet, ignored if --network-address=false")
+		startCmd.Flags().BoolVar(&startCmdArgs.Network.Address, "network-address", true, "assign reachable IP address to the VM")
+		startCmd.Flags().BoolVar(&startCmdArgs.Network.UserMode, "network-user-mode", true, "use Qemu user-mode network for internet, ignored if --network-address=false")
 	}
 
 	// mounts
-	startCmd.Flags().StringSliceVarP(&startCmdArgs.VM.Mounts, "mount", "v", nil, "directories to mount, suffix ':w' for writable")
+	startCmd.Flags().StringSliceVarP(&startCmdArgs.Mounts, "mount", "v", nil, "directories to mount, suffix ':w' for writable")
 
 	// ssh agent
-	startCmd.Flags().BoolVarP(&startCmdArgs.VM.ForwardAgent, "ssh-agent", "s", false, "forward SSH agent to the VM")
+	startCmd.Flags().BoolVarP(&startCmdArgs.ForwardAgent, "ssh-agent", "s", false, "forward SSH agent to the VM")
 
 	// k8s
 	startCmd.Flags().BoolVarP(&startCmdArgs.Kubernetes.Enabled, "with-kubernetes", "k", false, "start VM with Kubernetes")
@@ -137,8 +137,8 @@ func init() {
 
 	// not sure of the usefulness of env vars for now considering that interactions will be with the containers, not the VM.
 	// leaving it undocumented until there is a need.
-	startCmd.Flags().StringToStringVarP(&startCmdArgs.VM.Env, "env", "e", nil, "environment variables for the VM")
+	startCmd.Flags().StringToStringVarP(&startCmdArgs.Env, "env", "e", nil, "environment variables for the VM")
 	_ = startCmd.Flags().MarkHidden("env")
 
-	startCmd.Flags().IPSliceVarP(&startCmdArgs.VM.DNS, "dns", "n", nil, "DNS servers for the VM")
+	startCmd.Flags().IPSliceVarP(&startCmdArgs.DNS, "dns", "n", nil, "DNS servers for the VM")
 }

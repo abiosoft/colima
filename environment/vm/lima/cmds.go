@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/abiosoft/colima/cli"
@@ -23,7 +24,8 @@ type InstanceInfo struct {
 		VNL       string `json:"vnl,omitempty"`
 		Interface string `json:"interface,omitempty"`
 	} `json:"network,omitempty"`
-	IPAddress string `json:"-"`
+	IPAddress string `json:"address,omitempty"`
+	Runtime   string `json:"runtime,omitempty"`
 }
 
 // Instances returns Lima instances created by colima.
@@ -54,10 +56,14 @@ func Instances() ([]InstanceInfo, error) {
 			if len(i.Network) > 0 && i.Network[0].Interface != "" {
 				i.IPAddress = getIPAddress(i.Name, i.Network[0].Interface)
 			}
+			i.Runtime = getRuntime(i.Name)
 		}
 
 		// rename to local friendly names
 		i.Name = toUserFriendlyName(i.Name)
+
+		// network is low level, remove
+		i.Network = nil
 
 		instances = append(instances, i)
 	}
@@ -67,13 +73,35 @@ func Instances() ([]InstanceInfo, error) {
 
 func getIPAddress(profile, interfaceName string) string {
 	var buf bytes.Buffer
-	// TODO: this should be cleaner
+	// TODO: this should be less hacky
 	cmd := cli.Command("limactl", "shell", profile, "sh", "-c",
 		`ifconfig `+interfaceName+` | grep "inet addr:" | awk -F' ' '{print $2}' | awk -F':' '{print $2}'`)
 	cmd.Stdout = &buf
 
 	_ = cmd.Run()
 	return strings.TrimSpace(buf.String())
+}
+
+func getRuntime(profile string) string {
+	// TODO: this should be less hacky
+	var info struct {
+		Runtime  string `json:"runtime"`
+		Kubeconf string `json:"kubeconfig"`
+	}
+
+	var buf bytes.Buffer
+	cmd := cli.Command("limactl", "shell", profile, "cat", configFile)
+	cmd.Stdout = &buf
+
+	_ = cmd.Run()
+	if err := json.Unmarshal(buf.Bytes(), &info); err != nil {
+		return ""
+	}
+	runtime := info.Runtime
+	if ok, _ := strconv.ParseBool(info.Kubeconf); ok {
+		runtime += "+k3s"
+	}
+	return runtime
 }
 
 // IPAddress returns the ip address for profile.

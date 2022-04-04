@@ -147,7 +147,7 @@ func (l *limaVM) Start(conf config.Config) error {
 		return l.resume(conf)
 	}
 
-	if conf.VM.Network.Address {
+	if conf.Network.Address {
 		a.AddCtx(l.prepareNetwork)
 	}
 
@@ -192,7 +192,7 @@ func (l limaVM) resume(conf config.Config) error {
 		return nil
 	}
 
-	if conf.VM.Network.Address {
+	if conf.Network.Address {
 		a.AddCtx(l.prepareNetwork)
 	}
 
@@ -227,7 +227,7 @@ func (l *limaVM) applyDNS(a *cli.ActiveCommandChain, conf config.Config) {
 	dns := network.NewDNSManager(l)
 	a.AddCtx(func(ctx cli.Context) error {
 		var dnses []net.IP
-		dnses = append(dnses, conf.VM.DNS...)
+		dnses = append(dnses, conf.DNS...)
 
 		// check if network is enabled
 		if enabled, _ := ctx.Value(ctxKeyNetwork).(bool); enabled && len(dnses) == 0 {

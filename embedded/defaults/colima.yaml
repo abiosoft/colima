@@ -1,0 +1,47 @@
+# Number of CPUs to be allocated to the virtual machine.
+# Default: 2
+cpu: 2
+
+# Size of the disk in GiB to be allocated to the virtual machine.
+# NOTE: changing this has no effect after the virtual machine has been created.
+# Default: 60
+disk: 60
+
+# Size of the memory in GiB to be allocated to the virtual machine.
+# Default: 2
+memory: 2
+
+# Architecture of the virtual machine (x86_64, aarch64, host).
+# Default: host
+arch: host
+
+# Network configuration for the virtual machine.
+# NOTE: this is macOS only and ignored on Linux.
+network:
+  # Assign reachable IP address to the virtual machine.
+  # Default: true
+  address: true
+
+  # Use QEMU user mode (slirp) network as the default route (i.e. for internet).
+  #
+  # Setting `address` to true provides additional option of using the address' network
+  # as the default route, which has proven to be more reliable in some cases.
+  # However, it seems to perform worse with VPN enabled.
+  #
+  # This setting is ignored if `address` is false.
+  # Default: true
+  userMode: true
+
+# Container runtime to be used (docker, containerd).
+# Default: docker
+runtime: docker
+
+# Kubernetes configuration for the virtual machine.
+kubernetes:
+  # Enable kubernetes.
+  # Default: true
+  enabled: true
+
+  # Kubernetes version to use.
+  # This needs to exactly match a k3s version https://github.com/k3s-io/k3s/releases
+  version: v1.23.4+k3s1

@@ -105,6 +105,9 @@ var (
 	}
 )
 
+// AppDir returns the application directory.
+func AppDir() string { return filepath.Dir(configDir.Dir()) }
+
 // Dir returns the configuration directory.
 func Dir() string { return configDir.Dir() }
 
@@ -168,38 +171,30 @@ func Teardown() error {
 
 // Config is the application config.
 type Config struct {
-	// Virtual Machine
-	VM VM `yaml:"vm"`
+	CPU          int               `yaml:"cpu,omitempty"`
+	Disk         int               `yaml:"disk,omitempty"`
+	Memory       int               `yaml:"memory,omitempty"`
+	Arch         string            `yaml:"arch,omitempty"`
+	CPUType      string            `yaml:"cpuType,omitempty"`
+	ForwardAgent bool              `yaml:"forward_agent,omitempty"`
+	Network      Network           `yaml:"network,omitempty"`
+	DNS          []net.IP          `yaml:"dns,omitempty"` // DNS nameservers
+	Env          map[string]string `yaml:"env,omitempty"` // environment variables
+
+	// volume mounts
+	Mounts []string `yaml:"mounts,omitempty"`
 
 	// Runtime is one of docker, containerd.
-	Runtime string `yaml:"runtime"`
+	Runtime string `yaml:"runtime,omitempty"`
 
 	// Kubernetes sets if kubernetes should be enabled.
-	Kubernetes Kubernetes `yaml:"kubernetes"`
+	Kubernetes Kubernetes `yaml:"kubernetes,omitempty"`
 }
 
 // Kubernetes is kubernetes configuration
 type Kubernetes struct {
 	Enabled bool   `yaml:"enabled"`
 	Version string `yaml:"version"`
-}
-
-// VM is virtual machine configuration.
-type VM struct {
-	CPU          int     `yaml:"cpu"`
-	Disk         int     `yaml:"disk"`
-	Memory       int     `yaml:"memory"`
-	Arch         string  `yaml:"arch"`
-	CPUType      string  `yaml:"cpuType"`
-	ForwardAgent bool    `yaml:"forward_agent"`
-	Network      Network `yaml:"network"`
-
-	// volume mounts
-	Mounts []string `yaml:"mounts"`
-
-	// do not persist. i.e. discarded on VM shutdown
-	DNS []net.IP          `yaml:"-"` // DNS nameservers
-	Env map[string]string `yaml:"-"` // environment variables
 }
 
 // Network is VM network configuration
