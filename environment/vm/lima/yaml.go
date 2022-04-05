@@ -165,6 +165,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		)
 	}
 
+	l.MountType = NINEP
 	if len(conf.Mounts) == 0 {
 		l.Mounts = append(l.Mounts,
 			Mount{Location: "~", Writable: true},
@@ -210,6 +211,7 @@ type Config struct {
 	Memory       string            `yaml:"memory,omitempty"`
 	Disk         string            `yaml:"disk,omitempty"`
 	Mounts       []Mount           `yaml:"mounts,omitempty"`
+	MountType    MountType         `yaml:"mountType,omitempty" json:"mountType,omitempty"`
 	SSH          SSH               `yaml:"ssh,omitempty"`
 	Containerd   Containerd        `yaml:"containerd"`
 	Env          map[string]string `yaml:"env,omitempty"`
@@ -254,8 +256,13 @@ type Firmware struct {
 
 type Proto = string
 
+type MountType = string
+
 const (
 	TCP Proto = "tcp"
+
+	REVSSHFS MountType = "reverse-sshfs"
+	NINEP    MountType = "9p"
 )
 
 type PortForward struct {
