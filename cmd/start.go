@@ -99,7 +99,7 @@ const (
 	defaultCPU               = 2
 	defaultMemory            = 2
 	defaultDisk              = 60
-	defaultKubernetesVersion = "v1.23.4"
+	defaultKubernetesVersion = "v1.23.4+k3s1"
 )
 
 var startCmdArgs struct {
@@ -113,7 +113,7 @@ func init() {
 	root.Cmd().AddCommand(startCmd)
 	startCmd.Flags().StringVarP(&startCmdArgs.Runtime, "runtime", "r", docker.Name, "container runtime ("+runtimes+")")
 	startCmd.Flags().IntVarP(&startCmdArgs.CPU, "cpu", "c", defaultCPU, "number of CPUs")
-	startCmd.Flags().StringVar(&startCmdArgs.CPUType, "cpu-type", "", "the Qemu CPU type")
+	startCmd.Flags().StringVar(&startCmdArgs.CPUType, "cpu-type", "", "the CPU type, options can be checked with 'qemu-system-"+defaultArch+" -cpu help'")
 	startCmd.Flags().IntVarP(&startCmdArgs.Memory, "memory", "m", defaultMemory, "memory in GiB")
 	startCmd.Flags().IntVarP(&startCmdArgs.Disk, "disk", "d", defaultDisk, "disk size in GiB")
 	startCmd.Flags().StringVarP(&startCmdArgs.Arch, "arch", "a", defaultArch, "architecture (aarch64, x86_64)")
@@ -121,7 +121,7 @@ func init() {
 	// network
 	if util.MacOS() {
 		startCmd.Flags().BoolVar(&startCmdArgs.Network.Address, "network-address", true, "assign reachable IP address to the VM")
-		startCmd.Flags().BoolVar(&startCmdArgs.Network.UserMode, "network-user-mode", true, "use Qemu user-mode network for internet, ignored if --network-address=false")
+		startCmd.Flags().BoolVar(&startCmdArgs.Network.UserMode, "network-user-mode", false, "use Qemu user-mode network for internet, always true if --network-address=false")
 	}
 
 	// mounts
@@ -132,9 +132,7 @@ func init() {
 
 	// k8s
 	startCmd.Flags().BoolVarP(&startCmdArgs.Kubernetes.Enabled, "with-kubernetes", "k", false, "start VM with Kubernetes")
-	startCmd.Flags().StringVar(&startCmdArgs.Kubernetes.Version, "kubernetes-version", defaultKubernetesVersion, "the Kubernetes version")
-	// not so familiar with k3s versioning atm, hide for now.
-	_ = startCmd.Flags().MarkHidden("kubernetes-version")
+	startCmd.Flags().StringVar(&startCmdArgs.Kubernetes.Version, "kubernetes-version", defaultKubernetesVersion, "must match a k3s version https://github.com/k3s-io/k3s/releases")
 
 	// not sure of the usefulness of env vars for now considering that interactions will be with the containers, not the VM.
 	// leaving it undocumented until there is a need.

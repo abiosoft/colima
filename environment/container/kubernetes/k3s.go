@@ -15,15 +15,24 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const k3sVersion = "v1.23.4+k3s1"
-
-func installK3s(host environment.HostActions, guest environment.GuestActions, a *cli.ActiveCommandChain, log *logrus.Entry, containerRuntime string) {
-	installK3sBinary(host, guest, a)
-	installK3sCache(host, guest, a, log, containerRuntime)
-	installK3sCluster(host, guest, a, containerRuntime)
+func installK3s(host environment.HostActions,
+	guest environment.GuestActions,
+	a *cli.ActiveCommandChain,
+	log *logrus.Entry,
+	k3sVersion string,
+	containerRuntime string,
+) {
+	installK3sBinary(host, guest, a, k3sVersion)
+	installK3sCache(host, guest, a, log, containerRuntime, k3sVersion)
+	installK3sCluster(host, guest, a, containerRuntime, k3sVersion)
 }
 
-func installK3sBinary(host environment.HostActions, guest environment.GuestActions, a *cli.ActiveCommandChain) {
+func installK3sBinary(
+	host environment.HostActions,
+	guest environment.GuestActions,
+	a *cli.ActiveCommandChain,
+	k3sVersion string,
+) {
 	// install k3s last to ensure it is the last step
 	downloadPath := "/tmp/k3s"
 	url := "https://github.com/k3s-io/k3s/releases/download/" + k3sVersion + "/k3s"
@@ -38,7 +47,14 @@ func installK3sBinary(host environment.HostActions, guest environment.GuestActio
 	})
 }
 
-func installK3sCache(host environment.HostActions, guest environment.GuestActions, a *cli.ActiveCommandChain, log *logrus.Entry, containerRuntime string) {
+func installK3sCache(
+	host environment.HostActions,
+	guest environment.GuestActions,
+	a *cli.ActiveCommandChain,
+	log *logrus.Entry,
+	containerRuntime string,
+	k3sVersion string,
+) {
 	imageTar := "k3s-airgap-images-" + guest.Arch().GoArch() + ".tar"
 	imageTarGz := imageTar + ".gz"
 	downloadPathTar := "/tmp/" + imageTar
@@ -84,7 +100,13 @@ func installK3sCache(host environment.HostActions, guest environment.GuestAction
 
 }
 
-func installK3sCluster(host environment.HostActions, guest environment.GuestActions, a *cli.ActiveCommandChain, containerRuntime string) {
+func installK3sCluster(
+	host environment.HostActions,
+	guest environment.GuestActions,
+	a *cli.ActiveCommandChain,
+	containerRuntime string,
+	k3sVersion string,
+) {
 	// install k3s last to ensure it is the last step
 	downloadPath := "/tmp/k3s-install.sh"
 	url := "https://raw.githubusercontent.com/k3s-io/k3s/" + k3sVersion + "/install.sh"

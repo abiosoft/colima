@@ -61,7 +61,7 @@ func (c *kubernetesRuntime) Provision() error {
 	if !c.isInstalled() {
 		// k3s
 		a.Stage("downloading and installing")
-		installK3s(c.host, c.guest, a, log, c.runtime())
+		installK3s(c.host, c.guest, a, log, c.runtime(), c.kubernetesVersion())
 	}
 
 	// this needs to happen on each startup
