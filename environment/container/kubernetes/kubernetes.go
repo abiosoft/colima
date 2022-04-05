@@ -50,7 +50,7 @@ func (c kubernetesRuntime) Running() bool {
 func (c kubernetesRuntime) runtime() string {
 	return c.guest.Get(environment.ContainerRuntimeKey)
 }
-func (c kubernetesRuntime) kubernetesVersion() string { //nolint:unused
+func (c kubernetesRuntime) kubernetesVersion() string {
 	return c.guest.Get(environment.KubernetesVersionKey)
 }
 
