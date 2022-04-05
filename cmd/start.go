@@ -7,6 +7,7 @@ import (
 
 	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/config/configmanager"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/docker"
 	"github.com/abiosoft/colima/util"
@@ -33,7 +34,7 @@ The --runtime, --disk and --arch flags are only used on initial start and ignore
 		return newApp().Start(startCmdArgs.Config)
 	},
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		current, err := config.Load()
+		current, err := configmanager.Load()
 		if err != nil {
 			// not fatal, will proceed with defaults
 			log.Warnln(fmt.Errorf("config load failed: %w", err))
@@ -90,7 +91,7 @@ The --runtime, --disk and --arch flags are only used on initial start and ignore
 		return nil
 	},
 	PostRunE: func(cmd *cobra.Command, args []string) error {
-		return config.Save(startCmdArgs.Config)
+		return configmanager.Save(startCmdArgs.Config)
 	},
 }
 

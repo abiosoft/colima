@@ -37,16 +37,16 @@ kubernetes:
 #   - 1.1.1.1
 #   - 8.8.8.8
 #
-# Default: null
-dns: null
+# Default: []
+dns: []
 
 # ===================================================================== #
 # ADVANCED CONFIGURATION
 # ===================================================================== #
 
 # The CPU type for the QEMU instance.
-# You can see what options are available for host emulation with: `qemu-system-$(arch) -cpu help`.
-# Setting of instructions is supported like this: "qemu64,+ssse3".
+# Options available for host emulation can be checked with: `qemu-system-$(arch) -cpu help`.
+# Instructions are also supported by appending e.g. "qemu64,+ssse3".
 # Default: host
 cpuType: host
 
@@ -64,8 +64,8 @@ network:
   # However, it seems to perform worse with VPN enabled.
   #
   # This setting is ignored if `address` is false.
-  # Default: true
-  userMode: true
+  # Default: false
+  userMode: false
 
 # Forward the host's SSH agent to the virtual machine.
 # Default: false
@@ -78,11 +78,12 @@ forward_agent: false
 #   KEY: value
 #   ANOTHER_KEY: another value
 #
-# Default: null
-env: null
+# Default: []
+env: []
 
 # Configure volume mounts for the virtual machine.
 # Writable mounts are denoted with `:w` suffix.
+# Most users do not need to fiddle with this setting.
 #
 # EXAMPLE
 # mounts:
@@ -90,5 +91,5 @@ env: null
 #   - ~/projects:w # writable
 #
 # Colima default behavour: $HOME is mounted as writable.
-# Default: null
-mounts: null
+# Default: []
+mounts: []

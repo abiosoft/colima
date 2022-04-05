@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/config/configmanager"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/docker"
 	"github.com/abiosoft/colima/environment/container/kubernetes"
@@ -159,7 +160,7 @@ func (c colimaApp) Delete() error {
 	}
 
 	// delete configs
-	if err := config.Teardown(); err != nil {
+	if err := configmanager.Teardown(); err != nil {
 		return fmt.Errorf("error deleting configs: %w", err)
 	}
 
