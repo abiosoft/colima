@@ -15,6 +15,41 @@ memory: 2
 # Default: host
 arch: host
 
+# Container runtime to be used (docker, containerd).
+# Default: docker
+runtime: docker
+
+# Kubernetes configuration for the virtual machine.
+kubernetes:
+  # Enable kubernetes.
+  # Default: false
+  enabled: false
+
+  # Kubernetes version to use.
+  # This needs to exactly match a k3s version https://github.com/k3s-io/k3s/releases
+  # Default: latest stable release
+  version: v1.23.4+k3s1
+
+# Custom DNS nameservers for the virtual machine.
+#
+# EXAMPLE
+# dns:
+#   - 1.1.1.1
+#   - 8.8.8.8
+#
+# Default: null
+dns: null
+
+# ===================================================================== #
+# ADVANCED CONFIGURATION
+# ===================================================================== #
+
+# The CPU type for the QEMU instance.
+# You can see what options are available for host emulation with: `qemu-system-$(arch) -cpu help`.
+# Setting of instructions is supported like this: "qemu64,+ssse3".
+# Default: host
+cpuType: host
+
 # Network configuration for the virtual machine.
 # NOTE: this is macOS only and ignored on Linux.
 network:
@@ -32,16 +67,28 @@ network:
   # Default: true
   userMode: true
 
-# Container runtime to be used (docker, containerd).
-# Default: docker
-runtime: docker
+# Forward the host's SSH agent to the virtual machine.
+# Default: false
+forward_agent: false
 
-# Kubernetes configuration for the virtual machine.
-kubernetes:
-  # Enable kubernetes.
-  # Default: true
-  enabled: true
+# Environment variables for the virtual machine.
+#
+# EXAMPLE
+# env:
+#   KEY: value
+#   ANOTHER_KEY: another value
+#
+# Default: null
+env: null
 
-  # Kubernetes version to use.
-  # This needs to exactly match a k3s version https://github.com/k3s-io/k3s/releases
-  version: v1.23.4+k3s1
+# Configure volume mounts for the virtual machine.
+# Writable mounts are denoted with `:w` suffix.
+#
+# EXAMPLE
+# mounts:
+#   - ~/secrets    # readonly
+#   - ~/projects:w # writable
+#
+# Colima default behavour: $HOME is mounted as writable.
+# Default: null
+mounts: null
