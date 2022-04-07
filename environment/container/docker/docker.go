@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"context"
 	"time"
 
 	"github.com/abiosoft/colima/cli"
@@ -35,23 +36,10 @@ func (d dockerRuntime) Name() string {
 	return Name
 }
 
-func (d dockerRuntime) isUserPermissionFixed() bool {
-	err := d.guest.RunQuiet("sh", "-c", `getent group docker | grep "\b${USER}\b"`)
-	return err == nil
-}
-
-func (d dockerRuntime) Provision() error {
+func (d dockerRuntime) Provision(ctx context.Context) error {
 	a := d.Init()
 	log := d.Logger()
 	a.Stage("provisioning")
-
-	// check user permission
-	if !d.isUserPermissionFixed() {
-		a.Add(d.fixUserPermission)
-
-		a.Stage("restarting VM to complete setup")
-		a.Add(d.guest.Restart)
-	}
 
 	if !d.isDaemonFileCreated() {
 		a.Add(d.createDaemonFile)
@@ -73,7 +61,7 @@ func (d dockerRuntime) Provision() error {
 	return a.Exec()
 }
 
-func (d dockerRuntime) Start() error {
+func (d dockerRuntime) Start(ctx context.Context) error {
 	a := d.Init()
 
 	a.Stage("starting")
@@ -94,7 +82,7 @@ func (d dockerRuntime) Running() bool {
 	return d.guest.RunQuiet("service", "docker", "status") == nil
 }
 
-func (d dockerRuntime) Stop() error {
+func (d dockerRuntime) Stop(ctx context.Context) error {
 	a := d.Init()
 	a.Stage("stopping")
 
@@ -105,10 +93,15 @@ func (d dockerRuntime) Stop() error {
 		return d.guest.Run("sudo", "service", "docker", "stop")
 	})
 
+	// clear docker context settings
+	// since the container runtime can be changed on startup,
+	// it is better to not leave unnecessary traces behind
+	a.Add(d.teardownContext)
+
 	return a.Exec()
 }
 
-func (d dockerRuntime) Teardown() error {
+func (d dockerRuntime) Teardown(ctx context.Context) error {
 	a := d.Init()
 	a.Stage("deleting")
 

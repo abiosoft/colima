@@ -97,10 +97,10 @@ func (l limaVM) Dependencies() []string {
 
 var ctxKeyNetwork = struct{ name string }{name: "network"}
 
-func (l limaVM) prepareNetwork(ctx cli.Context) error {
+func (l limaVM) prepareNetwork(ctx context.Context) (context.Context, error) {
 	// limited to macOS for now
 	if !util.MacOS() {
-		return nil
+		return ctx, nil
 	}
 
 	// use a nested chain for convenience
@@ -134,27 +134,30 @@ func (l limaVM) prepareNetwork(ctx cli.Context) error {
 	if err := a.Exec(); err != nil {
 		log.Warnln(fmt.Errorf("error starting network: %w", err))
 	} else {
-		ctx.SetContext(context.WithValue(ctx, ctxKeyNetwork, true))
+		ctx = context.WithValue(ctx, ctxKeyNetwork, true)
 	}
 
-	return nil
+	return ctx, nil
 }
 
-func (l *limaVM) Start(conf config.Config) error {
+func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 	a := l.Init()
 
 	if l.Created() {
-		return l.resume(conf)
+		return l.resume(ctx, conf)
 	}
 
 	if conf.Network.Address {
-		a.AddCtx(l.prepareNetwork)
+		a.Add(func() (err error) {
+			ctx, err = l.prepareNetwork(ctx)
+			return err
+		})
 	}
 
 	a.Stage("creating and starting")
 	configFile := filepath.Join(os.TempDir(), config.Profile().ID+".yaml")
 
-	a.AddCtx(func(ctx cli.Context) error {
+	a.Add(func() error {
 		limaConf, err := newConf(ctx, conf)
 		if err != nil {
 			return err
@@ -172,7 +175,7 @@ func (l *limaVM) Start(conf config.Config) error {
 	a.Add(l.copyCerts)
 
 	// dns
-	l.applyDNS(a, conf)
+	l.applyDNS(ctx, a, conf)
 
 	// adding it to command chain to execute only after successful startup.
 	a.Add(func() error {
@@ -183,7 +186,7 @@ func (l *limaVM) Start(conf config.Config) error {
 	return a.Exec()
 }
 
-func (l limaVM) resume(conf config.Config) error {
+func (l limaVM) resume(ctx context.Context, conf config.Config) error {
 	log := l.Logger()
 	a := l.Init()
 
@@ -193,12 +196,15 @@ func (l limaVM) resume(conf config.Config) error {
 	}
 
 	if conf.Network.Address {
-		a.AddCtx(l.prepareNetwork)
+		a.Add(func() (err error) {
+			ctx, err = l.prepareNetwork(ctx)
+			return err
+		})
 	}
 
 	configFile := filepath.Join(l.limaConfDir(), "lima.yaml")
 
-	a.AddCtx(func(ctx cli.Context) error {
+	a.Add(func() error {
 		limaConf, err := newConf(ctx, conf)
 		if err != nil {
 			return err
@@ -214,18 +220,18 @@ func (l limaVM) resume(conf config.Config) error {
 	// registry certs
 	a.Add(l.copyCerts)
 
-	l.applyDNS(a, conf)
+	l.applyDNS(ctx, a, conf)
 
 	return a.Exec()
 }
 
-func (l *limaVM) applyDNS(a *cli.ActiveCommandChain, conf config.Config) {
+func (l *limaVM) applyDNS(ctx context.Context, a *cli.ActiveCommandChain, conf config.Config) {
 	// Lima's DNS settings is fixed at VM create and cannot be changed afterwards.
 	// this is a better approach as it only applies on VM startup and gets reset at shutdown.
 	log := l.Logger()
 
 	dns := network.NewDNSManager(l)
-	a.AddCtx(func(ctx cli.Context) error {
+	a.Add(func() error {
 		var dnses []net.IP
 		dnses = append(dnses, conf.DNS...)
 
@@ -251,7 +257,7 @@ func (l limaVM) Running() bool {
 	return l.RunQuiet("uname") == nil
 }
 
-func (l limaVM) Stop(force bool) error {
+func (l limaVM) Stop(ctx context.Context, force bool) error {
 	log := l.Logger()
 	a := l.Init()
 	if !l.Running() {
@@ -275,7 +281,7 @@ func (l limaVM) Stop(force bool) error {
 	return a.Exec()
 }
 
-func (l limaVM) Teardown() error {
+func (l limaVM) Teardown(ctx context.Context) error {
 	a := l.Init()
 
 	a.Stage("deleting")
@@ -289,19 +295,19 @@ func (l limaVM) Teardown() error {
 	return a.Exec()
 }
 
-func (l limaVM) Restart() error {
+func (l limaVM) Restart(ctx context.Context) error {
 	if l.conf.Empty() {
 		return fmt.Errorf("cannot restart, VM not previously started")
 	}
 
-	if err := l.Stop(false); err != nil {
+	if err := l.Stop(ctx, false); err != nil {
 		return err
 	}
 
 	// minor delay to prevent possible race condition.
 	time.Sleep(time.Second * 2)
 
-	if err := l.Start(l.conf); err != nil {
+	if err := l.Start(ctx, l.conf); err != nil {
 		return err
 	}
 
@@ -409,7 +415,8 @@ func (l limaVM) Set(key, value string) error {
 	if err := l.Run("sudo", "mkdir", "-p", filepath.Dir(configFile)); err != nil {
 		return fmt.Errorf("error saving settings: %w", err)
 	}
-	if err := l.Run("sudo", "sh", "-c", fmt.Sprintf(`echo %s > %s`, strconv.Quote(string(b)), configFile)); err != nil {
+
+	if err := l.Write(configFile, string(b)); err != nil {
 		return fmt.Errorf("error saving settings: %w", err)
 	}
 

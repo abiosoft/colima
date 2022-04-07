@@ -59,6 +59,14 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 
 	l.Env = conf.Env
 
+	// perform mounts in fstab.
+	// required for 9p (lima >=v0.10.0)
+	// idempotent for sshfs (lima <v0.10.0)
+	l.Provision = append(l.Provision, Provision{
+		Mode:   ProvisionModeSystem,
+		Script: "mkmntdirs && mount -a",
+	})
+
 	// add user to docker group
 	// "sudo", "usermod", "-aG", "docker", user
 	l.Provision = append(l.Provision, Provision{
@@ -233,6 +241,7 @@ type File struct {
 type Mount struct {
 	Location string `yaml:"location"` // REQUIRED
 	Writable bool   `yaml:"writable"`
+	NineP    NineP  `yaml:"9p,omitempty" json:"9p,omitempty"`
 }
 
 type SSH struct {
@@ -303,6 +312,13 @@ const (
 type Provision struct {
 	Mode   ProvisionMode `yaml:"mode" json:"mode"` // default: "system"
 	Script string        `yaml:"script" json:"script"`
+}
+
+type NineP struct {
+	SecurityModel   string `yaml:"securityModel,omitempty" json:"securityModel,omitempty"`
+	ProtocolVersion string `yaml:"protocolVersion,omitempty" json:"protocolVersion,omitempty"`
+	Msize           string `yaml:"msize,omitempty" json:"msize,omitempty"`
+	Cache           string `yaml:"cache,omitempty" json:"cache,omitempty"`
 }
 
 type volumeMount string

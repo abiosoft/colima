@@ -1,8 +1,8 @@
 package app
 
 import (
+	"context"
 	"fmt"
-	"strconv"
 
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/config/configmanager"
@@ -45,6 +45,8 @@ type colimaApp struct {
 }
 
 func (c colimaApp) Start(conf config.Config) error {
+	ctx := context.WithValue(context.Background(), config.CtxKey(), conf)
+
 	log.Println("starting", config.Profile().DisplayName)
 
 	var containers []environment.Container
@@ -56,7 +58,7 @@ func (c colimaApp) Start(conf config.Config) error {
 		}
 		containers = append(containers, env)
 	}
-	// kubernetes
+	// kubernetes should come last
 	if conf.Kubernetes.Enabled {
 		env, err := c.containerEnvironment(kubernetes.Name)
 		if err != nil {
@@ -69,27 +71,23 @@ func (c colimaApp) Start(conf config.Config) error {
 	//   vm start -> container runtime provision -> container runtime start
 
 	// start vm
-	if err := c.guest.Start(conf); err != nil {
+	if err := c.guest.Start(ctx, conf); err != nil {
 		return fmt.Errorf("error starting vm: %w", err)
-	}
-
-	// persist runtime for future reference.
-	if err := c.setRuntime(conf.Runtime); err != nil {
-		return fmt.Errorf("error setting current runtime: %w", err)
-	}
-	// persist kubernetes config for future reference.
-	if err := c.setKubernetesConfig(conf.Kubernetes.Version, conf.Kubernetes.Ingress); err != nil {
-		return fmt.Errorf("error setting kubernetes config: %w", err)
 	}
 
 	// provision and start container runtimes
 	for _, cont := range containers {
-		if err := cont.Provision(); err != nil {
+		if err := cont.Provision(ctx); err != nil {
 			return fmt.Errorf("error provisioning %s: %w", cont.Name(), err)
 		}
-		if err := cont.Start(); err != nil {
+		if err := cont.Start(ctx); err != nil {
 			return fmt.Errorf("error starting %s: %w", cont.Name(), err)
 		}
+	}
+
+	// persist the current runtime
+	if err := c.setRuntime(conf.Runtime); err != nil {
+		log.Error(fmt.Errorf("error persisting runtime settings: %w", err))
 	}
 
 	log.Println("done")
@@ -97,6 +95,7 @@ func (c colimaApp) Start(conf config.Config) error {
 }
 
 func (c colimaApp) Stop(force bool) error {
+	ctx := context.Background()
 	log.Println("stopping", config.Profile().DisplayName)
 
 	// the order for stop is:
@@ -112,7 +111,7 @@ func (c colimaApp) Stop(force bool) error {
 		// stop happens in reverse of start
 		for i := len(containers) - 1; i >= 0; i-- {
 			cont := containers[i]
-			if err := cont.Stop(); err != nil {
+			if err := cont.Stop(ctx); err != nil {
 				// failure to stop a container runtime is not fatal
 				// it is only meant for graceful shutdown.
 				// the VM will shut down anyways.
@@ -123,7 +122,7 @@ func (c colimaApp) Stop(force bool) error {
 
 	// stop vm
 	// no need to check running status, it may be in a state that requires stopping.
-	if err := c.guest.Stop(force); err != nil {
+	if err := c.guest.Stop(ctx, force); err != nil {
 		return fmt.Errorf("error stopping vm: %w", err)
 	}
 
@@ -132,6 +131,7 @@ func (c colimaApp) Stop(force bool) error {
 }
 
 func (c colimaApp) Delete() error {
+	ctx := context.Background()
 	log.Println("deleting", config.Profile().DisplayName)
 
 	// the order for teardown is:
@@ -148,7 +148,7 @@ func (c colimaApp) Delete() error {
 			log.Warnln(fmt.Errorf("error retrieving runtimes: %w", err))
 		}
 		for _, cont := range containers {
-			if err := cont.Teardown(); err != nil {
+			if err := cont.Teardown(ctx); err != nil {
 				// failure here is not fatal
 				log.Warnln(fmt.Errorf("error during teardown of %s: %w", cont.Name(), err))
 			}
@@ -156,7 +156,7 @@ func (c colimaApp) Delete() error {
 	}
 
 	// teardown vm
-	if err := c.guest.Teardown(); err != nil {
+	if err := c.guest.Teardown(ctx); err != nil {
 		return fmt.Errorf("error during teardown of vm: %w", err)
 	}
 
@@ -248,17 +248,6 @@ func (c colimaApp) currentRuntime() (string, error) {
 
 func (c colimaApp) setRuntime(runtime string) error {
 	return c.guest.Set(environment.ContainerRuntimeKey, runtime)
-}
-
-func (c colimaApp) setKubernetesConfig(version string, ingress bool) error {
-	if err := c.guest.Set(environment.KubernetesVersionKey, version); err != nil {
-		return err
-	}
-	if err := c.guest.Set(environment.KubernetesIngressKey, strconv.FormatBool(ingress)); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (c colimaApp) currentContainerEnvironments() ([]environment.Container, error) {

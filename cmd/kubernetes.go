@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/abiosoft/colima/cmd/root"
@@ -13,7 +14,7 @@ import (
 // kubernetesCmd represents the kubernetes command
 var kubernetesCmd = &cobra.Command{
 	Use:     "kubernetes",
-	Aliases: []string{"kube", "k8s", "k"},
+	Aliases: []string{"kube", "k8s", "k3s", "k"},
 	Short:   "manage Kubernetes cluster",
 	Long:    `Manage the Kubernetes cluster`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -34,7 +35,7 @@ var kubernetesStartCmd = &cobra.Command{
 	Use:   "start",
 	Short: "start the Kubernetes cluster",
 	Long:  `Start the Kubernetes cluster.`,
-	Args: cobra.NoArgs,
+	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		app := newApp()
 		k, err := app.Kubernetes()
@@ -42,11 +43,11 @@ var kubernetesStartCmd = &cobra.Command{
 			return err
 		}
 
-		if err := k.Provision(); err != nil {
+		if err := k.Provision(context.Background()); err != nil {
 			return err
 		}
 
-		return k.Start()
+		return k.Start(context.Background())
 	},
 }
 
@@ -55,7 +56,7 @@ var kubernetesStopCmd = &cobra.Command{
 	Use:   "stop",
 	Short: "stop the Kubernetes cluster",
 	Long:  `Stop the Kubernetes cluster.`,
-	Args: cobra.NoArgs,
+	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		app := newApp()
 		k, err := app.Kubernetes()
@@ -66,7 +67,7 @@ var kubernetesStopCmd = &cobra.Command{
 			return fmt.Errorf("%s is not enabled", kubernetes.Name)
 		}
 
-		return k.Stop()
+		return k.Stop(context.Background())
 	},
 }
 
@@ -75,7 +76,7 @@ var kubernetesDeleteCmd = &cobra.Command{
 	Use:   "delete",
 	Short: "delete the Kubernetes cluster",
 	Long:  `Delete the Kubernetes cluster.`,
-	Args: cobra.NoArgs,
+	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		app := newApp()
 		k, err := app.Kubernetes()
@@ -86,7 +87,7 @@ var kubernetesDeleteCmd = &cobra.Command{
 			return fmt.Errorf("%s is not enabled", kubernetes.Name)
 		}
 
-		return k.Teardown()
+		return k.Teardown(context.Background())
 	},
 }
 
@@ -108,15 +109,16 @@ The Kubernetes images are cached making the startup (after reset) much faster.`,
 			return err
 		}
 
-		if err := k.Teardown(); err != nil {
+		if err := k.Teardown(context.Background()); err != nil {
 			return fmt.Errorf("error deleting %s: %w", kubernetes.Name, err)
 		}
 
-		if err := k.Provision(); err != nil {
+		ctx := context.Background()
+		if err := k.Provision(ctx); err != nil {
 			return err
 		}
 
-		if err := k.Start(); err != nil {
+		if err := k.Start(ctx); err != nil {
 			return fmt.Errorf("error starting %s: %w", kubernetes.Name, err)
 		}
 

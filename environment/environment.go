@@ -1,6 +1,7 @@
 package environment
 
 import (
+	"context"
 	"os"
 
 	"github.com/abiosoft/colima/config"
@@ -40,11 +41,11 @@ type GuestActions interface {
 	runActions
 	fileActions
 	// Start starts up the VM
-	Start(config.Config) error
+	Start(ctx context.Context, conf config.Config) error
 	// Stop shuts down the VM
-	Stop(force bool) error
+	Stop(ctx context.Context, force bool) error
 	// Restart restarts the VM
-	Restart() error
+	Restart(ctx context.Context) error
 	// Created returns if the VM has been previously created.
 	Created() bool
 	// Running returns if the VM is currently running.

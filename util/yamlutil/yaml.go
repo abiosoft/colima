@@ -108,6 +108,10 @@ func traverseConfig(parentKey string, s any, vals map[string]any) {
 	for i := 0; i < typ.NumField(); i++ {
 		field := typ.Field(i)
 		key := strings.TrimSuffix(field.Tag.Get("yaml"), ",omitempty")
+		if key == "" || key == "-" { // no yaml tag is present
+			continue
+		}
+
 		if parentKey != "" {
 			key = parentKey + "." + key
 		}

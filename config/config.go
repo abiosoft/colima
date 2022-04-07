@@ -155,3 +155,8 @@ type Network struct {
 
 // Empty checks if the configuration is empty.
 func (c Config) Empty() bool { return c.Runtime == "" } // this may be better but not really needed.
+
+// CtxKey returns the context key for config.
+func CtxKey() any {
+	return struct{ name string }{name: "colima_config"}
+}

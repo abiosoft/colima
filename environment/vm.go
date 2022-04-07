@@ -1,23 +1,22 @@
 package environment
 
-import "runtime"
+import (
+	"context"
+	"runtime"
+)
 
 // VM is virtual machine.
 type VM interface {
 	GuestActions
 	Dependencies
 	Host() HostActions
-	Teardown() error
+	Teardown(ctx context.Context) error
 }
 
 // VM configurations
 const (
 	// ContainerRuntimeKey is the settings key for container runtime.
 	ContainerRuntimeKey = "runtime"
-	// KubernetesVersionKey is the settings key for kubernetes version.
-	KubernetesVersionKey = "kubernetes_version"
-	// KubernetesIngressKey is the settings key for kubernetes ingress controller.
-	KubernetesIngressKey = "kubernetes_ingress"
 )
 
 // Arch is the VM architecture.
