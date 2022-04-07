@@ -8,6 +8,64 @@ on:
     branches: [main]
 
 jobs:
+  kubernetes-docker:
+    runs-on: macos-11
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.18
+
+      - name: Install CLI deps
+        run: |
+          brew install kubectl docker coreutils lima
+
+      - name: Build and Install
+        run: make && sudo make install
+
+      - name: Start Colima
+        run: colima start --runtime docker --kubernetes
+
+      - name: Delay
+        run: sleep 20
+
+      - name: Validate Kubernetes
+        run: kubectl cluster-info && kubectl version && kubectl get nodes -o wide
+
+      - name: Teardown
+        run: colima delete -f
+
+  kubernetes-containerd:
+    runs-on: macos-11
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.18
+
+      - name: Install CLI deps
+        run: |
+          brew install kubectl docker coreutils lima
+
+      - name: Build and Install
+        run: make && sudo make install
+
+      - name: Start
+        run: colima start --runtime containerd --kubernetes
+
+      - name: Delay
+        run: sleep 20
+
+      - name: Validate Kubernetes
+        run: kubectl cluster-info && kubectl version && kubectl get nodes -o wide
+
+      - name: Teardown
+        run: colima delete -f
+
   docker:
     runs-on: macos-11
     steps:
@@ -22,7 +80,7 @@ jobs:
         run: |
           brew install kubectl docker coreutils lima
 
-      - name: Build and Install Colima
+      - name: Build and Install
         run: make && sudo make install
 
       - name: Start Colima
@@ -66,7 +124,7 @@ jobs:
         run: |
           brew install kubectl docker coreutils lima
 
-      - name: Build and Install Colima
+      - name: Build and Install
         run: make && sudo make install
 
       - name: Start Colima
