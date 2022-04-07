@@ -92,6 +92,7 @@ func getRuntime(profile string) string {
 	var buf bytes.Buffer
 	cmd := cli.Command("limactl", "shell", profile, "cat", configFile)
 	cmd.Stdout = &buf
+	cmd.Stderr = nil
 
 	_ = cmd.Run()
 	if err := json.Unmarshal(buf.Bytes(), &info); err != nil {
