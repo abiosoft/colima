@@ -110,7 +110,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 
 	// disable ports 80 and 443 when k8s is enabled and there is a reachable IP address
 	// to prevent ingress (traefik) from occupying relevant host ports.
-	if networkEnabled && conf.Kubernetes.Enabled {
+	if networkEnabled && conf.Kubernetes.Enabled && conf.Kubernetes.Ingress {
 		l.PortForwards = append(l.PortForwards,
 			PortForward{
 				GuestIP:           net.ParseIP("0.0.0.0"),

@@ -21,10 +21,11 @@ func installK3s(host environment.HostActions,
 	log *logrus.Entry,
 	containerRuntime string,
 	k3sVersion string,
+	ingress bool,
 ) {
 	installK3sBinary(host, guest, a, k3sVersion)
 	installK3sCache(host, guest, a, log, containerRuntime, k3sVersion)
-	installK3sCluster(host, guest, a, containerRuntime, k3sVersion)
+	installK3sCluster(host, guest, a, containerRuntime, k3sVersion, ingress)
 }
 
 func installK3sBinary(
@@ -106,6 +107,7 @@ func installK3sCluster(
 	a *cli.ActiveCommandChain,
 	containerRuntime string,
 	k3sVersion string,
+	ingress bool,
 ) {
 	// install k3s last to ensure it is the last step
 	downloadPath := "/tmp/k3s-install.sh"
@@ -122,11 +124,13 @@ func installK3sCluster(
 		"--resolv-conf", "/etc/resolv.conf",
 	}
 
-	// replace ip address and enable traefik if networking is enabled
-	ipAddress := lima.IPAddress(config.Profile().ID)
-	if ipAddress == "127.0.0.1" {
+	if !ingress {
 		args = append(args, "--disable", "traefik")
-	} else {
+	}
+
+	// replace ip address if networking is enabled
+	ipAddress := lima.IPAddress(config.Profile().ID)
+	if ipAddress != "127.0.0.1" {
 		args = append(args, "--bind-address", ipAddress)
 		args = append(args, "--advertise-address", ipAddress)
 		args = append(args, "--flannel-iface", network.VmnetIface)

@@ -16,6 +16,8 @@ const (
 	ContainerRuntimeKey = "runtime"
 	// KubernetesVersionKey is the settings key for kubernetes version.
 	KubernetesVersionKey = "kubernetes_version"
+	// KubernetesIngressKey is the settings key for kubernetes ingress controller.
+	KubernetesIngressKey = "kubernetes_ingress"
 )
 
 // Arch is the VM architecture.

@@ -29,18 +29,10 @@ func Save(c config.Config, file string) error {
 	return save(c, file)
 }
 
-func fileOrDefault(file string) ([]byte, error) {
-	if _, err := os.Stat(file); err == nil {
-		return os.ReadFile(file)
-	}
-
-	return embedded.Read("defaults/colima.yaml")
-}
-
 func save(conf config.Config, file string) error {
 	var doc yaml.Node
 
-	f, err := fileOrDefault(file)
+	f, err := embedded.Read("defaults/colima.yaml")
 	if err != nil {
 		return fmt.Errorf("error reading config file: %w", err)
 	}

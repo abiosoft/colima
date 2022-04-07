@@ -30,6 +30,10 @@ kubernetes:
   # Default: latest stable release
   version: v1.23.4+k3s1
 
+  # Enable the traefik ingress controller
+  # Default: false
+  ingress: false
+
 # Custom DNS nameservers for the virtual machine.
 #
 # EXAMPLE
@@ -44,9 +48,9 @@ dns: []
 # ADVANCED CONFIGURATION
 # ===================================================================== #
 
-# The CPU type for the QEMU instance.
+# The CPU type for the virtual machine.
 # Options available for host emulation can be checked with: `qemu-system-$(arch) -cpu help`.
-# Instructions are also supported by appending e.g. "qemu64,+ssse3".
+# Instructions are also supported by appending to the cpu type e.g. "qemu64,+ssse3".
 # Default: host
 cpuType: host
 

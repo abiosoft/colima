@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"strconv"
 	"strings"
 	"time"
 
@@ -40,7 +41,17 @@ func (c kubernetesRuntime) Name() string {
 
 func (c kubernetesRuntime) isInstalled() bool {
 	// it is installed if uninstall script is present.
-	return c.guest.RunQuiet("command", "-v", "k3s-uninstall.sh") == nil
+	if err := c.guest.RunQuiet("command", "-v", "k3s-uninstall.sh"); err != nil {
+		return false
+	}
+
+	// validate version change via cli flag/config.
+	// if version is different, it is as if it is not yet installed
+	out, err := c.guest.RunOutput("k3s", "--version")
+	if err != nil {
+		return false
+	}
+	return strings.Contains(out, c.kubernetesVersion())
 }
 
 func (c kubernetesRuntime) Running() bool {
@@ -53,15 +64,21 @@ func (c kubernetesRuntime) runtime() string {
 func (c kubernetesRuntime) kubernetesVersion() string {
 	return c.guest.Get(environment.KubernetesVersionKey)
 }
+func (c kubernetesRuntime) kubernetesIngressEnabled() bool {
+	enabled, _ := strconv.ParseBool(c.guest.Get(environment.KubernetesIngressKey))
+	return enabled
+}
 
 func (c *kubernetesRuntime) Provision() error {
 	log := c.Logger()
 	a := c.Init()
 
-	if !c.isInstalled() {
-		// k3s
+	if c.isInstalled() {
+		// ingress settings may have changed
+		installK3sCluster(c.host, c.guest, a, c.runtime(), c.kubernetesVersion(), c.kubernetesIngressEnabled())
+	} else {
 		a.Stage("downloading and installing")
-		installK3s(c.host, c.guest, a, log, c.runtime(), c.kubernetesVersion())
+		installK3s(c.host, c.guest, a, log, c.runtime(), c.kubernetesVersion(), c.kubernetesIngressEnabled())
 	}
 
 	// this needs to happen on each startup

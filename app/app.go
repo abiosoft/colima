@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/config/configmanager"
@@ -76,9 +77,9 @@ func (c colimaApp) Start(conf config.Config) error {
 	if err := c.setRuntime(conf.Runtime); err != nil {
 		return fmt.Errorf("error setting current runtime: %w", err)
 	}
-	// persist kubernetes version for future reference.
-	if err := c.setKubernetesVersion(conf.Kubernetes.Version); err != nil {
-		return fmt.Errorf("error setting kubernetes version: %w", err)
+	// persist kubernetes config for future reference.
+	if err := c.setKubernetesConfig(conf.Kubernetes.Version, conf.Kubernetes.Ingress); err != nil {
+		return fmt.Errorf("error setting kubernetes config: %w", err)
 	}
 
 	// provision and start container runtimes
@@ -249,8 +250,15 @@ func (c colimaApp) setRuntime(runtime string) error {
 	return c.guest.Set(environment.ContainerRuntimeKey, runtime)
 }
 
-func (c colimaApp) setKubernetesVersion(version string) error {
-	return c.guest.Set(environment.KubernetesVersionKey, version)
+func (c colimaApp) setKubernetesConfig(version string, ingress bool) error {
+	if err := c.guest.Set(environment.KubernetesVersionKey, version); err != nil {
+		return err
+	}
+	if err := c.guest.Set(environment.KubernetesIngressKey, strconv.FormatBool(ingress)); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (c colimaApp) currentContainerEnvironments() ([]environment.Container, error) {

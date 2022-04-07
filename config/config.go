@@ -144,6 +144,7 @@ type Config struct {
 type Kubernetes struct {
 	Enabled bool   `yaml:"enabled"`
 	Version string `yaml:"version"`
+	Ingress bool   `yaml:"ingress"`
 }
 
 // Network is VM network configuration

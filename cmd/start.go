@@ -41,22 +41,29 @@ The --runtime, --disk and --arch flags are only used on initial start and ignore
 			log.Warnln("reverting to default settings")
 		}
 
+		// handle legacy kubernetes flag
+		if cmd.Flag("with-kubernetes").Changed {
+			startCmdArgs.Kubernetes.Enabled = startCmdArgs.LegacyKubernetes
+			cmd.Flag("kubernetes").Changed = true
+		}
+
 		// use default config
 		if current.Empty() {
 			return nil
 		}
 
-		// runtime, ssh port, disk size, kubernetes version and arch are only effective on VM create
+		// disk size, and arch are only effective on VM create
 		// set it to the current settings
-		startCmdArgs.Runtime = current.Runtime
 		startCmdArgs.Disk = current.Disk
 		startCmdArgs.Arch = current.Arch
-		startCmdArgs.Kubernetes.Version = current.Kubernetes.Version
 
 		// use current settings for unchanged configs
 		// otherwise may be reverted to their default values.
-		if !cmd.Flag("with-kubernetes").Changed {
+		if !cmd.Flag("kubernetes").Changed {
 			startCmdArgs.Kubernetes.Enabled = current.Kubernetes.Enabled
+		}
+		if !cmd.Flag("runtime").Changed {
+			startCmdArgs.Runtime = current.Runtime
 		}
 		if !cmd.Flag("cpu").Changed {
 			startCmdArgs.CPU = current.CPU
@@ -85,7 +92,7 @@ The --runtime, --disk and --arch flags are only used on initial start and ignore
 			}
 		}
 
-		log.Println("using", current.Runtime, "runtime")
+		log.Println("using", startCmdArgs.Runtime, "runtime")
 
 		// remaining settings do not survive VM reboots.
 		return nil
@@ -104,6 +111,7 @@ const (
 
 var startCmdArgs struct {
 	config.Config
+	LegacyKubernetes bool `yaml:"-"` // for backward compatibility
 }
 
 func init() {
@@ -131,8 +139,11 @@ func init() {
 	startCmd.Flags().BoolVarP(&startCmdArgs.ForwardAgent, "ssh-agent", "s", false, "forward SSH agent to the VM")
 
 	// k8s
-	startCmd.Flags().BoolVarP(&startCmdArgs.Kubernetes.Enabled, "with-kubernetes", "k", false, "start VM with Kubernetes")
+	startCmd.Flags().BoolVarP(&startCmdArgs.Kubernetes.Enabled, "kubernetes", "k", false, "start VM with Kubernetes")
+	startCmd.Flags().BoolVar(&startCmdArgs.LegacyKubernetes, "with-kubernetes", false, "start VM with Kubernetes")
 	startCmd.Flags().StringVar(&startCmdArgs.Kubernetes.Version, "kubernetes-version", defaultKubernetesVersion, "must match a k3s version https://github.com/k3s-io/k3s/releases")
+	startCmd.Flags().BoolVar(&startCmdArgs.Kubernetes.Ingress, "kubernetes-ingress", false, "enable traefik ingress controller")
+	startCmd.Flag("with-kubernetes").Hidden = true
 
 	// not sure of the usefulness of env vars for now considering that interactions will be with the containers, not the VM.
 	// leaving it undocumented until there is a need.
