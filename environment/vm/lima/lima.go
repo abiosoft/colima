@@ -268,7 +268,9 @@ func (l limaVM) Stop(force bool) error {
 		return l.host.Run(limactl, "stop", config.Profile().ID)
 	})
 
-	a.Add(l.network.Stop)
+	if util.MacOS() {
+		a.Add(l.network.Stop)
+	}
 
 	return a.Exec()
 }
