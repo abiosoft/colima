@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/abiosoft/colima/cli"
@@ -83,23 +82,29 @@ func getIPAddress(profile, interfaceName string) string {
 }
 
 func getRuntime(profile string) string {
-	// TODO: this should be less hacky
-	var info struct {
-		Runtime  string `json:"runtime"`
-		Kubeconf string `json:"kubeconfig"`
+	run := func(args ...string) bool {
+		cmd := "limactl"
+		args = append([]string{"shell", profile}, args...)
+		c := cli.Command(cmd, args...)
+		c.Stdout = nil
+		c.Stderr = nil
+		return c.Run() == nil
 	}
 
-	var buf bytes.Buffer
-	cmd := cli.Command("limactl", "shell", profile, "cat", configFile)
-	cmd.Stdout = &buf
-	cmd.Stderr = nil
+	var runtime string
+	// docker
+	if run("docker", "info") {
+		runtime = "docker"
+	} else if run("nerdctl", "info") {
+		runtime = "containerd"
+	}
 
-	_ = cmd.Run()
-	if err := json.Unmarshal(buf.Bytes(), &info); err != nil {
+	// nothing is running
+	if runtime == "" {
 		return ""
 	}
-	runtime := info.Runtime
-	if ok, _ := strconv.ParseBool(info.Kubeconf); ok {
+
+	if run("kubectl", "cluster-info") {
 		runtime += "+k3s"
 	}
 	return runtime
