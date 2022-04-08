@@ -2,6 +2,8 @@ package kubernetes
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
@@ -15,9 +17,10 @@ import (
 // Name is container runtime name
 
 const (
-	Name = "kubernetes"
+	Name           = "kubernetes"
+	DefaultVersion = "v1.23.5+k3s1"
 
-	versionKey = "kubernetes_version"
+	configKey = "kubernetes_config"
 )
 
 func newRuntime(host environment.HostActions, guest environment.GuestActions) environment.Container {
@@ -64,6 +67,24 @@ func (c kubernetesRuntime) Running() bool {
 func (c kubernetesRuntime) runtime() string {
 	return c.guest.Get(environment.ContainerRuntimeKey)
 }
+
+func (c kubernetesRuntime) config() config.Kubernetes {
+	conf := config.Kubernetes{Version: DefaultVersion}
+	if b := c.guest.Get(configKey); b != "" {
+		_ = json.Unmarshal([]byte(b), &conf)
+	}
+	return conf
+}
+
+func (c kubernetesRuntime) setConfig(conf config.Kubernetes) error {
+	b, err := json.Marshal(conf)
+	if err != nil {
+		return fmt.Errorf("error encoding kubernetes config to json: %w", err)
+	}
+
+	return c.guest.Set(configKey, string(b))
+}
+
 func (c *kubernetesRuntime) Provision(ctx context.Context) error {
 	log := c.Logger()
 	a := c.Init()
@@ -71,25 +92,36 @@ func (c *kubernetesRuntime) Provision(ctx context.Context) error {
 		return nil
 	}
 
-	conf, ok := ctx.Value(config.CtxKey()).(config.Config)
-	runtime := conf.Runtime
+	appConf, ok := ctx.Value(config.CtxKey()).(config.Config)
+	runtime := appConf.Runtime
+	conf := appConf.Kubernetes
 
-	if ok {
-		if c.isVersionInstalled(conf.Kubernetes.Version) {
-			// runtime has changed, ensure the required images are in the registry
-			if currentRuntime := c.runtime(); currentRuntime != "" && currentRuntime != conf.Runtime {
-				installK3sCache(c.host, c.guest, a, log, conf.Runtime, conf.Kubernetes.Version)
-			}
-			// other settings may have changed e.g. ingress
-			installK3sCluster(c.host, c.guest, a, conf.Runtime, conf.Kubernetes.Version, conf.Kubernetes.Ingress)
-		} else {
-			a.Stage("downloading and installing")
-			installK3s(c.host, c.guest, a, log, conf.Runtime, conf.Kubernetes.Version, conf.Kubernetes.Ingress)
-		}
-	} else {
+	if !ok {
 		// this should be a restart/start while vm is active
 		// retrieve value in the vm
 		runtime = c.runtime()
+		conf = c.config()
+	}
+
+	if c.isVersionInstalled(conf.Version) {
+		// runtime has changed, ensure the required images are in the registry
+		if currentRuntime := c.runtime(); currentRuntime != "" && currentRuntime != runtime {
+			a.Stagef("changing runtime to %s", runtime)
+			installK3sCache(c.host, c.guest, a, log, runtime, conf.Version)
+		}
+		// other settings may have changed e.g. ingress
+		installK3sCluster(c.host, c.guest, a, runtime, conf.Version, conf.Ingress)
+	} else {
+		if c.isInstalled() {
+			a.Stagef("version changed to %s, downloading and installing", conf.Version)
+		} else {
+			if ok {
+				a.Stage("downloading and installing")
+			} else {
+				a.Stage("installing")
+			}
+		}
+		installK3s(c.host, c.guest, a, log, runtime, conf.Version, conf.Ingress)
 	}
 
 	// this needs to happen on each startup
@@ -103,7 +135,7 @@ func (c *kubernetesRuntime) Provision(ctx context.Context) error {
 	}
 
 	// provision successful, now we can persist the version
-	a.Add(func() error { return c.guest.Set(versionKey, conf.Kubernetes.Version) })
+	a.Add(func() error { return c.setConfig(conf) })
 
 	return a.Exec()
 }

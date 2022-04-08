@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -337,6 +338,18 @@ func (l limaVM) RunInteractive(args ...string) error {
 	return a.Exec()
 }
 
+func (l limaVM) RunWith(stdin io.Reader, stdout io.Writer, args ...string) error {
+	args = append([]string{lima}, args...)
+
+	a := l.Init()
+
+	a.Add(func() error {
+		return l.host.RunWith(stdin, stdout, args...)
+	})
+
+	return a.Exec()
+}
+
 func (l limaVM) RunOutput(args ...string) (out string, err error) {
 	args = append([]string{lima}, args...)
 
@@ -384,7 +397,7 @@ const configFile = "/etc/colima/colima.json"
 
 func (l limaVM) getConf() map[string]string {
 	obj := map[string]string{}
-	b, err := l.RunOutput("cat", configFile)
+	b, err := l.Read(configFile)
 	if err != nil {
 		return obj
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/abiosoft/colima/config/configmanager"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/docker"
+	"github.com/abiosoft/colima/environment/container/kubernetes"
 	"github.com/abiosoft/colima/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -106,7 +107,7 @@ const (
 	defaultCPU               = 2
 	defaultMemory            = 2
 	defaultDisk              = 60
-	defaultKubernetesVersion = "v1.23.5+k3s1"
+	defaultKubernetesVersion = kubernetes.DefaultVersion
 )
 
 var startCmdArgs struct {

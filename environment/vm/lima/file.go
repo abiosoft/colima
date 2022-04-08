@@ -4,14 +4,11 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
-	"github.com/abiosoft/colima/util"
 )
 
 func (l limaVM) Read(fileName string) (string, error) {
@@ -23,23 +20,8 @@ func (l limaVM) Read(fileName string) (string, error) {
 }
 
 func (l *limaVM) Write(fileName, body string) error {
-	// utlilise host cache path
-	tmpName := filepath.Join(config.CacheDir(), util.SHA256Hash(fileName))
-
-	if err := l.host.Write(tmpName, body); err != nil {
-		return fmt.Errorf("cannot write file to vm: %w", err)
-	}
-
-	// transfer to desired location in the vm
-	if err := l.RunQuiet("sudo", "mkdir", "-p", filepath.Dir(fileName)); err != nil {
-		return fmt.Errorf("error making parent dir for file %s in vm: %w", fileName, err)
-	}
-	if err := l.RunQuiet("sudo", "cp", tmpName, fileName); err != nil {
-		return fmt.Errorf("error writing file %s in vm: %w", fileName, err)
-	}
-	_ = l.host.RunQuiet("rm", "-f", tmpName)
-
-	return nil
+	var stdin = strings.NewReader(body)
+	return l.RunWith(stdin, nil, "sudo", "sh", "-c", "cat > "+fileName)
 }
 
 func (l *limaVM) Stat(fileName string) (os.FileInfo, error) {

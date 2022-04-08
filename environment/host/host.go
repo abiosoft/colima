@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 
 	"github.com/abiosoft/colima/util/terminal"
@@ -68,11 +70,11 @@ func (h hostEnv) RunQuiet(args ...string) error {
 	cmd.Stderr = &errBuf
 
 	err := cmd.Run()
-	if err == nil {
-		return nil
+	if err != nil {
+		return errCmd(cmd.Args, errBuf, err)
 	}
 
-	return errCmd(cmd.Args, errBuf, err)
+	return nil
 }
 
 func (h hostEnv) RunOutput(args ...string) (string, error) {
@@ -88,11 +90,11 @@ func (h hostEnv) RunOutput(args ...string) (string, error) {
 	cmd.Stderr = &errBuf
 
 	err := cmd.Run()
-	if err == nil {
-		return strings.TrimSpace(buf.String()), nil
+	if err != nil {
+		return "", errCmd(cmd.Args, errBuf, err)
 	}
 
-	return "", errCmd(cmd.Args, errBuf, err)
+	return strings.TrimSpace(buf.String()), nil
 }
 
 func errCmd(args []string, stderr bytes.Buffer, err error) error {
@@ -102,7 +104,7 @@ func errCmd(args []string, stderr bytes.Buffer, err error) error {
 	if len(output) > 0 {
 		output = output[:len(output)-1]
 	}
-	return fmt.Errorf("error running %v, output: %s, err: %w", args, output, err)
+	return fmt.Errorf("error running %v, output: %s, err: %s", args, strconv.Quote(output), strconv.Quote(err.Error()))
 }
 
 func (h hostEnv) RunInteractive(args ...string) error {
@@ -112,6 +114,26 @@ func (h hostEnv) RunInteractive(args ...string) error {
 	cmd := cli.CommandInteractive(args[0], args[1:]...)
 	cmd.Env = append(os.Environ(), h.env...)
 	return cmd.Run()
+}
+
+func (h hostEnv) RunWith(stdin io.Reader, stdout io.Writer, args ...string) error {
+	if len(args) == 0 {
+		return errors.New("args not specified")
+	}
+	cmd := cli.CommandInteractive(args[0], args[1:]...)
+	cmd.Env = append(os.Environ(), h.env...)
+
+	cmd.Stdin = stdin
+	cmd.Stdout = stdout
+
+	var buf bytes.Buffer
+	cmd.Stderr = &buf
+
+	if err := cmd.Run(); err != nil {
+		return errCmd(cmd.Args, buf, err)
+	}
+
+	return nil
 }
 
 func (h hostEnv) Env(s string) string {

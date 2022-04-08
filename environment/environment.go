@@ -2,6 +2,7 @@ package environment
 
 import (
 	"context"
+	"io"
 	"os"
 
 	"github.com/abiosoft/colima/config"
@@ -17,6 +18,8 @@ type runActions interface {
 	RunOutput(args ...string) (string, error)
 	// RunInteractive runs command interactively.
 	RunInteractive(args ...string) error
+	// RunFDs run
+	RunWith(stdin io.Reader, stdout io.Writer, args ...string) error
 }
 
 type fileActions interface {
