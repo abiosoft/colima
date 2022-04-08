@@ -20,6 +20,7 @@ type verboseWriter struct {
 
 	lineHeight int
 	termWidth  int
+	overflow   int
 
 	lastUpdate time.Time
 }
@@ -103,10 +104,11 @@ func (v *verboseWriter) printScreen() error {
 		return err
 	}
 
+	v.overflow = 0
 	for _, line := range v.lines {
 		line = v.sanitizeLine(line)
 		if len(line) > v.termWidth {
-			line = line[:v.termWidth]
+			v.overflow += len(line) / v.termWidth
 		}
 		line = color.HiBlackString(line)
 		fmt.Println(line)
@@ -115,7 +117,7 @@ func (v *verboseWriter) printScreen() error {
 }
 
 func (v verboseWriter) clearScreen() {
-	for range v.lines {
+	for i := 0; i < len(v.lines)+v.overflow; i++ {
 		ClearLine()
 	}
 }
