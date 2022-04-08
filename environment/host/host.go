@@ -62,10 +62,17 @@ func (h hostEnv) RunQuiet(args ...string) error {
 	}
 	cmd := cli.Command(args[0], args[1:]...)
 	cmd.Env = append(os.Environ(), h.env...)
-	cmd.Stdout = nil
-	cmd.Stderr = nil
 
-	return cmd.Run()
+	var errBuf bytes.Buffer
+	cmd.Stdout = nil
+	cmd.Stderr = &errBuf
+
+	err := cmd.Run()
+	if err == nil {
+		return nil
+	}
+
+	return errCmd(cmd.Args, errBuf, err)
 }
 
 func (h hostEnv) RunOutput(args ...string) (string, error) {
@@ -76,14 +83,26 @@ func (h hostEnv) RunOutput(args ...string) (string, error) {
 	cmd := cli.Command(args[0], args[1:]...)
 	cmd.Env = append(os.Environ(), h.env...)
 
-	var buf bytes.Buffer
+	var buf, errBuf bytes.Buffer
 	cmd.Stdout = &buf
-	cmd.Stderr = nil
+	cmd.Stderr = &errBuf
 
-	if err := cmd.Run(); err != nil {
-		return "", err
+	err := cmd.Run()
+	if err == nil {
+		return strings.TrimSpace(buf.String()), nil
 	}
-	return strings.TrimSpace(buf.String()), nil
+
+	return "", errCmd(cmd.Args, errBuf, err)
+}
+
+func errCmd(args []string, stderr bytes.Buffer, err error) error {
+	// this is going to be part of a log output,
+	// reading the first line of the error should suffice
+	output, _ := stderr.ReadString('\n')
+	if len(output) > 0 {
+		output = output[:len(output)-1]
+	}
+	return fmt.Errorf("error running %v, output: %s, err: %w", args, output, err)
 }
 
 func (h hostEnv) RunInteractive(args ...string) error {
