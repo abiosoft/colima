@@ -110,7 +110,7 @@ func AppDir() string { return filepath.Dir(configDir.Dir()) }
 // Dir returns the configuration directory.
 func Dir() string { return configDir.Dir() }
 
-// File returns the config file.
+// File returns the path to the config file.
 func File() string { return configFile() }
 
 // CacheDir returns the cache directory.
@@ -133,9 +133,8 @@ type Config struct {
 	Env          map[string]string `yaml:"env,omitempty"` // environment variables
 
 	// volume mounts
-	Mounts     []Mount  `yaml:"mounts,omitempty"`
-	MountsFlag []string `yaml:"-"`
-	MountType  string   `yaml:"mountType,omitempty"`
+	Mounts    []Mount `yaml:"mounts,omitempty"`
+	MountType string  `yaml:"mountType,omitempty"`
 
 	// Runtime is one of docker, containerd.
 	Runtime string `yaml:"runtime,omitempty"`

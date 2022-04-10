@@ -47,8 +47,14 @@ type colimaApp struct {
 func (c colimaApp) Start(conf config.Config) error {
 	ctx := context.WithValue(context.Background(), config.CtxKey(), conf)
 
-	log.Println("starting", config.Profile().DisplayName)
-
+	{
+		runtime := conf.Runtime
+		if conf.Kubernetes.Enabled {
+			runtime += "+k3s"
+		}
+		log.Println("starting", config.Profile().DisplayName)
+		log.Println("runtime:", runtime)
+	}
 	var containers []environment.Container
 	// runtime
 	{
