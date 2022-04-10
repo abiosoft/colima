@@ -5,8 +5,10 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
+	"github.com/abiosoft/colima/util"
 	"github.com/sirupsen/logrus"
 )
 
@@ -125,19 +127,24 @@ type Config struct {
 	Memory       int               `yaml:"memory,omitempty"`
 	Arch         string            `yaml:"arch,omitempty"`
 	CPUType      string            `yaml:"cpuType,omitempty"`
-	ForwardAgent bool              `yaml:"forward_agent,omitempty"`
+	ForwardAgent bool              `yaml:"forwardAgent,omitempty"`
 	Network      Network           `yaml:"network,omitempty"`
 	DNS          []net.IP          `yaml:"dns,omitempty"` // DNS nameservers
 	Env          map[string]string `yaml:"env,omitempty"` // environment variables
 
 	// volume mounts
-	Mounts []string `yaml:"mounts,omitempty"`
+	Mounts     []Mount  `yaml:"mounts,omitempty"`
+	MountsFlag []string `yaml:"-"`
+	MountType  string   `yaml:"mountType,omitempty"`
 
 	// Runtime is one of docker, containerd.
 	Runtime string `yaml:"runtime,omitempty"`
 
-	// Kubernetes sets if kubernetes should be enabled.
+	// Kubernetes configuration
 	Kubernetes Kubernetes `yaml:"kubernetes,omitempty"`
+
+	// Docker configuration
+	Docker map[string]any `yaml:"docker,omitempty"`
 }
 
 // Kubernetes is kubernetes configuration
@@ -151,6 +158,29 @@ type Kubernetes struct {
 type Network struct {
 	Address  bool `yaml:"address"`
 	UserMode bool `yaml:"userMode"`
+}
+
+// Mount is volume mount
+type Mount struct {
+	Location string `yaml:"location"`
+	Writable bool   `yaml:"writable"`
+}
+
+// CleanPath returns the absolute path to the mount location.
+func (m Mount) CleanPath() (string, error) {
+	split := strings.SplitN(string(m.Location), ":", 2)
+	str := os.ExpandEnv(split[0])
+
+	if strings.HasPrefix(str, "~") {
+		str = strings.Replace(str, "~", util.HomeDir(), 1)
+	}
+
+	str = filepath.Clean(str)
+	if !filepath.IsAbs(str) {
+		return "", fmt.Errorf("relative paths not supported for mount '%s'", string(m.Location))
+	}
+
+	return strings.TrimSuffix(str, "/") + "/", nil
 }
 
 // Empty checks if the configuration is empty.

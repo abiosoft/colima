@@ -3,7 +3,6 @@ package yamlutil
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"os"
 	"reflect"
 	"strconv"
@@ -26,30 +25,38 @@ func WriteYAML(value interface{}, file string) error {
 
 // Save saves the config.
 func Save(c config.Config, file string) error {
-	return save(c, file)
+	b, err := encodeYAML(c)
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(file, b, 0644); err != nil {
+		return fmt.Errorf("error writing yaml file: %w", err)
+	}
+
+	return nil
 }
 
-func save(conf config.Config, file string) error {
+func encodeYAML(conf config.Config) ([]byte, error) {
 	var doc yaml.Node
 
 	f, err := embedded.Read("defaults/colima.yaml")
 	if err != nil {
-		return fmt.Errorf("error reading config file: %w", err)
+		return nil, fmt.Errorf("error reading config file: %w", err)
 	}
 
 	if err := yaml.Unmarshal(f, &doc); err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("embedded default config is invalid yaml: %w", err)
 	}
 
 	if l := len(doc.Content); l != 1 {
-		return fmt.Errorf("unexpected error during yaml decode: doc has multiple children of len %d", l)
+		return nil, fmt.Errorf("unexpected error during yaml decode: doc has multiple children of len %d", l)
 	}
 	root := doc.Content[0]
 
 	// get all nodes
 	nodeVals := map[string]*yaml.Node{}
 	if err := traverseNode("", root, nodeVals); err != nil {
-		return fmt.Errorf("error traversing yaml node: %w", err)
+		return nil, fmt.Errorf("error traversing yaml node: %w", err)
 	}
 
 	// get all node values
@@ -58,8 +65,9 @@ func save(conf config.Config, file string) error {
 
 	// apply values to nodes
 	for key, node := range nodeVals {
-		if node.Kind == yaml.MappingNode {
-			// top level, ignore
+		// top level, ignore
+		// except docker which has dynamic children
+		if node.Kind == yaml.MappingNode && key != "docker" {
 			continue
 		}
 
@@ -69,29 +77,27 @@ func save(conf config.Config, file string) error {
 		// no performance concern as only one file is being read
 		b, err := yaml.Marshal(val)
 		if err != nil {
-			log.Fatal(err)
+			return nil, fmt.Errorf("unexpected error nested value encoding: %w", err)
 		}
 		var newNode yaml.Node
 		if err := yaml.Unmarshal(b, &newNode); err != nil {
-			log.Fatal(err)
+			return nil, fmt.Errorf("unexpected error during yaml node traversal: %w", err)
 		}
 
 		if l := len(newNode.Content); l != 1 {
-			return fmt.Errorf("unexpected error during yaml node traversal: doc has multiple children of len %d", l)
+			return nil, fmt.Errorf("unexpected error during yaml node traversal: doc has multiple children of len %d", l)
 		}
 		*node = *newNode.Content[0]
 	}
 
 	b, err := encode(root)
 	if err != nil {
-		return fmt.Errorf("error encoding yaml file: %w", err)
+		return nil, fmt.Errorf("error encoding yaml file: %w", err)
 	}
 
-	if err := os.WriteFile(file, b, 0644); err != nil {
-		return fmt.Errorf("error writing yaml file: %w", err)
-	}
-
-	return nil
+	tmp := string(b)
+	_ = tmp
+	return b, nil
 }
 
 func traverseConfig(parentKey string, s any, vals map[string]any) {

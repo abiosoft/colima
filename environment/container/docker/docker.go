@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/abiosoft/colima/cli"
+	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
 )
 
@@ -41,14 +42,12 @@ func (d dockerRuntime) Provision(ctx context.Context) error {
 	log := d.Logger()
 	a.Stage("provisioning")
 
-	if !d.isDaemonFileCreated() {
-		a.Add(d.createDaemonFile)
-	}
+	conf, _ := ctx.Value(config.CtxKey()).(config.Config)
 
 	// daemon.json
 	a.Add(func() error {
 		// not a fatal error
-		if err := d.setupDaemonFile(); err != nil {
+		if err := d.createDaemonFile(conf.Docker); err != nil {
 			log.Warnln(err)
 		}
 		return nil

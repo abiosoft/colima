@@ -48,6 +48,9 @@ The --disk and --arch flags are only used on initial start and ignored on subseq
 			cmd.Flag("kubernetes").Changed = true
 		}
 
+		// convert cli to config file format
+		startCmdArgs.Mounts = mountsFromFlag(startCmdArgs.MountsFlag)
+
 		// use default config
 		if current.Empty() {
 			return nil
@@ -57,6 +60,7 @@ The --disk and --arch flags are only used on initial start and ignored on subseq
 		// set it to the current settings
 		startCmdArgs.Disk = current.Disk
 		startCmdArgs.Arch = current.Arch
+		startCmdArgs.Docker = current.Docker
 
 		// use current settings for unchanged configs
 		// otherwise may be reverted to their default values.
@@ -77,6 +81,9 @@ The --disk and --arch flags are only used on initial start and ignored on subseq
 		}
 		if !cmd.Flag("mount").Changed {
 			startCmdArgs.Mounts = current.Mounts
+		}
+		if !cmd.Flag("mount-type").Changed {
+			startCmdArgs.MountType = current.MountType
 		}
 		if !cmd.Flag("ssh-agent").Changed {
 			startCmdArgs.ForwardAgent = current.ForwardAgent
@@ -134,7 +141,8 @@ func init() {
 	}
 
 	// mounts
-	startCmd.Flags().StringSliceVarP(&startCmdArgs.Mounts, "mount", "v", nil, "directories to mount, suffix ':w' for writable")
+	startCmd.Flags().StringSliceVarP(&startCmdArgs.MountsFlag, "mount", "V", nil, "directories to mount, suffix ':w' for writable")
+	startCmd.Flags().StringVar(&startCmdArgs.MountType, "mount-type", "9p", "volume driver for the mount (9p, reverse-sshfs)")
 
 	// ssh agent
 	startCmd.Flags().BoolVarP(&startCmdArgs.ForwardAgent, "ssh-agent", "s", false, "forward SSH agent to the VM")
@@ -152,4 +160,17 @@ func init() {
 	_ = startCmd.Flags().MarkHidden("env")
 
 	startCmd.Flags().IPSliceVarP(&startCmdArgs.DNS, "dns", "n", nil, "DNS servers for the VM")
+}
+
+// mountsFromFlag converts mounts from cli flag format to config file format
+func mountsFromFlag(mounts []string) []config.Mount {
+	mnts := make([]config.Mount, len(mounts))
+	for i, mount := range mounts {
+		str := strings.SplitN(string(mount), ":", 2)
+		mnts[i] = config.Mount{
+			Location: str[0],
+			Writable: len(str) >= 2 && str[1] == "w",
+		}
+	}
+	return mnts
 }

@@ -34,6 +34,10 @@ kubernetes:
   # Default: false
   ingress: false
 
+# ===================================================================== #
+# ADVANCED CONFIGURATION
+# ===================================================================== #
+
 # Custom DNS nameservers for the virtual machine.
 #
 # EXAMPLE
@@ -44,9 +48,36 @@ kubernetes:
 # Default: []
 dns: []
 
-# ===================================================================== #
-# ADVANCED CONFIGURATION
-# ===================================================================== #
+# Docker daemon configuration that maps directly to daemon.json.
+# https://docs.docker.com/engine/reference/commandline/dockerd/#daemon-configuration-file.
+# NOTE: some settings may affect Colima's ability to start docker. e.g. `hosts`.
+#
+# EXAMPLE - disable buildkit
+# docker:
+#   features:
+#     buildkit: false
+#
+# EXAMPLE - add insecure registries
+# docker:
+#   insecure-registries:
+#     - myregistry.com:5000
+#     - host.docker.internal:5000
+#
+# Colima default behaviour: buildkit enabled
+# Default: {}
+docker: {}
+
+# Volume mount driver for the virtual machine (reverse-sshfs, 9p).
+#
+# 9p is more POSIX compliant and generally handles file permissions better.
+# However, it does not properly resolve symlinks (that are created on host)
+# on the mounted drives.
+#
+# reverse-sshfs is slightly faster but less reliable when there are lots
+# of concurrent writes.
+#
+# Default: 9p
+mountType: 9p
 
 # The CPU type for the virtual machine.
 # Options available for host emulation can be checked with: `qemu-system-$(arch) -cpu help`.
@@ -73,7 +104,7 @@ network:
 
 # Forward the host's SSH agent to the virtual machine.
 # Default: false
-forward_agent: false
+forwardAgent: false
 
 # Environment variables for the virtual machine.
 #
@@ -86,13 +117,15 @@ forward_agent: false
 env: []
 
 # Configure volume mounts for the virtual machine.
-# Writable mounts are denoted with `:w` suffix.
-# Most users do not need to fiddle with this setting.
+# Colima mounts user's home directory by default to provide a familiar
+# user experience.
 #
 # EXAMPLE
 # mounts:
-#   - ~/secrets    # readonly
-#   - ~/projects:w # writable
+#   - location: ~/secrets
+#     writable: false
+#   - location: ~/projects
+#     writable: true
 #
 # Colima default behavour: $HOME is mounted as writable.
 # Default: []

@@ -173,7 +173,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		)
 	}
 
-	l.MountType = NINEP
+	l.MountType = conf.MountType
 	if len(conf.Mounts) == 0 {
 		l.Mounts = append(l.Mounts,
 			Mount{Location: "~", Writable: true},
@@ -189,14 +189,21 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		l.Mounts = append(l.Mounts, Mount{Location: config.CacheDir(), Writable: false})
 		cacheOverlapFound := false
 
-		for _, v := range conf.Mounts {
-			m := volumeMount(v)
+		for _, m := range conf.Mounts {
 			var location string
-			location, err = m.Path()
+			location, err = m.CleanPath()
 			if err != nil {
 				return
 			}
-			l.Mounts = append(l.Mounts, Mount{Location: location, Writable: m.Writable()})
+
+			mount := Mount{Location: location, Writable: m.Writable}
+
+			// use passthrough for readonly 9p mounts
+			if conf.MountType == NINEP && !m.Writable {
+				mount.NineP.SecurityModel = "passthrough"
+			}
+
+			l.Mounts = append(l.Mounts, mount)
 
 			// check if cache directory has been mounted by other mounts, and remove cache directory from mounts
 			if strings.HasPrefix(config.CacheDir(), location) && !cacheOverlapFound {
@@ -321,38 +328,15 @@ type NineP struct {
 	Cache           string `yaml:"cache,omitempty" json:"cache,omitempty"`
 }
 
-type volumeMount string
-
-func (v volumeMount) Writable() bool {
-	str := strings.SplitN(string(v), ":", 2)
-	return len(str) >= 2 && str[1] == "w"
-}
-
-func (v volumeMount) Path() (string, error) {
-	split := strings.SplitN(string(v), ":", 2)
-	str := os.ExpandEnv(split[0])
-
-	if strings.HasPrefix(str, "~") {
-		str = strings.Replace(str, "~", util.HomeDir(), 1)
-	}
-
-	str = filepath.Clean(str)
-	if !filepath.IsAbs(str) {
-		return "", fmt.Errorf("relative paths not supported for mount '%s'", string(v))
-	}
-
-	return strings.TrimSuffix(str, "/") + "/", nil
-}
-
-func checkOverlappingMounts(mounts []string) error {
+func checkOverlappingMounts(mounts []config.Mount) error {
 	for i := 0; i < len(mounts)-1; i++ {
 		for j := i + 1; j < len(mounts); j++ {
-			a, err := volumeMount(mounts[i]).Path()
+			a, err := mounts[i].CleanPath()
 			if err != nil {
 				return err
 			}
 
-			b, err := volumeMount(mounts[j]).Path()
+			b, err := mounts[j].CleanPath()
 			if err != nil {
 				return err
 			}
