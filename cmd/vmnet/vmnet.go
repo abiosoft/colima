@@ -104,6 +104,7 @@ var stopCmd = &cobra.Command{
 					if _, err := os.Stat(pidFile); err != nil {
 						break
 					}
+					time.Sleep(wait)
 				}
 			}()
 		}
