@@ -17,11 +17,35 @@ func Save(c config.Config) error {
 	return yamlutil.Save(c, config.File())
 }
 
+// SaveFromFile loads configuration from file and save as config.
+func SaveFromFile(file string) error {
+	cf, err := loadFrom(file)
+	if err != nil {
+		return err
+	}
+	return Save(cf)
+}
+
 // oldConfigFile returns the path to config file of versions <0.4.0.
 // TODO: remove later, only for backward compatibility
 func oldConfigFile() string {
 	_, configFileName := filepath.Split(config.File())
 	return filepath.Join(os.Getenv("HOME"), "."+config.Profile().ID, configFileName)
+}
+
+// loadFrom loads config from file.
+func loadFrom(file string) (config.Config, error) {
+	var c config.Config
+	b, err := os.ReadFile(file)
+	if err != nil {
+		return c, fmt.Errorf("could not load config from file: %w", err)
+	}
+
+	err = yaml.Unmarshal(b, &c)
+	if err != nil {
+		return c, fmt.Errorf("could not load config from file: %w", err)
+	}
+	return c, nil
 }
 
 // Load loads the config.
@@ -45,17 +69,7 @@ func Load() (config.Config, error) {
 		}
 	}
 
-	var c config.Config
-	b, err := os.ReadFile(cFile)
-	if err != nil {
-		return c, fmt.Errorf("could not load previous settings: %w", err)
-	}
-
-	err = yaml.Unmarshal(b, &c)
-	if err != nil {
-		return c, fmt.Errorf("could not load previous settings: %w", err)
-	}
-	return c, nil
+	return loadFrom(cFile)
 }
 
 // Teardown deletes the config.

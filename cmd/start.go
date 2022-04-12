@@ -224,8 +224,6 @@ func prepareConfig(cmd *cobra.Command) {
 }
 
 // editConfigFile launches an editor to edit the config file.
-// It runs true if startup should continue, or false if the user
-// terminates the process.
 func editConfigFile() error {
 	// preserve the current file in case the user terminates
 	currentFile, err := os.ReadFile(config.File())
@@ -239,25 +237,44 @@ func editConfigFile() error {
 		log.Warnln(fmt.Errorf("unable to read embedded file: %w", err))
 	}
 
-	if err := os.WriteFile(config.File(), []byte(abort+"\n"+string(currentFile)), 0644); err != nil {
-		return fmt.Errorf("error writing config file for edit: %w", err)
-	}
-
-	err = launchEditor(startCmdArgs.Flags.Editor, config.File())
+	tmpFile, err := waitForUserEdit(startCmdArgs.Flags.Editor, []byte(abort+"\n"+string(currentFile)))
 	if err != nil {
 		return fmt.Errorf("error editing config file: %w", err)
 	}
 
 	// if file is empty, abort
-	if f, err := os.ReadFile(config.File()); err == nil && len(bytes.TrimSpace(f)) == 0 {
-		// restore original contents
-		if err := os.WriteFile(config.File(), currentFile, 0644); err != nil {
-			log.Warnln("error restoring config file: %w", err)
-		}
+	if tmpFile == "" {
 		return fmt.Errorf("empty file, startup aborted")
 	}
 
-	return nil
+	return configmanager.SaveFromFile(tmpFile)
+}
+
+// waitForUserEdit launches a temporary file with content using editor,
+// and waits for the user to close the editor.
+// It returns the filename (if saved), empty file name (if aborted), and an error (if any).
+func waitForUserEdit(editor string, content []byte) (string, error) {
+	tmp, err := os.CreateTemp("", "colima-*.yaml")
+	if err != nil {
+		return "", fmt.Errorf("error creating temporary file: %w", err)
+	}
+	if _, err := tmp.Write(content); err != nil {
+		return "", fmt.Errorf("error writing temporary file: %w", err)
+	}
+	if err := tmp.Close(); err != nil {
+		return "", fmt.Errorf("error closing temporary file: %w", err)
+	}
+
+	if err := launchEditor(editor, tmp.Name()); err != nil {
+		return "", err
+	}
+
+	// aborted
+	if f, err := os.ReadFile(tmp.Name()); err == nil && len(bytes.TrimSpace(f)) == 0 {
+		return "", nil
+	}
+
+	return tmp.Name(), nil
 }
 
 var editors = []string{
