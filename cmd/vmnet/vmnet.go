@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
@@ -92,6 +93,19 @@ var stopCmd = &cobra.Command{
 			if err := cli.CommandInteractive("pkill", "-F", pidFile).Run(); err != nil {
 				logrus.Error(fmt.Errorf("error killing process: %w", err))
 			}
+
+			// wait for the process for some seconds
+			// using lambda for easy return
+			func() {
+				// wait some seconds for the pidfile to get deleted
+				const wait = time.Second * 2
+				const tries = 15
+				for i := 0; i < tries; i++ {
+					if _, err := os.Stat(pidFile); err != nil {
+						break
+					}
+				}
+			}()
 		}
 
 		// in the rarest of cases that the pidfiles got deleted and the process is still active,
@@ -100,7 +114,9 @@ var stopCmd = &cobra.Command{
 		filter := fmt.Sprintf(`\-\-pidfile %s`, info.VmnetPidFile)
 		if err := cli.CommandInteractive("sh", "-c", `ps ax | grep "`+filter+`"`).Run(); err == nil {
 			// process found
-			return cli.CommandInteractive("pkill", "-f", filter).Run()
+			if err := cli.CommandInteractive("pkill", "-f", filter).Run(); err != nil {
+				logrus.Error(fmt.Errorf("unable to kill orphaned process: %w", err))
+			}
 		}
 
 		return nil
