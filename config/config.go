@@ -102,10 +102,17 @@ var (
 			return filepath.Join(dir, "colima"), nil
 		},
 	}
-)
 
-// AppDir returns the application directory.
-func AppDir() string { return filepath.Dir(configDir.Dir()) }
+	templatesDir requiredDir = requiredDir{
+		dir: func() (string, error) {
+			dir, err := os.UserHomeDir()
+			if err != nil {
+				return "", err
+			}
+			return filepath.Join(dir, ".colima", "templates"), nil
+		},
+	}
+)
 
 // Dir returns the configuration directory.
 func Dir() string { return configDir.Dir() }
@@ -115,6 +122,9 @@ func File() string { return configFile() }
 
 // CacheDir returns the cache directory.
 func CacheDir() string { return cacheDir.Dir() }
+
+// TemplatesDir returns the templates directory.
+func TemplatesDir() string { return templatesDir.Dir() }
 
 const configFileName = "colima.yaml"
 

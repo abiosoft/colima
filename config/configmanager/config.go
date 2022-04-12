@@ -19,11 +19,16 @@ func Save(c config.Config) error {
 
 // SaveFromFile loads configuration from file and save as config.
 func SaveFromFile(file string) error {
-	cf, err := loadFrom(file)
+	cf, err := LoadFrom(file)
 	if err != nil {
 		return err
 	}
 	return Save(cf)
+}
+
+// SaveToFile saves configuration to file.
+func SaveToFile(c config.Config, file string) error {
+	return yamlutil.Save(c, file)
 }
 
 // oldConfigFile returns the path to config file of versions <0.4.0.
@@ -33,8 +38,8 @@ func oldConfigFile() string {
 	return filepath.Join(os.Getenv("HOME"), "."+config.Profile().ID, configFileName)
 }
 
-// loadFrom loads config from file.
-func loadFrom(file string) (config.Config, error) {
+// LoadFrom loads config from file.
+func LoadFrom(file string) (config.Config, error) {
 	var c config.Config
 	b, err := os.ReadFile(file)
 	if err != nil {
@@ -69,7 +74,7 @@ func Load() (config.Config, error) {
 		}
 	}
 
-	return loadFrom(cFile)
+	return LoadFrom(cFile)
 }
 
 // Teardown deletes the config.

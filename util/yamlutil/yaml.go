@@ -65,13 +65,18 @@ func encodeYAML(conf config.Config) ([]byte, error) {
 
 	// apply values to nodes
 	for key, node := range nodeVals {
-		// top level, ignore
-		// except docker which has dynamic children
-		if node.Kind == yaml.MappingNode && key != "docker" {
-			continue
-		}
-
 		val := structVals[key]
+
+		// top level, ignore. except known maps.
+		if node.Kind == yaml.MappingNode {
+			switch val.(type) {
+			case map[string]any:
+			case map[string]string:
+
+			default:
+				continue
+			}
+		}
 
 		// lazy way, delegate node construction to the yaml library via a roundtrip.
 		// no performance concern as only one file is being read

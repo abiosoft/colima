@@ -1,15 +1,12 @@
 package cmd
 
 import (
-	"bytes"
 	"fmt"
 	"os"
-	"os/exec"
 	"runtime"
 	"strings"
 	"time"
 
-	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/config/configmanager"
@@ -27,7 +24,9 @@ var startCmd = &cobra.Command{
 	Use:   "start [profile]",
 	Short: "start Colima",
 	Long: `Start Colima with the specified container runtime and optional kubernetes.
-To customize with a more expressive configuration file, start with --edit flag.
+
+Colima can also be configured with a YAML configuration file.
+Run 'colima template' to set the default configurations or 'colima start --edit' to customize before startup.
 `,
 	Example: "  colima start\n" +
 		"  colima start --edit\n" +
@@ -135,8 +134,6 @@ func init() {
 	startCmd.Flags().BoolVar(&startCmdArgs.Kubernetes.Ingress, "kubernetes-ingress", false, "enable traefik ingress controller")
 	startCmd.Flag("with-kubernetes").Hidden = true
 
-	// not sure of the usefulness of env vars for now considering that interactions will be with the containers, not the VM.
-	// leaving it undocumented until there is a need.
 	startCmd.Flags().StringToStringVar(&startCmdArgs.Env, "env", nil, "environment variables for the VM")
 
 	startCmd.Flags().IPSliceVarP(&startCmdArgs.DNS, "dns", "n", nil, "DNS servers for the VM")
@@ -172,19 +169,28 @@ func prepareConfig(cmd *cobra.Command) {
 	// convert cli to config file format
 	startCmdArgs.Mounts = mountsFromFlag(startCmdArgs.Flags.Mounts)
 
-	// use default config
+	// if there is no existing settings
 	if current.Empty() {
-		return
+		// attempt template
+		template, err := configmanager.LoadFrom(templateFile())
+		if err != nil {
+			// use default config if there is no template or existing settings
+			return
+		}
+		current = template
 	}
 
-	// disk size, and arch are only effective on VM create
-	// set it to the current settings
-	startCmdArgs.Disk = current.Disk
-	startCmdArgs.Arch = current.Arch
+	// docker can only be set in config file
 	startCmdArgs.Docker = current.Docker
 
 	// use current settings for unchanged configs
 	// otherwise may be reverted to their default values.
+	if !cmd.Flag("arch").Changed {
+		startCmdArgs.Arch = current.Arch
+	}
+	if !cmd.Flag("disk").Changed {
+		startCmdArgs.Disk = current.Disk
+	}
 	if !cmd.Flag("kubernetes").Changed {
 		startCmdArgs.Kubernetes.Enabled = current.Kubernetes.Enabled
 	}
@@ -212,6 +218,9 @@ func prepareConfig(cmd *cobra.Command) {
 	if !cmd.Flag("dns").Changed {
 		startCmdArgs.DNS = current.DNS
 	}
+	if !cmd.Flag("env").Changed {
+		startCmdArgs.Env = current.Env
+	}
 	if util.MacOS() {
 		if !cmd.Flag("network-address").Changed {
 			startCmdArgs.Network.Address = current.Network.Address
@@ -220,7 +229,6 @@ func prepareConfig(cmd *cobra.Command) {
 			startCmdArgs.Network.UserMode = current.Network.UserMode
 		}
 	}
-	// remaining settings do not survive VM reboots.
 }
 
 // editConfigFile launches an editor to edit the config file.
@@ -247,81 +255,8 @@ func editConfigFile() error {
 		return fmt.Errorf("empty file, startup aborted")
 	}
 
+	defer func() {
+		_ = os.Remove(tmpFile)
+	}()
 	return configmanager.SaveFromFile(tmpFile)
-}
-
-// waitForUserEdit launches a temporary file with content using editor,
-// and waits for the user to close the editor.
-// It returns the filename (if saved), empty file name (if aborted), and an error (if any).
-func waitForUserEdit(editor string, content []byte) (string, error) {
-	tmp, err := os.CreateTemp("", "colima-*.yaml")
-	if err != nil {
-		return "", fmt.Errorf("error creating temporary file: %w", err)
-	}
-	if _, err := tmp.Write(content); err != nil {
-		return "", fmt.Errorf("error writing temporary file: %w", err)
-	}
-	if err := tmp.Close(); err != nil {
-		return "", fmt.Errorf("error closing temporary file: %w", err)
-	}
-
-	if err := launchEditor(editor, tmp.Name()); err != nil {
-		return "", err
-	}
-
-	// aborted
-	if f, err := os.ReadFile(tmp.Name()); err == nil && len(bytes.TrimSpace(f)) == 0 {
-		return "", nil
-	}
-
-	return tmp.Name(), nil
-}
-
-var editors = []string{
-	"vim",
-	"code --wait --new-window",
-	"nano",
-}
-
-func launchEditor(editor string, file string) error {
-	// if not specified, prefer vscode if this a vscode terminal
-	if editor == "" {
-		if os.Getenv("TERM_PROGRAM") == "vscode" {
-			editor = "code --wait"
-		}
-	}
-
-	// if not found, check the EDITOR env var
-	if editor == "" {
-		if e := os.Getenv("EDITOR"); e != "" {
-			editor = e
-		}
-	}
-
-	// if not found, check the preferred editors
-	if editor == "" {
-		for _, e := range editors {
-			s := strings.Fields(e)
-			if _, err := exec.LookPath(s[0]); err == nil {
-				editor = e
-				break
-			}
-		}
-	}
-
-	// if still not found, abort
-	if editor == "" {
-		return fmt.Errorf("no editor found in $PATH, kindly set $EDITOR environment variable and try again")
-	}
-
-	// vscode needs the wait flag, add it if the user did not.
-	if editor == "code" {
-		editor = "code --wait --new-window"
-	}
-
-	args := strings.Fields(editor)
-	cmd := args[0]
-	args = append(args[1:], file)
-
-	return cli.CommandInteractive(cmd, args...).Run()
 }

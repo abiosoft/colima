@@ -114,7 +114,7 @@ forwardAgent: false
 #   ANOTHER_KEY: another value
 #
 # Default: []
-env: []
+env: {}
 
 # Configure volume mounts for the virtual machine.
 # Colima mounts user's home directory by default to provide a familiar

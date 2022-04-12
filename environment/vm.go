@@ -51,5 +51,5 @@ func (a Arch) Value() Arch {
 		return AARCH64
 	}
 
-	return "default"
+	return Arch(runtime.GOARCH).Value()
 }
