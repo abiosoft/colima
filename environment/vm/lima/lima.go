@@ -119,7 +119,11 @@ func (l limaVM) prepareNetwork(ctx context.Context) (context.Context, error) {
 	a.Add(l.network.Start)
 
 	// delay to ensure that the network is running
-	a.Retry("", time.Second*1, 15, func() error {
+	a.Retry("", time.Second*3, 5, func(i int) error {
+		if i <= 1 {
+			// must wait for the first time
+			return fmt.Errorf("initial wait")
+		}
 		ok, err := l.network.Running()
 		if err != nil {
 			return err

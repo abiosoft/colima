@@ -29,9 +29,9 @@ func (v vmnetManager) Start() error {
 		return fmt.Errorf("error preparing network: %w", err)
 	}
 
-	return v.host.Run("sudo", colimaVmnetBinary, "start", config.Profile().ShortName)
+	return v.host.Run(os.Args[0], "vmnet", "start", config.Profile().ShortName)
 }
 
 func (v vmnetManager) Stop() error {
-	return v.host.Run("sudo", colimaVmnetBinary, "stop", config.Profile().ShortName)
+	return v.host.Run(os.Args[0], "vmnet", "stop", config.Profile().ShortName)
 }

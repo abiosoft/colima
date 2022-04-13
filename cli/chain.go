@@ -106,10 +106,11 @@ func (a ActiveCommandChain) Exec() error {
 
 // Retry retries `f` up to `count` times at interval.
 // If after `count` attempts there is an error, the command chain is terminated with the final error.
-func (a *ActiveCommandChain) Retry(stage string, interval time.Duration, count int, f func() error) {
+// retryCount starts from 1.
+func (a *ActiveCommandChain) Retry(stage string, interval time.Duration, count int, f func(retryCount int) error) {
 	a.Add(func() (err error) {
 		var i int
-		for err = f(); i < count && err != nil; i, err = i+1, f() {
+		for err = f(i + 1); i < count && err != nil; i, err = i+1, f(i+1) {
 			if stage != "" {
 				a.log.Println(stage, "...")
 			}

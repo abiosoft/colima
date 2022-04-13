@@ -56,7 +56,7 @@ func (c containerdRuntime) Start(ctx context.Context) error {
 	})
 
 	// service startup takes few seconds, retry at most 10 times before giving up.
-	a.Retry("", time.Second*5, 10, func() error {
+	a.Retry("", time.Second*5, 10, func(int) error {
 		return c.guest.RunQuiet("sudo", "nerdctl", "info")
 	})
 

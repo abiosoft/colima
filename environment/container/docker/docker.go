@@ -70,7 +70,7 @@ func (d dockerRuntime) Start(ctx context.Context) error {
 	})
 
 	// service startup takes few seconds, retry at most 5 times before giving up.
-	a.Retry("", time.Second*5, 10, func() error {
+	a.Retry("", time.Second*5, 10, func(int) error {
 		return d.guest.RunQuiet("sudo", "docker", "info")
 	})
 

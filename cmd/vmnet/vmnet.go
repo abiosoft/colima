@@ -3,11 +3,10 @@ package vmnet
 import (
 	"fmt"
 	"os"
-	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/abiosoft/colima/cli"
+	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment/vm/lima/network"
 	"github.com/sevlyar/go-daemon"
@@ -15,26 +14,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
-	if err := vmnetCmd.Execute(); err != nil {
-		logrus.Fatal(err)
-	}
-}
-
-// vmnetCmd represents the base command when called without any subcommands
 var vmnetCmd = &cobra.Command{
-	Use:   "vmnet",
-	Short: "vde_vmnet runner",
-	Long:  `vde_vmnet runner for vde_vmnet daemons.`,
+	Use:    "vmnet",
+	Short:  "vde_vmnet runner",
+	Long:   `vde_vmnet runner for vde_vmnet daemons.`,
+	Hidden: true,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		cmd.SilenceUsage = true
 		cmd.SilenceErrors = true
 	},
 }
 
-// startCmd represents the kubernetes start command
 var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "start daemon",
@@ -43,24 +33,34 @@ var startCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		config.SetProfile(args[0])
 
-		child, err := daemonize()
+		ctx, child, err := daemonize()
 		if err != nil {
 			return err
 		}
+
+		if ctx != nil {
+			defer func() {
+				_ = ctx.Release()
+			}()
+		}
+
 		if !child {
 			return nil
 		}
 
-		ptp := network.PTPFile()
-		pid := strings.TrimSuffix(ptp, ".ptp") + ".pid"
+		vmnet := network.Info().Vmnet
+		ptp := vmnet.PTPFile
+		pid := vmnet.PidFile
 
 		// delete existing sockets if exist
 		// errors ignored on purpose
 		_ = forceDeleteFileIfExists(ptp)
 		_ = forceDeleteFileIfExists(ptp + "+") // created by running qemu instance
 
-		command := cli.CommandInteractive(network.VmnetBinary,
+		// rootfully start the vmnet daemon
+		command := cli.CommandInteractive("sudo", network.VmnetBinary,
 			"--vmnet-mode", "shared",
+			"--vde-group", "staff",
 			"--vmnet-gateway", network.VmnetGateway,
 			"--vmnet-dhcp-end", network.VmnetDHCPEnd,
 			"--pidfile", pid,
@@ -71,52 +71,43 @@ var startCmd = &cobra.Command{
 	},
 }
 
-// stopCmd represents the kubernetes start command
 var stopCmd = &cobra.Command{
 	Use:   "stop",
 	Short: "stop daemon",
 	Long:  `stop the daemon`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		config.SetProfile(args[0])
+		profile := args[0]
+		config.SetProfile(profile)
 
-		info := info()
+		info := network.Info()
 
-		// ideally, killing vmnet should kill the deamon, but just to ensure
-		for _, pidFile := range []string{info.VmnetPidFile, info.PidFile} {
-
-			if _, err := os.Stat(pidFile); err != nil {
-				// there's no pidfile, process already dead
-				continue
+		// rootfully kill the vmnet process
+		// process is only assumed alive if the pidfile exists
+		pid := info.Vmnet.PidFile
+		if _, err := os.Stat(pid); err == nil {
+			if err := cli.CommandInteractive("sudo", "pkill", "-F", pid).Run(); err != nil {
+				return fmt.Errorf("error killing process: %w", err)
 			}
-
-			if err := cli.CommandInteractive("pkill", "-F", pidFile).Run(); err != nil {
-				logrus.Error(fmt.Errorf("error killing process: %w", err))
-			}
-
-			// wait for the process for some seconds
-			// using lambda for easy return
-			func() {
-				// wait some seconds for the pidfile to get deleted
-				const wait = time.Second * 2
-				const tries = 15
-				for i := 0; i < tries; i++ {
-					if _, err := os.Stat(pidFile); err != nil {
-						break
-					}
-					time.Sleep(wait)
-				}
-			}()
 		}
 
-		// in the rarest of cases that the pidfiles got deleted and the process is still active,
-		// manually killing the process will do. ugly but works
-		// TODO remove this if there is adverse effect
-		filter := fmt.Sprintf(`\-\-pidfile %s`, info.VmnetPidFile)
-		if err := cli.CommandInteractive("sh", "-c", `ps ax | grep "`+filter+`"`).Run(); err == nil {
-			// process found
-			if err := cli.CommandInteractive("pkill", "-f", filter).Run(); err != nil {
-				logrus.Error(fmt.Errorf("unable to kill orphaned process: %w", err))
+		// wait some seconds for the pidfile to get deleted
+		{
+			const wait = time.Second * 1
+			const tries = 30
+			for i := 0; i < tries; i++ {
+				if _, err := os.Stat(pid); err != nil {
+					break
+				}
+				time.Sleep(wait)
+			}
+		}
+
+		// kill the colima process. ideally should not exist as the blocking child process is dead.
+		// process is only assumed alive if the pidfile exists
+		if _, err := os.Stat(info.PidFile); err == nil {
+			if err := cli.CommandInteractive("pkill", "-F", info.PidFile).Run(); err != nil {
+				logrus.Error(fmt.Errorf("error killing process: %w", err))
 			}
 		}
 
@@ -131,27 +122,12 @@ func forceDeleteFileIfExists(name string) error {
 	return nil
 }
 
-type daemonInfo struct {
-	PidFile      string
-	LogFile      string
-	VmnetPidFile string
-}
-
-func info() (d daemonInfo) {
-	dir := network.Dir()
-
-	d.PidFile = filepath.Join(dir, "colima-daemon.pid")
-	d.LogFile = filepath.Join(dir, "vmnet.stderr")
-	d.VmnetPidFile = filepath.Join(dir, "vmnet.pid")
-	return d
-}
-
 // daemonize creates the deamon and returns if this is a child process
 // To terminate the daemon use:
 //  kill `cat sample.pid`
-func daemonize() (child bool, err error) {
-	info := info()
-	ctx := &daemon.Context{
+func daemonize() (ctx *daemon.Context, child bool, err error) {
+	info := network.Info()
+	ctx = &daemon.Context{
 		PidFileName: info.PidFile,
 		PidFilePerm: 0644,
 		LogFileName: info.LogFile,
@@ -160,23 +136,22 @@ func daemonize() (child bool, err error) {
 
 	d, err := ctx.Reborn()
 	if err != nil {
-		return false, fmt.Errorf("error running colima-vmnet as daemon: %w", err)
+		return ctx, false, fmt.Errorf("error running colima-vmnet as daemon: %w", err)
 	}
 	if d != nil {
-		return false, nil
+		return ctx, false, nil
 	}
-	defer func() {
-		_ = ctx.Release()
-	}()
 
 	logrus.Info("- - - - - - - - - - - - - - -")
-	logrus.Info("colima-vmnet daemon started")
-	logrus.Infof("Run `sudo pkill -F %s` to kill the daemon", info.PidFile)
+	logrus.Info("vmnet daemon started by colima")
+	logrus.Infof("Run `pkill -F %s` to kill the daemon", info.PidFile)
 
-	return true, nil
+	return ctx, true, nil
 }
 
 func init() {
+	root.Cmd().AddCommand(vmnetCmd)
+
 	vmnetCmd.AddCommand(startCmd)
 	vmnetCmd.AddCommand(stopCmd)
 }

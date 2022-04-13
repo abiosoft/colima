@@ -129,7 +129,7 @@ func (c *kubernetesRuntime) Provision(ctx context.Context) error {
 	case containerd.Name:
 		installContainerdDeps(c.guest, a)
 	case docker.Name:
-		a.Retry("waiting for docker cri", time.Second*2, 5, func() error {
+		a.Retry("waiting for docker cri", time.Second*2, 5, func(int) error {
 			return c.guest.Run("sudo", "service", "cri-dockerd", "start")
 		})
 	}
@@ -153,7 +153,7 @@ func (c kubernetesRuntime) Start(ctx context.Context) error {
 	a.Add(func() error {
 		return c.guest.Run("sudo", "service", "k3s", "start")
 	})
-	a.Retry("", time.Second*2, 10, func() error {
+	a.Retry("", time.Second*2, 10, func(int) error {
 		return c.guest.RunQuiet("kubectl", "cluster-info")
 	})
 
