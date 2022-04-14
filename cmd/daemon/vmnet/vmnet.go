@@ -6,19 +6,17 @@ import (
 	"time"
 
 	"github.com/abiosoft/colima/cli"
-	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment/vm/lima/network"
-	"github.com/sevlyar/go-daemon"
+	godaemon "github.com/sevlyar/go-daemon"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 var vmnetCmd = &cobra.Command{
-	Use:    "vmnet",
-	Short:  "vde_vmnet runner",
-	Long:   `vde_vmnet runner for vde_vmnet daemons.`,
-	Hidden: true,
+	Use:   "vmnet",
+	Short: "vde_vmnet runner",
+	Long:  `vde_vmnet runner for vde_vmnet daemons.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		cmd.SilenceUsage = true
 		cmd.SilenceErrors = true
@@ -87,7 +85,7 @@ var stopCmd = &cobra.Command{
 		pid := info.Vmnet.PidFile
 		if _, err := os.Stat(pid); err == nil {
 			if err := cli.CommandInteractive("sudo", "pkill", "-F", pid).Run(); err != nil {
-				return fmt.Errorf("error killing process: %w", err)
+				return fmt.Errorf("error killing vmnet process: %w", err)
 			}
 		}
 
@@ -107,7 +105,7 @@ var stopCmd = &cobra.Command{
 		// process is only assumed alive if the pidfile exists
 		if _, err := os.Stat(info.PidFile); err == nil {
 			if err := cli.CommandInteractive("pkill", "-F", info.PidFile).Run(); err != nil {
-				logrus.Error(fmt.Errorf("error killing process: %w", err))
+				logrus.Error(fmt.Errorf("error killing deamon process: %w", err))
 			}
 		}
 
@@ -125,9 +123,9 @@ func forceDeleteFileIfExists(name string) error {
 // daemonize creates the deamon and returns if this is a child process
 // To terminate the daemon use:
 //  kill `cat sample.pid`
-func daemonize() (ctx *daemon.Context, child bool, err error) {
+func daemonize() (ctx *godaemon.Context, child bool, err error) {
 	info := network.Info()
-	ctx = &daemon.Context{
+	ctx = &godaemon.Context{
 		PidFileName: info.PidFile,
 		PidFilePerm: 0644,
 		LogFileName: info.LogFile,
@@ -149,9 +147,11 @@ func daemonize() (ctx *daemon.Context, child bool, err error) {
 	return ctx, true, nil
 }
 
-func init() {
-	root.Cmd().AddCommand(vmnetCmd)
+func Cmd() *cobra.Command {
+	return vmnetCmd
+}
 
+func init() {
 	vmnetCmd.AddCommand(startCmd)
 	vmnetCmd.AddCommand(stopCmd)
 }

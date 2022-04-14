@@ -4,9 +4,9 @@ import (
 	"os"
 	"path/filepath"
 
-	_ "github.com/abiosoft/colima/cmd"       // for other commands
-	_ "github.com/abiosoft/colima/cmd/vmnet" // for vmnet daemon command
-	_ "github.com/abiosoft/colima/embedded"  // for embedded assets
+	_ "github.com/abiosoft/colima/cmd"        // for other commands
+	_ "github.com/abiosoft/colima/cmd/daemon" // for vmnet daemon
+	_ "github.com/abiosoft/colima/embedded"   // for embedded assets
 
 	"github.com/abiosoft/colima/cmd/root"
 )

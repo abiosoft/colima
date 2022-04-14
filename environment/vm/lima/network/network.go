@@ -73,7 +73,10 @@ func (l limaNetworkManager) Start() error {
 	return l.vmnet.Start()
 }
 func (l limaNetworkManager) Stop() error {
-	return l.vmnet.Stop()
+	if ok, err := l.Running(); err == nil && ok {
+		return l.vmnet.Stop()
+	}
+	return nil
 }
 
 func (l limaNetworkManager) Running() (bool, error) {

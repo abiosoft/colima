@@ -271,16 +271,18 @@ func (l limaVM) Stop(ctx context.Context, force bool) error {
 
 	a.Stage("stopping")
 
+	if util.MacOS() {
+		a.Retry("", time.Second*1, 5, func(retryCount int) error {
+			return l.network.Stop()
+		})
+	}
+
 	a.Add(func() error {
 		if force {
 			return l.host.Run(limactl, "stop", "--force", config.Profile().ID)
 		}
 		return l.host.Run(limactl, "stop", config.Profile().ID)
 	})
-
-	if util.MacOS() {
-		a.Add(l.network.Stop)
-	}
 
 	return a.Exec()
 }
@@ -290,11 +292,15 @@ func (l limaVM) Teardown(ctx context.Context) error {
 
 	a.Stage("deleting")
 
+	if util.MacOS() {
+		a.Retry("", time.Second*1, 5, func(retryCount int) error {
+			return l.network.Stop()
+		})
+	}
+
 	a.Add(func() error {
 		return l.host.Run(limactl, "delete", "--force", config.Profile().ID)
 	})
-
-	a.Add(l.network.Stop)
 
 	return a.Exec()
 }
