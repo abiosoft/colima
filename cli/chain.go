@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -13,12 +12,6 @@ func New(name string) CommandChain {
 	return &namedCommandChain{
 		name: name,
 	}
-}
-
-// Context is CommandChain context.
-type Context interface {
-	context.Context
-	SetContext(context.Context)
 }
 
 type cFunc struct {

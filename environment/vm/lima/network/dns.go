@@ -42,9 +42,9 @@ var dnsFileHeaders = map[string]string{
 func writeDNSFile(guest environment.GuestActions, filename string, nameservers []net.IP) error {
 	var s strings.Builder
 	if header, ok := dnsFileHeaders[filename]; ok {
-		fmt.Fprintln(&s, header)
+		_, _ = fmt.Fprintln(&s, header)
 		for _, ns := range nameservers {
-			fmt.Fprintln(&s, "nameserver "+ns.String())
+			_, _ = fmt.Fprintln(&s, "nameserver "+ns.String())
 		}
 	}
 	return guest.Write(filename, s.String())

@@ -6,10 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	"github.com/abiosoft/colima/util"
-	"github.com/sirupsen/logrus"
 )
 
 const AppName = "colima"
@@ -55,81 +53,6 @@ var (
 	revision   = "unknown"
 )
 
-// requiredDir is a directory that must exist on the filesystem
-type requiredDir struct {
-	once sync.Once
-	// dir is a func to enable deferring the value of the directory
-	// until execution time.
-	// if dir() returns an error, a fatal error is triggered.
-	dir func() (string, error)
-}
-
-// Dir returns the directory path.
-// It ensures the directory is created on the filesystem by calling
-// `mkdir` prior to returning the directory path.
-func (r *requiredDir) Dir() string {
-	dir, err := r.dir()
-	if err != nil {
-		logrus.Fatal(fmt.Errorf("cannot fetch required directory: %w", err))
-	}
-
-	r.once.Do(func() {
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			logrus.Fatal(fmt.Errorf("cannot make required directory: %w", err))
-		}
-	})
-
-	return dir
-}
-
-var (
-	configDir requiredDir = requiredDir{
-		dir: func() (string, error) {
-			dir, err := os.UserHomeDir()
-			if err != nil {
-				return "", err
-			}
-			return filepath.Join(dir, ".colima", profile.ShortName), nil
-		},
-	}
-
-	cacheDir requiredDir = requiredDir{
-		dir: func() (string, error) {
-			dir, err := os.UserCacheDir()
-			if err != nil {
-				return "", err
-			}
-			return filepath.Join(dir, "colima"), nil
-		},
-	}
-
-	templatesDir requiredDir = requiredDir{
-		dir: func() (string, error) {
-			dir, err := os.UserHomeDir()
-			if err != nil {
-				return "", err
-			}
-			return filepath.Join(dir, ".colima", "templates"), nil
-		},
-	}
-)
-
-// Dir returns the configuration directory.
-func Dir() string { return configDir.Dir() }
-
-// File returns the path to the config file.
-func File() string { return configFile() }
-
-// CacheDir returns the cache directory.
-func CacheDir() string { return cacheDir.Dir() }
-
-// TemplatesDir returns the templates directory.
-func TemplatesDir() string { return templatesDir.Dir() }
-
-const configFileName = "colima.yaml"
-
-func configFile() string { return filepath.Join(configDir.Dir(), configFileName) }
-
 // Config is the application config.
 type Config struct {
 	CPU          int               `yaml:"cpu,omitempty"`
@@ -163,10 +86,16 @@ type Kubernetes struct {
 	Ingress bool   `yaml:"ingress"`
 }
 
+const (
+	UserModeGateway = "slirp"
+	VmnetGateway    = "vmnet"
+	GVProxyGateway  = "gvproxy"
+)
+
 // Network is VM network configuration
 type Network struct {
-	Address  bool `yaml:"address"`
-	UserMode bool `yaml:"userMode"`
+	Address bool   `yaml:"address"`
+	Gateway string `yaml:"gateway"`
 }
 
 // Mount is volume mount
@@ -177,7 +106,7 @@ type Mount struct {
 
 // CleanPath returns the absolute path to the mount location.
 func (m Mount) CleanPath() (string, error) {
-	split := strings.SplitN(string(m.Location), ":", 2)
+	split := strings.SplitN(m.Location, ":", 2)
 	str := os.ExpandEnv(split[0])
 
 	if strings.HasPrefix(str, "~") {
@@ -186,7 +115,7 @@ func (m Mount) CleanPath() (string, error) {
 
 	str = filepath.Clean(str)
 	if !filepath.IsAbs(str) {
-		return "", fmt.Errorf("relative paths not supported for mount '%s'", string(m.Location))
+		return "", fmt.Errorf("relative paths not supported for mount '%s'", m.Location)
 	}
 
 	return strings.TrimSuffix(str, "/") + "/", nil

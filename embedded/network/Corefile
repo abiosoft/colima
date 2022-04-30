@@ -6,7 +6,7 @@
     }
 
     errors
-    forward . {{.Colima}} {{.Lima}} {
+    forward . #{.Colima}} #{.Lima}} {
         policy sequential
     }
 

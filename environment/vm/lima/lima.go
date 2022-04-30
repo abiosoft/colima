@@ -11,6 +11,9 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/abiosoft/colima/environment/vm/lima/network/daemon/gvproxy"
+	"github.com/abiosoft/colima/environment/vm/lima/network/daemon/vmnet"
+
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
@@ -22,7 +25,12 @@ import (
 
 // New creates a new virtual machine.
 func New(host environment.HostActions) environment.VM {
+	var envs []string
 	env := limaInstanceEnvVar + "=" + config.Profile().ID
+	envs = append(envs, env)
+
+	binDir := filepath.Join(config.WrapperDir(), "bin")
+	envs = append(envs, "PATH="+util.AppendToPath(os.Getenv("PATH"), binDir))
 
 	home, err := limaHome()
 	if err != nil {
@@ -34,7 +42,7 @@ func New(host environment.HostActions) environment.VM {
 
 	// consider making this truly flexible to support other VMs
 	return &limaVM{
-		host:         host.WithEnv(env),
+		host:         host.WithEnv(envs...),
 		home:         home,
 		CommandChain: cli.New("vm"),
 		network:      network.NewManager(host),
@@ -86,7 +94,7 @@ type limaVM struct {
 	home string
 
 	// network between host and the vm
-	network network.NetworkManager
+	network network.Manager
 }
 
 func (l limaVM) Dependencies() []string {
@@ -95,13 +103,14 @@ func (l limaVM) Dependencies() []string {
 	}
 }
 
-var ctxKeyNetwork = struct{ name string }{name: "network"}
-
-func (l limaVM) prepareNetwork(ctx context.Context) (context.Context, error) {
+func (l *limaVM) prepareNetwork(ctx context.Context, conf config.Network) (context.Context, error) {
 	// limited to macOS for now
 	if !util.MacOS() {
 		return ctx, nil
 	}
+
+	ctxKeyVmnet := network.CtxKey(vmnet.Name())
+	ctxKeyGVProxy := network.CtxKey(gvproxy.Name())
 
 	// use a nested chain for convenience
 	a := l.Init()
@@ -109,36 +118,73 @@ func (l limaVM) prepareNetwork(ctx context.Context) (context.Context, error) {
 
 	a.Stage("preparing network")
 	a.Add(func() error {
-		if !l.network.DependenciesInstalled() {
-			log.Println("network dependencies missing")
-			log.Println("sudo password may be required for setting up network dependencies")
-			return l.network.InstallDependencies()
+		if conf.Address {
+			ctx = context.WithValue(ctx, ctxKeyVmnet, true)
 		}
-		return nil
-	})
-	a.Add(l.network.Start)
+		if conf.Gateway == config.GVProxyGateway {
+			ctx = context.WithValue(ctx, ctxKeyGVProxy, true)
+		}
+		deps, root := l.network.Dependencies(ctx)
+		if deps.Installed() {
+			return nil
+		}
 
-	// delay to ensure that the network is running
-	a.Retry("", time.Second*3, 5, func(i int) error {
-		if i <= 1 {
-			// must wait for the first time
-			return fmt.Errorf("initial wait")
+		log.Println("network dependencies missing")
+		if root {
+			log.Println("sudo password may be required for setting up network dependencies")
 		}
-		ok, err := l.network.Running()
-		if err != nil {
-			return err
-		}
-		if !ok {
-			return fmt.Errorf("network process is not running")
-		}
-		return err
+		return deps.Install(l.host)
 	})
+
+	a.Add(func() error {
+		return l.network.Start(ctx)
+	})
+
+	// delay to ensure that the vmnet is running
+	statusKey := "networkStatus"
+	if conf.Address || conf.Gateway == config.VmnetGateway {
+		a.Retry("", time.Second*3, 5, func(i int) error {
+			s, err := l.network.Running(ctx)
+			ctx = context.WithValue(ctx, statusKey, s)
+			if err != nil {
+				return err
+			}
+			if !s.Running {
+				return fmt.Errorf("network process is not running")
+			}
+			for _, p := range s.Processes {
+				if !p.Running {
+					return p.Error
+				}
+			}
+			return nil
+		})
+	}
 
 	// network failure is not fatal
 	if err := a.Exec(); err != nil {
-		log.Warnln(fmt.Errorf("error starting network: %w", err))
-	} else {
-		ctx = context.WithValue(ctx, ctxKeyNetwork, true)
+		func() {
+			status, ok := ctx.Value(statusKey).(network.Status)
+			if !ok {
+				return
+			}
+			if !status.Running {
+				log.Warnln(fmt.Errorf("error starting network: %w", err))
+				return
+			}
+
+			for _, p := range status.Processes {
+				if !p.Running {
+					ctx = context.WithValue(ctx, network.CtxKey(p.Name), false)
+					log.Warnln(fmt.Errorf("error starting %s: %w", p.Name, err))
+				}
+			}
+		}()
+	}
+
+	// preserve gvproxy context
+	if gvproxyEnabled, _ := ctx.Value(network.CtxKey(gvproxy.Name())).(bool); gvproxyEnabled {
+		l.host = l.host.WithEnv(gvproxy.SubProcessEnvVar + "=1")
 	}
 
 	return ctx, nil
@@ -151,12 +197,10 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 		return l.resume(ctx, conf)
 	}
 
-	if conf.Network.Address {
-		a.Add(func() (err error) {
-			ctx, err = l.prepareNetwork(ctx)
-			return err
-		})
-	}
+	a.Add(func() (err error) {
+		ctx, err = l.prepareNetwork(ctx, conf.Network)
+		return err
+	})
 
 	a.Stage("creating and starting")
 	configFile := filepath.Join(os.TempDir(), config.Profile().ID+".yaml")
@@ -199,12 +243,10 @@ func (l limaVM) resume(ctx context.Context, conf config.Config) error {
 		return nil
 	}
 
-	if conf.Network.Address {
-		a.Add(func() (err error) {
-			ctx, err = l.prepareNetwork(ctx)
-			return err
-		})
-	}
+	a.Add(func() (err error) {
+		ctx, err = l.prepareNetwork(ctx, conf.Network)
+		return err
+	})
 
 	configFile := filepath.Join(l.limaConfDir(), "lima.yaml")
 
@@ -240,8 +282,14 @@ func (l *limaVM) applyDNS(ctx context.Context, a *cli.ActiveCommandChain, conf c
 		dnses = append(dnses, conf.DNS...)
 
 		// check if network is enabled
-		if enabled, _ := ctx.Value(ctxKeyNetwork).(bool); enabled && len(dnses) == 0 {
-			dnses = append(dnses, net.ParseIP(network.VmnetGateway))
+		if enabled, _ := ctx.Value(network.CtxKey(vmnet.Name())).(bool); enabled && len(dnses) == 0 {
+			dnses = append(dnses, net.ParseIP(vmnet.NetGateway))
+		}
+		switch conf.Network.Gateway {
+		case config.VmnetGateway:
+			dnses = append(dnses, net.ParseIP(vmnet.NetGateway))
+		case config.GVProxyGateway:
+			dnses = append(dnses, net.ParseIP(gvproxy.GatewayIP))
 		}
 
 		// custom DNS config failure should not prevent the VM from starting
@@ -272,8 +320,8 @@ func (l limaVM) Stop(ctx context.Context, force bool) error {
 	a.Stage("stopping")
 
 	if util.MacOS() {
-		a.Retry("", time.Second*1, 5, func(retryCount int) error {
-			return l.network.Stop()
+		a.Retry("", time.Second*1, 10, func(retryCount int) error {
+			return l.network.Stop(ctx)
 		})
 	}
 
@@ -293,8 +341,8 @@ func (l limaVM) Teardown(ctx context.Context) error {
 	a.Stage("deleting")
 
 	if util.MacOS() {
-		a.Retry("", time.Second*1, 5, func(retryCount int) error {
-			return l.network.Stop()
+		a.Retry("", time.Second*1, 10, func(retryCount int) error {
+			return l.network.Stop(ctx)
 		})
 	}
 

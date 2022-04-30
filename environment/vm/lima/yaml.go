@@ -8,11 +8,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/abiosoft/colima/environment/vm/lima/network"
+	"github.com/abiosoft/colima/environment/vm/lima/network/daemon/gvproxy"
+	"github.com/abiosoft/colima/environment/vm/lima/network/daemon/vmnet"
+
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/embedded"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/docker"
-	"github.com/abiosoft/colima/environment/vm/lima/network"
 	"github.com/abiosoft/colima/util"
 	"github.com/sirupsen/logrus"
 )
@@ -48,8 +51,6 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 
 	l.DNS = conf.DNS
 
-	networkEnabled, _ := ctx.Value(ctxKeyNetwork).(bool)
-
 	// always use host resolver to generate Lima's default resolv.conf file
 	// colima will override this in VM when custom DNS is set
 	l.HostResolver.Enabled = true
@@ -74,51 +75,107 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		Script: `sudo usermod -aG docker $USER`,
 	})
 
-	// networking on Lima is limited to macOS
-	if util.MacOS() && networkEnabled && conf.Network.Address {
-		// only set network settings if vmnet startup is successful
-		if err := func() error {
-			ptpFile := network.Info().Vmnet.PTPFile
-			// ensure the ptp file exists
-			if _, err := os.Stat(ptpFile); err != nil {
-				return err
-			}
+	// network is currently limited to macOS
+	vmnetEnabled, _ := ctx.Value(network.CtxKey(vmnet.Name())).(bool)
+	// only set network settings if vmnet startup is successful
+	if util.MacOS() {
+		// disable one of the default routes
+		// credit: https://github.com/abiosoft/colima/issues/140#issuecomment-1072599309
+		disableInterfaceForGateway := func(ifaces []string) error {
 			tpl, err := embedded.ReadString("network/dhcp.sh")
 			if err != nil {
 				return err
 			}
 
-			ifaceToDisable := "eth0"
-			if conf.Network.UserMode {
-				ifaceToDisable = network.VmnetIface
-			}
-			values := struct{ Interface string }{Interface: ifaceToDisable}
+			values := struct{ Interfaces []string }{Interfaces: ifaces}
 			dhcpScript, err := util.ParseTemplate(tpl, values)
 			if err != nil {
 				return err
 			}
 
-			l.Networks = append(l.Networks, Network{
-				VNL:        ptpFile,
-				SwitchPort: 65535, // this is fixed
-				Interface:  network.VmnetIface,
-			})
-
-			// disable one of the default routes accordingly
-			// credit: https://github.com/abiosoft/colima/issues/140#issuecomment-1072599309
 			l.Provision = append(l.Provision, Provision{
 				Mode:   ProvisionModeSystem,
 				Script: string(dhcpScript),
 			})
 			return nil
-		}(); err != nil {
-			logrus.Warn(fmt.Errorf("error setting up network: %w", err))
 		}
+
+		ifaces := map[string]string{
+			config.UserModeGateway: "eth0",
+			config.VmnetGateway:    vmnet.NetInterface,
+			config.GVProxyGateway:  gvproxy.NetInterface,
+		}
+		running := map[string]bool{}
+
+		if vmnetEnabled {
+			if err := func() error {
+				ptpFile := vmnet.Info().PTPFile
+				// ensure the ptp file exists
+				if _, err := os.Stat(ptpFile); err != nil {
+					return fmt.Errorf("vmnet ptp socket file not found: %w", err)
+				}
+
+				l.Networks = append(l.Networks, Network{
+					VNL:        ptpFile,
+					SwitchPort: 65535, // this is fixed
+					Interface:  vmnet.NetInterface,
+				})
+
+				running[config.VmnetGateway] = true
+				return nil
+			}(); err != nil {
+				logrus.Warn(fmt.Errorf("error setting up vmnet network: %w", err))
+			}
+		}
+
+		gvProxyEnabled, _ := ctx.Value(network.CtxKey(gvproxy.Name())).(bool)
+		if gvProxyEnabled {
+			if err := func() error {
+				tpl, err := embedded.ReadString("network/gvproxy.sh")
+				if err != nil {
+					return err
+				}
+
+				var values struct{ MacAddress string }
+				values.MacAddress = strings.ToUpper(gvproxy.MacAddress)
+
+				gvproxyScript, err := util.ParseTemplate(tpl, values)
+				if err != nil {
+					return fmt.Errorf("error parsing template for gvproxy script: %w", err)
+				}
+
+				l.Provision = append(l.Provision, Provision{
+					Mode:   ProvisionModeSystem,
+					Script: string(gvproxyScript),
+				})
+
+				running[config.GVProxyGateway] = true
+				return nil
+			}(); err != nil {
+				logrus.Warn(fmt.Errorf("error setting up gvproxy network: %w", err))
+			}
+		}
+
+		var toDisable []string
+		if len(running) > 0 {
+			if conf.Network.Gateway != config.UserModeGateway {
+				toDisable = append(toDisable, ifaces[config.UserModeGateway])
+			}
+			for gateway, enabled := range running {
+				if enabled && conf.Network.Gateway != gateway {
+					toDisable = append(toDisable, ifaces[gateway])
+				}
+			}
+		}
+		if err := disableInterfaceForGateway(toDisable); err != nil {
+			logrus.Warn(fmt.Errorf("error modifying default gateway: %w", err))
+		}
+
 	}
 
 	// disable ports 80 and 443 when k8s is enabled and there is a reachable IP address
 	// to prevent ingress (traefik) from occupying relevant host ports.
-	if networkEnabled && conf.Kubernetes.Enabled && conf.Kubernetes.Ingress {
+	if vmnetEnabled && conf.Kubernetes.Enabled && conf.Kubernetes.Ingress {
 		l.PortForwards = append(l.PortForwards,
 			PortForward{
 				GuestIP:           net.ParseIP("0.0.0.0"),

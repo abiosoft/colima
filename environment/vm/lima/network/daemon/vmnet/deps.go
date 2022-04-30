@@ -1,4 +1,4 @@
-package network
+package vmnet
 
 import (
 	"bytes"
@@ -10,23 +10,14 @@ import (
 
 	"github.com/abiosoft/colima/embedded"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/environment/vm/lima/network/daemon"
 )
 
-type rootfulInstaller struct{ host environment.HostActions }
-
-func (r rootfulInstaller) Installed(file rootfulFile) bool { return file.Installed() }
-func (r rootfulInstaller) Install(file rootfulFile) error  { return file.Install(r.host) }
-
-type rootfulFile interface {
-	Install(host environment.HostActions) error
-	Installed() bool
-}
-
-var _ rootfulFile = sudoerFile{}
+var _ daemon.Dependency = sudoerFile{}
 
 type sudoerFile struct{}
 
-// Installed implements rootfulFile
+// Installed implements Dependency
 func (s sudoerFile) Installed() bool {
 	if _, err := os.Stat(s.path()); err != nil {
 		return false
@@ -64,14 +55,14 @@ func (s sudoerFile) Install(host environment.HostActions) error {
 	return nil
 }
 
-var _ rootfulFile = vmnetFile{}
+var _ daemon.Dependency = vmnetFile{}
 
-const VmnetBinary = "/opt/colima/bin/vde_vmnet"
-const vmnetLibrary = "/opt/colima/lib/libvdeplug.3.dylib"
+const BinaryPath = "/opt/colima/bin/vde_vmnet"
+const LibraryPath = "/opt/colima/lib/libvdeplug.3.dylib"
 
 type vmnetFile struct{}
 
-// Installed implements rootfulFile
+// Installed implements Dependency
 func (v vmnetFile) Installed() bool {
 	for _, bin := range v.bins() {
 		if _, err := os.Stat(bin); err != nil {
@@ -81,10 +72,10 @@ func (v vmnetFile) Installed() bool {
 	return true
 }
 
-func (s vmnetFile) bins() []string {
-	return []string{VmnetBinary, vmnetLibrary}
+func (v vmnetFile) bins() []string {
+	return []string{BinaryPath, LibraryPath}
 }
-func (s vmnetFile) Install(host environment.HostActions) error {
+func (v vmnetFile) Install(host environment.HostActions) error {
 	arch := "x86_64"
 	if runtime.GOARCH != "amd64" {
 		arch = "arm64"
@@ -122,19 +113,22 @@ func (s vmnetFile) Install(host environment.HostActions) error {
 	return nil
 }
 
-var _ rootfulFile = vmnetRunDir{}
+var _ daemon.Dependency = vmnetRunDir{}
 
 type vmnetRunDir struct{}
 
-// Install implements rootfulFile
+// Install implements Dependency
 func (v vmnetRunDir) Install(host environment.HostActions) error {
-	return host.RunInteractive("sudo", "mkdir", "-p", RunDir())
+	return host.RunInteractive("sudo", "mkdir", "-p", runDir())
 }
 
-// Installed implements rootfulFile
+// Installed implements Dependency
 func (v vmnetRunDir) Installed() bool {
-	stat, err := os.Stat(RunDir())
+	stat, err := os.Stat(runDir())
 	return err == nil && stat.IsDir()
 }
 
 const optDir = "/opt/colima"
+
+// runDir is the directory to the rootful daemon run related files. e.g. pid files
+func runDir() string { return filepath.Join(optDir, "run") }

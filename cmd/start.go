@@ -31,7 +31,7 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 	Example: "  colima start\n" +
 		"  colima start --edit\n" +
 		"  colima start --runtime containerd\n" +
-		"  colima start --with-kubernetes\n" +
+		"  colima start --kubernetes\n" +
 		"  colima start --runtime containerd --with-kubernetes\n" +
 		"  colima start --cpu 4 --memory 8 --disk 100\n" +
 		"  colima start --arch aarch64\n" +
@@ -85,6 +85,7 @@ const (
 	defaultMemory            = 2
 	defaultDisk              = 60
 	defaultKubernetesVersion = kubernetes.DefaultVersion
+	defaultGateway           = config.UserModeGateway
 )
 
 var startCmdArgs struct {
@@ -112,8 +113,9 @@ func init() {
 
 	// network
 	if util.MacOS() {
+		gateways := strings.Join([]string{config.UserModeGateway, config.VmnetGateway, config.GVProxyGateway}, ", ")
 		startCmd.Flags().BoolVar(&startCmdArgs.Network.Address, "network-address", true, "assign reachable IP address to the VM")
-		startCmd.Flags().BoolVar(&startCmdArgs.Network.UserMode, "network-user-mode", false, "use Qemu user-mode network for internet, always true if --network-address=false")
+		startCmd.Flags().StringVar(&startCmdArgs.Network.Gateway, "network-gateway", defaultGateway, "network interface to use for internet ("+gateways+"), vmnet requires --network-address=false")
 	}
 
 	// config
@@ -128,10 +130,10 @@ func init() {
 	startCmd.Flags().BoolVarP(&startCmdArgs.ForwardAgent, "ssh-agent", "s", false, "forward SSH agent to the VM")
 
 	// k8s
-	startCmd.Flags().BoolVarP(&startCmdArgs.Kubernetes.Enabled, "kubernetes", "k", false, "start VM with Kubernetes")
-	startCmd.Flags().BoolVar(&startCmdArgs.Flags.LegacyKubernetes, "with-kubernetes", false, "start VM with Kubernetes")
+	startCmd.Flags().BoolVarP(&startCmdArgs.Kubernetes.Enabled, "kubernetes", "k", false, "start with Kubernetes")
+	startCmd.Flags().BoolVar(&startCmdArgs.Flags.LegacyKubernetes, "with-kubernetes", false, "start with Kubernetes")
 	startCmd.Flags().StringVar(&startCmdArgs.Kubernetes.Version, "kubernetes-version", defaultKubernetesVersion, "must match a k3s version https://github.com/k3s-io/k3s/releases")
-	startCmd.Flags().BoolVar(&startCmdArgs.Kubernetes.Ingress, "kubernetes-ingress", false, "enable traefik ingress controller")
+	startCmd.Flags().BoolVar(&startCmdArgs.Kubernetes.Ingress, "kubernetes-ingress", false, "enable Traefik ingress controller")
 	startCmd.Flag("with-kubernetes").Hidden = true
 
 	startCmd.Flags().StringToStringVar(&startCmdArgs.Env, "env", nil, "environment variables for the VM")
@@ -143,7 +145,7 @@ func init() {
 func mountsFromFlag(mounts []string) []config.Mount {
 	mnts := make([]config.Mount, len(mounts))
 	for i, mount := range mounts {
-		str := strings.SplitN(string(mount), ":", 2)
+		str := strings.SplitN(mount, ":", 2)
 		mnts[i] = config.Mount{
 			Location: str[0],
 			Writable: len(str) >= 2 && str[1] == "w",
@@ -225,8 +227,8 @@ func prepareConfig(cmd *cobra.Command) {
 		if !cmd.Flag("network-address").Changed {
 			startCmdArgs.Network.Address = current.Network.Address
 		}
-		if !cmd.Flag("network-user-mode").Changed {
-			startCmdArgs.Network.UserMode = current.Network.UserMode
+		if !cmd.Flag("network-gateway").Changed {
+			startCmdArgs.Network.Gateway = current.Network.Gateway
 		}
 	}
 }

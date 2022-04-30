@@ -12,9 +12,7 @@ func Test_encode_Docker(t *testing.T) {
 	conf := config.Config{
 		Docker: map[string]any{"insecure-registries": []any{"127.0.0.1"}},
 	}
-	type args struct {
-		conf config.Config
-	}
+
 	tests := []struct {
 		name    string
 		args    config.Config

@@ -15,27 +15,28 @@ clone() (
     fi
 )
 
-mkdir -p $DIR_BUILD
-clone https://github.com/lima-vm/vde_vmnet.git $DIR_VMNET
-clone https://github.com/virtualsquare/vde-2.git $DIR_VDE
+mkdir -p "$DIR_BUILD"
+clone https://github.com/lima-vm/vde_vmnet.git "$DIR_VMNET"
+clone https://github.com/virtualsquare/vde-2.git "$DIR_VDE"
 
 move_to_embed_dir() (
-    mkdir -p $EMBED_DIR/vmnet/bin $EMBED_DIR/vmnet/lib
-    cp $PREFIX/bin/vde_vmnet $EMBED_DIR/vmnet/bin
-    cp $PREFIX/lib/libvdeplug.3.dylib $EMBED_DIR/vmnet/lib
-    cd $EMBED_DIR/vmnet && tar cvfz $EMBED_DIR/vmnet_${1}.tar.gz bin/vde_vmnet lib/libvdeplug.3.dylib
-    rm -rf $EMBED_DIR/vmnet
+    mkdir -p "$EMBED_DIR"/vmnet/bin "$EMBED_DIR"/vmnet/lib
+    cp "$PREFIX"/bin/vde_vmnet "$EMBED_DIR"/vmnet/bin
+    cp "$PREFIX"/lib/libvdeplug.3.dylib "$EMBED_DIR"/vmnet/lib
+    cd "$EMBED_DIR"/vmnet && tar cvfz "$EMBED_DIR"/vmnet_"${1}".tar.gz bin/vde_vmnet lib/libvdeplug.3.dylib
+    rm -rf "$EMBED_DIR"/vmnet
     sudo rm -rf /opt/colima
 )
 
 build_x86_64() (
+    # shellcheck disable=SC2030
     export PREFIX=/opt/colima
     sudo rm -rf $PREFIX
     sudo mkdir -p $PREFIX
 
     # vde-2
     (
-        cd $DIR_VDE
+        cd "$DIR_VDE"
         # Dec 12, 2021
         git checkout 74278b9b7cf816f0356181f387012fdeb6d65b52
         autoreconf -fis
@@ -50,7 +51,7 @@ build_x86_64() (
 
     # vde_vmnet
     (
-        cd $DIR_VMNET
+        cd "$DIR_VMNET"
         make PREFIX=$PREFIX
         sudo make PREFIX=$PREFIX install.bin
         # cleanup
@@ -61,9 +62,11 @@ build_x86_64() (
 )
 
 build_arm64() (
+    # shellcheck disable=SC2031
     export PREFIX=/opt/colima
     sudo mkdir -p $PREFIX
 
+    # shellcheck disable=SC2155
     export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
     export CC=$(xcrun --sdk macosx --find clang)
     export CXX=$(xcrun --sdk macosx --find clang++)
@@ -72,7 +75,7 @@ build_arm64() (
 
     # vde-2
     (
-        cd $DIR_VDE
+        cd "$DIR_VDE"
         # Dec 12, 2021
         git checkout 74278b9b7cf816f0356181f387012fdeb6d65b52
         autoreconf -fis
@@ -87,7 +90,7 @@ build_arm64() (
 
     # vde_vmnet
     (
-        cd $DIR_VMNET
+        cd "$DIR_VMNET"
         make PREFIX=$PREFIX ARCH=arm64
         sudo make PREFIX=$PREFIX ARCH=arm64 install.bin
     )
@@ -100,17 +103,17 @@ test_archives() (
     rm -rf $TEMP_DIR
     mkdir -p $TEMP_DIR/x86 $TEMP_DIR/arm
     (
-        cp $EMBED_DIR/vmnet_x86_64.tar.gz $TEMP_DIR/x86
+        cp "$EMBED_DIR"/vmnet_x86_64.tar.gz $TEMP_DIR/x86
         cd $TEMP_DIR/x86 && tar xvfz vmnet_x86_64.tar.gz
     )
     (
-        cp $EMBED_DIR/vmnet_arm64.tar.gz $TEMP_DIR/arm
+        cp "$EMBED_DIR"/vmnet_arm64.tar.gz $TEMP_DIR/arm
         cd $TEMP_DIR/arm && tar xvfz vmnet_arm64.tar.gz
     )
 
     assert_not_equal() (
-        if diff $TEMP_DIR/x86/$1 $TEMP_DIR/arm/$1; then
-            echo $1 is same for both arch
+        if diff $TEMP_DIR/x86/"$1" $TEMP_DIR/arm/"$1"; then
+            echo "$1" is same for both arch
             exit 1
         fi
     )

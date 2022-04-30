@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"strings"
 )
 
 // HomeDir returns the user home directory.
@@ -27,4 +28,27 @@ func SHA256Hash(s string) string {
 // MacOS returns if the current OS is macOS.
 func MacOS() bool {
 	return runtime.GOOS == "darwin"
+}
+
+// AppendToPath appends directory to PATH.
+func AppendToPath(path, dir string) string {
+	if path == "" {
+		return dir
+	}
+	if dir == "" {
+		return path
+	}
+	return dir + ":" + path
+}
+
+// RemoveFromPath removes directory from PATH.
+func RemoveFromPath(path, dir string) string {
+	var envPath []string
+	for _, p := range strings.Split(path, ":") {
+		if strings.TrimSuffix(p, "/") == strings.TrimSuffix(dir, "/") || strings.TrimSpace(p) == "" {
+			continue
+		}
+		envPath = append(envPath, p)
+	}
+	return strings.Join(envPath, ":")
 }
