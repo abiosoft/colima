@@ -19,10 +19,13 @@ func HomeDir() string {
 	return home
 }
 
+type SHA256 [32]byte
+
+func (s SHA256) String() string { return fmt.Sprintf("%x", s) }
+
 // SHA256Hash computes a sha256sum of a string.
-func SHA256Hash(s string) string {
-	sum := sha256.Sum256([]byte(s))
-	return fmt.Sprintf("%x", sum)
+func SHA256Hash(s string) SHA256 {
+	return sha256.Sum256([]byte(s))
 }
 
 // MacOS returns if the current OS is macOS.

@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/abiosoft/colima/environment/vm/lima/network/daemon"
+	"github.com/abiosoft/colima/util"
 	"github.com/containers/gvisor-tap-vsock/pkg/transport"
 	"github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/gvisor-tap-vsock/pkg/virtualnetwork"
@@ -39,7 +40,7 @@ func Info() struct {
 		MacAddress string
 	}{
 		Socket:     Socket(filepath.Join(daemon.Dir(), socketFileName)),
-		MacAddress: MacAddress,
+		MacAddress: MacAddress(),
 	}
 }
 
@@ -71,7 +72,6 @@ const (
 	socketFileName = "gvproxy.sock"
 
 	gatewayMacAddress = "5a:94:ef:e4:0c:dd"
-	MacAddress        = "5a:94:ef:e4:0c:ee"
 
 	deviceIP  = "192.168.107.2"
 	GatewayIP = "192.168.107.1"
@@ -80,6 +80,20 @@ const (
 
 	mtu = 1500
 )
+
+var baseHWAddr = net.HardwareAddr{0x5a, 0x94, 0xef}
+var macAddress net.HardwareAddr
+
+func MacAddress() string {
+	// there is not much concern about the precision of the uniqueness.
+	// this can be revisited
+	if macAddress == nil {
+		sum := util.SHA256Hash(daemon.Dir())
+		macAddress = append(macAddress, baseHWAddr...)
+		macAddress = append(macAddress, sum[0:3]...)
+	}
+	return macAddress.String()
+}
 
 func configuration() types.Configuration {
 	return types.Configuration{
@@ -90,7 +104,7 @@ func configuration() types.Configuration {
 		GatewayIP:         GatewayIP,
 		GatewayMacAddress: gatewayMacAddress,
 		DHCPStaticLeases: map[string]string{
-			deviceIP: MacAddress,
+			deviceIP: MacAddress(),
 		},
 		DNS: []types.Zone{
 			{

@@ -11,6 +11,7 @@ import (
 )
 
 const AppName = "colima"
+const SubprocessProfileEnvVar = "COLIMA_PROFILE"
 
 var profile = ProfileInfo{ID: AppName, DisplayName: AppName, ShortName: "default"}
 

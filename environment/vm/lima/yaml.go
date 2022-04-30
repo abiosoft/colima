@@ -137,7 +137,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 				}
 
 				var values struct{ MacAddress string }
-				values.MacAddress = strings.ToUpper(gvproxy.MacAddress)
+				values.MacAddress = strings.ToUpper(gvproxy.MacAddress())
 
 				gvproxyScript, err := util.ParseTemplate(tpl, values)
 				if err != nil {

@@ -28,6 +28,10 @@ func main() {
 	}
 }
 func qemuWrapper(qemu string) {
+	if profile := os.Getenv(config.SubprocessProfileEnvVar); profile != "" {
+		config.SetProfile(profile)
+	}
+
 	// remove colima wrapper from path
 	binDir := filepath.Join(config.WrapperDir(), "bin")
 	_ = os.Setenv("PATH", util.RemoveFromPath(os.Getenv("PATH"), binDir))

@@ -26,8 +26,9 @@ import (
 // New creates a new virtual machine.
 func New(host environment.HostActions) environment.VM {
 	var envs []string
-	env := limaInstanceEnvVar + "=" + config.Profile().ID
-	envs = append(envs, env)
+	envLimaInstance := limaInstanceEnvVar + "=" + config.Profile().ID
+	envSubprocess := config.SubprocessProfileEnvVar + "=" + config.Profile().ShortName
+	envs = append(envs, envLimaInstance, envSubprocess)
 
 	binDir := filepath.Join(config.WrapperDir(), "bin")
 	envs = append(envs, "PATH="+util.AppendToPath(os.Getenv("PATH"), binDir))
