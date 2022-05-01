@@ -71,8 +71,8 @@ docker: {}
 # NOTE: this is macOS only and ignored on Linux.
 network:
   # Assign reachable IP address to the virtual machine.
-  # Default: true
-  address: true
+  # Default: false
+  address: false
 
   # Network to use as the gateway for internet (slirp, vmnet, gvproxy)
   #

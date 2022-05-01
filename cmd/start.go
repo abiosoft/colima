@@ -114,7 +114,7 @@ func init() {
 	// network
 	if util.MacOS() {
 		gateways := strings.Join([]string{config.UserModeGateway, config.VmnetGateway, config.GVProxyGateway}, ", ")
-		startCmd.Flags().BoolVar(&startCmdArgs.Network.Address, "network-address", true, "assign reachable IP address to the VM")
+		startCmd.Flags().BoolVar(&startCmdArgs.Network.Address, "network-address", false, "assign reachable IP address to the VM")
 		startCmd.Flags().StringVar(&startCmdArgs.Network.Gateway, "network-gateway", defaultGateway, "network interface to use for internet ("+gateways+"), vmnet requires --network-address")
 	}
 
