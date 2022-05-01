@@ -39,11 +39,15 @@ type Dependency interface {
 // Dependencies returns the dependencies for the processes.
 // root returns if root access is required
 func Dependencies(processes ...Process) (deps Dependency, root bool) {
-	// check rootful for help message
+	// check rootful for user info message
 	rootful := false
 	for _, p := range processes {
-		if _, rootful = p.Dependencies(); rootful {
-			break
+		deps, root := p.Dependencies()
+		for _, dep := range deps {
+			if !dep.Installed() && root {
+				rootful = true
+				break
+			}
 		}
 	}
 

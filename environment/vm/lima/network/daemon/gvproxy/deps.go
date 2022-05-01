@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/vm/lima/network/daemon"
@@ -27,7 +25,6 @@ func (q qemuBinsSymlinks) Installed() bool {
 	for _, bin := range qemuBins {
 		bin = filepath.Join(q.dir(), bin)
 		if _, err := os.Stat(bin); err != nil {
-			logrus.Info("error stat: %w", err)
 			return false
 		}
 	}
@@ -64,7 +61,6 @@ func (q qemuShareDirSymlink) dir() string { return filepath.Join(config.WrapperD
 func (q qemuShareDirSymlink) Installed() bool {
 	dir := q.dir()
 	if _, err := os.Stat(dir); err != nil {
-		logrus.Infof("error stat: %v", err)
 		return false
 	}
 	return true

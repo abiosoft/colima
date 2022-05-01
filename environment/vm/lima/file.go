@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -21,6 +22,10 @@ func (l limaVM) Read(fileName string) (string, error) {
 
 func (l *limaVM) Write(fileName, body string) error {
 	var stdin = strings.NewReader(body)
+	dir := filepath.Dir(fileName)
+	if err := l.RunQuiet("sudo", "mkdir", "-p", dir); err != nil {
+		return fmt.Errorf("error creating directory '%s': %w", dir, err)
+	}
 	return l.RunWith(stdin, nil, "sudo", "sh", "-c", "cat > "+fileName)
 }
 

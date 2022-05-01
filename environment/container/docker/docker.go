@@ -60,7 +60,7 @@ func (d dockerRuntime) Provision(ctx context.Context) error {
 	return a.Exec()
 }
 
-func (d dockerRuntime) Start(ctx context.Context) error {
+func (d dockerRuntime) Start(context.Context) error {
 	a := d.Init()
 
 	a.Stage("starting")
@@ -70,7 +70,7 @@ func (d dockerRuntime) Start(ctx context.Context) error {
 	})
 
 	// service startup takes few seconds, retry at most 5 times before giving up.
-	a.Retry("", time.Second*5, 10, func(int) error {
+	a.Retry("", time.Second*5, 12, func(int) error {
 		return d.guest.RunQuiet("sudo", "docker", "info")
 	})
 
@@ -81,7 +81,7 @@ func (d dockerRuntime) Running() bool {
 	return d.guest.RunQuiet("service", "docker", "status") == nil
 }
 
-func (d dockerRuntime) Stop(ctx context.Context) error {
+func (d dockerRuntime) Stop(context.Context) error {
 	a := d.Init()
 	a.Stage("stopping")
 
@@ -100,7 +100,7 @@ func (d dockerRuntime) Stop(ctx context.Context) error {
 	return a.Exec()
 }
 
-func (d dockerRuntime) Teardown(ctx context.Context) error {
+func (d dockerRuntime) Teardown(context.Context) error {
 	a := d.Init()
 	a.Stage("deleting")
 

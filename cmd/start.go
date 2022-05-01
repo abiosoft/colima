@@ -25,14 +25,14 @@ var startCmd = &cobra.Command{
 	Short: "start Colima",
 	Long: `Start Colima with the specified container runtime and optional kubernetes.
 
-Colima can also be configured with a YAML configuration file.
+Colima can also be configured with a YAML file.
 Run 'colima template' to set the default configurations or 'colima start --edit' to customize before startup.
 `,
 	Example: "  colima start\n" +
 		"  colima start --edit\n" +
 		"  colima start --runtime containerd\n" +
 		"  colima start --kubernetes\n" +
-		"  colima start --runtime containerd --with-kubernetes\n" +
+		"  colima start --runtime containerd --kubernetes\n" +
 		"  colima start --cpu 4 --memory 8 --disk 100\n" +
 		"  colima start --arch aarch64\n" +
 		"  colima start --dns 1.1.1.1 --dns 8.8.8.8",
@@ -115,7 +115,7 @@ func init() {
 	if util.MacOS() {
 		gateways := strings.Join([]string{config.UserModeGateway, config.VmnetGateway, config.GVProxyGateway}, ", ")
 		startCmd.Flags().BoolVar(&startCmdArgs.Network.Address, "network-address", true, "assign reachable IP address to the VM")
-		startCmd.Flags().StringVar(&startCmdArgs.Network.Gateway, "network-gateway", defaultGateway, "network interface to use for internet ("+gateways+"), vmnet requires --network-address=false")
+		startCmd.Flags().StringVar(&startCmdArgs.Network.Gateway, "network-gateway", defaultGateway, "network interface to use for internet ("+gateways+"), vmnet requires --network-address")
 	}
 
 	// config

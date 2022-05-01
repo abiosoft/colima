@@ -130,8 +130,10 @@ func (l *limaVM) prepareNetwork(ctx context.Context, conf config.Network) (conte
 			return nil
 		}
 
-		log.Println("network dependencies missing")
+		// if user interaction is not required (i.e. root),
+		// no need for another verbose info.
 		if root {
+			log.Println("network dependencies missing")
 			log.Println("sudo password may be required for setting up network dependencies")
 		}
 		return deps.Install(l.host)
