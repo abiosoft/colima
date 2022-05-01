@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/config/configmanager"
@@ -57,7 +58,9 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 		}
 
 		if app.Active() {
-			log.Println("colima is currently running, shutting down to apply changes")
+			if !cli.Prompt("colima is currently running, restart to apply changes") {
+				return nil
+			}
 			if err := app.Stop(false); err != nil {
 				return fmt.Errorf("error stopping :%w", err)
 			}
