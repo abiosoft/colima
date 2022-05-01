@@ -18,7 +18,7 @@ import (
 
 const (
 	Name           = "kubernetes"
-	DefaultVersion = "v1.23.5+k3s1"
+	DefaultVersion = "v1.23.6+k3s1"
 
 	configKey = "kubernetes_config"
 )
@@ -140,7 +140,7 @@ func (c *kubernetesRuntime) Provision(ctx context.Context) error {
 	return a.Exec()
 }
 
-func (c kubernetesRuntime) Start(ctx context.Context) error {
+func (c kubernetesRuntime) Start(context.Context) error {
 	log := c.Logger()
 	a := c.Init()
 	if c.Running() {
@@ -164,7 +164,7 @@ func (c kubernetesRuntime) Start(ctx context.Context) error {
 	return c.provisionKubeconfig()
 }
 
-func (c kubernetesRuntime) Stop(ctx context.Context) error {
+func (c kubernetesRuntime) Stop(context.Context) error {
 	a := c.Init()
 	a.Stage("stopping")
 	a.Add(func() error {
@@ -242,7 +242,7 @@ func (c kubernetesRuntime) runningContainerIDs() string {
 	return strings.ReplaceAll(ids, "\n", " ")
 }
 
-func (c kubernetesRuntime) Teardown(ctx context.Context) error {
+func (c kubernetesRuntime) Teardown(context.Context) error {
 	a := c.Init()
 	a.Stage("deleting")
 
@@ -259,9 +259,6 @@ func (c kubernetesRuntime) Teardown(ctx context.Context) error {
 	})
 
 	c.teardownKubeconfig(a)
-	a.Add(func() error {
-		return c.guest.Set(kubeconfigKey, "")
-	})
 
 	return a.Exec()
 }
