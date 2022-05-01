@@ -21,7 +21,7 @@ func HomeDir() string {
 
 type SHA256 [32]byte
 
-func (s SHA256) String() string { return fmt.Sprintf("%x", s) }
+func (s SHA256) String() string { return fmt.Sprintf("%x", s[:]) }
 
 // SHA256Hash computes a sha256sum of a string.
 func SHA256Hash(s string) SHA256 {
