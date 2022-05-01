@@ -99,13 +99,48 @@ jobs:
         run: colima stop
 
       - name: Kubernetes
-        run: colima start --runtime docker --with-kubernetes
+        run: colima start --runtime docker --kubernetes
 
       - name: Delay
         run: sleep 20
 
       - name: Validate Kubernetes
         run: kubectl cluster-info && kubectl version && kubectl get nodes -o wide
+
+      - name: Teardown
+        run: colima delete -f
+
+  docker-aarch64:
+    runs-on: macos-11
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.18
+
+      - name: Install CLI deps
+        run: |
+          brew install kubectl docker coreutils lima
+
+      - name: Build and Install
+        run: make && sudo make install
+
+      - name: Start Colima
+        run: colima start --runtime docker --arch aarch64
+
+      - name: Delay
+        run: sleep 5
+
+      - name: Validate Docker
+        run: docker ps && docker info
+
+      - name: Build Image
+        run: docker build integration
+
+      - name: Stop
+        run: colima stop
 
       - name: Teardown
         run: colima delete -f
@@ -143,13 +178,48 @@ jobs:
         run: colima stop
 
       - name: Kubernetes
-        run: colima start --runtime containerd --with-kubernetes
+        run: colima start --runtime containerd --kubernetes
 
       - name: Delay
         run: sleep 20
 
       - name: Validate Kubernetes
         run: kubectl cluster-info && kubectl version && kubectl get nodes -o wide
+
+      - name: Teardown
+        run: colima delete -f
+
+  containerd-aarch64:
+    runs-on: macos-11
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.18
+
+      - name: Install CLI deps
+        run: |
+          brew install kubectl docker coreutils lima
+
+      - name: Build and Install
+        run: make && sudo make install
+
+      - name: Start Colima
+        run: colima start --runtime containerd --arch aarch64
+
+      - name: Delay
+        run: sleep 5
+
+      - name: Validate Containerd
+        run: colima nerdctl ps && colima nerdctl info
+
+      - name: Build Image
+        run: colima nerdctl -- build integration
+
+      - name: Stop
+        run: colima stop
 
       - name: Teardown
         run: colima delete -f
