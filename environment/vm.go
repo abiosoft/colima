@@ -19,13 +19,18 @@ const (
 	ContainerRuntimeKey = "runtime"
 )
 
-// Arch is the VM architecture.
+// Arch is the CPU architecture of the VM.
 type Arch string
 
 const (
 	X8664   Arch = "x86_64"
 	AARCH64 Arch = "aarch64"
 )
+
+// HostArch returns the host CPU architecture.
+func HostArch() Arch {
+	return Arch(runtime.GOARCH)
+}
 
 // GoArch returns the GOARCH equivalent value for the architecture.
 func (a Arch) GoArch() string {
