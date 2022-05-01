@@ -88,15 +88,15 @@ type Kubernetes struct {
 }
 
 const (
-	UserModeGateway = "slirp"
-	VmnetGateway    = "vmnet"
-	GVProxyGateway  = "gvproxy"
+	UserModeDriver = "slirp"
+	VmnetDriver    = "vmnet"
+	GVProxyDriver  = "gvproxy"
 )
 
 // Network is VM network configuration
 type Network struct {
 	Address bool   `yaml:"address"`
-	Gateway string `yaml:"gateway"`
+	Driver  string `yaml:"driver"`
 }
 
 // Mount is volume mount

@@ -122,7 +122,7 @@ func (l *limaVM) prepareNetwork(ctx context.Context, conf config.Network) (conte
 		if conf.Address {
 			ctx = context.WithValue(ctx, ctxKeyVmnet, true)
 		}
-		if conf.Gateway == config.GVProxyGateway {
+		if conf.Driver == config.GVProxyDriver {
 			ctx = context.WithValue(ctx, ctxKeyGVProxy, true)
 		}
 		deps, root := l.network.Dependencies(ctx)
@@ -133,8 +133,8 @@ func (l *limaVM) prepareNetwork(ctx context.Context, conf config.Network) (conte
 		// if user interaction is not required (i.e. root),
 		// no need for another verbose info.
 		if root {
-			log.Println("network dependencies missing")
-			log.Println("sudo password may be required for setting up network dependencies")
+			log.Println("dependencies missing for setting up reachable IP address")
+			log.Println("sudo password may be required")
 		}
 		return deps.Install(l.host)
 	})
@@ -145,7 +145,7 @@ func (l *limaVM) prepareNetwork(ctx context.Context, conf config.Network) (conte
 
 	// delay to ensure that the vmnet is running
 	statusKey := "networkStatus"
-	if conf.Address || conf.Gateway == config.VmnetGateway {
+	if conf.Address || conf.Driver == config.VmnetDriver {
 		a.Retry("", time.Second*3, 5, func(i int) error {
 			s, err := l.network.Running(ctx)
 			ctx = context.WithValue(ctx, statusKey, s)
@@ -288,10 +288,10 @@ func (l *limaVM) applyDNS(ctx context.Context, a *cli.ActiveCommandChain, conf c
 		if enabled, _ := ctx.Value(network.CtxKey(vmnet.Name())).(bool); enabled && len(dnses) == 0 {
 			dnses = append(dnses, net.ParseIP(vmnet.NetGateway))
 		}
-		switch conf.Network.Gateway {
-		case config.VmnetGateway:
+		switch conf.Network.Driver {
+		case config.VmnetDriver:
 			dnses = append(dnses, net.ParseIP(vmnet.NetGateway))
-		case config.GVProxyGateway:
+		case config.GVProxyDriver:
 			dnses = append(dnses, net.ParseIP(gvproxy.GatewayIP))
 		}
 

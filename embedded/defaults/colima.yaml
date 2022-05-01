@@ -74,15 +74,15 @@ network:
   # Default: false
   address: false
 
-  # Network to use as the gateway for internet (slirp, vmnet, gvproxy)
+  # Network to use as the default route (slirp, vmnet, gvproxy)
   #
-  # slirp: the default user-mode network for Qemu. It is the fastest of the options.
-  # vmnet: more stable than slirp under heavy network use but has slower uploads
-  # and incompatible with some VPN connections. It also requires setting `address` to true.
-  # gvproxy: slower downloads but faster uploads than slirp and overall more stable.
+  # slirp:   the default user-mode network for Qemu.
+  # vmnet:   more stable than slirp under heavy network use but uploads are noticeably slower
+  #          and incompatible with some VPN connections.
+  # gvproxy: slower downloads but faster uploads than slirp and appears to be more stable.
   #
   # Default: slirp
-  gateway: slirp
+  driver: slirp
 
 # The CPU type for the virtual machine.
 # Options available for host emulation can be checked with: `qemu-system-$(arch) -cpu help`.

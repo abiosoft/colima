@@ -85,7 +85,7 @@ const (
 	defaultMemory            = 2
 	defaultDisk              = 60
 	defaultKubernetesVersion = kubernetes.DefaultVersion
-	defaultGateway           = config.UserModeGateway
+	defaultDriver            = config.UserModeDriver
 )
 
 var startCmdArgs struct {
@@ -113,9 +113,9 @@ func init() {
 
 	// network
 	if util.MacOS() {
-		gateways := strings.Join([]string{config.UserModeGateway, config.VmnetGateway, config.GVProxyGateway}, ", ")
+		drivers := strings.Join([]string{config.UserModeDriver, config.VmnetDriver, config.GVProxyDriver}, ", ")
 		startCmd.Flags().BoolVar(&startCmdArgs.Network.Address, "network-address", false, "assign reachable IP address to the VM")
-		startCmd.Flags().StringVar(&startCmdArgs.Network.Gateway, "network-gateway", defaultGateway, "network interface to use for internet ("+gateways+"), vmnet requires --network-address")
+		startCmd.Flags().StringVar(&startCmdArgs.Network.Driver, "network-driver", defaultDriver, "network driver ("+drivers+"), vmnet implies --network-address=true")
 	}
 
 	// config
@@ -227,8 +227,8 @@ func prepareConfig(cmd *cobra.Command) {
 		if !cmd.Flag("network-address").Changed {
 			startCmdArgs.Network.Address = current.Network.Address
 		}
-		if !cmd.Flag("network-gateway").Changed {
-			startCmdArgs.Network.Gateway = current.Network.Gateway
+		if !cmd.Flag("network-driver").Changed {
+			startCmdArgs.Network.Driver = current.Network.Driver
 		}
 	}
 }

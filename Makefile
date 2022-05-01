@@ -18,6 +18,7 @@ gopath:
 
 fmt:
 	go fmt ./...
+	goimports -w .
 
 build:
 	GOOS=$(GOOS) GOARCH=$(GOARCH) OS=$(OS) ARCH=$(ARCH) sh scripts/build.sh

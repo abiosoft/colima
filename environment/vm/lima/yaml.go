@@ -101,9 +101,9 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		}
 
 		ifaces := map[string]string{
-			config.UserModeGateway: "eth0",
-			config.VmnetGateway:    vmnet.NetInterface,
-			config.GVProxyGateway:  gvproxy.NetInterface,
+			config.UserModeDriver: "eth0",
+			config.VmnetDriver:    vmnet.NetInterface,
+			config.GVProxyDriver:  gvproxy.NetInterface,
 		}
 		running := map[string]bool{}
 
@@ -121,7 +121,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 					Interface:  vmnet.NetInterface,
 				})
 
-				running[config.VmnetGateway] = true
+				running[config.VmnetDriver] = true
 				return nil
 			}(); err != nil {
 				logrus.Warn(fmt.Errorf("error setting up vmnet network: %w", err))
@@ -149,7 +149,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 					Script: string(gvproxyScript),
 				})
 
-				running[config.GVProxyGateway] = true
+				running[config.GVProxyDriver] = true
 				return nil
 			}(); err != nil {
 				logrus.Warn(fmt.Errorf("error setting up gvproxy network: %w", err))
@@ -158,11 +158,11 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 
 		var toDisable []string
 		if len(running) > 0 {
-			if conf.Network.Gateway != config.UserModeGateway {
-				toDisable = append(toDisable, ifaces[config.UserModeGateway])
+			if conf.Network.Driver != config.UserModeDriver {
+				toDisable = append(toDisable, ifaces[config.UserModeDriver])
 			}
 			for gateway, enabled := range running {
-				if enabled && conf.Network.Gateway != gateway {
+				if enabled && conf.Network.Driver != gateway {
 					toDisable = append(toDisable, ifaces[gateway])
 				}
 			}
