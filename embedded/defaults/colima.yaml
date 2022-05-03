@@ -128,5 +128,5 @@ mounts: []
 #   KEY: value
 #   ANOTHER_KEY: another value
 #
-# Default: []
+# Default: {}
 env: {}
