@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -15,24 +14,9 @@ func New(name string) CommandChain {
 	}
 }
 
-// Context is CommandChain context.
-type Context interface {
-	context.Context
-	SetContext(context.Context)
-}
-
-var _ Context = (*cCtx)(nil)
-
-type cCtx struct {
-	context.Context
-}
-
-func (c *cCtx) SetContext(ctx context.Context) { c.Context = ctx }
-
 type cFunc struct {
-	f  func() error
-	fc func(Context) error
-	s  string
+	f func() error
+	s string
 }
 
 // CommandChain is a chain of commands.
@@ -76,11 +60,6 @@ func (a *ActiveCommandChain) Add(f func() error) {
 	a.funcs = append(a.funcs, cFunc{f: f})
 }
 
-// Add adds a new function to the runner.
-func (a *ActiveCommandChain) AddCtx(f func(Context) error) {
-	a.funcs = append(a.funcs, cFunc{fc: f})
-}
-
 // Stage sets the current stage of the runner.
 func (a *ActiveCommandChain) Stage(s string) {
 	a.funcs = append(a.funcs, cFunc{s: s})
@@ -96,9 +75,8 @@ func (a *ActiveCommandChain) Stagef(format string, s ...interface{}) {
 // The first errored function terminates the chain and the
 // error is returned. Otherwise, returns nil.
 func (a ActiveCommandChain) Exec() error {
-	ctx := &cCtx{context.Background()}
 	for _, f := range a.funcs {
-		if f.f == nil && f.fc == nil {
+		if f.f == nil {
 			if f.s != "" {
 				a.log.Println(f.s, "...")
 				a.lastStage = f.s
@@ -106,18 +84,9 @@ func (a ActiveCommandChain) Exec() error {
 			continue
 		}
 
-		var err error
-		if f.f != nil {
-			err = f.f()
-			if err == nil {
-				continue
-			}
-		}
-		if f.fc != nil {
-			err = f.fc(ctx)
-			if err == nil {
-				continue
-			}
+		err := f.f()
+		if err == nil {
+			continue
 		}
 
 		if a.lastStage == "" {
@@ -130,10 +99,11 @@ func (a ActiveCommandChain) Exec() error {
 
 // Retry retries `f` up to `count` times at interval.
 // If after `count` attempts there is an error, the command chain is terminated with the final error.
-func (a *ActiveCommandChain) Retry(stage string, interval time.Duration, count int, f func() error) {
+// retryCount starts from 1.
+func (a *ActiveCommandChain) Retry(stage string, interval time.Duration, count int, f func(retryCount int) error) {
 	a.Add(func() (err error) {
 		var i int
-		for err = f(); i < count && err != nil; i, err = i+1, f() {
+		for err = f(i + 1); i < count && err != nil; i, err = i+1, f(i+1) {
 			if stage != "" {
 				a.log.Println(stage, "...")
 			}

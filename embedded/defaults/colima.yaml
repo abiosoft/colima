@@ -1,0 +1,132 @@
+# Number of CPUs to be allocated to the virtual machine.
+# Default: 2
+cpu: 2
+
+# Size of the disk in GiB to be allocated to the virtual machine.
+# NOTE: changing this has no effect after the virtual machine has been created.
+# Default: 60
+disk: 60
+
+# Size of the memory in GiB to be allocated to the virtual machine.
+# Default: 2
+memory: 2
+
+# Architecture of the virtual machine (x86_64, aarch64, host).
+# Default: host
+arch: host
+
+# Container runtime to be used (docker, containerd).
+# Default: docker
+runtime: docker
+
+# Kubernetes configuration for the virtual machine.
+kubernetes:
+  # Enable kubernetes.
+  # Default: false
+  enabled: false
+
+  # Kubernetes version to use.
+  # This needs to exactly match a k3s version https://github.com/k3s-io/k3s/releases
+  # Default: latest stable release
+  version: v1.23.4+k3s1
+
+  # Enable the traefik ingress controller
+  # Default: false
+  ingress: false
+
+# ===================================================================== #
+# ADVANCED CONFIGURATION
+# ===================================================================== #
+
+# Network configuration for the virtual machine.
+# NOTE: this is currently macOS only and ignored on Linux.
+network:
+  # Assign reachable IP address to the virtual machine.
+  # Default: false
+  address: false
+
+  # Network to use as the default route (slirp, vmnet, gvproxy)
+  #
+  # slirp:   the default user-mode network for Qemu.
+  # vmnet:   more stable than slirp under heavy network use but uploads are noticeably slower
+  #          and also incompatible with some VPN connections.
+  # gvproxy: an alternative to slirp based on gVisor network stack, faster than vmnet.
+  #
+  # Default: gvproxy
+  driver: gvproxy
+
+# Custom DNS nameservers for the virtual machine.
+#
+# EXAMPLE
+# dns:
+#   - 1.1.1.1
+#   - 8.8.8.8
+#
+# Default: []
+dns: []
+
+# Docker daemon configuration that maps directly to daemon.json.
+# https://docs.docker.com/engine/reference/commandline/dockerd/#daemon-configuration-file.
+# NOTE: some settings may affect Colima's ability to start docker. e.g. `hosts`.
+#
+# EXAMPLE - disable buildkit
+# docker:
+#   features:
+#     buildkit: false
+#
+# EXAMPLE - add insecure registries
+# docker:
+#   insecure-registries:
+#     - myregistry.com:5000
+#     - host.docker.internal:5000
+#
+# Colima default behaviour: buildkit enabled
+# Default: {}
+docker: {}
+
+# The CPU type for the virtual machine.
+# Options available for host emulation can be checked with: `qemu-system-$(arch) -cpu help`.
+# Instructions are also supported by appending to the cpu type e.g. "qemu64,+ssse3".
+# Default: host
+cpuType: host
+
+# Forward the host's SSH agent to the virtual machine.
+# Default: false
+forwardAgent: false
+
+# Volume mount driver for the virtual machine (sshfs, 9p).
+#
+# 9p is more POSIX compliant and generally handles file permissions better.
+# However, it does not properly resolve symlinks (that are created on host)
+# on the mounted drives.
+#
+# sshfs is faster than 9p but less reliable when there are lots
+# of concurrent reads or writes.
+#
+# Default: 9p
+mountType: 9p
+
+# Configure volume mounts for the virtual machine.
+# Colima mounts user's home directory by default to provide a familiar
+# user experience.
+#
+# EXAMPLE
+# mounts:
+#   - location: ~/secrets
+#     writable: false
+#   - location: ~/projects
+#     writable: true
+#
+# Colima default behaviour: $HOME and /tmp/colima are mounted as writable.
+# Default: []
+mounts: []
+
+# Environment variables for the virtual machine.
+#
+# EXAMPLE
+# env:
+#   KEY: value
+#   ANOTHER_KEY: another value
+#
+# Default: {}
+env: {}

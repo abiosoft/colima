@@ -1,6 +1,7 @@
 package containerd
 
 import (
+	"context"
 	"time"
 
 	"github.com/abiosoft/colima/cli"
@@ -38,12 +39,12 @@ func (c containerdRuntime) Name() string {
 	return Name
 }
 
-func (c containerdRuntime) Provision() error {
+func (c containerdRuntime) Provision(ctx context.Context) error {
 	// already provisioned as part of Lima
 	return nil
 }
 
-func (c containerdRuntime) Start() error {
+func (c containerdRuntime) Start(ctx context.Context) error {
 	a := c.Init()
 
 	a.Stage("starting")
@@ -55,7 +56,7 @@ func (c containerdRuntime) Start() error {
 	})
 
 	// service startup takes few seconds, retry at most 10 times before giving up.
-	a.Retry("waiting for startup to complete", time.Second*5, 10, func() error {
+	a.Retry("", time.Second*5, 10, func(int) error {
 		return c.guest.RunQuiet("sudo", "nerdctl", "info")
 	})
 
@@ -66,7 +67,7 @@ func (c containerdRuntime) Running() bool {
 	return c.guest.RunQuiet("service", "containerd", "status") == nil
 }
 
-func (c containerdRuntime) Stop() error {
+func (c containerdRuntime) Stop(ctx context.Context) error {
 	a := c.Init()
 	a.Stage("stopping")
 	a.Add(func() error {
@@ -75,7 +76,7 @@ func (c containerdRuntime) Stop() error {
 	return a.Exec()
 }
 
-func (c containerdRuntime) Teardown() error {
+func (c containerdRuntime) Teardown(ctx context.Context) error {
 	// teardown not needed, will be part of VM teardown
 	return nil
 }

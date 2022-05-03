@@ -3,19 +3,19 @@ package kubernetes
 import (
 	"fmt"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/environment/vm/lima"
 )
 
-const kubeconfigKey = "kubeconfig"
+const masterAddressKey = "master_address"
 
 func (c kubernetesRuntime) provisionKubeconfig() error {
-	provisioned, _ := strconv.ParseBool(c.guest.Get(kubeconfigKey))
-	if provisioned {
+	ip := lima.IPAddress(config.Profile().ID)
+	if ip == c.guest.Get(masterAddressKey) {
 		return nil
 	}
 
@@ -45,7 +45,7 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 
 	// manipulate in VM and save to host
 	a.Add(func() error {
-		kubeconfig, err := c.guest.RunOutput("cat", "/etc/rancher/k3s/k3s.yaml")
+		kubeconfig, err := c.guest.Read("/etc/rancher/k3s/k3s.yaml")
 		if err != nil {
 			return fmt.Errorf("error fetching kubeconfig on guest: %w", err)
 		}
@@ -101,7 +101,7 @@ func (c kubernetesRuntime) provisionKubeconfig() error {
 
 	// save settings
 	a.Add(func() error {
-		return c.guest.Set(kubeconfigKey, "true")
+		return c.guest.Set(masterAddressKey, ip)
 	})
 
 	return a.Exec()
@@ -123,4 +123,7 @@ func (c kubernetesRuntime) unsetKubeconfig(a *cli.ActiveCommandChain) {
 func (c kubernetesRuntime) teardownKubeconfig(a *cli.ActiveCommandChain) {
 	a.Stage("reverting config")
 	c.unsetKubeconfig(a)
+	a.Add(func() error {
+		return c.guest.Set(masterAddressKey, "")
+	})
 }

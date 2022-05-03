@@ -15,13 +15,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.17
-
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v2
-        with:
-            version: v1.43.0
-            args: --timeout 3m0s
+          go-version: 1.18
 
       - name: Build
         run: go build -v ./...
@@ -39,7 +33,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.17
+          go-version: 1.18
 
       - name: generate macOS binaries
         run: |

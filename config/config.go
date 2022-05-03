@@ -2,19 +2,18 @@ package config
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"path/filepath"
-	"sync"
+	"strings"
 
-	"github.com/abiosoft/colima/util/yamlutil"
-	"gopkg.in/yaml.v3"
+	"github.com/abiosoft/colima/util"
 )
 
 const AppName = "colima"
+const SubprocessProfileEnvVar = "COLIMA_PROFILE"
 
-var profile = ProfileInfo{ID: AppName, DisplayName: AppName, ShortName: AppName}
+var profile = ProfileInfo{ID: AppName, DisplayName: AppName, ShortName: "default"}
 
 // SetProfile sets the profile name for the application.
 // This is an avenue to test Colima without breaking an existing stable setup.
@@ -55,133 +54,78 @@ var (
 	revision   = "unknown"
 )
 
-// requiredDir is a directory that must exist on the filesystem
-type requiredDir struct {
-	once sync.Once
-	// dir is a func to enable deferring the value of the directory
-	// until execution time.
-	// if dir() returns an error, a fatal error is triggered.
-	dir func() (string, error)
-}
-
-// Dir returns the directory path.
-// It ensures the directory is created on the filesystem by calling
-// `mkdir` prior to returning the directory path.
-func (r *requiredDir) Dir() string {
-	dir, err := r.dir()
-	if err != nil {
-		log.Fatal(fmt.Errorf("cannot fetch required directory: %w", err))
-	}
-
-	r.once.Do(func() {
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			log.Fatal(fmt.Errorf("cannot make required directory: %w", err))
-		}
-	})
-
-	return dir
-}
-
-var (
-	configDir requiredDir = requiredDir{
-		dir: func() (string, error) {
-			dir, err := os.UserHomeDir()
-			if err != nil {
-				return "", err
-			}
-			return filepath.Join(dir, "."+profile.ID), nil
-		},
-	}
-
-	cacheDir requiredDir = requiredDir{
-		dir: func() (string, error) {
-			dir, err := os.UserCacheDir()
-			if err != nil {
-				return "", err
-			}
-			return filepath.Join(dir, profile.ID), nil
-		},
-	}
-)
-
-// Dir returns the configuration directory.
-func Dir() string { return configDir.Dir() }
-
-// CacheDir returns the cache directory.
-func CacheDir() string { return cacheDir.Dir() }
-
-const configFileName = "colima.yaml"
-
-func configFile() string { return filepath.Join(configDir.Dir(), configFileName) }
-
-// Save saves the config.
-func Save(c Config) error {
-	return yamlutil.WriteYAML(c, configFile())
-}
-
-// Load loads the config.
-// Error is only returned if the config file exists but could not be loaded.
-// No error is returned if the config file does not exist.
-func Load() (Config, error) {
-	if _, err := os.Stat(configFile()); err != nil {
-		// config file does not exist
-		return Config{}, nil
-	}
-	var c Config
-	b, err := os.ReadFile(configFile())
-	if err != nil {
-		return c, fmt.Errorf("could not load previous settings: %w", err)
-	}
-
-	err = yaml.Unmarshal(b, &c)
-	if err != nil {
-		return c, fmt.Errorf("could not load previous settings: %w", err)
-	}
-	return c, nil
-}
-
-// Teardown deletes the config.
-func Teardown() error {
-	if _, err := os.Stat(configDir.Dir()); err == nil {
-		return os.RemoveAll(configDir.Dir())
-	}
-	return nil
-}
-
 // Config is the application config.
 type Config struct {
-	// Virtual Machine
-	VM VM `yaml:"vm"`
+	CPU          int               `yaml:"cpu,omitempty"`
+	Disk         int               `yaml:"disk,omitempty"`
+	Memory       int               `yaml:"memory,omitempty"`
+	Arch         string            `yaml:"arch,omitempty"`
+	CPUType      string            `yaml:"cpuType,omitempty"`
+	ForwardAgent bool              `yaml:"forwardAgent,omitempty"`
+	Network      Network           `yaml:"network,omitempty"`
+	DNS          []net.IP          `yaml:"dns,omitempty"` // DNS nameservers
+	Env          map[string]string `yaml:"env,omitempty"` // environment variables
+
+	// volume mounts
+	Mounts    []Mount `yaml:"mounts,omitempty"`
+	MountType string  `yaml:"mountType,omitempty"`
 
 	// Runtime is one of docker, containerd.
-	Runtime string `yaml:"runtime"`
+	Runtime string `yaml:"runtime,omitempty"`
 
-	// Kubernetes sets if kubernetes should be enabled.
-	Kubernetes Kubernetes `yaml:"kubernetes"`
+	// Kubernetes configuration
+	Kubernetes Kubernetes `yaml:"kubernetes,omitempty"`
+
+	// Docker configuration
+	Docker map[string]any `yaml:"docker,omitempty"`
 }
 
 // Kubernetes is kubernetes configuration
 type Kubernetes struct {
 	Enabled bool   `yaml:"enabled"`
 	Version string `yaml:"version"`
+	Ingress bool   `yaml:"ingress"`
 }
 
-// VM is virtual machine configuration.
-type VM struct {
-	CPU    int    `yaml:"cpu"`
-	Disk   int    `yaml:"disk"`
-	Memory int    `yaml:"memory"`
-	Arch   string `yaml:"arch"`
+const (
+	UserModeDriver = "slirp"
+	VmnetDriver    = "vmnet"
+	GVProxyDriver  = "gvproxy"
+)
 
-	ForwardAgent bool `yaml:"forward_agent"`
+// Network is VM network configuration
+type Network struct {
+	Address bool   `yaml:"address"`
+	Driver  string `yaml:"driver"`
+}
 
-	// volume mounts
-	Mounts []string `yaml:"mounts"`
+// Mount is volume mount
+type Mount struct {
+	Location string `yaml:"location"`
+	Writable bool   `yaml:"writable"`
+}
 
-	// do not persist. i.e. discarded on VM shutdown
-	DNS []net.IP          `yaml:"-"` // DNS nameservers
-	Env map[string]string `yaml:"-"` // environment variables
+// CleanPath returns the absolute path to the mount location.
+func (m Mount) CleanPath() (string, error) {
+	split := strings.SplitN(m.Location, ":", 2)
+	str := os.ExpandEnv(split[0])
+
+	if strings.HasPrefix(str, "~") {
+		str = strings.Replace(str, "~", util.HomeDir(), 1)
+	}
+
+	str = filepath.Clean(str)
+	if !filepath.IsAbs(str) {
+		return "", fmt.Errorf("relative paths not supported for mount '%s'", m.Location)
+	}
+
+	return strings.TrimSuffix(str, "/") + "/", nil
 }
 
 // Empty checks if the configuration is empty.
 func (c Config) Empty() bool { return c.Runtime == "" } // this may be better but not really needed.
+
+// CtxKey returns the context key for config.
+func CtxKey() any {
+	return struct{ name string }{name: "colima_config"}
+}

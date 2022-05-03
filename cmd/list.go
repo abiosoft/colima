@@ -43,20 +43,21 @@ A new instance can be created during 'colima start' by specifying the '--profile
 		}
 
 		w := tabwriter.NewWriter(cmd.OutOrStdout(), 4, 8, 4, ' ', 0)
-		fmt.Fprintln(w, "PROFILE\tSTATUS\tARCH\tCPUS\tMEMORY\tDISK\tADDRESS")
+		_, _ = fmt.Fprintln(w, "PROFILE\tSTATUS\tARCH\tCPUS\tMEMORY\tDISK\tRUNTIME\tADDRESS")
 
 		if len(instances) == 0 {
 			logrus.Warn("No instance found. Run `colima start` to create an instance.")
 		}
 
 		for _, inst := range instances {
-			fmt.Fprintf(w, "%s\t%s\t%s\t%d\t%s\t%s\t%s\n",
+			_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%d\t%s\t%s\t%s\t%s\n",
 				inst.Name,
 				inst.Status,
 				inst.Arch,
 				inst.CPU,
 				units.BytesSize(float64(inst.Memory)),
 				units.BytesSize(float64(inst.Disk)),
+				inst.Runtime,
 				inst.IPAddress,
 			)
 		}

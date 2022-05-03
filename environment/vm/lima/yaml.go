@@ -6,35 +6,51 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
+
+	"github.com/abiosoft/colima/environment/vm/lima/network"
+	"github.com/abiosoft/colima/environment/vm/lima/network/daemon/gvproxy"
+	"github.com/abiosoft/colima/environment/vm/lima/network/daemon/vmnet"
 
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/embedded"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/docker"
-	"github.com/abiosoft/colima/environment/vm/lima/network"
 	"github.com/abiosoft/colima/util"
 	"github.com/sirupsen/logrus"
 )
 
 func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
-	l.Arch = environment.Arch(conf.VM.Arch).Value()
+	l.Arch = environment.Arch(conf.Arch).Value()
+
+	if conf.CPUType != "" && conf.CPUType != "host" {
+		l.CPUType = map[environment.Arch]string{
+			l.Arch: conf.CPUType,
+		}
+	}
 
 	l.Images = append(l.Images,
-		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.3.4-1/alpine-lima-clm-3.14.3-aarch64.iso", Digest: "sha512:363baa91e4087dfd04ec5eebadcb29b9aef45c2663642f951105b3989e93143ce45f94ba9101c01c5db46c3fc6b601340b39baad29b1a48bb4f735790048daaa"},
-		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.3.4-1/alpine-lima-clm-3.14.3-x86_64.iso", Digest: "sha512:cd7ad0ef76088ea3d9f428e70fcddcbbcc72999568aaee0de953052299a01df251454fa5db3a0fdcfa70896bd152bc5d92f9ad81d682f3ec44cfbd2149ae3856"},
+		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.4.0-2/alpine-lima-clm-3.15.4-aarch64.iso", Digest: "sha512:8e4c9df702f15af9a19677bb5823b9c2176377e68acbe93e35c0f66f21329f859a05448e3a79f1215d8d05c769b2b5c8a0b1ccc4b652c23bc2941af68ddbb7f5"},
+		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.4.0-2/alpine-lima-clm-3.15.4-x86_64.iso", Digest: "sha512:9945346f8efac79bdb5d01995504f03fed922eb24b4e26c258cccc4284ba0c57c3869ccb029e4b36cb2d077cd586ffb7717f9813850b0e13e6a15d460e1e7190"},
 	)
 
-	l.CPUs = conf.VM.CPU
-	l.Memory = fmt.Sprintf("%dGiB", conf.VM.Memory)
-	l.Disk = fmt.Sprintf("%dGiB", conf.VM.Disk)
-
-	l.SSH = SSH{LocalPort: 0, LoadDotSSHPubKeys: false, ForwardAgent: conf.VM.ForwardAgent}
+	if conf.CPU > 0 {
+		l.CPUs = &conf.CPU
+	}
+	if conf.Memory > 0 {
+		l.Memory = fmt.Sprintf("%dGiB", conf.Memory)
+	}
+	if conf.Disk > 0 {
+		l.Disk = fmt.Sprintf("%dGiB", conf.Disk)
+	}
+	if conf.ForwardAgent {
+		l.SSH = SSH{LocalPort: 0, LoadDotSSHPubKeys: false, ForwardAgent: conf.ForwardAgent}
+	}
 	l.Containerd = Containerd{System: false, User: false}
 	l.Firmware.LegacyBIOS = false
 
-	l.DNS = conf.VM.DNS
+	l.DNS = conf.DNS
+
 	// always use host resolver to generate Lima's default resolv.conf file
 	// colima will override this in VM when custom DNS is set
 	l.HostResolver.Enabled = true
@@ -42,10 +58,15 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		"host.docker.internal": "host.lima.internal",
 	}
 
-	l.Env = map[string]string{}
-	for k, v := range conf.VM.Env {
-		l.Env[k] = v
-	}
+	l.Env = conf.Env
+
+	// perform mounts in fstab.
+	// required for 9p (lima >=v0.10.0)
+	// idempotent for sshfs (lima <v0.10.0)
+	l.Provision = append(l.Provision, Provision{
+		Mode:   ProvisionModeSystem,
+		Script: "mkmntdirs && mount -a",
+	})
 
 	// add user to docker group
 	// "sudo", "usermod", "-aG", "docker", user
@@ -54,38 +75,123 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		Script: `sudo usermod -aG docker $USER`,
 	})
 
-	// networking on Lima is limited to macOS
-	networkEnabled, _ := ctx.Value(ctxKeyNetwork).(bool)
-	if runtime.GOOS == "darwin" && networkEnabled {
-		// only set network settings if vmnet startup is successful
-		if err := func() error {
-			ptpFile, err := network.PTPFile()
-			if err != nil {
-				return err
-			}
-			// ensure the ptp file exists
-			if _, err := os.Stat(ptpFile); err != nil {
-				return err
-			}
-			dhcpScript, err := embedded.ReadString("network/dhcp.sh")
+	// network is currently limited to macOS
+	vmnetEnabled, _ := ctx.Value(network.CtxKey(vmnet.Name())).(bool)
+	// only set network settings if vmnet startup is successful
+	if util.MacOS() {
+		// disable one of the default routes
+		// credit: https://github.com/abiosoft/colima/issues/140#issuecomment-1072599309
+		disableInterfaceForGateway := func(ifaces []string) error {
+			tpl, err := embedded.ReadString("network/dhcp.sh")
 			if err != nil {
 				return err
 			}
 
-			l.Networks = append(l.Networks, Network{
-				VNL:        ptpFile,
-				SwitchPort: 65535, // this is fixed
-			})
+			values := struct{ Interfaces []string }{Interfaces: ifaces}
+			dhcpScript, err := util.ParseTemplate(tpl, values)
+			if err != nil {
+				return err
+			}
 
-			// credit: https://github.com/abiosoft/colima/issues/140#issuecomment-1072599309
 			l.Provision = append(l.Provision, Provision{
 				Mode:   ProvisionModeSystem,
-				Script: dhcpScript,
+				Script: string(dhcpScript),
 			})
 			return nil
-		}(); err != nil {
-			logrus.Warn(fmt.Errorf("error setting up network: %w", err))
 		}
+
+		ifaces := map[string]string{
+			config.UserModeDriver: "eth0",
+			config.VmnetDriver:    vmnet.NetInterface,
+			config.GVProxyDriver:  gvproxy.NetInterface,
+		}
+		running := map[string]bool{}
+
+		if vmnetEnabled {
+			if err := func() error {
+				ptpFile := vmnet.Info().PTPFile
+				// ensure the ptp file exists
+				if _, err := os.Stat(ptpFile); err != nil {
+					return fmt.Errorf("vmnet ptp socket file not found: %w", err)
+				}
+
+				l.Networks = append(l.Networks, Network{
+					VNL:        ptpFile,
+					SwitchPort: 65535, // this is fixed
+					Interface:  vmnet.NetInterface,
+				})
+
+				running[config.VmnetDriver] = true
+				return nil
+			}(); err != nil {
+				logrus.Warn(fmt.Errorf("error setting up vmnet network: %w", err))
+			}
+		}
+
+		gvProxyEnabled, _ := ctx.Value(network.CtxKey(gvproxy.Name())).(bool)
+		if gvProxyEnabled {
+			if err := func() error {
+				tpl, err := embedded.ReadString("network/gvproxy.sh")
+				if err != nil {
+					return err
+				}
+
+				var values struct{ MacAddress string }
+				values.MacAddress = strings.ToUpper(gvproxy.MacAddress())
+
+				gvproxyScript, err := util.ParseTemplate(tpl, values)
+				if err != nil {
+					return fmt.Errorf("error parsing template for gvproxy script: %w", err)
+				}
+
+				l.Provision = append(l.Provision, Provision{
+					Mode:   ProvisionModeSystem,
+					Script: string(gvproxyScript),
+				})
+
+				running[config.GVProxyDriver] = true
+				return nil
+			}(); err != nil {
+				logrus.Warn(fmt.Errorf("error setting up gvproxy network: %w", err))
+			}
+		}
+
+		var toDisable []string
+		if len(running) > 0 {
+			if conf.Network.Driver != config.UserModeDriver {
+				toDisable = append(toDisable, ifaces[config.UserModeDriver])
+			}
+			for gateway, enabled := range running {
+				if enabled && conf.Network.Driver != gateway {
+					toDisable = append(toDisable, ifaces[gateway])
+				}
+			}
+		}
+		if err := disableInterfaceForGateway(toDisable); err != nil {
+			logrus.Warn(fmt.Errorf("error modifying default gateway: %w", err))
+		}
+
+	}
+
+	// disable ports 80 and 443 when k8s is enabled and there is a reachable IP address
+	// to prevent ingress (traefik) from occupying relevant host ports.
+	if vmnetEnabled && conf.Kubernetes.Enabled && conf.Kubernetes.Ingress {
+		l.PortForwards = append(l.PortForwards,
+			PortForward{
+				GuestIP:           net.ParseIP("0.0.0.0"),
+				GuestPort:         80,
+				GuestIPMustBeZero: true,
+				Ignore:            true,
+				Proto:             TCP,
+			},
+			PortForward{
+				GuestIP:           net.ParseIP("0.0.0.0"),
+				GuestPort:         443,
+				GuestIPMustBeZero: true,
+				Ignore:            true,
+				Proto:             TCP,
+			},
+		)
 	}
 
 	// port forwarding
@@ -124,14 +230,21 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		)
 	}
 
-	if len(conf.VM.Mounts) == 0 {
+	switch strings.ToLower(conf.MountType) {
+	case "ssh", "sshfs", "reversessh", "reverse-ssh", "reversesshfs", REVSSHFS:
+		l.MountType = REVSSHFS
+	default:
+		l.MountType = NINEP
+	}
+
+	if len(conf.Mounts) == 0 {
 		l.Mounts = append(l.Mounts,
 			Mount{Location: "~", Writable: true},
 			Mount{Location: filepath.Join("/tmp", config.Profile().ID), Writable: true},
 		)
 	} else {
 		// overlapping mounts are problematic in Lima https://github.com/lima-vm/lima/issues/302
-		if err = checkOverlappingMounts(conf.VM.Mounts); err != nil {
+		if err = checkOverlappingMounts(conf.Mounts); err != nil {
 			err = fmt.Errorf("overlapping mounts not supported: %w", err)
 			return
 		}
@@ -139,14 +252,21 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		l.Mounts = append(l.Mounts, Mount{Location: config.CacheDir(), Writable: false})
 		cacheOverlapFound := false
 
-		for _, v := range conf.VM.Mounts {
-			m := volumeMount(v)
+		for _, m := range conf.Mounts {
 			var location string
-			location, err = m.Path()
+			location, err = m.CleanPath()
 			if err != nil {
 				return
 			}
-			l.Mounts = append(l.Mounts, Mount{Location: location, Writable: m.Writable()})
+
+			mount := Mount{Location: location, Writable: m.Writable}
+
+			// use passthrough for readonly 9p mounts
+			if conf.MountType == NINEP && !m.Writable {
+				mount.NineP.SecurityModel = "passthrough"
+			}
+
+			l.Mounts = append(l.Mounts, mount)
 
 			// check if cache directory has been mounted by other mounts, and remove cache directory from mounts
 			if strings.HasPrefix(config.CacheDir(), location) && !cacheOverlapFound {
@@ -159,15 +279,18 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	return
 }
 
+type Arch = environment.Arch
+
 // Config is lima config. Code copied from lima and modified.
 type Config struct {
-	Arch         environment.Arch  `yaml:"arch,omitempty"`
+	Arch         Arch              `yaml:"arch,omitempty"`
 	Images       []File            `yaml:"images"`
-	CPUs         int               `yaml:"cpus,omitempty"`
+	CPUs         *int              `yaml:"cpus,omitempty"`
 	Memory       string            `yaml:"memory,omitempty"`
 	Disk         string            `yaml:"disk,omitempty"`
 	Mounts       []Mount           `yaml:"mounts,omitempty"`
-	SSH          SSH               `yaml:"ssh"`
+	MountType    MountType         `yaml:"mountType,omitempty" json:"mountType,omitempty"`
+	SSH          SSH               `yaml:"ssh,omitempty"`
 	Containerd   Containerd        `yaml:"containerd"`
 	Env          map[string]string `yaml:"env,omitempty"`
 	DNS          []net.IP          `yaml:"-"` // will be handled manually by colima
@@ -176,17 +299,19 @@ type Config struct {
 	PortForwards []PortForward     `yaml:"portForwards,omitempty"`
 	Networks     []Network         `yaml:"networks,omitempty"`
 	Provision    []Provision       `yaml:"provision,omitempty" json:"provision,omitempty"`
+	CPUType      map[Arch]string   `yaml:"cpuType,omitempty" json:"cpuType,omitempty"`
 }
 
 type File struct {
-	Location string           `yaml:"location"` // REQUIRED
-	Arch     environment.Arch `yaml:"arch,omitempty"`
-	Digest   string           `yaml:"digest,omitempty"`
+	Location string `yaml:"location"` // REQUIRED
+	Arch     Arch   `yaml:"arch,omitempty"`
+	Digest   string `yaml:"digest,omitempty"`
 }
 
 type Mount struct {
 	Location string `yaml:"location"` // REQUIRED
 	Writable bool   `yaml:"writable"`
+	NineP    NineP  `yaml:"9p,omitempty" json:"9p,omitempty"`
 }
 
 type SSH struct {
@@ -210,8 +335,13 @@ type Firmware struct {
 
 type Proto = string
 
+type MountType = string
+
 const (
 	TCP Proto = "tcp"
+
+	REVSSHFS MountType = "reverse-sshfs"
+	NINEP    MountType = "9p"
 )
 
 type PortForward struct {
@@ -239,6 +369,7 @@ type Network struct {
 	// On macOS, only VDE2-compatible form (optionally with vde:// prefix) is supported.
 	VNL        string `yaml:"vnl,omitempty" json:"vnl,omitempty"`
 	SwitchPort uint16 `yaml:"switchPort,omitempty" json:"switchPort,omitempty"` // VDE Switch port, not TCP/UDP port (only used by VDE networking)
+	Interface  string `yaml:"interface,omitempty" json:"interface,omitempty"`
 }
 
 type ProvisionMode = string
@@ -253,38 +384,22 @@ type Provision struct {
 	Script string        `yaml:"script" json:"script"`
 }
 
-type volumeMount string
-
-func (v volumeMount) Writable() bool {
-	str := strings.SplitN(string(v), ":", 2)
-	return len(str) >= 2 && str[1] == "w"
+type NineP struct {
+	SecurityModel   string `yaml:"securityModel,omitempty" json:"securityModel,omitempty"`
+	ProtocolVersion string `yaml:"protocolVersion,omitempty" json:"protocolVersion,omitempty"`
+	Msize           string `yaml:"msize,omitempty" json:"msize,omitempty"`
+	Cache           string `yaml:"cache,omitempty" json:"cache,omitempty"`
 }
 
-func (v volumeMount) Path() (string, error) {
-	split := strings.SplitN(string(v), ":", 2)
-	str := os.ExpandEnv(split[0])
-
-	if strings.HasPrefix(str, "~") {
-		str = strings.Replace(str, "~", util.HomeDir(), 1)
-	}
-
-	str = filepath.Clean(str)
-	if !filepath.IsAbs(str) {
-		return "", fmt.Errorf("relative paths not supported for mount '%s'", string(v))
-	}
-
-	return strings.TrimSuffix(str, "/") + "/", nil
-}
-
-func checkOverlappingMounts(mounts []string) error {
+func checkOverlappingMounts(mounts []config.Mount) error {
 	for i := 0; i < len(mounts)-1; i++ {
 		for j := i + 1; j < len(mounts); j++ {
-			a, err := volumeMount(mounts[i]).Path()
+			a, err := mounts[i].CleanPath()
 			if err != nil {
 				return err
 			}
 
-			b, err := volumeMount(mounts[j]).Path()
+			b, err := mounts[j].CleanPath()
 			if err != nil {
 				return err
 			}

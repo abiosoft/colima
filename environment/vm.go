@@ -1,30 +1,36 @@
 package environment
 
-import "runtime"
+import (
+	"context"
+	"runtime"
+)
 
 // VM is virtual machine.
 type VM interface {
 	GuestActions
 	Dependencies
 	Host() HostActions
-	Teardown() error
+	Teardown(ctx context.Context) error
 }
 
 // VM configurations
 const (
 	// ContainerRuntimeKey is the settings key for container runtime.
 	ContainerRuntimeKey = "runtime"
-	// KubernetesVersionKey is the settings key for kubernetes version.
-	KubernetesVersionKey = "kubernetes_version"
 )
 
-// Arch is the VM architecture.
+// Arch is the CPU architecture of the VM.
 type Arch string
 
 const (
 	X8664   Arch = "x86_64"
 	AARCH64 Arch = "aarch64"
 )
+
+// HostArch returns the host CPU architecture.
+func HostArch() Arch {
+	return Arch(runtime.GOARCH)
+}
 
 // GoArch returns the GOARCH equivalent value for the architecture.
 func (a Arch) GoArch() string {
@@ -50,5 +56,5 @@ func (a Arch) Value() Arch {
 		return AARCH64
 	}
 
-	return "default"
+	return Arch(runtime.GOARCH).Value()
 }

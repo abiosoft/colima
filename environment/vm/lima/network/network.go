@@ -1,117 +1,132 @@
 package network
 
 import (
+	"context"
 	"fmt"
 	"os"
-	"path/filepath"
-	"strings"
 
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/environment/vm/lima/network/daemon"
+	"github.com/abiosoft/colima/environment/vm/lima/network/daemon/gvproxy"
+	"github.com/abiosoft/colima/environment/vm/lima/network/daemon/vmnet"
 )
 
-var requiredInstalls = []rootfulFile{
-	sudoerFile{},
-	vmnetFile{},
-	colimaVmnetFile{},
+// Manager handles networking between the host and the vm.
+type Manager interface {
+	Start(context.Context) error
+	Stop(context.Context) error
+	Running(ctx context.Context) (Status, error)
+	Dependencies(ctx context.Context) (deps daemon.Dependency, root bool)
 }
 
-// NetworkManager handles networking between the host and the vm.
-type NetworkManager interface {
-	DependenciesInstalled() bool
-	InstallDependencies() error
-	Start() error
-	Stop() error
-	Running() (bool, error)
+type Status struct {
+	// Parent process
+	Running bool
+	// Subprocesses
+	Processes []processStatus
+}
+type processStatus struct {
+	Name    string
+	Running bool
+	Error   error
 }
 
 // NewManager creates a new network manager.
-func NewManager(host environment.HostActions) NetworkManager {
+func NewManager(host environment.HostActions) Manager {
 	return &limaNetworkManager{
-		host:      host,
-		launchd:   launchdManager{host},
-		installer: rootfulInstaller{host},
+		host: host,
 	}
 }
 
-var _ NetworkManager = (*limaNetworkManager)(nil)
+func CtxKey(s string) any { return struct{ key string }{key: s} }
+
+var _ Manager = (*limaNetworkManager)(nil)
 
 type limaNetworkManager struct {
-	host      environment.HostActions
-	launchd   launchdManager
-	installer rootfulInstaller
+	host environment.HostActions
 }
 
-func (l limaNetworkManager) DependenciesInstalled() bool {
-	for _, f := range requiredInstalls {
-		if !l.installer.Installed(f) {
-			return false
-		}
-	}
-	return true
+func (l limaNetworkManager) Dependencies(ctx context.Context) (deps daemon.Dependency, root bool) {
+	processes := processesFromCtx(ctx)
+	return daemon.Dependencies(processes...)
 }
 
-func (l limaNetworkManager) InstallDependencies() error {
-	for _, f := range requiredInstalls {
-		if l.installer.Installed(f) {
-			continue
-		}
-
-		if err := l.installer.Install(f); err != nil {
-			return err
-		}
+func (l limaNetworkManager) init() error {
+	// dependencies for network
+	if err := os.MkdirAll(daemon.Dir(), 0755); err != nil {
+		return fmt.Errorf("error preparing vmnet: %w", err)
 	}
 	return nil
 }
 
-func (l limaNetworkManager) Start() error {
-	if l.launchd.Running() {
-		_ = l.launchd.Kill()
-	}
-	return l.launchd.Start()
-}
-func (l limaNetworkManager) Stop() error {
-	if l.launchd.Running() {
-		if err := l.launchd.Kill(); err != nil {
-			return err
-		}
-	}
-	return l.launchd.Delete()
-}
-
-func (l limaNetworkManager) Running() (bool, error) {
-	// validate that the vmnet socket and pid are created
-	ptpFile, err := PTPFile()
+func (l limaNetworkManager) Running(ctx context.Context) (s Status, err error) {
+	err = l.host.RunQuiet(os.Args[0], "daemon", "status", config.Profile().ShortName)
 	if err != nil {
-		return false, err
+		return
 	}
-	ptpSocket := strings.TrimSuffix(ptpFile, ".ptp") + ".pid"
-	if _, err := l.host.Stat(ptpFile); err != nil {
-		return false, err
+	s.Running = true
+
+	for _, process := range processesFromCtx(ctx) {
+		pErr := process.Alive(ctx)
+		s.Processes = append(s.Processes, processStatus{
+			Name:    process.Name(),
+			Running: pErr == nil,
+			Error:   pErr,
+		})
 	}
-	if _, err := l.host.Stat(ptpSocket); err != nil {
-		return false, err
-	}
-	return true, nil
+	return
 }
 
-const vmnetFileName = "vmnet"
+func (l limaNetworkManager) Start(ctx context.Context) error {
+	_ = l.Stop(ctx) // this is safe, nothing is done when not running
 
-// PTPFile returns path to the ptp socket file.
-func PTPFile() (string, error) {
-	dir, err := Dir()
-	if err != nil {
-		return dir, err
+	if err := l.init(); err != nil {
+		return fmt.Errorf("error preparing network directory: %w", err)
 	}
 
-	return filepath.Join(dir, vmnetFileName+".ptp"), nil
+	args := []string{os.Args[0], "daemon", "start", config.Profile().ShortName}
+	opts := optsFromCtx(ctx)
+	if opts.Vmnet {
+		args = append(args, "--vmnet")
+	}
+	if opts.GVProxy {
+		args = append(args, "--gvproxy")
+	}
+
+	return l.host.RunQuiet(args...)
+}
+func (l limaNetworkManager) Stop(ctx context.Context) error {
+	if s, err := l.Running(ctx); err != nil || !s.Running {
+		return nil
+	}
+	return l.host.RunQuiet(os.Args[0], "daemon", "stop", config.Profile().ShortName)
 }
 
-// Dir is the network configuration directory.
-func Dir() (string, error) {
-	dir := filepath.Join(config.Dir(), "network")
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return "", fmt.Errorf("error creating network directory: %w", err)
+func optsFromCtx(ctx context.Context) struct {
+	Vmnet   bool
+	GVProxy bool
+} {
+	var opts = struct {
+		Vmnet   bool
+		GVProxy bool
+	}{}
+	opts.Vmnet, _ = ctx.Value(CtxKey(vmnet.Name())).(bool)
+	opts.GVProxy, _ = ctx.Value(CtxKey(gvproxy.Name())).(bool)
+
+	return opts
+}
+
+func processesFromCtx(ctx context.Context) []daemon.Process {
+	var processes []daemon.Process
+
+	opts := optsFromCtx(ctx)
+	if opts.Vmnet {
+		processes = append(processes, vmnet.New())
 	}
-	return dir, nil
+	if opts.GVProxy {
+		processes = append(processes, gvproxy.New())
+	}
+
+	return processes
 }

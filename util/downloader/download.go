@@ -1,13 +1,14 @@
 package downloader
 
 import (
-	"crypto/sha256"
 	"fmt"
-	"github.com/abiosoft/colima/config"
-	"github.com/abiosoft/colima/environment"
-	"github.com/abiosoft/colima/util/terminal"
 	"os"
 	"path/filepath"
+
+	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/util"
+	"github.com/abiosoft/colima/util/terminal"
 )
 
 // Download downloads file at url and saves it in the destination.
@@ -36,7 +37,7 @@ type downloader struct {
 }
 
 func (d downloader) cacheFileName(url string) string {
-	return filepath.Join(config.CacheDir(), "caches", sha256Hash(url))
+	return filepath.Join(config.CacheDir(), "caches", util.SHA256Hash(url).String())
 }
 
 func (d downloader) cacheDownloadingFileName(url string) string {
@@ -71,9 +72,4 @@ func (d downloader) downloadFile(url string) (err error) {
 func (d downloader) hasCache(url string) bool {
 	_, err := os.Stat(d.cacheFileName(url))
 	return err == nil
-}
-
-func sha256Hash(s string) string {
-	sum := sha256.Sum256([]byte(s))
-	return fmt.Sprintf("%x", sum)
 }

@@ -5,11 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net"
 	"os"
 	"path/filepath"
-	"runtime"
-	"strconv"
 	"time"
+
+	"github.com/abiosoft/colima/environment/vm/lima/network/daemon/gvproxy"
+	"github.com/abiosoft/colima/environment/vm/lima/network/daemon/vmnet"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
@@ -22,7 +25,13 @@ import (
 
 // New creates a new virtual machine.
 func New(host environment.HostActions) environment.VM {
-	env := limaInstanceEnvVar + "=" + config.Profile().ID
+	var envs []string
+	envLimaInstance := limaInstanceEnvVar + "=" + config.Profile().ID
+	envSubprocess := config.SubprocessProfileEnvVar + "=" + config.Profile().ShortName
+	envs = append(envs, envLimaInstance, envSubprocess)
+
+	binDir := filepath.Join(config.WrapperDir(), "bin")
+	envs = append(envs, "PATH="+util.AppendToPath(os.Getenv("PATH"), binDir))
 
 	home, err := limaHome()
 	if err != nil {
@@ -34,7 +43,7 @@ func New(host environment.HostActions) environment.VM {
 
 	// consider making this truly flexible to support other VMs
 	return &limaVM{
-		host:         host.WithEnv(env),
+		host:         host.WithEnv(envs...),
 		home:         home,
 		CommandChain: cli.New("vm"),
 		network:      network.NewManager(host),
@@ -86,7 +95,7 @@ type limaVM struct {
 	home string
 
 	// network between host and the vm
-	network network.NetworkManager
+	network network.Manager
 }
 
 func (l limaVM) Dependencies() []string {
@@ -95,13 +104,14 @@ func (l limaVM) Dependencies() []string {
 	}
 }
 
-var ctxKeyNetwork = struct{ name string }{name: "network"}
-
-func (l limaVM) prepareNetwork(ctx cli.Context) error {
+func (l *limaVM) prepareNetwork(ctx context.Context, conf config.Network) (context.Context, error) {
 	// limited to macOS for now
-	if runtime.GOOS != "darwin" {
-		return nil
+	if !util.MacOS() {
+		return ctx, nil
 	}
+
+	ctxKeyVmnet := network.CtxKey(vmnet.Name())
+	ctxKeyGVProxy := network.CtxKey(gvproxy.Name())
 
 	// use a nested chain for convenience
 	a := l.Init()
@@ -109,51 +119,96 @@ func (l limaVM) prepareNetwork(ctx cli.Context) error {
 
 	a.Stage("preparing network")
 	a.Add(func() error {
-		if !l.network.DependenciesInstalled() {
-			log.Println("network dependencies missing")
-			log.Println("sudo password may be required for setting up network dependencies")
-			return l.network.InstallDependencies()
+		if conf.Address {
+			ctx = context.WithValue(ctx, ctxKeyVmnet, true)
 		}
-		return nil
-	})
-	a.Add(l.network.Start)
+		if conf.Driver == config.GVProxyDriver {
+			ctx = context.WithValue(ctx, ctxKeyGVProxy, true)
+		}
+		deps, root := l.network.Dependencies(ctx)
+		if deps.Installed() {
+			return nil
+		}
 
-	// delay to ensure that the network is running
-	a.Retry("", time.Second*1, 15, func() error {
-		ok, err := l.network.Running()
-		if err != nil {
-			return err
+		// if user interaction is not required (i.e. root),
+		// no need for another verbose info.
+		if root {
+			log.Println("dependencies missing for setting up reachable IP address")
+			log.Println("sudo password may be required")
 		}
-		if !ok {
-			return fmt.Errorf("network process is not running")
-		}
-		return err
+		return deps.Install(l.host)
 	})
+
+	a.Add(func() error {
+		return l.network.Start(ctx)
+	})
+
+	// delay to ensure that the vmnet is running
+	statusKey := "networkStatus"
+	if conf.Address || conf.Driver == config.VmnetDriver {
+		a.Retry("", time.Second*3, 5, func(i int) error {
+			s, err := l.network.Running(ctx)
+			ctx = context.WithValue(ctx, statusKey, s)
+			if err != nil {
+				return err
+			}
+			if !s.Running {
+				return fmt.Errorf("network process is not running")
+			}
+			for _, p := range s.Processes {
+				if !p.Running {
+					return p.Error
+				}
+			}
+			return nil
+		})
+	}
 
 	// network failure is not fatal
 	if err := a.Exec(); err != nil {
-		log.Warnln(fmt.Errorf("error starting network: %w", err))
-	} else {
-		ctx.SetContext(context.WithValue(ctx, ctxKeyNetwork, true))
+		func() {
+			status, ok := ctx.Value(statusKey).(network.Status)
+			if !ok {
+				return
+			}
+			if !status.Running {
+				log.Warnln(fmt.Errorf("error starting network: %w", err))
+				return
+			}
+
+			for _, p := range status.Processes {
+				if !p.Running {
+					ctx = context.WithValue(ctx, network.CtxKey(p.Name), false)
+					log.Warnln(fmt.Errorf("error starting %s: %w", p.Name, err))
+				}
+			}
+		}()
 	}
 
-	return nil
+	// preserve gvproxy context
+	if gvproxyEnabled, _ := ctx.Value(network.CtxKey(gvproxy.Name())).(bool); gvproxyEnabled {
+		l.host = l.host.WithEnv(gvproxy.SubProcessEnvVar + "=1")
+	}
+
+	return ctx, nil
 }
 
-func (l *limaVM) Start(conf config.Config) error {
+func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 	a := l.Init()
 
 	if l.Created() {
-		return l.resume(conf)
+		return l.resume(ctx, conf)
 	}
 
-	a.AddCtx(l.prepareNetwork)
-	// l.prepareNetwork()
+	a.Add(func() (err error) {
+		ctx, err = l.prepareNetwork(ctx, conf.Network)
+		return err
+	})
 
 	a.Stage("creating and starting")
 	configFile := filepath.Join(os.TempDir(), config.Profile().ID+".yaml")
 
-	a.AddCtx(func(ctx cli.Context) error {
+	a.Add(func() error {
 		limaConf, err := newConf(ctx, conf)
 		if err != nil {
 			return err
@@ -171,7 +226,7 @@ func (l *limaVM) Start(conf config.Config) error {
 	a.Add(l.copyCerts)
 
 	// dns
-	l.applyDNS(a, conf)
+	l.applyDNS(ctx, a, conf)
 
 	// adding it to command chain to execute only after successful startup.
 	a.Add(func() error {
@@ -182,7 +237,7 @@ func (l *limaVM) Start(conf config.Config) error {
 	return a.Exec()
 }
 
-func (l limaVM) resume(conf config.Config) error {
+func (l limaVM) resume(ctx context.Context, conf config.Config) error {
 	log := l.Logger()
 	a := l.Init()
 
@@ -191,11 +246,14 @@ func (l limaVM) resume(conf config.Config) error {
 		return nil
 	}
 
-	a.AddCtx(l.prepareNetwork)
+	a.Add(func() (err error) {
+		ctx, err = l.prepareNetwork(ctx, conf.Network)
+		return err
+	})
 
 	configFile := filepath.Join(l.limaConfDir(), "lima.yaml")
 
-	a.AddCtx(func(ctx cli.Context) error {
+	a.Add(func() error {
 		limaConf, err := newConf(ctx, conf)
 		if err != nil {
 			return err
@@ -211,55 +269,42 @@ func (l limaVM) resume(conf config.Config) error {
 	// registry certs
 	a.Add(l.copyCerts)
 
-	l.applyDNS(a, conf)
+	l.applyDNS(ctx, a, conf)
 
 	return a.Exec()
 }
 
-func (l limaVM) applyDNS(a *cli.ActiveCommandChain, conf config.Config) {
-	// manually set the DNS by modifying the resolve file.
-	//
+func (l *limaVM) applyDNS(ctx context.Context, a *cli.ActiveCommandChain, conf config.Config) {
 	// Lima's DNS settings is fixed at VM create and cannot be changed afterwards.
 	// this is a better approach as it only applies on VM startup and gets reset at shutdown.
-	// this is specific to Alpine , may be different for other distros.
 	log := l.Logger()
-	dnsFile := "/etc/resolv.conf"
-	dnsFileBak := dnsFile + ".lima"
 
+	dns := network.NewDNSManager(l)
 	a.Add(func() error {
-		// backup the original dns file (if not previously done)
-		if l.RunQuiet("stat", dnsFileBak) != nil {
-			err := l.RunQuiet("sudo", "cp", dnsFile, dnsFileBak)
-			if err != nil {
-				// custom DNS config failure should not prevent the VM from starting
-				// as the default config will be used.
-				// Rather, warn and terminate setting the DNS config.
-				log.Warnln(fmt.Errorf("error backing up default DNS config: %w", err))
-				return nil
-			}
+		var dnses []net.IP
+		dnses = append(dnses, conf.DNS...)
+
+		// check if network is enabled
+		if enabled, _ := ctx.Value(network.CtxKey(vmnet.Name())).(bool); enabled && len(dnses) == 0 {
+			dnses = append(dnses, net.ParseIP(vmnet.NetGateway))
+		}
+		switch conf.Network.Driver {
+		case config.VmnetDriver:
+			dnses = append(dnses, net.ParseIP(vmnet.NetGateway))
+		case config.GVProxyDriver:
+			dnses = append(dnses, net.ParseIP(gvproxy.GatewayIP))
+		}
+
+		// custom DNS config failure should not prevent the VM from starting
+		// as the default config will be used.
+		// Rather, warn and terminate setting the DNS config.
+		if err := dns.Provision(dnses); err != nil {
+			log.Warnln(fmt.Errorf("error provisioning dns, will fall back to defaults: %w", err))
+		}
+		if err := dns.Start(); err != nil {
+			log.Warnln(fmt.Errorf("error starting dns, will fall back to defaults: %w", err))
 		}
 		return nil
-	})
-
-	a.Add(func() error {
-		// empty the file
-		if err := l.RunQuiet("sudo", "rm", "-f", dnsFile); err != nil {
-			return fmt.Errorf("error initiating DNS config: %w", err)
-		}
-
-		for _, dns := range conf.VM.DNS {
-			line := fmt.Sprintf(`echo nameserver %s >> %s`, dns.String(), dnsFile)
-			if err := l.RunQuiet("sudo", "sh", "-c", line); err != nil {
-				return fmt.Errorf("error applying DNS config: %w", err)
-			}
-		}
-
-		if len(conf.VM.DNS) > 0 {
-			return nil
-		}
-
-		// use the default Lima dns if no dns is set
-		return l.RunQuiet("sudo", "sh", "-c", fmt.Sprintf("cat %s >> %s", dnsFileBak, dnsFile))
 	})
 }
 
@@ -267,7 +312,7 @@ func (l limaVM) Running() bool {
 	return l.RunQuiet("uname") == nil
 }
 
-func (l limaVM) Stop(force bool) error {
+func (l limaVM) Stop(ctx context.Context, force bool) error {
 	log := l.Logger()
 	a := l.Init()
 	if !l.Running() {
@@ -277,6 +322,12 @@ func (l limaVM) Stop(force bool) error {
 
 	a.Stage("stopping")
 
+	if util.MacOS() {
+		a.Retry("", time.Second*1, 10, func(retryCount int) error {
+			return l.network.Stop(ctx)
+		})
+	}
+
 	a.Add(func() error {
 		if force {
 			return l.host.Run(limactl, "stop", "--force", config.Profile().ID)
@@ -284,38 +335,40 @@ func (l limaVM) Stop(force bool) error {
 		return l.host.Run(limactl, "stop", config.Profile().ID)
 	})
 
-	a.Add(l.network.Stop)
-
 	return a.Exec()
 }
 
-func (l limaVM) Teardown() error {
+func (l limaVM) Teardown(ctx context.Context) error {
 	a := l.Init()
 
 	a.Stage("deleting")
+
+	if util.MacOS() {
+		a.Retry("", time.Second*1, 10, func(retryCount int) error {
+			return l.network.Stop(ctx)
+		})
+	}
 
 	a.Add(func() error {
 		return l.host.Run(limactl, "delete", "--force", config.Profile().ID)
 	})
 
-	a.Add(l.network.Stop)
-
 	return a.Exec()
 }
 
-func (l limaVM) Restart() error {
+func (l limaVM) Restart(ctx context.Context) error {
 	if l.conf.Empty() {
 		return fmt.Errorf("cannot restart, VM not previously started")
 	}
 
-	if err := l.Stop(false); err != nil {
+	if err := l.Stop(ctx, false); err != nil {
 		return err
 	}
 
 	// minor delay to prevent possible race condition.
 	time.Sleep(time.Second * 2)
 
-	if err := l.Start(l.conf); err != nil {
+	if err := l.Start(ctx, l.conf); err != nil {
 		return err
 	}
 
@@ -341,6 +394,18 @@ func (l limaVM) RunInteractive(args ...string) error {
 
 	a.Add(func() error {
 		return l.host.RunInteractive(args...)
+	})
+
+	return a.Exec()
+}
+
+func (l limaVM) RunWith(stdin io.Reader, stdout io.Writer, args ...string) error {
+	args = append([]string{lima}, args...)
+
+	a := l.Init()
+
+	a.Add(func() error {
+		return l.host.RunWith(stdin, stdout, args...)
 	})
 
 	return a.Exec()
@@ -393,7 +458,7 @@ const configFile = "/etc/colima/colima.json"
 
 func (l limaVM) getConf() map[string]string {
 	obj := map[string]string{}
-	b, err := l.RunOutput("cat", configFile)
+	b, err := l.Read(configFile)
 	if err != nil {
 		return obj
 	}
@@ -423,7 +488,8 @@ func (l limaVM) Set(key, value string) error {
 	if err := l.Run("sudo", "mkdir", "-p", filepath.Dir(configFile)); err != nil {
 		return fmt.Errorf("error saving settings: %w", err)
 	}
-	if err := l.Run("sudo", "sh", "-c", fmt.Sprintf(`echo %s > %s`, strconv.Quote(string(b)), configFile)); err != nil {
+
+	if err := l.Write(configFile, string(b)); err != nil {
 		return fmt.Errorf("error saving settings: %w", err)
 	}
 

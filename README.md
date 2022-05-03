@@ -41,7 +41,7 @@ brew install --HEAD colima
 
 ### Upgrading
 
-If upgrading from v0.2.2 or lower, it is required to start afresh by deleting existing instance.
+If upgrading from v0.3.4 or lower, it is required to start afresh by deleting existing instance.
 
 ```sh
 colima delete # delete existing instance
@@ -61,6 +61,12 @@ For more usage options
 ```
 colima --help
 colima start --help
+```
+
+Or use a config file
+
+```
+colima start --edit
 ```
 
 ## Runtimes
@@ -84,10 +90,10 @@ It is recommended to run `colima nerdctl install` to install `nerdctl` alias scr
 
 kubectl is required for Kubernetes. Installable with `brew install kubectl`.
 
-To enable Kubernetes, start Colima with `--with-kubernetes` flag.
+To enable Kubernetes, start Colima with `--kubernetes` flag.
 
 ```
-colima start --with-kubernetes
+colima start --kubernetes
 ```
 
 #### Interacting with Image Registry
@@ -100,10 +106,11 @@ For Containerd runtime, images built or pulled in the `k8s.io` namespace are acc
 
 The default VM created by Colima has 2 CPUs, 2GiB memory and 60GiB storage.
 
-The VM can be customized by passing `--cpu`, `--memory` and `--disk` to `colima start`. If VM is already created, stop
-the VM and apply the flags when starting it.
+The VM can be customized either by passing additional flags to `colima start`. 
+e.g. `--cpu`, `--memory`, `--disk`, `--runtime`. 
+Or by editing the config file with `colima start --edit`.
 
-**NOTE** that only cpu and memory can be changed at anytime. Disk size cannot be changed after the VM is created.
+**NOTE**: disk size cannot be changed after the VM is created.
 
 #### Customization Examples
 
@@ -150,10 +157,6 @@ If you want more control over the underlying VM, you can either use Lima directl
 <details>
 <summary>Can it run alongside Docker for Mac?</summary>
 <p>
-
-~~No, except when started with Containerd runtime. Colima assumes to be the default Docker context and will conflict with
-Docker for Mac. You should run either, not both.~~
-
 Yes, from version v0.3.0 Colima leverages Docker contexts and can thereby run alongside Docker for Mac.
 
 `docker context list` can list all contexts and `docker context use` can be used to change the active context.
@@ -165,9 +168,18 @@ Yes, from version v0.3.0 Colima leverages Docker contexts and can thereby run al
 <summary>How to customize Docker config e.g. add insecure registries?</summary>
 <p>
 
+### v0.3.4 or older
+
 On first startup, Colima generates Docker daemon.json file at `$HOME/.colima/docker/daemon.json`.
 
 Simply modify the daemon.json file accordingly and restart Colima.
+
+### v0.4.0 or newer
+Start Colima with `--edit` flag `colima start --edit` and add the config to the `docker` section.
+
+To manually modify the config file, it is located at `$HOME/.colima/default/colima.yaml` for the default profile,
+, `$HOME/.colima/<profile>/colima.yaml` for other profiles, and `$HOME/.colima/_templates/default.yaml` for the default
+template.
 
 </p>
 </details>
@@ -191,6 +203,10 @@ Minikube with Docker runtime can expose the cluster's Docker with `minikube dock
 - All of minikube's free drivers for macOS fall-short in one of performance, port forwarding or volumes. While
   port-forwarding and volumes are non-issue for Kubernetes, they can be a deal breaker for Docker-only use.
 
+### Compatibility
+
+Colima with Docker runtime is compatible with Kind and K3d.
+
 </p>
 </details>
 
@@ -204,9 +220,29 @@ Feedbacks would be appreciated.
 </p>
 </details>
 
+<details>
+<summary>Can I set default configurations?</summary>
+<p>
+
+Yes, via the `template` command.
+
+```
+colima template
+```
+
+Use a preferred editor by setting `$EDITOR` or passing the `--editor` flag
+
+```sh
+colima start --edit --editor code # one-off edit
+colima template --editor code # set the default config
+```
+</p>
+</details>
+
+
 ## Help Wanted
 
-- Documentation
+- Documentation (wiki pages)
 - Testing on M1 Macs
 
 ## Sponsoring the Project

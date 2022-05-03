@@ -4,10 +4,10 @@ import (
 	"embed"
 )
 
-//go:embed network
+//go:embed network k3s defaults
 var fs embed.FS
 
-// FS returns the underying embed.FS
+// FS returns the underlying embed.FS
 func FS() embed.FS { return fs }
 
 func read(file string) ([]byte, error) { return fs.ReadFile(file) }

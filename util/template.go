@@ -18,7 +18,7 @@ func WriteTemplate(body string, file string, values interface{}) error {
 
 // ParseTemplate parses template with body and values and returns the resulting bytes.
 func ParseTemplate(body string, values interface{}) ([]byte, error) {
-	t, err := template.New("").Parse(body)
+	t, err := template.New("").Delims("#{", "}}").Parse(body)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing template: %w", err)
 	}

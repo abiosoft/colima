@@ -23,7 +23,8 @@ type InstanceInfo struct {
 		VNL       string `json:"vnl,omitempty"`
 		Interface string `json:"interface,omitempty"`
 	} `json:"network,omitempty"`
-	IPAddress string `json:"-"`
+	IPAddress string `json:"address,omitempty"`
+	Runtime   string `json:"runtime,omitempty"`
 }
 
 // Instances returns Lima instances created by colima.
@@ -54,10 +55,14 @@ func Instances() ([]InstanceInfo, error) {
 			if len(i.Network) > 0 && i.Network[0].Interface != "" {
 				i.IPAddress = getIPAddress(i.Name, i.Network[0].Interface)
 			}
+			i.Runtime = getRuntime(i.Name)
 		}
 
 		// rename to local friendly names
 		i.Name = toUserFriendlyName(i.Name)
+
+		// network is low level, remove
+		i.Network = nil
 
 		instances = append(instances, i)
 	}
@@ -67,13 +72,42 @@ func Instances() ([]InstanceInfo, error) {
 
 func getIPAddress(profile, interfaceName string) string {
 	var buf bytes.Buffer
-	// TODO: this should be cleaner
+	// TODO: this should be less hacky
 	cmd := cli.Command("limactl", "shell", profile, "sh", "-c",
 		`ifconfig `+interfaceName+` | grep "inet addr:" | awk -F' ' '{print $2}' | awk -F':' '{print $2}'`)
 	cmd.Stdout = &buf
 
 	_ = cmd.Run()
 	return strings.TrimSpace(buf.String())
+}
+
+func getRuntime(profile string) string {
+	run := func(args ...string) bool {
+		cmd := "limactl"
+		args = append([]string{"shell", profile}, args...)
+		c := cli.Command(cmd, args...)
+		c.Stdout = nil
+		c.Stderr = nil
+		return c.Run() == nil
+	}
+
+	var runtime string
+	// docker
+	if run("docker", "info") {
+		runtime = "docker"
+	} else if run("nerdctl", "info") {
+		runtime = "containerd"
+	}
+
+	// nothing is running
+	if runtime == "" {
+		return ""
+	}
+
+	if run("kubectl", "cluster-info") {
+		runtime += "+k3s"
+	}
+	return runtime
 }
 
 // IPAddress returns the ip address for profile.

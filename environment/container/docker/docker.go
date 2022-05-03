@@ -1,9 +1,11 @@
 package docker
 
 import (
+	"context"
 	"time"
 
 	"github.com/abiosoft/colima/cli"
+	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
 )
 
@@ -35,29 +37,21 @@ func (d dockerRuntime) Name() string {
 	return Name
 }
 
-func (d dockerRuntime) isUserPermissionFixed() bool {
-	err := d.guest.RunQuiet("sh", "-c", `getent group docker | grep "\b${USER}\b"`)
-	return err == nil
-}
-
-func (d dockerRuntime) Provision() error {
+func (d dockerRuntime) Provision(ctx context.Context) error {
 	a := d.Init()
+	log := d.Logger()
 	a.Stage("provisioning")
 
-	// check user permission
-	if !d.isUserPermissionFixed() {
-		a.Add(d.fixUserPermission)
-
-		a.Stage("restarting VM to complete setup")
-		a.Add(d.guest.Restart)
-	}
-
-	if !d.isDaemonFileCreated() {
-		a.Add(d.createDaemonFile)
-	}
+	conf, _ := ctx.Value(config.CtxKey()).(config.Config)
 
 	// daemon.json
-	a.Add(d.setupDaemonFile)
+	a.Add(func() error {
+		// not a fatal error
+		if err := d.createDaemonFile(conf.Docker); err != nil {
+			log.Warnln(err)
+		}
+		return nil
+	})
 
 	// docker context
 	a.Add(d.setupContext)
@@ -66,7 +60,7 @@ func (d dockerRuntime) Provision() error {
 	return a.Exec()
 }
 
-func (d dockerRuntime) Start() error {
+func (d dockerRuntime) Start(context.Context) error {
 	a := d.Init()
 
 	a.Stage("starting")
@@ -76,7 +70,7 @@ func (d dockerRuntime) Start() error {
 	})
 
 	// service startup takes few seconds, retry at most 5 times before giving up.
-	a.Retry("waiting for startup to complete", time.Second*5, 10, func() error {
+	a.Retry("", time.Second*5, 12, func(int) error {
 		return d.guest.RunQuiet("sudo", "docker", "info")
 	})
 
@@ -87,7 +81,7 @@ func (d dockerRuntime) Running() bool {
 	return d.guest.RunQuiet("service", "docker", "status") == nil
 }
 
-func (d dockerRuntime) Stop() error {
+func (d dockerRuntime) Stop(context.Context) error {
 	a := d.Init()
 	a.Stage("stopping")
 
@@ -98,10 +92,15 @@ func (d dockerRuntime) Stop() error {
 		return d.guest.Run("sudo", "service", "docker", "stop")
 	})
 
+	// clear docker context settings
+	// since the container runtime can be changed on startup,
+	// it is better to not leave unnecessary traces behind
+	a.Add(d.teardownContext)
+
 	return a.Exec()
 }
 
-func (d dockerRuntime) Teardown() error {
+func (d dockerRuntime) Teardown(context.Context) error {
 	a := d.Init()
 	a.Stage("deleting")
 

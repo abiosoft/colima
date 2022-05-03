@@ -1,6 +1,7 @@
 package environment
 
 import (
+	"context"
 	"fmt"
 	"log"
 )
@@ -11,13 +12,13 @@ type Container interface {
 	Name() string
 	// Provision provisions/installs the container runtime.
 	// Should be idempotent.
-	Provision() error
+	Provision(ctx context.Context) error
 	// Start starts the container runtime.
-	Start() error
+	Start(ctx context.Context) error
 	// Stop stops the container runtime.
-	Stop() error
+	Stop(ctx context.Context) error
 	// Teardown tears down/uninstall the container runtime.
-	Teardown() error
+	Teardown(ctx context.Context) error
 	// Version returns the container runtime version.
 	Version() string
 	// Running returns if the container runtime is currently running.
