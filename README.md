@@ -110,10 +110,10 @@ It is recommended to run `colima nerdctl install` to install `nerdctl` alias scr
 
 kubectl is required for Kubernetes. Installable with `brew install kubectl`.
 
-To enable Kubernetes, start Colima with `--with-kubernetes` flag.
+To enable Kubernetes, start Colima with `--kubernetes` flag.
 
 ```
-colima start --with-kubernetes
+colima start --kubernetes
 ```
 
 #### Interacting with Image Registry
@@ -188,6 +188,13 @@ Yes, from version v0.3.0 Colima leverages Docker contexts and can thereby run al
 <summary>How to customize Docker config e.g. add insecure registries?</summary>
 <p>
 
+### v0.3.4 or older
+
+On first startup, Colima generates Docker daemon.json file at `$HOME/.colima/docker/daemon.json`.
+
+Simply modify the daemon.json file accordingly and restart Colima.
+
+### v0.4.0 or newer
 Start Colima with `--edit` flag `colima start --edit` and add the config to the `docker` section.
 
 To manually modify the config file, it is located at `$HOME/.colima/default/colima.yaml` for the default profile,
@@ -235,7 +242,7 @@ Feedbacks would be appreciated.
 
 ## Help Wanted
 
-- Documentation
+- Documentation (wiki pages)
 - Testing on M1 Macs
 
 ## Sponsoring the Project
