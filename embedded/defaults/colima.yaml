@@ -38,6 +38,23 @@ kubernetes:
 # ADVANCED CONFIGURATION
 # ===================================================================== #
 
+# Network configuration for the virtual machine.
+# NOTE: this is currently macOS only and ignored on Linux.
+network:
+  # Assign reachable IP address to the virtual machine.
+  # Default: false
+  address: false
+
+  # Network to use as the default route (slirp, vmnet, gvproxy)
+  #
+  # slirp:   the default user-mode network for Qemu.
+  # vmnet:   more stable than slirp under heavy network use but uploads are noticeably slower
+  #          and also incompatible with some VPN connections.
+  # gvproxy: an alternative to slirp based on gVisor network stack, faster than vmnet.
+  #
+  # Default: gvproxy
+  driver: gvproxy
+
 # Custom DNS nameservers for the virtual machine.
 #
 # EXAMPLE
@@ -67,23 +84,6 @@ dns: []
 # Default: {}
 docker: {}
 
-# Network configuration for the virtual machine.
-# NOTE: this is macOS only and ignored on Linux.
-network:
-  # Assign reachable IP address to the virtual machine.
-  # Default: false
-  address: false
-
-  # Network to use as the default route (slirp, vmnet, gvproxy)
-  #
-  # slirp:   the default user-mode network for Qemu.
-  # vmnet:   more stable than slirp under heavy network use but uploads are noticeably slower
-  #          and incompatible with some VPN connections.
-  # gvproxy: slower downloads but faster uploads than slirp and appears to be more stable.
-  #
-  # Default: slirp
-  driver: slirp
-
 # The CPU type for the virtual machine.
 # Options available for host emulation can be checked with: `qemu-system-$(arch) -cpu help`.
 # Instructions are also supported by appending to the cpu type e.g. "qemu64,+ssse3".
@@ -94,13 +94,13 @@ cpuType: host
 # Default: false
 forwardAgent: false
 
-# Volume mount driver for the virtual machine (reverse-sshfs, 9p).
+# Volume mount driver for the virtual machine (sshfs, 9p).
 #
 # 9p is more POSIX compliant and generally handles file permissions better.
 # However, it does not properly resolve symlinks (that are created on host)
 # on the mounted drives.
 #
-# reverse-sshfs is faster than 9p but less reliable when there are lots
+# sshfs is faster than 9p but less reliable when there are lots
 # of concurrent reads or writes.
 #
 # Default: 9p

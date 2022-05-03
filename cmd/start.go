@@ -91,7 +91,7 @@ const (
 	defaultMemory            = 2
 	defaultDisk              = 60
 	defaultKubernetesVersion = kubernetes.DefaultVersion
-	defaultDriver            = config.UserModeDriver
+	defaultDriver            = config.GVProxyDriver
 )
 
 var startCmdArgs struct {
