@@ -42,6 +42,10 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 		conf := startCmdArgs.Config
 
 		if !startCmdArgs.Flags.Edit {
+			if app.Active() {
+				log.Warnln("already running, ignoring")
+				return nil
+			}
 			return app.Start(conf)
 		}
 
