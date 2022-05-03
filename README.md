@@ -69,26 +69,6 @@ Or use a config file
 colima start --edit
 ```
 
-<details>
-<summary>More config file options</summary>
-<p>
-
-
-Set the default configurations
-
-```
-colima template
-```
-
-Use a preferred editor by setting `$EDITOR` or passing the `--editor` flag
-
-```sh
-colima start --edit --editor code # one-off edit
-colima template --editor code # set the default config
-```
-</p>
-</details>
-
 ## Runtimes
 
 On initial startup, Colima initiates with a user specified runtime that defaults to Docker.
@@ -239,6 +219,26 @@ Feedbacks would be appreciated.
 
 </p>
 </details>
+
+<details>
+<summary>Can I set default configurations?</summary>
+<p>
+
+Yes, via the `template` command.
+
+```
+colima template
+```
+
+Use a preferred editor by setting `$EDITOR` or passing the `--editor` flag
+
+```sh
+colima start --edit --editor code # one-off edit
+colima template --editor code # set the default config
+```
+</p>
+</details>
+
 
 ## Help Wanted
 
