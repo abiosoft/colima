@@ -230,7 +230,13 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		)
 	}
 
-	l.MountType = conf.MountType
+	switch strings.ToLower(conf.MountType) {
+	case "ssh", "sshfs", "reversessh", "reverse-ssh", "reversesshfs", REVSSHFS:
+		l.MountType = REVSSHFS
+	default:
+		l.MountType = NINEP
+	}
+
 	if len(conf.Mounts) == 0 {
 		l.Mounts = append(l.Mounts,
 			Mount{Location: "~", Writable: true},
