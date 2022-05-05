@@ -78,6 +78,9 @@ type Config struct {
 
 	// Docker configuration
 	Docker map[string]any `yaml:"docker,omitempty"`
+
+	// layer
+	Ubuntu bool `yaml:"ubuntuLayer,omitempty"`
 }
 
 // Kubernetes is kubernetes configuration

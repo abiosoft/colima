@@ -225,8 +225,14 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 	// registry certs
 	a.Add(l.copyCerts)
 
-	// dns
-	l.applyDNS(ctx, a, conf)
+	// add docker host alias
+	a.Add(func() error {
+		return l.addHost("host.docker.internal", net.ParseIP("192.168.5.2"))
+	})
+	// prevent chroot host error
+	a.Add(func() error {
+		return l.addHost(config.Profile().ID, net.ParseIP("127.0.0.1"))
+	})
 
 	// adding it to command chain to execute only after successful startup.
 	a.Add(func() error {
@@ -269,43 +275,7 @@ func (l limaVM) resume(ctx context.Context, conf config.Config) error {
 	// registry certs
 	a.Add(l.copyCerts)
 
-	l.applyDNS(ctx, a, conf)
-
 	return a.Exec()
-}
-
-func (l *limaVM) applyDNS(ctx context.Context, a *cli.ActiveCommandChain, conf config.Config) {
-	// Lima's DNS settings is fixed at VM create and cannot be changed afterwards.
-	// this is a better approach as it only applies on VM startup and gets reset at shutdown.
-	log := l.Logger()
-
-	dns := network.NewDNSManager(l)
-	a.Add(func() error {
-		var dnses []net.IP
-		dnses = append(dnses, conf.DNS...)
-
-		// check if network is enabled
-		if enabled, _ := ctx.Value(network.CtxKey(vmnet.Name())).(bool); enabled && len(dnses) == 0 {
-			dnses = append(dnses, net.ParseIP(vmnet.NetGateway))
-		}
-		switch conf.Network.Driver {
-		case config.VmnetDriver:
-			dnses = append(dnses, net.ParseIP(vmnet.NetGateway))
-		case config.GVProxyDriver:
-			dnses = append(dnses, net.ParseIP(gvproxy.GatewayIP))
-		}
-
-		// custom DNS config failure should not prevent the VM from starting
-		// as the default config will be used.
-		// Rather, warn and terminate setting the DNS config.
-		if err := dns.Provision(dnses); err != nil {
-			log.Warnln(fmt.Errorf("error provisioning dns, will fall back to defaults: %w", err))
-		}
-		if err := dns.Start(); err != nil {
-			log.Warnln(fmt.Errorf("error starting dns, will fall back to defaults: %w", err))
-		}
-		return nil
-	})
 }
 
 func (l limaVM) Running() bool {

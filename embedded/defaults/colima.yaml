@@ -34,6 +34,11 @@ kubernetes:
   # Default: false
   ingress: false
 
+# For a more general purpose virtual machine, Colima optionally provides Ubuntu as a
+# layer on the container runtimes.
+# Default: false
+ubuntuLayer: true
+
 # ===================================================================== #
 # ADVANCED CONFIGURATION
 # ===================================================================== #

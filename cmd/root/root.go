@@ -64,13 +64,14 @@ func init() {
 }
 
 func initLog() error {
-	// general log output
-	log.SetOutput(logrus.New().Writer())
-	log.SetFlags(0)
-
 	if rootCmdArgs.Verbose {
 		cli.Settings.Verbose = rootCmdArgs.Verbose
+		logrus.SetLevel(logrus.DebugLevel)
 	}
+
+	// general log output
+	log.SetOutput(logrus.StandardLogger().Writer())
+	log.SetFlags(0)
 
 	return nil
 }

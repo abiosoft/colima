@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/abiosoft/colima/environment/vm/lima/network"
@@ -30,8 +31,8 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	}
 
 	l.Images = append(l.Images,
-		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.4.0-2/alpine-lima-clm-3.15.4-aarch64.iso", Digest: "sha512:8e4c9df702f15af9a19677bb5823b9c2176377e68acbe93e35c0f66f21329f859a05448e3a79f1215d8d05c769b2b5c8a0b1ccc4b652c23bc2941af68ddbb7f5"},
-		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.4.0-2/alpine-lima-clm-3.15.4-x86_64.iso", Digest: "sha512:9945346f8efac79bdb5d01995504f03fed922eb24b4e26c258cccc4284ba0c57c3869ccb029e4b36cb2d077cd586ffb7717f9813850b0e13e6a15d460e1e7190"},
+		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.4.0-4/alpine-lima-clm-3.15.4-aarch64.iso", Digest: "sha512:1bacf93819d0c30efd08fe19425ba4f08a26db23e820ede8daa8aa03276317e7871ee40027114c283ab5adf63e0a49929e496c84f2ae70ee7501bddbed3d48fd"},
+		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.4.0-4/alpine-lima-clm-3.15.4-x86_64.iso", Digest: "sha512:a7b8025fec310f62a96f52c167ca49de61517c7bc1565eb08b1057f8e6b88116772278007b036557c5d54852012e9bdde1b3073cd6dd070cd1d65a62bf6046cb"},
 	)
 
 	if conf.CPU > 0 {
@@ -43,22 +44,21 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	if conf.Disk > 0 {
 		l.Disk = fmt.Sprintf("%dGiB", conf.Disk)
 	}
-	if conf.ForwardAgent {
-		l.SSH = SSH{LocalPort: 0, LoadDotSSHPubKeys: false, ForwardAgent: conf.ForwardAgent}
-	}
+	l.SSH = SSH{LocalPort: 0, LoadDotSSHPubKeys: false, ForwardAgent: conf.ForwardAgent}
 	l.Containerd = Containerd{System: false, User: false}
 	l.Firmware.LegacyBIOS = false
 
 	l.DNS = conf.DNS
 
-	// always use host resolver to generate Lima's default resolv.conf file
-	// colima will override this in VM when custom DNS is set
-	l.HostResolver.Enabled = true
+	l.HostResolver.Enabled = len(l.DNS) == 0
 	l.HostResolver.Hosts = map[string]string{
 		"host.docker.internal": "host.lima.internal",
 	}
 
 	l.Env = conf.Env
+	if l.Env == nil {
+		l.Env = make(map[string]string)
+	}
 
 	// perform mounts in fstab.
 	// required for 9p (lima >=v0.10.0)
@@ -195,6 +195,18 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	}
 
 	// port forwarding
+
+	if conf.Ubuntu {
+		port := util.RandomAvailablePort()
+		// set port for future retrieval
+		l.Env["COLIMA_UBUNTU_SSH_PORT"] = strconv.Itoa(port)
+		// forward port
+		l.PortForwards = append(l.PortForwards,
+			PortForward{
+				GuestPort: 23,
+				HostPort:  port,
+			})
+	}
 	{
 		// docker socket
 		if conf.Runtime == docker.Name {
@@ -293,7 +305,7 @@ type Config struct {
 	SSH          SSH               `yaml:"ssh,omitempty"`
 	Containerd   Containerd        `yaml:"containerd"`
 	Env          map[string]string `yaml:"env,omitempty"`
-	DNS          []net.IP          `yaml:"-"` // will be handled manually by colima
+	DNS          []net.IP          `yaml:"dns"`
 	Firmware     Firmware          `yaml:"firmware"`
 	HostResolver HostResolver      `yaml:"hostResolver"`
 	PortForwards []PortForward     `yaml:"portForwards,omitempty"`
@@ -315,9 +327,7 @@ type Mount struct {
 }
 
 type SSH struct {
-	LocalPort int `yaml:"localPort"`
-	// LoadDotSSHPubKeys loads ~/.ssh/*.pub in addition to $LIMA_HOME/_config/user.pub .
-	// Default: true
+	LocalPort         int  `yaml:"localPort"`
 	LoadDotSSHPubKeys bool `yaml:"loadDotSSHPubKeys"`
 	ForwardAgent      bool `yaml:"forwardAgent"` // default: false
 }

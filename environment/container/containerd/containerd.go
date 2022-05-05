@@ -2,6 +2,7 @@ package containerd
 
 import (
 	"context"
+	_ "embed"
 	"time"
 
 	"github.com/abiosoft/colima/cli"
@@ -14,6 +15,11 @@ const Name = "containerd"
 // This is written with assumption that Lima is the VM,
 // which provides nerdctl/containerd support out of the box.
 // There may be need to make this flexible for non-Lima VMs.
+
+//go:embed buildkitd.toml
+var buildKitConf string
+
+const buildKitConfFile = "/etc/buildkit/buildkitd.toml"
 
 func newRuntime(host environment.HostActions, guest environment.GuestActions) environment.Container {
 	return &containerdRuntime{
@@ -39,25 +45,26 @@ func (c containerdRuntime) Name() string {
 	return Name
 }
 
-func (c containerdRuntime) Provision(ctx context.Context) error {
+func (c containerdRuntime) Provision(context.Context) error {
 	// already provisioned as part of Lima
-	return nil
+	return c.guest.Write(buildKitConfFile, buildKitConf)
 }
 
-func (c containerdRuntime) Start(ctx context.Context) error {
+func (c containerdRuntime) Start(context.Context) error {
 	a := c.Init()
 
 	a.Stage("starting")
 	a.Add(func() error {
 		return c.guest.Run("sudo", "service", "containerd", "start")
 	})
-	a.Add(func() error {
-		return c.guest.Run("sudo", "service", "buildkitd", "start")
-	})
 
 	// service startup takes few seconds, retry at most 10 times before giving up.
 	a.Retry("", time.Second*5, 10, func(int) error {
 		return c.guest.RunQuiet("sudo", "nerdctl", "info")
+	})
+
+	a.Add(func() error {
+		return c.guest.Run("sudo", "service", "buildkitd", "restart")
 	})
 
 	return a.Exec()
@@ -67,7 +74,7 @@ func (c containerdRuntime) Running() bool {
 	return c.guest.RunQuiet("service", "containerd", "status") == nil
 }
 
-func (c containerdRuntime) Stop(ctx context.Context) error {
+func (c containerdRuntime) Stop(context.Context) error {
 	a := c.Init()
 	a.Stage("stopping")
 	a.Add(func() error {
@@ -76,7 +83,7 @@ func (c containerdRuntime) Stop(ctx context.Context) error {
 	return a.Exec()
 }
 
-func (c containerdRuntime) Teardown(ctx context.Context) error {
+func (c containerdRuntime) Teardown(context.Context) error {
 	// teardown not needed, will be part of VM teardown
 	return nil
 }

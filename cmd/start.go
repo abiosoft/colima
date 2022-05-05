@@ -142,6 +142,9 @@ func init() {
 	startCmd.Flags().BoolVar(&startCmdArgs.Kubernetes.Ingress, "kubernetes-ingress", false, "enable Traefik ingress controller")
 	startCmd.Flag("with-kubernetes").Hidden = true
 
+	// layer
+	startCmd.Flags().BoolVarP(&startCmdArgs.Ubuntu, "ubuntu-layer", "u", false, "enable Ubuntu layer")
+
 	startCmd.Flags().StringToStringVar(&startCmdArgs.Env, "env", nil, "environment variables for the VM")
 
 	startCmd.Flags().IPSliceVarP(&startCmdArgs.DNS, "dns", "n", nil, "DNS servers for the VM")
@@ -228,6 +231,9 @@ func prepareConfig(cmd *cobra.Command) {
 	}
 	if !cmd.Flag("env").Changed {
 		startCmdArgs.Env = current.Env
+	}
+	if !cmd.Flag("ubuntu-layer").Changed {
+		startCmdArgs.Ubuntu = current.Ubuntu
 	}
 	if util.MacOS() {
 		if !cmd.Flag("network-address").Changed {

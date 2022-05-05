@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"runtime"
 	"strings"
@@ -54,4 +55,18 @@ func RemoveFromPath(path, dir string) string {
 		envPath = append(envPath, p)
 	}
 	return strings.Join(envPath, ":")
+}
+
+// RandomAvailablePort returns an available port on the host machine.
+func RandomAvailablePort() int {
+	listener, err := net.Listen("tcp", ":0")
+	if err != nil {
+		log.Fatal(fmt.Errorf("error picking an available port: %w", err))
+	}
+
+	if err := listener.Close(); err != nil {
+		log.Fatal(fmt.Errorf("error closing temporary port listener: %w", err))
+	}
+
+	return listener.Addr().(*net.TCPAddr).Port
 }
