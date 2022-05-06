@@ -38,7 +38,7 @@ RUN passwd -d ${NONROOT_USER}
 RUN usermod -aG sudo ${NONROOT_USER}
 
 # chroot script
-COPY colima-run /usr/bin/colima
+COPY colima /usr/bin/colima
 RUN chmod 755 /usr/bin/colima
 
 # symlinks

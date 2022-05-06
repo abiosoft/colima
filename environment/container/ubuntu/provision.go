@@ -24,8 +24,11 @@ type buildArgs struct {
 //go:embed Dockerfile
 var dockerfile string
 
-//go:embed colima-run.sh
+//go:embed colima.sh
 var runScript string
+
+//go:embed chroot-run-as.sh
+var runAsScript string
 
 func (u ubuntuRuntime) buildArgs() (b buildArgs, err error) {
 	b.arch = string(u.guest.Arch().Value())
@@ -110,18 +113,21 @@ func (u ubuntuRuntime) createImage() error {
 		if err := u.guest.Write(dockerfilePath, dockerfile); err != nil {
 			return fmt.Errorf("error writing ubuntu layer dockerfile: %w", err)
 		}
-		if err := u.guest.Write(filepath.Join(tmpDir, "colima-run"), runScript); err != nil {
+		if err := u.guest.Write(filepath.Join(tmpDir, "colima"), runScript); err != nil {
 			return fmt.Errorf("error writing ubuntu layer chroot script: %w", err)
 		}
 		if err := u.guest.RunQuiet("sudo", "chown", "-R", b.username, tmpDir); err != nil {
 			return fmt.Errorf("error preparing ubuntu layer cache dir: %w", err)
 		}
 
-		//sshAuthFile := filepath.Join(b.homeDir, ".ssh/authorized_keys")
-		//sshAuthFileDest := filepath.Join(tmpDir, "authorized_keys")
-		//if err := u.guest.RunQuiet("cp", sshAuthFile, sshAuthFileDest); err != nil {
-		//	return fmt.Errorf("error writing ubuntu layer dockerfile: %w", err)
-		//}
+		if _, err := u.guest.Stat("/usr/bin/run-as"); err != nil {
+			if err := u.guest.Write("/usr/bin/run-as", runAsScript); err != nil {
+				return fmt.Errorf("error writing ubuntu layer chroot-run script: %w", err)
+			}
+			if err := u.guest.RunQuiet("sudo", "chmod", "700", "/usr/bin/run-as"); err != nil {
+				return fmt.Errorf("error making chroot-run script executable: %w", err)
+			}
+		}
 
 		args := nerdctl(
 			"build",

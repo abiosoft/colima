@@ -6,10 +6,10 @@ if [ "$CMD" == "colima" ]; then
     if [ -z "$1" ]; then
         sudo chroot /host su - "$USER"
     else
-        sudo chroot /host "$@"
+        sudo chroot /host run-as "$USER" "$PWD" "$@"
     fi
 else
-    sudo chroot /host "$CMD" "$@"
+    sudo chroot /host run-as "$USER" "$PWD" "$CMD" "$@"
 fi
 
 exit $?
