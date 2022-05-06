@@ -37,12 +37,6 @@ RUN useradd \
 RUN passwd -d ${NONROOT_USER}
 RUN usermod -aG sudo ${NONROOT_USER}
 
-# copy ssh details
-RUN mkdir -p /home/${NONROOT_USER}/.ssh
-COPY authorized_keys /home/${NONROOT_USER}/.ssh
-RUN chmod 600 /home/${NONROOT_USER}/.ssh/authorized_keys
-RUN chown -R ${NONROOT_USER}:${NONROOT_USER} /home/${NONROOT_USER}/.ssh
-
 # chroot script
 COPY colima-run /usr/bin/colima
 RUN chmod 755 /usr/bin/colima
@@ -51,9 +45,16 @@ RUN chmod 755 /usr/bin/colima
 RUN ln -s /usr/bin/colima /usr/local/bin/nerdctl
 RUN ln -s /usr/bin/colima /usr/local/bin/kubectl
 
+ENV HOME="/home/${NONROOT_USER}"
+
+# backup previous $HOME to get bash utils
+RUN mkdir -p /prevhome
+RUN chown -R ${UID}:${GID} /prevhome
+RUN cp -r ${HOME}/. /prevhome
+
 # reset user back to user
 USER ${NONROOT_USER}
 
 WORKDIR /home/${NONROOT_USER}
 
-CMD ["sh", "-c", "sudo service ssh start && (while true; do sleep 1000; done)"]
+CMD ["sh", "-c", "(cp -n -r /prevhome/. ${HOME} || echo) && sudo service ssh start && (while true; do sleep 1000; done)"]

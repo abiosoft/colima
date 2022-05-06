@@ -117,11 +117,11 @@ func (u ubuntuRuntime) createImage() error {
 			return fmt.Errorf("error preparing ubuntu layer cache dir: %w", err)
 		}
 
-		sshAuthFile := filepath.Join(b.homeDir, ".ssh/authorized_keys")
-		sshAuthFileDest := filepath.Join(tmpDir, "authorized_keys")
-		if err := u.guest.RunQuiet("cp", sshAuthFile, sshAuthFileDest); err != nil {
-			return fmt.Errorf("error writing ubuntu layer dockerfile: %w", err)
-		}
+		//sshAuthFile := filepath.Join(b.homeDir, ".ssh/authorized_keys")
+		//sshAuthFileDest := filepath.Join(tmpDir, "authorized_keys")
+		//if err := u.guest.RunQuiet("cp", sshAuthFile, sshAuthFileDest); err != nil {
+		//	return fmt.Errorf("error writing ubuntu layer dockerfile: %w", err)
+		//}
 
 		args := nerdctl(
 			"build",
@@ -150,6 +150,10 @@ func (u ubuntuRuntime) containerCreated() bool {
 }
 
 func (u ubuntuRuntime) createContainer(conf config.Config) error {
+	username, err := u.guest.User()
+	if err != nil {
+		return fmt.Errorf("error retrieving username in guest: %w", err)
+	}
 	hostname := config.Profile().ID
 	args := nerdctl("create",
 		"--name", containerName,
@@ -158,6 +162,7 @@ func (u ubuntuRuntime) createContainer(conf config.Config) error {
 		"--privileged",
 		"--net", "host",
 		"--pid", "host",
+		"--volume", "/home/"+username+".linux:/home/"+username,
 		"--volume", "/var/run/docker.sock:/var/run/docker.sock:ro",
 		"--volume", "/:/host",
 	)
