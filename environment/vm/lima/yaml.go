@@ -421,3 +421,7 @@ func checkOverlappingMounts(mounts []config.Mount) error {
 	}
 	return nil
 }
+
+type joiner []string
+
+func (j joiner) Join(s string) string { return strings.Join(j, s) }
