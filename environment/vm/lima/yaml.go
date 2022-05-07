@@ -31,8 +31,8 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	}
 
 	l.Images = append(l.Images,
-		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.4.0-4/alpine-lima-clm-3.15.4-aarch64.iso", Digest: "sha512:1bacf93819d0c30efd08fe19425ba4f08a26db23e820ede8daa8aa03276317e7871ee40027114c283ab5adf63e0a49929e496c84f2ae70ee7501bddbed3d48fd"},
-		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.4.0-4/alpine-lima-clm-3.15.4-x86_64.iso", Digest: "sha512:a7b8025fec310f62a96f52c167ca49de61517c7bc1565eb08b1057f8e6b88116772278007b036557c5d54852012e9bdde1b3073cd6dd070cd1d65a62bf6046cb"},
+		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.4.0-5/alpine-lima-clm-3.15.4-aarch64.iso", Digest: "sha512:d9fc671befb5e1d2b1ab202fb1853d6ee0ebc8746c6f4e89ec8ddda362b59f527aa37894881b3884e62ca9fdcaa559d03a5040403a029ab86eed5e370bc40a27"},
+		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.4.0-5/alpine-lima-clm-3.15.4-x86_64.iso", Digest: "sha512:6ce50a109cc90f537cc0eb363ab938ba10ea690dc59e1f4c0081ecd90907da5fb305ab27a98ebec774e97d41a713f73f0a4e7edc44019a7db134a07181bb8801"},
 	)
 
 	if conf.CPU > 0 {
@@ -87,7 +87,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 				return err
 			}
 
-			values := struct{ Interfaces []string }{Interfaces: ifaces}
+			values := struct{ Interfaces joiner }{Interfaces: ifaces}
 			dhcpScript, err := util.ParseTemplate(tpl, values)
 			if err != nil {
 				return err

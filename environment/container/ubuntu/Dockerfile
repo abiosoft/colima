@@ -26,12 +26,16 @@ RUN groupadd \
     --gid ${DOCKER_GID} \
     docker
 
+# home directory should match Lima's
+ENV HOME="/home/${NONROOT_USER}.linux"
+
 # create the passwordless non root user
 RUN useradd \
     --uid ${UID} \
     --gid ${GID} \
     --groups ${DOCKER_GID} \
     --create-home \
+    --home-dir ${HOME} \
     --shell /bin/bash \
     ${NONROOT_USER}
 RUN passwd -d ${NONROOT_USER}
@@ -42,19 +46,28 @@ COPY colima /usr/bin/colima
 RUN chmod 755 /usr/bin/colima
 
 # symlinks
+RUN ln -s /usr/bin/colima /usr/local/bin/docker
 RUN ln -s /usr/bin/colima /usr/local/bin/nerdctl
 RUN ln -s /usr/bin/colima /usr/local/bin/kubectl
 
-ENV HOME="/home/${NONROOT_USER}"
+# sockets
+RUN mkdir -p /var/run
+RUN ln -s /host/run/docker.sock /var/run/docker.sock
+RUN mkdir -p /var/run/containerd
+RUN ln -s /host/run/containerd/containerd.sock /var/run/containerd/containerd.sock
+RUN mkdir -p /var/run/buildkit
+RUN ln -s /host/run/buildkit/buildkitd.sock /var/run/buildkit/buildkitd.sock
 
-# backup previous $HOME to get bash utils
+# backup previous $HOME to get bash prompt
 RUN mkdir -p /prevhome
 RUN chown -R ${UID}:${GID} /prevhome
 RUN cp -r ${HOME}/. /prevhome
 
-# reset user back to user
+# revert user to rootless user
 USER ${NONROOT_USER}
 
-WORKDIR /home/${NONROOT_USER}
+WORKDIR ${HOME}
 
+# use recommended init process
+ENTRYPOINT ["tini", "--"]
 CMD ["sh", "-c", "(cp -n -r /prevhome/. ${HOME} || echo) && sudo service ssh start && (while true; do sleep 1000; done)"]

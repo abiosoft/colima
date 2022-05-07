@@ -101,6 +101,7 @@ func (u ubuntuRuntime) createImage() error {
 	defer func() {
 		_ = u.guest.RunQuiet("nerdctl", "--namespace", "buildkit", "rmi", "--force", imageName+"-"+b.arch)
 	}()
+
 	// build dockerfile
 	{
 
@@ -149,15 +150,13 @@ func (u ubuntuRuntime) createContainer(conf config.Config) error {
 		return fmt.Errorf("error retrieving username in guest: %w", err)
 	}
 	hostname := config.Profile().ID
+	home := "/home/" + username + ".linux"
 	args := nerdctl("create",
 		"--name", containerName,
 		"--hostname", hostname,
-		"--add-host", hostname+":127.0.0.1",
 		"--privileged",
 		"--net", "host",
-		"--pid", "host",
-		"--volume", "/home/"+username+".linux:/home/"+username,
-		"--volume", "/var/run/docker.sock:/var/run/docker.sock:ro",
+		"--volume", home+":"+home,
 		"--volume", "/:/host",
 	)
 
