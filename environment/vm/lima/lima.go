@@ -54,6 +54,7 @@ const (
 	limaInstanceEnvVar = "LIMA_INSTANCE"
 	lima               = "lima"
 	limactl            = "limactl"
+	layerEnvVar        = "COLIMA_LAYER_SSH_PORT"
 )
 
 func limaHome() (string, error) {

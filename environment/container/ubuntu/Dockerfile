@@ -63,6 +63,15 @@ RUN mkdir -p /prevhome
 RUN chown -R ${UID}:${GID} /prevhome
 RUN cp -r ${HOME}/. /prevhome
 
+# startup script
+COPY <<EOF /usr/bin/start.sh
+#!/usr/bin/env/sh
+set -e
+cp -n -r /prevhome/. ${HOME} || echo
+sudo service ssh start
+while true; do sleep 1000; done
+EOF
+
 # revert user to rootless user
 USER ${NONROOT_USER}
 
@@ -70,4 +79,4 @@ WORKDIR ${HOME}
 
 # use recommended init process
 ENTRYPOINT ["tini", "--"]
-CMD ["sh", "-c", "(cp -n -r /prevhome/. ${HOME} || echo) && sudo service ssh start && (while true; do sleep 1000; done)"]
+CMD ["sh", "/usr/bin/start.sh"]

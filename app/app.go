@@ -23,7 +23,7 @@ type App interface {
 	Start(config.Config) error
 	Stop(force bool) error
 	Delete() error
-	SSH(...string) error
+	SSH(layer bool, args ...string) error
 	Status() error
 	Version() error
 	Runtime() (string, error)
@@ -77,7 +77,7 @@ func (c colimaApp) Start(conf config.Config) error {
 		containers = append(containers, env)
 	}
 	// ubuntu layer should come last
-	if conf.Ubuntu {
+	if conf.Layer {
 		env, err := c.containerEnvironment(ubuntu.Name)
 		if err != nil {
 			return err
@@ -187,17 +187,17 @@ func (c colimaApp) Delete() error {
 	return nil
 }
 
-func (c colimaApp) SSH(args ...string) error {
+func (c colimaApp) SSH(layer bool, args ...string) error {
 	if !c.guest.Running() {
 		return fmt.Errorf("%s not running", config.Profile().DisplayName)
 	}
 
-	cmdArgs, inLayer, err := lima.ShowSSH(config.Profile().ID, "args")
+	cmdArgs, inLayer, err := lima.ShowSSH(config.Profile().ID, layer, "args")
 	if err != nil {
 		return fmt.Errorf("error getting ssh config: %w", err)
 	}
 
-	if !inLayer {
+	if !layer || !inLayer {
 		return c.guest.RunInteractive(args...)
 	}
 

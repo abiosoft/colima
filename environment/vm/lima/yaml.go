@@ -196,10 +196,10 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 
 	// port forwarding
 
-	if conf.Ubuntu {
+	if conf.Layer {
 		port := util.RandomAvailablePort()
 		// set port for future retrieval
-		l.Env["COLIMA_UBUNTU_SSH_PORT"] = strconv.Itoa(port)
+		l.Env[layerEnvVar] = strconv.Itoa(port)
 		// forward port
 		l.PortForwards = append(l.PortForwards,
 			PortForward{

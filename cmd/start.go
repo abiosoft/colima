@@ -143,7 +143,7 @@ func init() {
 	startCmd.Flag("with-kubernetes").Hidden = true
 
 	// layer
-	startCmd.Flags().BoolVarP(&startCmdArgs.Ubuntu, "ubuntu-layer", "u", false, "enable Ubuntu layer")
+	startCmd.Flags().BoolVarP(&startCmdArgs.Layer, "layer", "l", false, "enable Ubuntu layer for a more general purpose VM")
 
 	startCmd.Flags().StringToStringVar(&startCmdArgs.Env, "env", nil, "environment variables for the VM")
 
@@ -232,8 +232,8 @@ func prepareConfig(cmd *cobra.Command) {
 	if !cmd.Flag("env").Changed {
 		startCmdArgs.Env = current.Env
 	}
-	if !cmd.Flag("ubuntu-layer").Changed {
-		startCmdArgs.Ubuntu = current.Ubuntu
+	if !cmd.Flag("layer").Changed {
+		startCmdArgs.Layer = current.Layer
 	}
 	if util.MacOS() {
 		if !cmd.Flag("network-address").Changed {

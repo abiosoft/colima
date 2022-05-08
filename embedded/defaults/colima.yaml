@@ -34,10 +34,15 @@ kubernetes:
   # Default: false
   ingress: false
 
-# For a more general purpose virtual machine, Colima optionally provides Ubuntu as a
-# layer on the container runtimes.
+# For a more general purpose virtual machine, Ubuntu container is optionally provided
+# as a layer on the virtual machine.
+# If set to true, `colima ssh` and `colima ssh-config` commands will be routed to the
+# Ubuntu layer.
+# The virtual machine is still accessible via `colima ssh --layer=false` or running `colima` in
+# the Ubuntu session.
+#
 # Default: false
-ubuntuLayer: true
+layer: true
 
 # ===================================================================== #
 # ADVANCED CONFIGURATION

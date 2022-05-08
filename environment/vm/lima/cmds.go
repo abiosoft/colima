@@ -86,7 +86,7 @@ func getIPAddress(profileID, interfaceName string) string {
 
 func UbuntuSSHPort(profileID string) (int, error) {
 	var buf bytes.Buffer
-	cmd := cli.Command("limactl", "shell", profileID, "--", "sh", "-c", "echo $COLIMA_UBUNTU_SSH_PORT")
+	cmd := cli.Command("limactl", "shell", profileID, "--", "sh", "-c", "echo $"+layerEnvVar)
 	cmd.Stdout = &buf
 
 	if err := cmd.Run(); err != nil {
@@ -156,7 +156,7 @@ func IPAddress(profile string) string {
 
 // ShowSSH runs the show-ssh command in Lima.
 // returns the ssh output, if in layer, and an error if any
-func ShowSSH(profileID, format string) (string, bool, error) {
+func ShowSSH(profileID string, layer bool, format string) (string, bool, error) {
 	var buf bytes.Buffer
 	cmd := cli.Command("limactl", "show-ssh", "--format", format, profileID)
 	cmd.Stdout = &buf
@@ -166,7 +166,10 @@ func ShowSSH(profileID, format string) (string, bool, error) {
 		return "", false, fmt.Errorf("error retrieving ssh config: %w", err)
 	}
 
-	port, _ := UbuntuSSHPort(profileID)
+	var port int
+	if layer {
+		port, _ = UbuntuSSHPort(profileID)
+	}
 
 	out := buf.String()
 	switch format {
