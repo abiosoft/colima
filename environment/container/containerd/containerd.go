@@ -50,10 +50,9 @@ func (c containerdRuntime) Provision(context.Context) error {
 	return c.guest.Write(buildKitConfFile, buildKitConf)
 }
 
-func (c containerdRuntime) Start(context.Context) error {
-	a := c.Init()
+func (c containerdRuntime) Start(ctx context.Context) error {
+	a := c.Init(ctx)
 
-	a.Stage("starting")
 	a.Add(func() error {
 		return c.guest.Run("sudo", "service", "containerd", "start")
 	})
@@ -74,9 +73,8 @@ func (c containerdRuntime) Running() bool {
 	return c.guest.RunQuiet("service", "containerd", "status") == nil
 }
 
-func (c containerdRuntime) Stop(context.Context) error {
-	a := c.Init()
-	a.Stage("stopping")
+func (c containerdRuntime) Stop(ctx context.Context) error {
+	a := c.Init(ctx)
 	a.Add(func() error {
 		return c.guest.Run("sudo", "service", "containerd", "stop")
 	})

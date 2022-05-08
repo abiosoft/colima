@@ -38,9 +38,8 @@ func (d dockerRuntime) Name() string {
 }
 
 func (d dockerRuntime) Provision(ctx context.Context) error {
-	a := d.Init()
-	log := d.Logger()
-	a.Stage("provisioning")
+	a := d.Init(ctx)
+	log := d.Logger(ctx)
 
 	conf, _ := ctx.Value(config.CtxKey()).(config.Config)
 
@@ -60,10 +59,8 @@ func (d dockerRuntime) Provision(ctx context.Context) error {
 	return a.Exec()
 }
 
-func (d dockerRuntime) Start(context.Context) error {
-	a := d.Init()
-
-	a.Stage("starting")
+func (d dockerRuntime) Start(ctx context.Context) error {
+	a := d.Init(ctx)
 
 	a.Add(func() error {
 		return d.guest.Run("sudo", "service", "docker", "start")
@@ -81,9 +78,8 @@ func (d dockerRuntime) Running() bool {
 	return d.guest.RunQuiet("service", "docker", "status") == nil
 }
 
-func (d dockerRuntime) Stop(context.Context) error {
-	a := d.Init()
-	a.Stage("stopping")
+func (d dockerRuntime) Stop(ctx context.Context) error {
+	a := d.Init(ctx)
 
 	a.Add(func() error {
 		if !d.Running() {
@@ -100,9 +96,8 @@ func (d dockerRuntime) Stop(context.Context) error {
 	return a.Exec()
 }
 
-func (d dockerRuntime) Teardown(context.Context) error {
-	a := d.Init()
-	a.Stage("deleting")
+func (d dockerRuntime) Teardown(ctx context.Context) error {
+	a := d.Init(ctx)
 
 	// clear docker context settings
 	a.Add(d.teardownContext)

@@ -95,9 +95,12 @@ func (c colimaApp) Start(conf config.Config) error {
 
 	// provision and start container runtimes
 	for _, cont := range containers {
+		log := log.WithField("context", cont.Name())
+		log.Println("provisioning ...")
 		if err := cont.Provision(ctx); err != nil {
 			return fmt.Errorf("error provisioning %s: %w", cont.Name(), err)
 		}
+		log.Println("starting ...")
 		if err := cont.Start(ctx); err != nil {
 			return fmt.Errorf("error starting %s: %w", cont.Name(), err)
 		}
@@ -129,6 +132,10 @@ func (c colimaApp) Stop(force bool) error {
 		// stop happens in reverse of start
 		for i := len(containers) - 1; i >= 0; i-- {
 			cont := containers[i]
+
+			log := log.WithField("context", cont.Name())
+			log.Println("stopping ...")
+
 			if err := cont.Stop(ctx); err != nil {
 				// failure to stop a container runtime is not fatal
 				// it is only meant for graceful shutdown.
@@ -166,6 +173,10 @@ func (c colimaApp) Delete() error {
 			log.Warnln(fmt.Errorf("error retrieving runtimes: %w", err))
 		}
 		for _, cont := range containers {
+
+			log := log.WithField("context", cont.Name())
+			log.Println("deleting ...")
+
 			if err := cont.Teardown(ctx); err != nil {
 				// failure here is not fatal
 				log.Warnln(fmt.Errorf("error during teardown of %s: %w", cont.Name(), err))

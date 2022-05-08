@@ -86,8 +86,8 @@ func (c kubernetesRuntime) setConfig(conf config.Kubernetes) error {
 }
 
 func (c *kubernetesRuntime) Provision(ctx context.Context) error {
-	log := c.Logger()
-	a := c.Init()
+	log := c.Logger(ctx)
+	a := c.Init(ctx)
 	if c.Running() {
 		return nil
 	}
@@ -140,15 +140,13 @@ func (c *kubernetesRuntime) Provision(ctx context.Context) error {
 	return a.Exec()
 }
 
-func (c kubernetesRuntime) Start(context.Context) error {
-	log := c.Logger()
-	a := c.Init()
+func (c kubernetesRuntime) Start(ctx context.Context) error {
+	log := c.Logger(ctx)
+	a := c.Init(ctx)
 	if c.Running() {
 		log.Println("already running")
 		return nil
 	}
-
-	a.Stage("starting")
 
 	a.Add(func() error {
 		return c.guest.Run("sudo", "service", "k3s", "start")
@@ -161,12 +159,11 @@ func (c kubernetesRuntime) Start(context.Context) error {
 		return err
 	}
 
-	return c.provisionKubeconfig()
+	return c.provisionKubeconfig(ctx)
 }
 
-func (c kubernetesRuntime) Stop(context.Context) error {
-	a := c.Init()
-	a.Stage("stopping")
+func (c kubernetesRuntime) Stop(ctx context.Context) error {
+	a := c.Init(ctx)
 	a.Add(func() error {
 		return c.guest.Run("k3s-killall.sh")
 	})
@@ -242,9 +239,8 @@ func (c kubernetesRuntime) runningContainerIDs() string {
 	return strings.ReplaceAll(ids, "\n", " ")
 }
 
-func (c kubernetesRuntime) Teardown(context.Context) error {
-	a := c.Init()
-	a.Stage("deleting")
+func (c kubernetesRuntime) Teardown(ctx context.Context) error {
+	a := c.Init(ctx)
 
 	if c.isInstalled() {
 		a.Add(func() error {

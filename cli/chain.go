@@ -1,11 +1,16 @@
 package cli
 
 import (
+	"context"
 	"fmt"
+	"io/ioutil"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 )
+
+// CtxKeyQuiet is the context key to mute the chain.
+var CtxKeyQuiet = struct{ quiet bool }{quiet: true}
 
 // New creates a new runner instance.
 func New(name string) CommandChain {
@@ -23,9 +28,9 @@ type cFunc struct {
 // commands are executed in order.
 type CommandChain interface {
 	// Init initiates a new runner using the current instance.
-	Init() *ActiveCommandChain
+	Init(ctx context.Context) *ActiveCommandChain
 	// Logger returns the instance logger.
-	Logger() *log.Entry
+	Logger(ctx context.Context) *log.Entry
 }
 
 var _ CommandChain = (*namedCommandChain)(nil)
@@ -35,16 +40,21 @@ type namedCommandChain struct {
 	log  *log.Entry
 }
 
-func (n namedCommandChain) Logger() *log.Entry {
+func (n namedCommandChain) Logger(ctx context.Context) *log.Entry {
+	if quiet, _ := ctx.Value(CtxKeyQuiet).(bool); quiet {
+		l := log.New()
+		l.SetOutput(ioutil.Discard)
+		return l.WithContext(ctx)
+	}
 	if n.log == nil {
-		n.log = log.WithField("context", n.name)
+		n.log = log.WithField("context", n.name).WithContext(ctx)
 	}
 	return n.log
 }
 
-func (n namedCommandChain) Init() *ActiveCommandChain {
+func (n namedCommandChain) Init(ctx context.Context) *ActiveCommandChain {
 	return &ActiveCommandChain{
-		log: n.Logger(),
+		log: n.Logger(ctx),
 	}
 }
 

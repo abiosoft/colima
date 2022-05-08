@@ -115,8 +115,8 @@ func (l *limaVM) prepareNetwork(ctx context.Context, conf config.Network) (conte
 	ctxKeyGVProxy := network.CtxKey(gvproxy.Name())
 
 	// use a nested chain for convenience
-	a := l.Init()
-	log := l.Logger()
+	a := l.Init(ctx)
+	log := l.Logger(ctx)
 
 	a.Stage("preparing network")
 	a.Add(func() error {
@@ -195,7 +195,7 @@ func (l *limaVM) prepareNetwork(ctx context.Context, conf config.Network) (conte
 }
 
 func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
-	a := l.Init()
+	a := l.Init(ctx)
 
 	if l.Created() {
 		return l.resume(ctx, conf)
@@ -245,8 +245,8 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 }
 
 func (l limaVM) resume(ctx context.Context, conf config.Config) error {
-	log := l.Logger()
-	a := l.Init()
+	log := l.Logger(ctx)
+	a := l.Init(ctx)
 
 	if l.Running() {
 		log.Println("already running")
@@ -284,8 +284,8 @@ func (l limaVM) Running() bool {
 }
 
 func (l limaVM) Stop(ctx context.Context, force bool) error {
-	log := l.Logger()
-	a := l.Init()
+	log := l.Logger(ctx)
+	a := l.Init(ctx)
 	if !l.Running() {
 		log.Println("not running")
 		return nil
@@ -310,9 +310,7 @@ func (l limaVM) Stop(ctx context.Context, force bool) error {
 }
 
 func (l limaVM) Teardown(ctx context.Context) error {
-	a := l.Init()
-
-	a.Stage("deleting")
+	a := l.Init(ctx)
 
 	if util.MacOS() {
 		a.Retry("", time.Second*1, 10, func(retryCount int) error {
@@ -349,7 +347,7 @@ func (l limaVM) Restart(ctx context.Context) error {
 func (l limaVM) Run(args ...string) error {
 	args = append([]string{lima}, args...)
 
-	a := l.Init()
+	a := l.Init(context.Background())
 
 	a.Add(func() error {
 		return l.host.Run(args...)
@@ -361,7 +359,7 @@ func (l limaVM) Run(args ...string) error {
 func (l limaVM) RunInteractive(args ...string) error {
 	args = append([]string{lima}, args...)
 
-	a := l.Init()
+	a := l.Init(context.Background())
 
 	a.Add(func() error {
 		return l.host.RunInteractive(args...)
@@ -373,7 +371,7 @@ func (l limaVM) RunInteractive(args ...string) error {
 func (l limaVM) RunWith(stdin io.Reader, stdout io.Writer, args ...string) error {
 	args = append([]string{lima}, args...)
 
-	a := l.Init()
+	a := l.Init(context.Background())
 
 	a.Add(func() error {
 		return l.host.RunWith(stdin, stdout, args...)
@@ -385,7 +383,7 @@ func (l limaVM) RunWith(stdin io.Reader, stdout io.Writer, args ...string) error
 func (l limaVM) RunOutput(args ...string) (out string, err error) {
 	args = append([]string{lima}, args...)
 
-	a := l.Init()
+	a := l.Init(context.Background())
 
 	a.Add(func() (err error) {
 		out, err = l.host.RunOutput(args...)
@@ -399,7 +397,7 @@ func (l limaVM) RunOutput(args ...string) (out string, err error) {
 func (l limaVM) RunQuiet(args ...string) (err error) {
 	args = append([]string{lima}, args...)
 
-	a := l.Init()
+	a := l.Init(context.Background())
 
 	a.Add(func() (err error) {
 		return l.host.RunQuiet(args...)

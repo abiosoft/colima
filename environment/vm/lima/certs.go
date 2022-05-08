@@ -1,6 +1,7 @@
 package lima
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"path/filepath"
@@ -11,7 +12,7 @@ import (
 )
 
 func (l limaVM) copyCerts() error {
-	log := l.Logger()
+	log := l.Logger(context.Background())
 	err := func() error {
 		dockerCertsDirHost := filepath.Join(util.HomeDir(), ".docker", "certs.d")
 		dockerCertsDirGuest := "/etc/docker/certs.d"

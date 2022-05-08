@@ -52,6 +52,7 @@ func (u ubuntuRuntime) ensureContainerd(ctx context.Context) error {
 		return nil
 	}
 
+	ctx = context.WithValue(ctx, cli.CtxKeyQuiet, true)
 	if err := nerd.Provision(ctx); err != nil {
 		return err
 	}
@@ -60,22 +61,25 @@ func (u ubuntuRuntime) ensureContainerd(ctx context.Context) error {
 }
 
 func (u ubuntuRuntime) Provision(ctx context.Context) error {
+	a := u.Init(ctx)
 	if err := u.ensureContainerd(ctx); err != nil {
 		return err
 	}
 
-	conf, _ := ctx.Value(config.CtxKey()).(config.Config)
 	if !u.imageCreated() {
-		if err := u.createImage(); err != nil {
-			return fmt.Errorf("error creating ubuntu layer image: %w", err)
-		}
+		a.Stage("creating image")
+		a.Add(u.createImage)
 	}
+
+	conf, _ := ctx.Value(config.CtxKey()).(config.Config)
 	if !u.containerCreated() {
-		if err := u.createContainer(conf); err != nil {
-			return fmt.Errorf("error creating ubuntu layer container: %w", err)
-		}
+		a.Stage("creating container")
+		a.Add(func() error {
+			return u.createContainer(conf)
+		})
 	}
-	return nil
+
+	return a.Exec()
 }
 
 func (u ubuntuRuntime) Start(context.Context) error {
