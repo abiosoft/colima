@@ -39,7 +39,7 @@ func (d defaultCommandRunner) Command(command string, args ...string) *exec.Cmd 
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	log.Debug("cmd ", quotedArgs(cmd.Args))
+	log.Trace("cmd ", quotedArgs(cmd.Args))
 
 	return cmd
 }
@@ -50,7 +50,7 @@ func (d defaultCommandRunner) CommandInteractive(command string, args ...string)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	log.Debug("cmd int ", quotedArgs(cmd.Args))
+	log.Trace("cmd int ", quotedArgs(cmd.Args))
 
 	return cmd
 }

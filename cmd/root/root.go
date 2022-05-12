@@ -46,8 +46,9 @@ func Cmd() *cobra.Command {
 
 // rootCmdArgs holds all flags configured in root Cmd
 var rootCmdArgs struct {
-	Profile string
-	Verbose bool
+	Profile     string
+	Verbose     bool
+	VeryVerbose bool
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -60,13 +61,18 @@ func Execute() {
 
 func init() {
 	rootCmd.PersistentFlags().BoolVarP(&rootCmdArgs.Verbose, "verbose", "v", rootCmdArgs.Verbose, "enable verbose log")
+	rootCmd.PersistentFlags().BoolVar(&rootCmdArgs.VeryVerbose, "very-verbose", rootCmdArgs.VeryVerbose, "enable more verbose log")
 	rootCmd.PersistentFlags().StringVarP(&rootCmdArgs.Profile, "profile", "p", "default", "profile name, for multiple instances")
 }
 
 func initLog() error {
 	if rootCmdArgs.Verbose {
-		cli.Settings.Verbose = rootCmdArgs.Verbose
+		cli.Settings.Verbose = true
 		logrus.SetLevel(logrus.DebugLevel)
+	}
+	if rootCmdArgs.VeryVerbose {
+		cli.Settings.Verbose = true
+		logrus.SetLevel(logrus.TraceLevel)
 	}
 
 	// general log output
