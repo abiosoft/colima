@@ -28,21 +28,11 @@ kubernetes:
   # Kubernetes version to use.
   # This needs to exactly match a k3s version https://github.com/k3s-io/k3s/releases
   # Default: latest stable release
-  version: v1.23.4+k3s1
+  version: v1.23.6+k3s1
 
   # Enable the traefik ingress controller
   # Default: false
   ingress: false
-
-# For a more general purpose virtual machine, Ubuntu container is optionally provided
-# as a layer on the virtual machine.
-# If set to true, `colima ssh` and `colima ssh-config` commands will be routed to the
-# Ubuntu layer.
-# The virtual machine is still accessible via `colima ssh --layer=false` or running `colima` in
-# the Ubuntu session.
-#
-# Default: false
-layer: true
 
 # ===================================================================== #
 # ADVANCED CONFIGURATION
@@ -60,10 +50,14 @@ network:
   # slirp:   the default user-mode network for Qemu.
   # vmnet:   more stable than slirp under heavy network use but uploads are noticeably slower
   #          and also incompatible with some VPN connections.
-  # gvproxy: an alternative to slirp based on gVisor network stack, faster than vmnet.
+  # gvproxy: an alternative to slirp based on gVisor network stack, faster than vmnet for uploads.
   #
   # Default: gvproxy
   driver: gvproxy
+
+# Forward the host's SSH agent to the virtual machine.
+# Default: false
+forwardAgent: false
 
 # Custom DNS nameservers for the virtual machine.
 #
@@ -94,27 +88,30 @@ dns: []
 # Default: {}
 docker: {}
 
+# Volume mount driver for the virtual machine (sshfs, 9p).
+#
+# 9p is more POSIX compliant and generally handles file permissions better.
+# However, it does not properly resolve symlinks (that are created on host).
+#
+# sshfs is faster than 9p but less reliable when there are lots
+# of concurrent reads or writes.
+#
+# Default: sshfs
+mountType: sshfs
+
 # The CPU type for the virtual machine.
 # Options available for host emulation can be checked with: `qemu-system-$(arch) -cpu help`.
 # Instructions are also supported by appending to the cpu type e.g. "qemu64,+ssse3".
 # Default: host
 cpuType: host
 
-# Forward the host's SSH agent to the virtual machine.
+# For a more general purpose virtual machine, Ubuntu container is optionally provided
+# as a layer on the virtual machine.
+# The underlying virtual machine is still accessible via `colima ssh --layer=false` or running `colima` in
+# the Ubuntu session.
+#
 # Default: false
-forwardAgent: false
-
-# Volume mount driver for the virtual machine (sshfs, 9p).
-#
-# 9p is more POSIX compliant and generally handles file permissions better.
-# However, it does not properly resolve symlinks (that are created on host)
-# on the mounted drives.
-#
-# sshfs is faster than 9p but less reliable when there are lots
-# of concurrent reads or writes.
-#
-# Default: 9p
-mountType: 9p
+layer: false
 
 # Configure volume mounts for the virtual machine.
 # Colima mounts user's home directory by default to provide a familiar

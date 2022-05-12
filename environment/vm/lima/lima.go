@@ -223,17 +223,20 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 		return os.Remove(configFile)
 	})
 
+	// host file
+	{
+		// add docker host alias
+		a.Add(func() error {
+			return l.addHost("host.docker.internal", net.ParseIP("192.168.5.2"))
+		})
+		// prevent chroot host error for layer
+		a.Add(func() error {
+			return l.addHost(config.Profile().ID, net.ParseIP("127.0.0.1"))
+		})
+	}
+
 	// registry certs
 	a.Add(l.copyCerts)
-
-	// add docker host alias
-	a.Add(func() error {
-		return l.addHost("host.docker.internal", net.ParseIP("192.168.5.2"))
-	})
-	// prevent chroot host error
-	a.Add(func() error {
-		return l.addHost(config.Profile().ID, net.ParseIP("127.0.0.1"))
-	})
 
 	// adding it to command chain to execute only after successful startup.
 	a.Add(func() error {
