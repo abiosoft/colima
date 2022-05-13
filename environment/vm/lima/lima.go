@@ -54,6 +54,7 @@ const (
 	limaInstanceEnvVar = "LIMA_INSTANCE"
 	lima               = "lima"
 	limactl            = "limactl"
+	layerEnvVar        = "COLIMA_LAYER_SSH_PORT"
 )
 
 func limaHome() (string, error) {
@@ -114,8 +115,8 @@ func (l *limaVM) prepareNetwork(ctx context.Context, conf config.Network) (conte
 	ctxKeyGVProxy := network.CtxKey(gvproxy.Name())
 
 	// use a nested chain for convenience
-	a := l.Init()
-	log := l.Logger()
+	a := l.Init(ctx)
+	log := l.Logger(ctx)
 
 	a.Stage("preparing network")
 	a.Add(func() error {
@@ -194,7 +195,7 @@ func (l *limaVM) prepareNetwork(ctx context.Context, conf config.Network) (conte
 }
 
 func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
-	a := l.Init()
+	a := l.Init(ctx)
 
 	if l.Created() {
 		return l.resume(ctx, conf)
@@ -222,11 +223,20 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 		return os.Remove(configFile)
 	})
 
+	// host file
+	{
+		// add docker host alias
+		a.Add(func() error {
+			return l.addHost("host.docker.internal", net.ParseIP("192.168.5.2"))
+		})
+		// prevent chroot host error for layer
+		a.Add(func() error {
+			return l.addHost(config.Profile().ID, net.ParseIP("127.0.0.1"))
+		})
+	}
+
 	// registry certs
 	a.Add(l.copyCerts)
-
-	// dns
-	l.applyDNS(ctx, a, conf)
 
 	// adding it to command chain to execute only after successful startup.
 	a.Add(func() error {
@@ -238,8 +248,8 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 }
 
 func (l limaVM) resume(ctx context.Context, conf config.Config) error {
-	log := l.Logger()
-	a := l.Init()
+	log := l.Logger(ctx)
+	a := l.Init(ctx)
 
 	if l.Running() {
 		log.Println("already running")
@@ -269,43 +279,7 @@ func (l limaVM) resume(ctx context.Context, conf config.Config) error {
 	// registry certs
 	a.Add(l.copyCerts)
 
-	l.applyDNS(ctx, a, conf)
-
 	return a.Exec()
-}
-
-func (l *limaVM) applyDNS(ctx context.Context, a *cli.ActiveCommandChain, conf config.Config) {
-	// Lima's DNS settings is fixed at VM create and cannot be changed afterwards.
-	// this is a better approach as it only applies on VM startup and gets reset at shutdown.
-	log := l.Logger()
-
-	dns := network.NewDNSManager(l)
-	a.Add(func() error {
-		var dnses []net.IP
-		dnses = append(dnses, conf.DNS...)
-
-		// check if network is enabled
-		if enabled, _ := ctx.Value(network.CtxKey(vmnet.Name())).(bool); enabled && len(dnses) == 0 {
-			dnses = append(dnses, net.ParseIP(vmnet.NetGateway))
-		}
-		switch conf.Network.Driver {
-		case config.VmnetDriver:
-			dnses = append(dnses, net.ParseIP(vmnet.NetGateway))
-		case config.GVProxyDriver:
-			dnses = append(dnses, net.ParseIP(gvproxy.GatewayIP))
-		}
-
-		// custom DNS config failure should not prevent the VM from starting
-		// as the default config will be used.
-		// Rather, warn and terminate setting the DNS config.
-		if err := dns.Provision(dnses); err != nil {
-			log.Warnln(fmt.Errorf("error provisioning dns, will fall back to defaults: %w", err))
-		}
-		if err := dns.Start(); err != nil {
-			log.Warnln(fmt.Errorf("error starting dns, will fall back to defaults: %w", err))
-		}
-		return nil
-	})
 }
 
 func (l limaVM) Running() bool {
@@ -313,8 +287,8 @@ func (l limaVM) Running() bool {
 }
 
 func (l limaVM) Stop(ctx context.Context, force bool) error {
-	log := l.Logger()
-	a := l.Init()
+	log := l.Logger(ctx)
+	a := l.Init(ctx)
 	if !l.Running() {
 		log.Println("not running")
 		return nil
@@ -339,9 +313,7 @@ func (l limaVM) Stop(ctx context.Context, force bool) error {
 }
 
 func (l limaVM) Teardown(ctx context.Context) error {
-	a := l.Init()
-
-	a.Stage("deleting")
+	a := l.Init(ctx)
 
 	if util.MacOS() {
 		a.Retry("", time.Second*1, 10, func(retryCount int) error {
@@ -378,7 +350,7 @@ func (l limaVM) Restart(ctx context.Context) error {
 func (l limaVM) Run(args ...string) error {
 	args = append([]string{lima}, args...)
 
-	a := l.Init()
+	a := l.Init(context.Background())
 
 	a.Add(func() error {
 		return l.host.Run(args...)
@@ -390,7 +362,7 @@ func (l limaVM) Run(args ...string) error {
 func (l limaVM) RunInteractive(args ...string) error {
 	args = append([]string{lima}, args...)
 
-	a := l.Init()
+	a := l.Init(context.Background())
 
 	a.Add(func() error {
 		return l.host.RunInteractive(args...)
@@ -402,7 +374,7 @@ func (l limaVM) RunInteractive(args ...string) error {
 func (l limaVM) RunWith(stdin io.Reader, stdout io.Writer, args ...string) error {
 	args = append([]string{lima}, args...)
 
-	a := l.Init()
+	a := l.Init(context.Background())
 
 	a.Add(func() error {
 		return l.host.RunWith(stdin, stdout, args...)
@@ -414,7 +386,7 @@ func (l limaVM) RunWith(stdin io.Reader, stdout io.Writer, args ...string) error
 func (l limaVM) RunOutput(args ...string) (out string, err error) {
 	args = append([]string{lima}, args...)
 
-	a := l.Init()
+	a := l.Init(context.Background())
 
 	a.Add(func() (err error) {
 		out, err = l.host.RunOutput(args...)
@@ -428,7 +400,7 @@ func (l limaVM) RunOutput(args ...string) (out string, err error) {
 func (l limaVM) RunQuiet(args ...string) (err error) {
 	args = append([]string{lima}, args...)
 
-	a := l.Init()
+	a := l.Init(context.Background())
 
 	a.Add(func() (err error) {
 		return l.host.RunQuiet(args...)

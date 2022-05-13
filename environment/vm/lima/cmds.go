@@ -6,9 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/abiosoft/colima/cli"
+	"github.com/abiosoft/colima/config"
 )
 
 // InstanceInfo is the information about a Lima instance
@@ -70,15 +73,32 @@ func Instances() ([]InstanceInfo, error) {
 	return instances, nil
 }
 
-func getIPAddress(profile, interfaceName string) string {
+func getIPAddress(profileID, interfaceName string) string {
 	var buf bytes.Buffer
 	// TODO: this should be less hacky
-	cmd := cli.Command("limactl", "shell", profile, "sh", "-c",
+	cmd := cli.Command("limactl", "shell", profileID, "sh", "-c",
 		`ifconfig `+interfaceName+` | grep "inet addr:" | awk -F' ' '{print $2}' | awk -F':' '{print $2}'`)
 	cmd.Stdout = &buf
 
 	_ = cmd.Run()
 	return strings.TrimSpace(buf.String())
+}
+
+func UbuntuSSHPort(profileID string) (int, error) {
+	var buf bytes.Buffer
+	cmd := cli.Command("limactl", "shell", profileID, "--", "sh", "-c", "echo $"+layerEnvVar)
+	cmd.Stdout = &buf
+
+	if err := cmd.Run(); err != nil {
+		return 0, fmt.Errorf("cannot retrieve ubuntu layer SSH port: %w", err)
+	}
+
+	port, err := strconv.Atoi(strings.TrimSpace(buf.String()))
+	if err != nil {
+		return 0, fmt.Errorf("invalid ubuntu layer SSH port '%d': %w", port, err)
+	}
+
+	return port, nil
 }
 
 func getRuntime(profile string) string {
@@ -135,23 +155,77 @@ func IPAddress(profile string) string {
 }
 
 // ShowSSH runs the show-ssh command in Lima.
-func ShowSSH(name, format string) error {
+// returns the ssh output, if in layer, and an error if any
+func ShowSSH(profileID string, layer bool, format string) (string, bool, error) {
 	var buf bytes.Buffer
-	cmd := cli.Command("limactl", "show-ssh", "--format", format, name)
+	cmd := cli.Command("limactl", "show-ssh", "--format", format, profileID)
 	cmd.Stdout = &buf
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("error retrieving ssh config: %w", err)
+		return "", false, fmt.Errorf("error retrieving ssh config: %w", err)
 	}
 
-	// TODO: this is a lazy approach, edge cases may not be covered
-	from := "lima-" + name
-	to := name
-	out := strings.ReplaceAll(buf.String(), from, to)
+	var port int
+	if layer {
+		port, _ = UbuntuSSHPort(profileID)
+	}
 
-	fmt.Println(out)
-	return nil
+	out := buf.String()
+	switch format {
+	case "config":
+		out = replaceSSHConfig(out, profileID, port)
+	case "cmd", "args":
+		out = replaceSSHCmd(out, profileID, port)
+	default:
+		return "", false, fmt.Errorf("unsupported format '%v'", format)
+	}
+
+	return out, port > 0, nil
+}
+
+func replaceSSHCmd(cmd string, name string, port int) string {
+	var out []string
+
+	for _, s := range strings.Fields(cmd) {
+		if strings.HasPrefix(s, "ControlPath=") {
+			s = "ControlPath=" + strconv.Quote(filepath.Join(config.Dir(), "ssh.sock"))
+		}
+		if port > 0 && strings.HasPrefix(s, "Port=") {
+			s = "Port=" + strconv.Itoa(port)
+		}
+		out = append(out, s)
+	}
+
+	if out[len(out)-1] == "lima-"+name {
+		out[len(out)-1] = "127.0.0.1"
+	}
+
+	return strings.Join(out, " ")
+}
+func replaceSSHConfig(conf string, name string, port int) string {
+	var out bytes.Buffer
+	scanner := bufio.NewScanner(strings.NewReader(conf))
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		switch {
+
+		case strings.HasPrefix(strings.TrimSpace(line), "ControlPath "):
+			pad := line[:strings.Index(line, "C")]
+			line = pad + "ControlPath " + strconv.Quote(filepath.Join(config.Dir(), "ssh.sock"))
+
+		case strings.HasPrefix(line, "Host "):
+			line = "Host " + name
+
+		case port > 0 && strings.HasPrefix(line, "Port "):
+			pad := line[:strings.Index(line, "P")]
+			line = pad + "Port " + strconv.Itoa(port)
+		}
+
+		_, _ = fmt.Fprintln(&out, line)
+	}
+	return out.String()
 }
 
 func toUserFriendlyName(name string) string {

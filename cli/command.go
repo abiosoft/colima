@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var runner commandRunner = &defaultCommandRunner{}
@@ -35,6 +38,9 @@ func (d defaultCommandRunner) Command(command string, args ...string) *exec.Cmd 
 	cmd := exec.Command(command, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+
+	log.Trace("cmd ", quotedArgs(cmd.Args))
+
 	return cmd
 }
 
@@ -43,7 +49,18 @@ func (d defaultCommandRunner) CommandInteractive(command string, args ...string)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+
+	log.Trace("cmd int ", quotedArgs(cmd.Args))
+
 	return cmd
+}
+
+func quotedArgs(args []string) string {
+	var q []string
+	for _, s := range args {
+		q = append(q, strconv.Quote(s))
+	}
+	return fmt.Sprintf("%v", q)
 }
 
 // Prompt prompts for input with a question. It returns true only if answer is y or Y.

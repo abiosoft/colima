@@ -3,12 +3,16 @@ package app
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
 
+	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/config/configmanager"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/docker"
 	"github.com/abiosoft/colima/environment/container/kubernetes"
+	"github.com/abiosoft/colima/environment/container/ubuntu"
 	"github.com/abiosoft/colima/environment/host"
 	"github.com/abiosoft/colima/environment/vm/lima"
 	log "github.com/sirupsen/logrus"
@@ -19,7 +23,7 @@ type App interface {
 	Start(config.Config) error
 	Stop(force bool) error
 	Delete() error
-	SSH(...string) error
+	SSH(layer bool, args ...string) error
 	Status() error
 	Version() error
 	Runtime() (string, error)
@@ -64,9 +68,17 @@ func (c colimaApp) Start(conf config.Config) error {
 		}
 		containers = append(containers, env)
 	}
-	// kubernetes should come last
+	// kubernetes should come after required runtime
 	if conf.Kubernetes.Enabled {
 		env, err := c.containerEnvironment(kubernetes.Name)
+		if err != nil {
+			return err
+		}
+		containers = append(containers, env)
+	}
+	// ubuntu layer should come last
+	if conf.Layer {
+		env, err := c.containerEnvironment(ubuntu.Name)
 		if err != nil {
 			return err
 		}
@@ -83,9 +95,12 @@ func (c colimaApp) Start(conf config.Config) error {
 
 	// provision and start container runtimes
 	for _, cont := range containers {
+		log := log.WithField("context", cont.Name())
+		log.Println("provisioning ...")
 		if err := cont.Provision(ctx); err != nil {
 			return fmt.Errorf("error provisioning %s: %w", cont.Name(), err)
 		}
+		log.Println("starting ...")
 		if err := cont.Start(ctx); err != nil {
 			return fmt.Errorf("error starting %s: %w", cont.Name(), err)
 		}
@@ -117,6 +132,10 @@ func (c colimaApp) Stop(force bool) error {
 		// stop happens in reverse of start
 		for i := len(containers) - 1; i >= 0; i-- {
 			cont := containers[i]
+
+			log := log.WithField("context", cont.Name())
+			log.Println("stopping ...")
+
 			if err := cont.Stop(ctx); err != nil {
 				// failure to stop a container runtime is not fatal
 				// it is only meant for graceful shutdown.
@@ -154,6 +173,10 @@ func (c colimaApp) Delete() error {
 			log.Warnln(fmt.Errorf("error retrieving runtimes: %w", err))
 		}
 		for _, cont := range containers {
+
+			log := log.WithField("context", cont.Name())
+			log.Println("deleting ...")
+
 			if err := cont.Teardown(ctx); err != nil {
 				// failure here is not fatal
 				log.Warnln(fmt.Errorf("error during teardown of %s: %w", cont.Name(), err))
@@ -175,12 +198,34 @@ func (c colimaApp) Delete() error {
 	return nil
 }
 
-func (c colimaApp) SSH(args ...string) error {
+func (c colimaApp) SSH(layer bool, args ...string) error {
 	if !c.guest.Running() {
 		return fmt.Errorf("%s not running", config.Profile().DisplayName)
 	}
 
-	return c.guest.RunInteractive(args...)
+	cmdArgs, inLayer, err := lima.ShowSSH(config.Profile().ID, layer, "args")
+	if err != nil {
+		return fmt.Errorf("error getting ssh config: %w", err)
+	}
+
+	if !layer || !inLayer {
+		return c.guest.RunInteractive(args...)
+	}
+
+	wd, err := os.Getwd()
+	if err != nil {
+		log.Debug(fmt.Errorf("cannot get working dir: %w", err))
+	}
+
+	if len(args) > 0 {
+		args = append([]string{"-q", "-t", "127.0.0.1", "--"}, args...)
+	} else if wd != "" {
+		args = []string{"-q", "-t", "127.0.0.1", "--", "cd " + wd + " 2> /dev/null; bash --login"}
+	}
+
+	args = append(strings.Fields(cmdArgs), args...)
+	return cli.CommandInteractive("ssh", args...).Run()
+
 }
 
 func (c colimaApp) Status() error {
@@ -275,6 +320,11 @@ func (c colimaApp) currentContainerEnvironments() ([]environment.Container, erro
 	// detect and add kubernetes
 	if k, err := c.containerEnvironment(kubernetes.Name); err == nil && k.Running() {
 		containers = append(containers, k)
+	}
+
+	// detect and add ubuntu layer
+	if u, err := c.containerEnvironment(ubuntu.Name); err == nil && u.Running() {
+		containers = append(containers, u)
 	}
 
 	return containers, nil

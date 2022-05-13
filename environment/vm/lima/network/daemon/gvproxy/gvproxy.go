@@ -106,21 +106,7 @@ func configuration() types.Configuration {
 		DHCPStaticLeases: map[string]string{
 			deviceIP: MacAddress(),
 		},
-		DNS: []types.Zone{
-			{
-				Name: "host.",
-				Records: []types.Record{
-					{
-						Name: "docker.internal",
-						IP:   net.ParseIP(GatewayIP),
-					},
-					{
-						Name: "lima.internal",
-						IP:   net.ParseIP(GatewayIP),
-					},
-				},
-			},
-		},
+		DNS:              []types.Zone{},
 		DNSSearchDomains: searchDomains(),
 		NAT: map[string]string{
 			natIP: "127.0.0.1",

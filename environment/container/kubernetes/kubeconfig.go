@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -13,14 +14,14 @@ import (
 
 const masterAddressKey = "master_address"
 
-func (c kubernetesRuntime) provisionKubeconfig() error {
+func (c kubernetesRuntime) provisionKubeconfig(ctx context.Context) error {
 	ip := lima.IPAddress(config.Profile().ID)
 	if ip == c.guest.Get(masterAddressKey) {
 		return nil
 	}
 
-	log := c.Logger()
-	a := c.Init()
+	log := c.Logger(ctx)
+	a := c.Init(ctx)
 
 	a.Stage("updating config")
 

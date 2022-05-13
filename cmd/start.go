@@ -92,6 +92,7 @@ const (
 	defaultDisk              = 60
 	defaultKubernetesVersion = kubernetes.DefaultVersion
 	defaultDriver            = config.GVProxyDriver
+	defaultMountType         = "sshfs"
 )
 
 var startCmdArgs struct {
@@ -130,7 +131,7 @@ func init() {
 
 	// mounts
 	startCmd.Flags().StringSliceVarP(&startCmdArgs.Flags.Mounts, "mount", "V", nil, "directories to mount, suffix ':w' for writable")
-	startCmd.Flags().StringVar(&startCmdArgs.MountType, "mount-type", "9p", "volume driver for the mount (9p, reverse-sshfs)")
+	startCmd.Flags().StringVar(&startCmdArgs.MountType, "mount-type", defaultMountType, "volume driver for the mount (sshfs, 9p)")
 
 	// ssh agent
 	startCmd.Flags().BoolVarP(&startCmdArgs.ForwardAgent, "ssh-agent", "s", false, "forward SSH agent to the VM")
@@ -142,8 +143,13 @@ func init() {
 	startCmd.Flags().BoolVar(&startCmdArgs.Kubernetes.Ingress, "kubernetes-ingress", false, "enable Traefik ingress controller")
 	startCmd.Flag("with-kubernetes").Hidden = true
 
+	// layer
+	startCmd.Flags().BoolVarP(&startCmdArgs.Layer, "layer", "l", false, "enable Ubuntu container layer")
+
+	// env
 	startCmd.Flags().StringToStringVar(&startCmdArgs.Env, "env", nil, "environment variables for the VM")
 
+	// dns
 	startCmd.Flags().IPSliceVarP(&startCmdArgs.DNS, "dns", "n", nil, "DNS servers for the VM")
 }
 
@@ -228,6 +234,9 @@ func prepareConfig(cmd *cobra.Command) {
 	}
 	if !cmd.Flag("env").Changed {
 		startCmdArgs.Env = current.Env
+	}
+	if !cmd.Flag("layer").Changed {
+		startCmdArgs.Layer = current.Layer
 	}
 	if util.MacOS() {
 		if !cmd.Flag("network-address").Changed {

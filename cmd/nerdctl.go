@@ -44,7 +44,7 @@ It is recommended to specify '--' to differentiate from Colima flags.
 		}
 
 		nerdctlArgs := append([]string{"sudo", "nerdctl"}, args...)
-		return app.SSH(nerdctlArgs...)
+		return app.SSH(false, nerdctlArgs...)
 	},
 }
 

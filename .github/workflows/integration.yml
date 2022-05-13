@@ -98,14 +98,17 @@ jobs:
       - name: Stop
         run: colima stop
 
-      - name: Kubernetes
-        run: colima start --runtime docker --kubernetes
+      - name: Start Colima with Layer
+        run: colima start --runtime docker --layer
 
       - name: Delay
-        run: sleep 20
+        run: sleep 10
 
-      - name: Validate Kubernetes
-        run: kubectl cluster-info && kubectl version && kubectl get nodes -o wide
+      - name: Validate Layer
+        run: colima ssh -- cat /etc/os-release
+
+      - name: Stop
+        run: colima stop
 
       - name: Teardown
         run: colima delete -f
@@ -138,6 +141,18 @@ jobs:
 
       - name: Build Image
         run: docker build integration
+
+      - name: Stop
+        run: colima stop
+
+      - name: Start Colima with Layer
+        run: colima start --runtime docker --arch aarch64 --layer
+
+      - name: Delay
+        run: sleep 10
+
+      - name: Validate Layer
+        run: colima ssh -- cat /etc/os-release
 
       - name: Stop
         run: colima stop
@@ -177,14 +192,17 @@ jobs:
       - name: Stop
         run: colima stop
 
-      - name: Kubernetes
-        run: colima start --runtime containerd --kubernetes
+      - name: Start Colima with Layer
+        run: colima start --runtime containerd --layer
 
       - name: Delay
-        run: sleep 20
+        run: sleep 10
 
-      - name: Validate Kubernetes
-        run: kubectl cluster-info && kubectl version && kubectl get nodes -o wide
+      - name: Validate Layer
+        run: colima ssh -- cat /etc/os-release
+
+      - name: Stop
+        run: colima stop
 
       - name: Teardown
         run: colima delete -f
@@ -217,6 +235,18 @@ jobs:
 
       - name: Build Image
         run: colima nerdctl -- build integration
+
+      - name: Stop
+        run: colima stop
+
+      - name: Start Colima with Layer
+        run: colima start --runtime containerd --arch aarch64 --layer
+
+      - name: Delay
+        run: sleep 10
+
+      - name: Validate Layer
+        run: colima ssh -- cat /etc/os-release
 
       - name: Stop
         run: colima stop
