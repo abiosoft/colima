@@ -34,40 +34,28 @@ kubernetes:
   # Default: false
   ingress: false
 
+# Network configurations for the virtual machine.
+network:
+  # Assign reachable IP address to the virtual machine.
+  # NOTE: this is currently macOS only and ignored on Linux.
+  # Default: false
+  address: false
+
+  # Custom DNS nameservers for the virtual machine.
+  #
+  # EXAMPLE
+  # dns: [1.1.1.1, 8.8.8.8]
+  #
+  # Default: []
+  dns: []
+
 # ===================================================================== #
 # ADVANCED CONFIGURATION
 # ===================================================================== #
 
-# Network configuration for the virtual machine.
-# NOTE: this is currently macOS only and ignored on Linux.
-network:
-  # Assign reachable IP address to the virtual machine.
-  # Default: false
-  address: false
-
-  # Network to use as the default route (slirp, vmnet, gvproxy)
-  #
-  # slirp:   the default user-mode network for Qemu.
-  # vmnet:   more stable than slirp under heavy network use but uploads are noticeably slower
-  #          and also incompatible with some VPN connections.
-  # gvproxy: an alternative to slirp based on gVisor network stack, faster than vmnet for uploads.
-  #
-  # Default: gvproxy
-  driver: gvproxy
-
 # Forward the host's SSH agent to the virtual machine.
 # Default: false
 forwardAgent: false
-
-# Custom DNS nameservers for the virtual machine.
-#
-# EXAMPLE
-# dns:
-#   - 1.1.1.1
-#   - 8.8.8.8
-#
-# Default: []
-dns: []
 
 # Docker daemon configuration that maps directly to daemon.json.
 # https://docs.docker.com/engine/reference/commandline/dockerd/#daemon-configuration-file.

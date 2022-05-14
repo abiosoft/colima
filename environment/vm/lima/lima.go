@@ -120,11 +120,9 @@ func (l *limaVM) prepareNetwork(ctx context.Context, conf config.Network) (conte
 
 	a.Stage("preparing network")
 	a.Add(func() error {
+		ctx = context.WithValue(ctx, ctxKeyGVProxy, true)
 		if conf.Address {
 			ctx = context.WithValue(ctx, ctxKeyVmnet, true)
-		}
-		if conf.Driver == config.GVProxyDriver {
-			ctx = context.WithValue(ctx, ctxKeyGVProxy, true)
 		}
 		deps, root := l.network.Dependencies(ctx)
 		if deps.Installed() {
@@ -146,7 +144,7 @@ func (l *limaVM) prepareNetwork(ctx context.Context, conf config.Network) (conte
 
 	// delay to ensure that the vmnet is running
 	statusKey := "networkStatus"
-	if conf.Address || conf.Driver == config.VmnetDriver {
+	if conf.Address {
 		a.Retry("", time.Second*3, 5, func(i int) error {
 			s, err := l.network.Running(ctx)
 			ctx = context.WithValue(ctx, statusKey, s)

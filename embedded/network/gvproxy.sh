@@ -9,9 +9,13 @@ if grep -q "^auto $IFACE" "$FILE"; then
     exit $?
 fi
 
-cat >> $FILE <<EOF
+cat >>$FILE <<EOF
 auto $IFACE
-iface $IFACE inet dhcp
+iface $IFACE inet static
+  address #{.IPAddress}}
+  netmask 255.255.255.0
+  gateway #{.Gateway}}
+  metric 200
 EOF
 
 service networking restart

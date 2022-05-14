@@ -73,7 +73,7 @@ const (
 
 	gatewayMacAddress = "5a:94:ef:e4:0c:dd"
 
-	deviceIP  = "192.168.107.2"
+	DeviceIP  = "192.168.107.2"
 	GatewayIP = "192.168.107.1"
 	natIP     = "192.168.107.254"
 	subnet    = "192.168.107.0/24"
@@ -104,7 +104,7 @@ func configuration() types.Configuration {
 		GatewayIP:         GatewayIP,
 		GatewayMacAddress: gatewayMacAddress,
 		DHCPStaticLeases: map[string]string{
-			deviceIP: MacAddress(),
+			DeviceIP: MacAddress(),
 		},
 		DNS:              []types.Zone{},
 		DNSSearchDomains: searchDomains(),

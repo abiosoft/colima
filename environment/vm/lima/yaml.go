@@ -48,11 +48,16 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	l.Containerd = Containerd{System: false, User: false}
 	l.Firmware.LegacyBIOS = false
 
-	l.DNS = conf.DNS
-
-	l.HostResolver.Enabled = len(l.DNS) == 0
-	l.HostResolver.Hosts = map[string]string{
-		"host.docker.internal": "host.lima.internal",
+	l.DNS = conf.Network.DNS
+	if len(l.DNS) == 0 {
+		gvProxyEnabled, _ := ctx.Value(network.CtxKey(gvproxy.Name())).(bool)
+		if gvProxyEnabled {
+			l.DNS = append(l.DNS, net.ParseIP(gvproxy.GatewayIP))
+		}
+		reachableIPAddress, _ := ctx.Value(network.CtxKey(vmnet.Name())).(bool)
+		if reachableIPAddress {
+			l.DNS = append(l.DNS, net.ParseIP(vmnet.NetGateway))
+		}
 	}
 
 	l.Env = conf.Env
@@ -63,135 +68,103 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	// perform mounts in fstab.
 	// required for 9p (lima >=v0.10.0)
 	// idempotent for sshfs (lima <v0.10.0)
-	l.Provision = append(l.Provision, Provision{
-		Mode:   ProvisionModeSystem,
-		Script: "mkmntdirs && mount -a",
-	})
+	if l.MountType == NINEP {
+		l.Provision = append(l.Provision, Provision{
+			Mode:   ProvisionModeSystem,
+			Script: "mkmntdirs && mount -a",
+		})
+	}
 
 	// add user to docker group
 	// "sudo", "usermod", "-aG", "docker", user
 	l.Provision = append(l.Provision, Provision{
 		Mode:   ProvisionModeUser,
-		Script: `sudo usermod -aG docker $USER`,
+		Script: "sudo usermod -aG docker $USER",
 	})
 
-	// network is currently limited to macOS
-	vmnetEnabled, _ := ctx.Value(network.CtxKey(vmnet.Name())).(bool)
-	// only set network settings if vmnet startup is successful
-	if util.MacOS() {
-		// disable one of the default routes
-		// credit: https://github.com/abiosoft/colima/issues/140#issuecomment-1072599309
-		disableInterfaceForGateway := func(ifaces []string) error {
-			tpl, err := embedded.ReadString("network/dhcp.sh")
-			if err != nil {
-				return err
-			}
+	// network setup
+	{
+		reachableIPAddress, _ := ctx.Value(network.CtxKey(vmnet.Name())).(bool)
 
-			values := struct{ Interfaces joiner }{Interfaces: ifaces}
-			dhcpScript, err := util.ParseTemplate(tpl, values)
-			if err != nil {
-				return err
-			}
+		// network is currently limited to macOS.
+		// gvproxy is cross platform but not needed on Linux as slirp is only erratic on macOS.
+		if util.MacOS() {
+			if reachableIPAddress {
+				if err := func() error {
+					ptpFile := vmnet.Info().PTPFile
+					// ensure the ptp file exists
+					if _, err := os.Stat(ptpFile); err != nil {
+						return fmt.Errorf("vmnet ptp socket file not found: %w", err)
+					}
 
-			l.Provision = append(l.Provision, Provision{
-				Mode:   ProvisionModeSystem,
-				Script: string(dhcpScript),
-			})
-			return nil
-		}
+					l.Networks = append(l.Networks, Network{
+						VNL:        ptpFile,
+						SwitchPort: 65535, // this is fixed
+						Interface:  vmnet.NetInterface,
+					})
 
-		ifaces := map[string]string{
-			config.UserModeDriver: "eth0",
-			config.VmnetDriver:    vmnet.NetInterface,
-			config.GVProxyDriver:  gvproxy.NetInterface,
-		}
-		running := map[string]bool{}
-
-		if vmnetEnabled {
-			if err := func() error {
-				ptpFile := vmnet.Info().PTPFile
-				// ensure the ptp file exists
-				if _, err := os.Stat(ptpFile); err != nil {
-					return fmt.Errorf("vmnet ptp socket file not found: %w", err)
+					return nil
+				}(); err != nil {
+					reachableIPAddress = false
+					logrus.Warn(fmt.Errorf("error setting up routable IP address: %w", err))
 				}
-
-				l.Networks = append(l.Networks, Network{
-					VNL:        ptpFile,
-					SwitchPort: 65535, // this is fixed
-					Interface:  vmnet.NetInterface,
-				})
-
-				running[config.VmnetDriver] = true
-				return nil
-			}(); err != nil {
-				logrus.Warn(fmt.Errorf("error setting up vmnet network: %w", err))
 			}
-		}
 
-		gvProxyEnabled, _ := ctx.Value(network.CtxKey(gvproxy.Name())).(bool)
-		if gvProxyEnabled {
-			if err := func() error {
-				tpl, err := embedded.ReadString("network/gvproxy.sh")
-				if err != nil {
-					return err
-				}
+			gvProxyEnabled, _ := ctx.Value(network.CtxKey(gvproxy.Name())).(bool)
+			if gvProxyEnabled {
+				if err := func() error {
+					tpl, err := embedded.ReadString("network/gvproxy.sh")
+					if err != nil {
+						return err
+					}
 
-				var values struct{ MacAddress string }
-				values.MacAddress = strings.ToUpper(gvproxy.MacAddress())
+					var values = struct {
+						MacAddress string
+						IPAddress  net.IP
+						Gateway    net.IP
+					}{
+						MacAddress: strings.ToUpper(gvproxy.MacAddress()),
+						IPAddress:  net.ParseIP(gvproxy.DeviceIP),
+						Gateway:    net.ParseIP(gvproxy.GatewayIP),
+					}
 
-				gvproxyScript, err := util.ParseTemplate(tpl, values)
-				if err != nil {
-					return fmt.Errorf("error parsing template for gvproxy script: %w", err)
-				}
+					gvproxyScript, err := util.ParseTemplate(tpl, values)
+					if err != nil {
+						return fmt.Errorf("error parsing template for gvproxy script: %w", err)
+					}
 
-				l.Provision = append(l.Provision, Provision{
-					Mode:   ProvisionModeSystem,
-					Script: string(gvproxyScript),
-				})
+					l.Provision = append(l.Provision, Provision{
+						Mode:   ProvisionModeSystem,
+						Script: string(gvproxyScript),
+					})
 
-				running[config.GVProxyDriver] = true
-				return nil
-			}(); err != nil {
-				logrus.Warn(fmt.Errorf("error setting up gvproxy network: %w", err))
-			}
-		}
-
-		var toDisable []string
-		if len(running) > 0 {
-			if conf.Network.Driver != config.UserModeDriver {
-				toDisable = append(toDisable, ifaces[config.UserModeDriver])
-			}
-			for gateway, enabled := range running {
-				if enabled && conf.Network.Driver != gateway {
-					toDisable = append(toDisable, ifaces[gateway])
+					return nil
+				}(); err != nil {
+					logrus.Warn(fmt.Errorf("error setting up gvproxy network: %w", err))
 				}
 			}
 		}
-		if err := disableInterfaceForGateway(toDisable); err != nil {
-			logrus.Warn(fmt.Errorf("error modifying default gateway: %w", err))
+
+		// disable ports 80 and 443 when k8s is enabled and there is a reachable IP address
+		// to prevent ingress (traefik) from occupying relevant host ports.
+		if reachableIPAddress && conf.Kubernetes.Enabled && conf.Kubernetes.Ingress {
+			l.PortForwards = append(l.PortForwards,
+				PortForward{
+					GuestIP:           net.ParseIP("0.0.0.0"),
+					GuestPort:         80,
+					GuestIPMustBeZero: true,
+					Ignore:            true,
+					Proto:             TCP,
+				},
+				PortForward{
+					GuestIP:           net.ParseIP("0.0.0.0"),
+					GuestPort:         443,
+					GuestIPMustBeZero: true,
+					Ignore:            true,
+					Proto:             TCP,
+				},
+			)
 		}
-
-	}
-
-	// disable ports 80 and 443 when k8s is enabled and there is a reachable IP address
-	// to prevent ingress (traefik) from occupying relevant host ports.
-	if vmnetEnabled && conf.Kubernetes.Enabled && conf.Kubernetes.Ingress {
-		l.PortForwards = append(l.PortForwards,
-			PortForward{
-				GuestIP:           net.ParseIP("0.0.0.0"),
-				GuestPort:         80,
-				GuestIPMustBeZero: true,
-				Ignore:            true,
-				Proto:             TCP,
-			},
-			PortForward{
-				GuestIP:           net.ParseIP("0.0.0.0"),
-				GuestPort:         443,
-				GuestIPMustBeZero: true,
-				Ignore:            true,
-				Proto:             TCP,
-			},
-		)
 	}
 
 	// port forwarding
@@ -207,6 +180,8 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 				HostPort:  port,
 			})
 	}
+
+	// ports and sockets
 	{
 		// docker socket
 		if conf.Runtime == docker.Name {
@@ -421,7 +396,3 @@ func checkOverlappingMounts(mounts []config.Mount) error {
 	}
 	return nil
 }
-
-type joiner []string
-
-func (j joiner) Join(s string) string { return strings.Join(j, s) }
