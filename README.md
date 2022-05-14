@@ -106,8 +106,8 @@ For Containerd runtime, images built or pulled in the `k8s.io` namespace are acc
 
 The default VM created by Colima has 2 CPUs, 2GiB memory and 60GiB storage.
 
-The VM can be customized either by passing additional flags to `colima start`. 
-e.g. `--cpu`, `--memory`, `--disk`, `--runtime`. 
+The VM can be customized either by passing additional flags to `colima start`.
+e.g. `--cpu`, `--memory`, `--disk`, `--runtime`.
 Or by editing the config file with `colima start --edit`.
 
 **NOTE**: disk size cannot be changed after the VM is created.
@@ -175,6 +175,7 @@ On first startup, Colima generates Docker daemon.json file at `$HOME/.colima/doc
 Simply modify the daemon.json file accordingly and restart Colima.
 
 ### v0.4.0 or newer
+
 Start Colima with `--edit` flag `colima start --edit` and add the config to the `docker` section.
 
 To manually modify the config file, it is located at `$HOME/.colima/default/colima.yaml` for the default profile,
@@ -236,9 +237,9 @@ Use a preferred editor by setting `$EDITOR` or passing the `--editor` flag
 colima start --edit --editor code # one-off edit
 colima template --editor code # set the default config
 ```
+
 </p>
 </details>
-
 
 ## Help Wanted
 

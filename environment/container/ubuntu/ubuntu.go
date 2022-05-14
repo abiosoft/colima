@@ -46,7 +46,7 @@ func (u ubuntuRuntime) Name() string {
 func (u ubuntuRuntime) ensureContainerd(ctx context.Context) error {
 	nerd, err := environment.NewContainer(containerd.Name, u.host, u.guest)
 	if err != nil {
-		return fmt.Errorf("%s reqiured for ubuntu layer: %w", containerd.Name, err)
+		return fmt.Errorf("%s required for ubuntu layer: %w", containerd.Name, err)
 	}
 	if nerd.Running() {
 		return nil

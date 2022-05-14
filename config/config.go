@@ -63,7 +63,6 @@ type Config struct {
 	CPUType      string            `yaml:"cpuType,omitempty"`
 	ForwardAgent bool              `yaml:"forwardAgent,omitempty"`
 	Network      Network           `yaml:"network,omitempty"`
-	DNS          []net.IP          `yaml:"dns,omitempty"` // DNS nameservers
 	Env          map[string]string `yaml:"env,omitempty"` // environment variables
 
 	// volume mounts
@@ -90,16 +89,10 @@ type Kubernetes struct {
 	Ingress bool   `yaml:"ingress"`
 }
 
-const (
-	UserModeDriver = "slirp"
-	VmnetDriver    = "vmnet"
-	GVProxyDriver  = "gvproxy"
-)
-
 // Network is VM network configuration
 type Network struct {
-	Address bool   `yaml:"address"`
-	Driver  string `yaml:"driver"`
+	Address bool     `yaml:"address"`
+	DNS     []net.IP `yaml:"dns"`
 }
 
 // Mount is volume mount

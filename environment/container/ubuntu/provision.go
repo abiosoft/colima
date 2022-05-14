@@ -19,8 +19,6 @@ type buildArgs struct {
 	dockerGid int
 }
 
-//
-
 //go:embed Dockerfile
 var dockerfile string
 

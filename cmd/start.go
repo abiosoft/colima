@@ -91,7 +91,6 @@ const (
 	defaultMemory            = 2
 	defaultDisk              = 60
 	defaultKubernetesVersion = kubernetes.DefaultVersion
-	defaultDriver            = config.GVProxyDriver
 	defaultMountType         = "sshfs"
 )
 
@@ -120,9 +119,7 @@ func init() {
 
 	// network
 	if util.MacOS() {
-		drivers := strings.Join([]string{config.UserModeDriver, config.VmnetDriver, config.GVProxyDriver}, ", ")
 		startCmd.Flags().BoolVar(&startCmdArgs.Network.Address, "network-address", false, "assign reachable IP address to the VM")
-		startCmd.Flags().StringVar(&startCmdArgs.Network.Driver, "network-driver", defaultDriver, "network driver ("+drivers+"), vmnet implies --network-address=true")
 	}
 
 	// config
@@ -150,7 +147,7 @@ func init() {
 	startCmd.Flags().StringToStringVar(&startCmdArgs.Env, "env", nil, "environment variables for the VM")
 
 	// dns
-	startCmd.Flags().IPSliceVarP(&startCmdArgs.DNS, "dns", "n", nil, "DNS servers for the VM")
+	startCmd.Flags().IPSliceVarP(&startCmdArgs.Network.DNS, "dns", "n", nil, "DNS servers for the VM")
 }
 
 // mountsFromFlag converts mounts from cli flag format to config file format
@@ -230,7 +227,7 @@ func prepareConfig(cmd *cobra.Command) {
 		startCmdArgs.ForwardAgent = current.ForwardAgent
 	}
 	if !cmd.Flag("dns").Changed {
-		startCmdArgs.DNS = current.DNS
+		startCmdArgs.Network.DNS = current.Network.DNS
 	}
 	if !cmd.Flag("env").Changed {
 		startCmdArgs.Env = current.Env
@@ -241,9 +238,6 @@ func prepareConfig(cmd *cobra.Command) {
 	if util.MacOS() {
 		if !cmd.Flag("network-address").Changed {
 			startCmdArgs.Network.Address = current.Network.Address
-		}
-		if !cmd.Flag("network-driver").Changed {
-			startCmdArgs.Network.Driver = current.Network.Driver
 		}
 	}
 }
