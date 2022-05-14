@@ -89,6 +89,19 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		// network is currently limited to macOS.
 		// gvproxy is cross platform but not needed on Linux as slirp is only erratic on macOS.
 		if util.MacOS() {
+			var values struct {
+				Vmnet struct {
+					Enabled   bool
+					Interface string
+				}
+				GVProxy struct {
+					Enabled    bool
+					MacAddress string
+					IPAddress  net.IP
+					Gateway    net.IP
+				}
+			}
+
 			if reachableIPAddress {
 				if err := func() error {
 					ptpFile := vmnet.Info().PTPFile
@@ -110,38 +123,38 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 				}
 			}
 
+			if reachableIPAddress {
+				values.Vmnet.Enabled = true
+				values.Vmnet.Interface = vmnet.NetInterface
+			}
+
 			gvProxyEnabled, _ := ctx.Value(network.CtxKey(gvproxy.Name())).(bool)
 			if gvProxyEnabled {
-				if err := func() error {
-					tpl, err := embedded.ReadString("network/gvproxy.sh")
-					if err != nil {
-						return err
-					}
+				values.GVProxy.Enabled = true
+				values.GVProxy.MacAddress = strings.ToUpper(gvproxy.MacAddress())
+				values.GVProxy.IPAddress = net.ParseIP(gvproxy.DeviceIP)
+				values.GVProxy.Gateway = net.ParseIP(gvproxy.GatewayIP)
+			}
 
-					var values = struct {
-						MacAddress string
-						IPAddress  net.IP
-						Gateway    net.IP
-					}{
-						MacAddress: strings.ToUpper(gvproxy.MacAddress()),
-						IPAddress:  net.ParseIP(gvproxy.DeviceIP),
-						Gateway:    net.ParseIP(gvproxy.GatewayIP),
-					}
-
-					gvproxyScript, err := util.ParseTemplate(tpl, values)
-					if err != nil {
-						return fmt.Errorf("error parsing template for gvproxy script: %w", err)
-					}
-
-					l.Provision = append(l.Provision, Provision{
-						Mode:   ProvisionModeSystem,
-						Script: string(gvproxyScript),
-					})
-
-					return nil
-				}(); err != nil {
-					logrus.Warn(fmt.Errorf("error setting up gvproxy network: %w", err))
+			if err := func() error {
+				tpl, err := embedded.ReadString("network/ifaces.sh")
+				if err != nil {
+					return err
 				}
+
+				script, err := util.ParseTemplate(tpl, values)
+				if err != nil {
+					return fmt.Errorf("error parsing template for network script: %w", err)
+				}
+
+				l.Provision = append(l.Provision, Provision{
+					Mode:   ProvisionModeSystem,
+					Script: string(script),
+				})
+
+				return nil
+			}(); err != nil {
+				logrus.Warn(fmt.Errorf("error setting up gvproxy network: %w", err))
 			}
 		}
 
