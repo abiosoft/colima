@@ -9,8 +9,12 @@
     - [Specifying the config editor](#specifying-the-config-editor)
   - [Docker](#docker)
     - [Can it run alongside Docker for Mac?](#can-it-run-alongside-docker-for-mac)
+    - [Docker socket location](#docker-socket-location)
+      - [v0.3.4 or older](#v034-or-older)
+      - [v0.4.0 or newer](#v040-or-newer)
       - [Listing Docker contexts](#listing-docker-contexts)
       - [Changing the active Docker context](#changing-the-active-docker-context)
+    - [Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?](#cannot-connect-to-the-docker-daemon-at-unixvarrundockersock-is-the-docker-daemon-running)
     - [How to customize Docker config e.g. add insecure registries?](#how-to-customize-docker-config-eg-add-insecure-registries)
     - [Docker plugins are missing (buildx, scan)](#docker-plugins-are-missing-buildx-scan)
       - [Installing Buildx](#installing-buildx)
@@ -74,6 +78,22 @@ Yes, from version v0.3.0 Colima leverages Docker contexts and can thereby run al
 
 Colima makes itself the default Docker context on startup and should work straight away.
 
+### Docker socket location
+
+#### v0.3.4 or older
+
+Docker socket is located at `$HOME/.colima/docker.sock`
+
+#### v0.4.0 or newer
+
+Docker socket is located at `$HOME/.colima/default/docker.sock`
+
+It can also be retrieved by checking status
+
+```
+colima status
+```
+
 #### Listing Docker contexts
 
 ```
@@ -85,6 +105,27 @@ docker context list
 ```
 docker context use <context-name>
 ```
+### Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?
+
+Colima uses Docker contexts to allow co-existence with other Docker servers and sets itself as the default Docker context on startup. 
+
+However, some applications are not aware of Docker contexts and may lead to the error.
+
+This can be fixed by any of the following approaches. Ensure the Docker socket path by checking the [socket location](#docker-socket-location).
+
+1. Setting application specific Docker socket path if supported by the application. e.g. JetBrains IDEs.
+
+2. Setting the `DOCKER_HOST` environment variable to point to Colima socket.
+
+   ```sh
+   export DOCKER_HOST="unix://${HOME}/.colima/default/docker.sock"
+   ```
+3. Linking the Colima socket to the default socket path. **Note** that this may break other Docker servers. 
+
+   ```sh
+   sudo ln -sf /var/run/docker.sock $HOME/.colima/default/docker.sock
+   ```
+
 
 ### How to customize Docker config e.g. add insecure registries?
 
