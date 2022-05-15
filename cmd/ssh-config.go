@@ -33,5 +33,5 @@ func init() {
 	root.Cmd().AddCommand(sshConfigCmd)
 
 	sshConfigCmd.Flags().StringVarP(&sshConfigCmdArgs.format, "format", "f", "config", "format (config, cmd)")
-	sshConfigCmd.Flags().BoolVarP(&sshCmdArgs.layer, "layer", "l", true, "config for the Ubuntu layer (if enabled)")
+	sshConfigCmd.Flags().BoolVarP(&sshConfigCmdArgs.layer, "layer", "l", true, "config for the Ubuntu layer (if enabled)")
 }
