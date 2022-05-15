@@ -33,28 +33,32 @@ func NewContainer(runtime string, host HostActions, guest GuestActions) (Contain
 		return nil, fmt.Errorf("unsupported container runtime '%s'", runtime)
 	}
 
-	return containerRuntimes[runtime](host, guest), nil
+	return containerRuntimes[runtime].Func(host, guest), nil
 }
 
 // NewContainerFunc is implemented by container runtime implementations to create a new instance.
 type NewContainerFunc func(host HostActions, guest GuestActions) Container
 
-var containerRuntimes = map[string]NewContainerFunc{}
+var containerRuntimes = map[string]containerRuntimeFunc{}
+
+type containerRuntimeFunc struct {
+	Func   NewContainerFunc
+	Hidden bool
+}
 
 // RegisterContainer registers a new container runtime.
-func RegisterContainer(name string, f NewContainerFunc) {
+// If hidden is true, the container is not displayed as an available runtime.
+func RegisterContainer(name string, f NewContainerFunc, hidden bool) {
 	if _, ok := containerRuntimes[name]; ok {
 		log.Fatalf("container runtime '%s' already registered", name)
 	}
-	containerRuntimes[name] = f
+	containerRuntimes[name] = containerRuntimeFunc{Func: f, Hidden: hidden}
 }
 
 // ContainerRuntimes return the names of available container runtimes.
 func ContainerRuntimes() (names []string) {
-	for name := range containerRuntimes {
-		// exclude kubernetes from the runtime list
-		// TODO find a cleaner way to not hardcode kubernetes
-		if name == "kubernetes" {
+	for name, cont := range containerRuntimes {
+		if cont.Hidden {
 			continue
 		}
 		names = append(names, name)
