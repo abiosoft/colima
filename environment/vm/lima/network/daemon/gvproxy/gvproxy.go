@@ -66,7 +66,6 @@ func (*gvproxyProcess) Start(ctx context.Context) error {
 }
 
 const (
-	NetInterface     = "eth1"
 	SubProcessEnvVar = "COLIMA_GVPROXY"
 
 	socketFileName = "gvproxy.sock"
