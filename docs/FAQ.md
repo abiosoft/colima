@@ -12,6 +12,9 @@
       - [Listing Docker contexts](#listing-docker-contexts)
       - [Changing the active Docker context](#changing-the-active-docker-context)
     - [How to customize Docker config e.g. add insecure registries?](#how-to-customize-docker-config-eg-add-insecure-registries)
+    - [Docker plugins are missing (buildx, scan)](#docker-plugins-are-missing-buildx-scan)
+      - [Installing Buildx](#installing-buildx)
+      - [Installing Docker Scan](#installing-docker-scan)
   - [How does Colima compare to minikube, Kind, K3d?](#how-does-colima-compare-to-minikube-kind-k3d)
     - [For Kubernetes](#for-kubernetes)
     - [For Docker](#for-docker)
@@ -107,7 +110,42 @@ docker context use <context-name>
   ```
   
   The config file is located at `$HOME/.colima/default/colima.yaml` for the default profile.
-  
+
+### Docker plugins are missing (buildx, scan)
+
+Both buildx and scan can be installed as Docker plugins
+
+#### Installing Buildx
+
+```sh
+ARCH=amd64 # change to 'arm64' for m1
+VERSION=v0.8.2
+curl -LO https://github.com/docker/buildx/releases/download/${VERSION}/buildx-${VERSION}.darwin-${ARCH}
+mkdir -p ~/.docker/cli-plugins
+mv buildx-${VERSION}.darwin-${ARCH} ~/.docker/cli-plugins/docker-buildx
+chmod +x ~/.docker/cli-plugins/docker-buildx
+docker buildx version # verify installation
+```
+#### Installing Docker Scan
+
+Install Synk CLI
+
+```sh
+brew tap snyk/tap && brew install snyk/tapsnyk
+```
+
+Install Docker Scan
+
+```sh
+ARCH=amd64 # change to 'arm64' for m1
+VERSION=v0.17.0
+curl -LO https://github.com/docker/scan-cli-plugin/releases/download/${VERSION}/docker-scan_darwin_${ARCH}
+mkdir -p ~/.docker/cli-plugins
+mv docker-scan_darwin_${ARCH} ~/.docker/cli-plugins/docker-scan
+chmod +x ~/.docker/cli-plugins/docker-scan
+docker scan --version # verify installation
+```
+
 ## How does Colima compare to minikube, Kind, K3d?
 
 ### For Kubernetes
