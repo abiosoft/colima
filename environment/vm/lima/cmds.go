@@ -195,10 +195,10 @@ func replaceSSHCmd(cmd string, name string, ip string, port int) string {
 	var out []string
 
 	for _, s := range strings.Fields(cmd) {
-		if strings.HasPrefix(s, "ControlPath=") {
-			s = "ControlPath=" + strconv.Quote(filepath.Join(config.Dir(), "ssh.sock"))
-		}
 		if port > 0 {
+			if strings.HasPrefix(s, "ControlPath=") {
+				s = "ControlPath=" + strconv.Quote(filepath.Join(config.Dir(), "ssh.sock"))
+			}
 			if strings.HasPrefix(s, "Port=") {
 				s = "Port=" + strconv.Itoa(port)
 			}
@@ -206,6 +206,7 @@ func replaceSSHCmd(cmd string, name string, ip string, port int) string {
 				s = "Hostname=" + ip
 			}
 		}
+
 		out = append(out, s)
 	}
 
@@ -218,25 +219,33 @@ func replaceSSHCmd(cmd string, name string, ip string, port int) string {
 func replaceSSHConfig(conf string, name string, ip string, port int) string {
 	var out bytes.Buffer
 	scanner := bufio.NewScanner(strings.NewReader(conf))
+
+	hasPrefix := func(line, s string) (pad string, ok bool) {
+		if s != "" && strings.HasPrefix(strings.TrimSpace(line), s) {
+			return line[:strings.Index(line, s[:1])], true
+		}
+		return "", false
+	}
+
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		switch {
-
-		case strings.HasPrefix(strings.TrimSpace(line), "ControlPath "):
-			pad := line[:strings.Index(line, "C")]
-			line = pad + "ControlPath " + strconv.Quote(filepath.Join(config.Dir(), "ssh.sock"))
-
-		case port > 0 && strings.HasPrefix(strings.TrimSpace(line), "Hostname "):
-			pad := line[:strings.Index(line, "H")]
-			line = pad + "Hostname " + ip
-
-		case strings.HasPrefix(line, "Host "):
+		if strings.HasPrefix(line, "Host ") {
 			line = "Host " + name
+		}
 
-		case port > 0 && strings.HasPrefix(strings.TrimSpace(line), "Port "):
-			pad := line[:strings.Index(line, "P")]
-			line = pad + "Port " + strconv.Itoa(port)
+		if port > 0 {
+			if pad, ok := hasPrefix(line, "ControlPath "); ok {
+				line = pad + "ControlPath " + strconv.Quote(filepath.Join(config.Dir(), "ssh.sock"))
+			}
+
+			if pad, ok := hasPrefix(line, "Hostname "); ok {
+				line = pad + "Hostname " + ip
+			}
+
+			if pad, ok := hasPrefix(line, "Port"); ok {
+				line = pad + "Port " + strconv.Itoa(port)
+			}
 		}
 
 		_, _ = fmt.Fprintln(&out, line)
