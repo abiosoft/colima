@@ -97,7 +97,7 @@ var nerdctlLinkFunc = func() *cobra.Command {
 				Profile   string
 			}{
 				ColimaApp: os.Args[0],
-				Profile:   strings.TrimPrefix(config.Profile().ID, "colima-"),
+				Profile:   config.Profile().ShortName,
 			}
 			var buf bytes.Buffer
 			if err := t.Execute(&buf, values); err != nil {
@@ -112,6 +112,9 @@ var nerdctlLinkFunc = func() *cobra.Command {
 						return fmt.Errorf("error backing up existing file: %w", err)
 					}
 				}
+				if err := os.MkdirAll("/usr/local/bin", 0755); err != nil {
+					return nil
+				}
 				return os.WriteFile(nerdctlCmdArgs.path, buf.Bytes(), 0755)
 			}
 
@@ -123,6 +126,14 @@ var nerdctlLinkFunc = func() *cobra.Command {
 					return fmt.Errorf("error backing up existing file: %w", err)
 				}
 			}
+			// prepare dir
+			{
+				c := cli.CommandInteractive("sudo", "mkdir", "-p", "/usr/local/bin")
+				if err := c.Run(); err != nil {
+					return err
+				}
+			}
+			// install script
 			{
 				c := cli.CommandInteractive("sudo", "sh", "-c", "cat > "+nerdctlCmdArgs.path)
 				c.Stdin = &buf

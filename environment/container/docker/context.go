@@ -9,6 +9,9 @@ import (
 
 // HostSocketFile returns the path to the docker socket on host.
 func HostSocketFile() string { return filepath.Join(config.Dir(), "docker.sock") }
+func LegacyDefaultHostSocketFile() string {
+	return filepath.Join(filepath.Dir(config.Dir()), "docker.sock")
+}
 
 func (d dockerRuntime) isContextCreated() bool {
 	command := fmt.Sprintf(`docker context ls -q | grep "^%s$"`, config.Profile().ID)

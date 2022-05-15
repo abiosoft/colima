@@ -84,7 +84,7 @@ func getIPAddress(profileID, interfaceName string) string {
 	return strings.TrimSpace(buf.String())
 }
 
-func UbuntuSSHPort(profileID string) (int, error) {
+func ubuntuSSHPort(profileID string) (int, error) {
 	var buf bytes.Buffer
 	cmd := cli.Command("limactl", "shell", profileID, "--", "sh", "-c", "echo $"+layerEnvVar)
 	cmd.Stdout = &buf
@@ -166,17 +166,24 @@ func ShowSSH(profileID string, layer bool, format string) (string, bool, error) 
 		return "", false, fmt.Errorf("error retrieving ssh config: %w", err)
 	}
 
+	ip := IPAddress(profileID)
 	var port int
 	if layer {
-		port, _ = UbuntuSSHPort(profileID)
+		port, _ = ubuntuSSHPort(profileID)
+		// if layer is active and public IP is available, use the fixed port
+		if port > 0 && ip != "127.0.0.1" {
+			port = 23
+		}
+	} else {
+		ip = "127.0.0.1"
 	}
 
 	out := buf.String()
 	switch format {
 	case "config":
-		out = replaceSSHConfig(out, profileID, port)
+		out = replaceSSHConfig(out, profileID, ip, port)
 	case "cmd", "args":
-		out = replaceSSHCmd(out, profileID, port)
+		out = replaceSSHCmd(out, profileID, ip, port)
 	default:
 		return "", false, fmt.Errorf("unsupported format '%v'", format)
 	}
@@ -184,43 +191,61 @@ func ShowSSH(profileID string, layer bool, format string) (string, bool, error) 
 	return out, port > 0, nil
 }
 
-func replaceSSHCmd(cmd string, name string, port int) string {
+func replaceSSHCmd(cmd string, name string, ip string, port int) string {
 	var out []string
 
 	for _, s := range strings.Fields(cmd) {
-		if strings.HasPrefix(s, "ControlPath=") {
-			s = "ControlPath=" + strconv.Quote(filepath.Join(config.Dir(), "ssh.sock"))
+		if port > 0 {
+			if strings.HasPrefix(s, "ControlPath=") {
+				s = "ControlPath=" + strconv.Quote(filepath.Join(config.Dir(), "ssh.sock"))
+			}
+			if strings.HasPrefix(s, "Port=") {
+				s = "Port=" + strconv.Itoa(port)
+			}
+			if strings.HasPrefix(s, "Hostname=") {
+				s = "Hostname=" + ip
+			}
 		}
-		if port > 0 && strings.HasPrefix(s, "Port=") {
-			s = "Port=" + strconv.Itoa(port)
-		}
+
 		out = append(out, s)
 	}
 
 	if out[len(out)-1] == "lima-"+name {
-		out[len(out)-1] = "127.0.0.1"
+		out[len(out)-1] = ip
 	}
 
 	return strings.Join(out, " ")
 }
-func replaceSSHConfig(conf string, name string, port int) string {
+func replaceSSHConfig(conf string, name string, ip string, port int) string {
 	var out bytes.Buffer
 	scanner := bufio.NewScanner(strings.NewReader(conf))
+
+	hasPrefix := func(line, s string) (pad string, ok bool) {
+		if s != "" && strings.HasPrefix(strings.TrimSpace(line), s) {
+			return line[:strings.Index(line, s[:1])], true
+		}
+		return "", false
+	}
+
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		switch {
-
-		case strings.HasPrefix(strings.TrimSpace(line), "ControlPath "):
-			pad := line[:strings.Index(line, "C")]
-			line = pad + "ControlPath " + strconv.Quote(filepath.Join(config.Dir(), "ssh.sock"))
-
-		case strings.HasPrefix(line, "Host "):
+		if strings.HasPrefix(line, "Host ") {
 			line = "Host " + name
+		}
 
-		case port > 0 && strings.HasPrefix(line, "Port "):
-			pad := line[:strings.Index(line, "P")]
-			line = pad + "Port " + strconv.Itoa(port)
+		if port > 0 {
+			if pad, ok := hasPrefix(line, "ControlPath "); ok {
+				line = pad + "ControlPath " + strconv.Quote(filepath.Join(config.Dir(), "ssh.sock"))
+			}
+
+			if pad, ok := hasPrefix(line, "Hostname "); ok {
+				line = pad + "Hostname " + ip
+			}
+
+			if pad, ok := hasPrefix(line, "Port"); ok {
+				line = pad + "Port " + strconv.Itoa(port)
+			}
 		}
 
 		_, _ = fmt.Fprintln(&out, line)

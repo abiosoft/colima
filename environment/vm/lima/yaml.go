@@ -65,16 +65,6 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		l.Env = make(map[string]string)
 	}
 
-	// perform mounts in fstab.
-	// required for 9p (lima >=v0.10.0)
-	// idempotent for sshfs (lima <v0.10.0)
-	if l.MountType == NINEP {
-		l.Provision = append(l.Provision, Provision{
-			Mode:   ProvisionModeSystem,
-			Script: "mkmntdirs && mount -a",
-		})
-	}
-
 	// add user to docker group
 	// "sudo", "usermod", "-aG", "docker", user
 	l.Provision = append(l.Provision, Provision{
@@ -204,6 +194,15 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 					HostSocket:  docker.HostSocketFile(),
 					Proto:       TCP,
 				})
+			if config.Profile().ShortName == "default" {
+				// for backward compatibility, will be removed in future releases
+				l.PortForwards = append(l.PortForwards,
+					PortForward{
+						GuestSocket: "/var/run/docker.sock",
+						HostSocket:  docker.LegacyDefaultHostSocketFile(),
+						Proto:       TCP,
+					})
+			}
 		}
 
 		// handle port forwarding to allow listening on 0.0.0.0
@@ -231,10 +230,14 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	}
 
 	switch strings.ToLower(conf.MountType) {
-	case "ssh", "sshfs", "reversessh", "reverse-ssh", "reversesshfs", REVSSHFS:
+	case "", "ssh", "sshfs", "reversessh", "reverse-ssh", "reversesshfs", REVSSHFS:
 		l.MountType = REVSSHFS
 	default:
 		l.MountType = NINEP
+		l.Provision = append(l.Provision, Provision{
+			Mode:   ProvisionModeSystem,
+			Script: "mkmntdirs && mount -a",
+		})
 	}
 
 	if len(conf.Mounts) == 0 {

@@ -20,7 +20,7 @@ Container runtimes on macOS (and Linux) with minimal setup.
 
 ### Installation
 
-Colima is available on Homebrew, MacPorts, and Nix. Check [here](INSTALL.md) for other installation options.
+Colima is available on Homebrew, MacPorts, and Nix. Check [here](docs/INSTALL.md) for other installation options.
 
 ```
 # Homebrew
@@ -141,105 +141,9 @@ Colima means Containers in [Lima](https://github.com/lima-vm/lima).
 
 Since Lima is aka Linux on Mac. By transitivity, Colima can also mean Containers on Linux on Mac.
 
-## FAQ
+## FAQs
 
-<details>
-<summary>How does Colima compare to Lima?</summary>
-<p>
-
-Colima is basically a higher level usage of Lima and utilises Lima to provide Docker, Containerd and/or Kubernetes.
-
-If you want more control over the underlying VM, you can either use Lima directly or override Colima's VM settings with [Lima overrides](https://github.com/lima-vm/lima/blob/873a39c6652fe5fcb07ee08418f39ccaeeea6979/pkg/limayaml/default.yaml#L271).
-
-</p>
-</details>
-
-<details>
-<summary>Can it run alongside Docker for Mac?</summary>
-<p>
-Yes, from version v0.3.0 Colima leverages Docker contexts and can thereby run alongside Docker for Mac.
-
-`docker context list` can list all contexts and `docker context use` can be used to change the active context.
-
-</p>
-</details>
-
-<details>
-<summary>How to customize Docker config e.g. add insecure registries?</summary>
-<p>
-
-### v0.3.4 or older
-
-On first startup, Colima generates Docker daemon.json file at `$HOME/.colima/docker/daemon.json`.
-
-Simply modify the daemon.json file accordingly and restart Colima.
-
-### v0.4.0 or newer
-
-Start Colima with `--edit` flag `colima start --edit` and add the config to the `docker` section.
-
-To manually modify the config file, it is located at `$HOME/.colima/default/colima.yaml` for the default profile,
-, `$HOME/.colima/<profile>/colima.yaml` for other profiles, and `$HOME/.colima/_templates/default.yaml` for the default
-template.
-
-</p>
-</details>
-
-<details>
-<summary>How does it compare to minikube, Kind, K3d?</summary>
-<p>
-
-### For Kubernetes
-
-Yes, you can create a Kubernetes cluster with minikube (with Docker driver), Kind or K3d instead of enabling Kubernetes
-in Colima. Those are better options if you need multiple clusters, or do not need Docker and Kubernetes to share the
-same images and runtime.
-
-### For Docker
-
-Minikube with Docker runtime can expose the cluster's Docker with `minikube docker-env`. But there are some caveats.
-
-- Kubernetes is not optional, even if you only need Docker.
-
-- All of minikube's free drivers for macOS fall-short in one of performance, port forwarding or volumes. While
-  port-forwarding and volumes are non-issue for Kubernetes, they can be a deal breaker for Docker-only use.
-
-### Compatibility
-
-Colima with Docker runtime is compatible with Kind and K3d.
-
-</p>
-</details>
-
-<details>
-<summary>Are M1 macs supported?</summary>
-<p>
-
-Colima supports and works on M1 macs but not rigorously tested as the author do not currently possess an M1 device.
-Feedbacks would be appreciated.
-
-</p>
-</details>
-
-<details>
-<summary>Can I set default configurations?</summary>
-<p>
-
-Yes, via the `template` command.
-
-```
-colima template
-```
-
-Use a preferred editor by setting `$EDITOR` or passing the `--editor` flag
-
-```sh
-colima start --edit --editor code # one-off edit
-colima template --editor code # set the default config
-```
-
-</p>
-</details>
+Check [here](docs/FAQ.md) for Frequently Asked Questions.
 
 ## Help Wanted
 
