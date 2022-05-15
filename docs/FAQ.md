@@ -20,7 +20,7 @@
     - [For Docker](#for-docker)
   - [Is another Distro supported?](#is-another-distro-supported)
     - [Enabling Ubuntu layer](#enabling-ubuntu-layer)
-    - [Accessing the underlying VM](#accessing-the-underlying-vm)
+    - [Accessing the underlying Virtual Machine](#accessing-the-underlying-virtual-machine)
   - [The Virtual Machine's IP is not reachable](#the-virtual-machines-ip-is-not-reachable)
     - [Enable reachable IP address](#enable-reachable-ip-address)
   - [Are Lima overrides supported?](#are-lima-overrides-supported)
@@ -45,7 +45,7 @@ Yes, from v0.4.0, Colima support YAML configuration file.
 colima start --edit
 ```
 
-The config file is located at `$HOME/.colima/default/colima.yaml`.
+For manual edit, the config file is located at `$HOME/.colima/default/colima.yaml`.
 
 For other profiles, `$HOME/.colima/<profile-name>/colima.yaml`
 
@@ -54,6 +54,8 @@ For other profiles, `$HOME/.colima/<profile-name>/colima.yaml`
 ```
 colima template
 ```
+
+For manual edit, the template file is located at `$HOME/.colima/_templates/default.yaml`.
 
 ### Specifying the config editor
 
@@ -107,9 +109,7 @@ docker context use <context-name>
   +   insecure-registries:
   +     - myregistry.com:5000
   +     - host.docker.internal:5000
-  ```
-  
-  The config file is located at `$HOME/.colima/default/colima.yaml` for the default profile.
+  ```  
 
 ### Docker plugins are missing (buildx, scan)
 
@@ -131,7 +131,7 @@ docker buildx version # verify installation
 Install Synk CLI
 
 ```sh
-brew tap snyk/tap && brew install snyk/tapsnyk
+brew install snyk/tap/snyk
 ```
 
 Install Docker Scan
@@ -167,7 +167,8 @@ Minikube with Docker runtime can expose the cluster's Docker with `minikube dock
 
 ## Is another Distro supported?
 
-Colima uses a lightweight Alpine image with bundled dependencies and user interaction with the VM is expected to be minimal (if any).
+Colima uses a lightweight Alpine image with bundled dependencies.
+Therefore, user interaction with the Virtual Machine is expected to be minimal (if any).
 
 However, Colima optionally provides Ubuntu container as a layer.
 
@@ -184,11 +185,11 @@ However, Colima optionally provides Ubuntu container as a layer.
   + layer: true
   ```
 
-### Accessing the underlying VM
+### Accessing the underlying Virtual Machine
 
-When the layer is enabled, the underlying distro is abstracted and both the `ssh` and `ssh-config` commands routes to the layer.
+When the layer is enabled, the underlying Virtual Machine is abstracted and both the `ssh` and `ssh-config` commands routes to the layer.
 
-The underlying VM is still accessible by specifying `--layer=false` to the `ssh` and `ssh-config` commands, or by running `colima` in the Ubuntu session.
+The underlying Virtual Machine is still accessible by specifying `--layer=false` to the `ssh` and `ssh-config` commands, or by running `colima` in the SSH session.
 
 ## The Virtual Machine's IP is not reachable
 
