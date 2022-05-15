@@ -30,7 +30,7 @@ func nerdctl(args ...string) []string {
 }
 
 func init() {
-	environment.RegisterContainer(Name, newRuntime)
+	environment.RegisterContainer(Name, newRuntime, true)
 }
 
 type ubuntuRuntime struct {

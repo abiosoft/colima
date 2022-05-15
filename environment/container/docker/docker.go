@@ -15,7 +15,7 @@ const Name = "docker"
 var _ environment.Container = (*dockerRuntime)(nil)
 
 func init() {
-	environment.RegisterContainer(Name, newRuntime)
+	environment.RegisterContainer(Name, newRuntime, false)
 }
 
 type dockerRuntime struct {

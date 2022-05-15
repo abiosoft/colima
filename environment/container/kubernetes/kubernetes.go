@@ -32,7 +32,7 @@ func newRuntime(host environment.HostActions, guest environment.GuestActions) en
 }
 
 func init() {
-	environment.RegisterContainer(Name, newRuntime)
+	environment.RegisterContainer(Name, newRuntime, true)
 }
 
 var _ environment.Container = (*kubernetesRuntime)(nil)
