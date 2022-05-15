@@ -204,6 +204,15 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 					HostSocket:  docker.HostSocketFile(),
 					Proto:       TCP,
 				})
+			if config.Profile().ShortName == "default" {
+				// for backward compatibility, will be removed in future releases
+				l.PortForwards = append(l.PortForwards,
+					PortForward{
+						GuestSocket: "/var/run/docker.sock",
+						HostSocket:  docker.LegacyDefaultHostSocketFile(),
+						Proto:       TCP,
+					})
+			}
 		}
 
 		// handle port forwarding to allow listening on 0.0.0.0
