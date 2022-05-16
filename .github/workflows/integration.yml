@@ -92,6 +92,9 @@ jobs:
       - name: Validate Docker
         run: docker ps && docker info
 
+      - name: Validate DNS
+        run: colima ssh -- nslookup host.docker.internal
+
       - name: Build Image
         run: docker build integration
 
@@ -141,6 +144,9 @@ jobs:
 
       - name: Build Image
         run: docker build integration
+
+      - name: Validate DNS
+        run: colima ssh -- nslookup host.docker.internal
 
       - name: Stop
         run: colima stop
@@ -232,6 +238,9 @@ jobs:
 
       - name: Validate Containerd
         run: colima nerdctl ps && colima nerdctl info
+
+      - name: Validate DNS
+        run: colima ssh -- nslookup host.docker.internal
 
       - name: Build Image
         run: colima nerdctl -- build integration
