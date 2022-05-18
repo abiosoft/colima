@@ -61,7 +61,7 @@ func (l limaNetworkManager) init() error {
 }
 
 func (l limaNetworkManager) Running(ctx context.Context) (s Status, err error) {
-	err = l.host.RunQuiet(os.Args[0], "daemon", "status", config.Profile().ShortName)
+	err = l.host.RunQuiet(os.Args[0], "daemon", "status", config.CurrentProfile().ShortName)
 	if err != nil {
 		return
 	}
@@ -85,7 +85,7 @@ func (l limaNetworkManager) Start(ctx context.Context) error {
 		return fmt.Errorf("error preparing network directory: %w", err)
 	}
 
-	args := []string{os.Args[0], "daemon", "start", config.Profile().ShortName}
+	args := []string{os.Args[0], "daemon", "start", config.CurrentProfile().ShortName}
 	opts := optsFromCtx(ctx)
 	if opts.Vmnet {
 		args = append(args, "--vmnet")
@@ -100,7 +100,7 @@ func (l limaNetworkManager) Stop(ctx context.Context) error {
 	if s, err := l.Running(ctx); err != nil || !s.Running {
 		return nil
 	}
-	return l.host.RunQuiet(os.Args[0], "daemon", "stop", config.Profile().ShortName)
+	return l.host.RunQuiet(os.Args[0], "daemon", "stop", config.CurrentProfile().ShortName)
 }
 
 func optsFromCtx(ctx context.Context) struct {

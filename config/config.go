@@ -22,8 +22,8 @@ func SetProfile(profileName string) {
 	profile.Set(profileName)
 }
 
-// Profile returns the current application profile.
-func Profile() ProfileInfo { return profile }
+// CurrentProfile returns the current application profile.
+func CurrentProfile() ProfileInfo { return profile }
 
 // ProfileInfo is information about the colima profile.
 type ProfileInfo struct {

@@ -24,7 +24,7 @@ If you simply want to reset the Kubernetes cluster, run 'colima kubernetes reset
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if !deleteCmdArgs.force {
-			y := cli.Prompt("are you sure you want to delete " + config.Profile().DisplayName + " and all settings")
+			y := cli.Prompt("are you sure you want to delete " + config.CurrentProfile().DisplayName + " and all settings")
 			if !y {
 				return nil
 			}

@@ -43,7 +43,7 @@ const (
 
 // Instance returns current instance.
 func Instance() (InstanceInfo, error) {
-	return getInstance(config.Profile().ID)
+	return getInstance(config.CurrentProfile().ID)
 }
 
 func getInstance(profileID string) (InstanceInfo, error) {

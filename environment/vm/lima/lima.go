@@ -26,8 +26,8 @@ import (
 // New creates a new virtual machine.
 func New(host environment.HostActions) environment.VM {
 	var envs []string
-	envLimaInstance := limaInstanceEnvVar + "=" + config.Profile().ID
-	envSubprocess := config.SubprocessProfileEnvVar + "=" + config.Profile().ShortName
+	envLimaInstance := limaInstanceEnvVar + "=" + config.CurrentProfile().ID
+	envSubprocess := config.SubprocessProfileEnvVar + "=" + config.CurrentProfile().ShortName
 	envs = append(envs, envLimaInstance, envSubprocess)
 
 	binDir := filepath.Join(config.WrapperDir(), "bin")
@@ -80,7 +80,7 @@ func limaHome() (string, error) {
 }
 
 func (l limaVM) limaConfDir() string {
-	return filepath.Join(l.home, config.Profile().ID)
+	return filepath.Join(l.home, config.CurrentProfile().ID)
 }
 
 var _ environment.VM = (*limaVM)(nil)
@@ -205,7 +205,7 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 	})
 
 	a.Stage("creating and starting")
-	configFile := filepath.Join(os.TempDir(), config.Profile().ID+".yaml")
+	configFile := filepath.Join(os.TempDir(), config.CurrentProfile().ID+".yaml")
 
 	a.Add(func() error {
 		limaConf, err := newConf(ctx, conf)
@@ -229,7 +229,7 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 		})
 		// prevent chroot host error for layer
 		a.Add(func() error {
-			return l.addHost(config.Profile().ID, net.ParseIP("127.0.0.1"))
+			return l.addHost(config.CurrentProfile().ID, net.ParseIP("127.0.0.1"))
 		})
 	}
 
@@ -271,7 +271,7 @@ func (l limaVM) resume(ctx context.Context, conf config.Config) error {
 
 	a.Stage("starting")
 	a.Add(func() error {
-		return l.host.Run(limactl, "start", config.Profile().ID)
+		return l.host.Run(limactl, "start", config.CurrentProfile().ID)
 	})
 
 	// registry certs
@@ -307,9 +307,9 @@ func (l limaVM) Stop(ctx context.Context, force bool) error {
 
 	a.Add(func() error {
 		if force {
-			return l.host.Run(limactl, "stop", "--force", config.Profile().ID)
+			return l.host.Run(limactl, "stop", "--force", config.CurrentProfile().ID)
 		}
-		return l.host.Run(limactl, "stop", config.Profile().ID)
+		return l.host.Run(limactl, "stop", config.CurrentProfile().ID)
 	})
 
 	return a.Exec()
@@ -325,7 +325,7 @@ func (l limaVM) Teardown(ctx context.Context) error {
 	}
 
 	a.Add(func() error {
-		return l.host.Run(limactl, "delete", "--force", config.Profile().ID)
+		return l.host.Run(limactl, "delete", "--force", config.CurrentProfile().ID)
 	})
 
 	return a.Exec()

@@ -35,7 +35,7 @@ func SaveToFile(c config.Config, file string) error {
 // TODO: remove later, only for backward compatibility
 func oldConfigFile() string {
 	_, configFileName := filepath.Split(config.File())
-	return filepath.Join(os.Getenv("HOME"), "."+config.Profile().ID, configFileName)
+	return filepath.Join(os.Getenv("HOME"), "."+config.CurrentProfile().ID, configFileName)
 }
 
 // LoadFrom loads config from file.

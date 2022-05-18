@@ -56,7 +56,7 @@ func (c colimaApp) Start(conf config.Config) error {
 		if conf.Kubernetes.Enabled {
 			runtime += "+k3s"
 		}
-		log.Println("starting", config.Profile().DisplayName)
+		log.Println("starting", config.CurrentProfile().DisplayName)
 		log.Println("runtime:", runtime)
 	}
 	var containers []environment.Container
@@ -117,7 +117,7 @@ func (c colimaApp) Start(conf config.Config) error {
 
 func (c colimaApp) Stop(force bool) error {
 	ctx := context.Background()
-	log.Println("stopping", config.Profile().DisplayName)
+	log.Println("stopping", config.CurrentProfile().DisplayName)
 
 	// the order for stop is:
 	//   container stop -> vm stop
@@ -157,7 +157,7 @@ func (c colimaApp) Stop(force bool) error {
 
 func (c colimaApp) Delete() error {
 	ctx := context.Background()
-	log.Println("deleting", config.Profile().DisplayName)
+	log.Println("deleting", config.CurrentProfile().DisplayName)
 
 	// the order for teardown is:
 	//   container teardown -> vm teardown
@@ -201,10 +201,10 @@ func (c colimaApp) Delete() error {
 func (c colimaApp) SSH(layer bool, args ...string) error {
 	ctx := context.Background()
 	if !c.guest.Running(ctx) {
-		return fmt.Errorf("%s not running", config.Profile().DisplayName)
+		return fmt.Errorf("%s not running", config.CurrentProfile().DisplayName)
 	}
 
-	cmdArgs, inLayer, err := lima.ShowSSH(config.Profile().ID, layer, "args")
+	cmdArgs, inLayer, err := lima.ShowSSH(config.CurrentProfile().ID, layer, "args")
 	if err != nil {
 		return fmt.Errorf("error getting ssh config: %w", err)
 	}
@@ -232,7 +232,7 @@ func (c colimaApp) SSH(layer bool, args ...string) error {
 func (c colimaApp) Status() error {
 	ctx := context.Background()
 	if !c.guest.Running(ctx) {
-		return fmt.Errorf("%s is not running", config.Profile().DisplayName)
+		return fmt.Errorf("%s is not running", config.CurrentProfile().DisplayName)
 	}
 
 	currentRuntime, err := c.currentRuntime(ctx)
@@ -240,7 +240,7 @@ func (c colimaApp) Status() error {
 		return err
 	}
 
-	log.Println(config.Profile().DisplayName, "is running")
+	log.Println(config.CurrentProfile().DisplayName, "is running")
 	log.Println("arch:", c.guest.Arch())
 	log.Println("runtime:", currentRuntime)
 	if currentRuntime == docker.Name {
@@ -289,7 +289,7 @@ func (c colimaApp) Version() error {
 
 func (c colimaApp) currentRuntime(ctx context.Context) (string, error) {
 	if !c.guest.Running(ctx) {
-		return "", fmt.Errorf("%s is not running", config.Profile().DisplayName)
+		return "", fmt.Errorf("%s is not running", config.CurrentProfile().DisplayName)
 	}
 
 	r := c.guest.Get(environment.ContainerRuntimeKey)

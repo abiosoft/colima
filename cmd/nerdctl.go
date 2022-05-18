@@ -97,7 +97,7 @@ var nerdctlLinkFunc = func() *cobra.Command {
 				Profile   string
 			}{
 				ColimaApp: os.Args[0],
-				Profile:   config.Profile().ShortName,
+				Profile:   config.CurrentProfile().ShortName,
 			}
 			var buf bytes.Buffer
 			if err := t.Execute(&buf, values); err != nil {

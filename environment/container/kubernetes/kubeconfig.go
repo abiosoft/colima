@@ -15,7 +15,7 @@ import (
 const masterAddressKey = "master_address"
 
 func (c kubernetesRuntime) provisionKubeconfig(ctx context.Context) error {
-	ip := lima.IPAddress(config.Profile().ID)
+	ip := lima.IPAddress(config.CurrentProfile().ID)
 	if ip == c.guest.Get(masterAddressKey) {
 		return nil
 	}
@@ -35,7 +35,7 @@ func (c kubernetesRuntime) provisionKubeconfig(ctx context.Context) error {
 		return fmt.Errorf("error retrieving home directory on host")
 	}
 
-	profile := config.Profile().ID
+	profile := config.CurrentProfile().ID
 	hostKubeDir := filepath.Join(hostHome, ".kube")
 	a.Add(func() error {
 		return c.host.Run("mkdir", "-p", filepath.Join(hostKubeDir, "."+profile))
@@ -109,7 +109,7 @@ func (c kubernetesRuntime) provisionKubeconfig(ctx context.Context) error {
 }
 
 func (c kubernetesRuntime) unsetKubeconfig(a *cli.ActiveCommandChain) {
-	profile := config.Profile().ID
+	profile := config.CurrentProfile().ID
 	a.Add(func() error {
 		return c.host.Run("kubectl", "config", "unset", "users."+profile)
 	})

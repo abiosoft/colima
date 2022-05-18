@@ -204,7 +204,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 					HostSocket:  docker.HostSocketFile(),
 					Proto:       TCP,
 				})
-			if config.Profile().ShortName == "default" {
+			if config.CurrentProfile().ShortName == "default" {
 				// for backward compatibility, will be removed in future releases
 				l.PortForwards = append(l.PortForwards,
 					PortForward{
@@ -253,7 +253,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	if len(conf.Mounts) == 0 {
 		l.Mounts = append(l.Mounts,
 			Mount{Location: "~", Writable: true},
-			Mount{Location: filepath.Join("/tmp", config.Profile().ID), Writable: true},
+			Mount{Location: filepath.Join("/tmp", config.CurrentProfile().ID), Writable: true},
 		)
 	} else {
 		// overlapping mounts are problematic in Lima https://github.com/lima-vm/lima/issues/302
