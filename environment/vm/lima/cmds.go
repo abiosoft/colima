@@ -22,6 +22,7 @@ type InstanceInfo struct {
 	CPU     int    `json:"cpus,omitempty"`
 	Memory  int64  `json:"memory,omitempty"`
 	Disk    int64  `json:"disk,omitempty"`
+	Dir     string `json:"dir,omitempty"`
 	Network []struct {
 		VNL       string `json:"vnl,omitempty"`
 		Interface string `json:"interface,omitempty"`
@@ -31,6 +32,9 @@ type InstanceInfo struct {
 }
 
 func (i InstanceInfo) Running() bool { return i.Status == limaStatusRunning }
+func (i InstanceInfo) Config() (config.Config, error) {
+	return config.Config{}, nil
+}
 
 // Lima statuses
 const (
@@ -46,6 +50,7 @@ func getInstance(profileID string) (InstanceInfo, error) {
 	var i InstanceInfo
 	var buf bytes.Buffer
 	cmd := cli.Command("limactl", "list", profileID, "--json")
+	cmd.Stderr = nil
 	cmd.Stdout = &buf
 
 	if err := cmd.Run(); err != nil {
@@ -62,6 +67,7 @@ func getInstance(profileID string) (InstanceInfo, error) {
 func Instances() ([]InstanceInfo, error) {
 	var buf bytes.Buffer
 	cmd := cli.Command("limactl", "list", "--json")
+	cmd.Stderr = nil
 	cmd.Stdout = &buf
 
 	if err := cmd.Run(); err != nil {
@@ -90,10 +96,14 @@ func Instances() ([]InstanceInfo, error) {
 		}
 
 		// rename to local friendly names
-		i.Name = toUserFriendlyName(i.Name)
+		var p config.ProfileInfo
+		p.Set(i.Name)
+		i.Name = p.ShortName
 
 		// network is low level, remove
 		i.Network = nil
+		// directory should be abstracted from the output
+		i.Dir = ""
 
 		instances = append(instances, i)
 	}
@@ -106,6 +116,7 @@ func getIPAddress(profileID, interfaceName string) string {
 	// TODO: this should be less hacky
 	cmd := cli.Command("limactl", "shell", profileID, "sh", "-c",
 		`ifconfig `+interfaceName+` | grep "inet addr:" | awk -F' ' '{print $2}' | awk -F':' '{print $2}'`)
+	cmd.Stderr = nil
 	cmd.Stdout = &buf
 
 	_ = cmd.Run()
@@ -161,22 +172,17 @@ func getRuntime(profile string) string {
 // IPAddress returns the ip address for profile.
 // It returns the PTP address if networking is enabled or falls back to 127.0.0.1
 // TODO: unnecessary round-trip is done to get instance details from Lima.
-func IPAddress(profile string) string {
-	profile = toUserFriendlyName(profile)
+func IPAddress(profileID string) string {
+	// profile = toUserFriendlyName(profile)
 
 	const fallback = "127.0.0.1"
-	instances, err := Instances()
+	instance, err := getInstance(profileID)
 	if err != nil {
 		return fallback
 	}
 
-	for _, instance := range instances {
-		if instance.Name == profile {
-			if instance.IPAddress != "" {
-				return instance.IPAddress
-			}
-			break
-		}
+	if len(instance.Network) > 0 {
+		return getIPAddress(profileID, instance.Network[0].Interface)
 	}
 
 	return fallback
@@ -279,11 +285,4 @@ func replaceSSHConfig(conf string, name string, ip string, port int) string {
 		_, _ = fmt.Fprintln(&out, line)
 	}
 	return out.String()
-}
-
-func toUserFriendlyName(name string) string {
-	if name == "colima" {
-		name = "default"
-	}
-	return strings.TrimPrefix(name, "colima-")
 }

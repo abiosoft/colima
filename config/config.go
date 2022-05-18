@@ -19,16 +19,7 @@ var profile = ProfileInfo{ID: AppName, DisplayName: AppName, ShortName: "default
 // This is an avenue to test Colima without breaking an existing stable setup.
 // Not perfect, but good enough for testing.
 func SetProfile(profileName string) {
-	switch profileName {
-	case "", AppName, "default":
-		return
-	}
-
-	// if custom profile is specified,
-	// use a prefix to prevent possible name clashes
-	profile.ID = "colima-" + profileName
-	profile.DisplayName = "colima [profile=" + profileName + "]"
-	profile.ShortName = profileName
+	profile.Set(profileName)
 }
 
 // Profile returns the current application profile.
@@ -39,6 +30,25 @@ type ProfileInfo struct {
 	ID          string
 	DisplayName string
 	ShortName   string
+}
+
+func (p *ProfileInfo) Set(name string) {
+	switch name {
+	case "", AppName, "default":
+		p.ID = AppName
+		p.DisplayName = AppName
+		p.ShortName = "default"
+		return
+	}
+
+	// sanitize
+	name = strings.TrimPrefix(name, "colima-")
+
+	// if custom profile is specified,
+	// use a prefix to prevent possible name clashes
+	profile.ID = "colima-" + name
+	profile.DisplayName = "colima [profile=" + name + "]"
+	profile.ShortName = name
 }
 
 // VersionInfo is the application version info.
