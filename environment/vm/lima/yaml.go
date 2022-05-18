@@ -22,11 +22,20 @@ import (
 )
 
 func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
-	l.Arch = environment.Arch(conf.Arch).Value()
+	{
+		l.Arch = environment.Arch(conf.Arch).Value()
 
-	if conf.CPUType != "" && conf.CPUType != "host" {
-		l.CPUType = map[environment.Arch]string{
-			l.Arch: conf.CPUType,
+		if conf.CPUType != "" && conf.CPUType != "host" {
+			l.CPUType = map[environment.Arch]string{
+				l.Arch: conf.CPUType,
+			}
+		}
+
+		sameAsHostArch := l.Arch == environment.HostArch().Value()
+		if conf.CPUType == "qemu64" || (!sameAsHostArch && l.Arch == environment.X8664 && conf.CPUType == "") {
+			l.CPUType = map[environment.Arch]string{
+				l.Arch: "kvm64",
+			}
 		}
 	}
 
