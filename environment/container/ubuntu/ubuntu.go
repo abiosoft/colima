@@ -48,7 +48,7 @@ func (u ubuntuRuntime) ensureContainerd(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("%s required for ubuntu layer: %w", containerd.Name, err)
 	}
-	if nerd.Running() {
+	if nerd.Running(ctx) {
 		return nil
 	}
 
@@ -94,13 +94,13 @@ func (u ubuntuRuntime) Teardown(context.Context) error {
 	return u.guest.Run(nerdctl("rm", containerName)...)
 }
 
-func (u ubuntuRuntime) Version() string {
+func (u ubuntuRuntime) Version(ctx context.Context) string {
 	args := nerdctl("exec", "--", "sh -c '. /etc/os-release && echo $PRETTY_NAME'")
 	out, _ := u.guest.RunOutput(args...)
 	return out
 }
 
-func (u ubuntuRuntime) Running() bool {
+func (u ubuntuRuntime) Running(ctx context.Context) bool {
 	args := nerdctl("exec", containerName, "uname")
 	return u.guest.RunQuiet(args...) == nil
 }

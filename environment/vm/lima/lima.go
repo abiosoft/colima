@@ -249,7 +249,7 @@ func (l limaVM) resume(ctx context.Context, conf config.Config) error {
 	log := l.Logger(ctx)
 	a := l.Init(ctx)
 
-	if l.Running() {
+	if l.Running(ctx) {
 		log.Println("already running")
 		return nil
 	}
@@ -280,14 +280,19 @@ func (l limaVM) resume(ctx context.Context, conf config.Config) error {
 	return a.Exec()
 }
 
-func (l limaVM) Running() bool {
-	return l.RunQuiet("uname") == nil
+func (l limaVM) Running(ctx context.Context) bool {
+	i, err := Instance()
+	if err != nil {
+		logrus.Trace(fmt.Errorf("error retrieving running instance: %w", err))
+		return false
+	}
+	return i.Running()
 }
 
 func (l limaVM) Stop(ctx context.Context, force bool) error {
 	log := l.Logger(ctx)
 	a := l.Init(ctx)
-	if !l.Running() {
+	if !l.Running(ctx) {
 		log.Println("not running")
 		return nil
 	}
@@ -413,7 +418,8 @@ func (l limaVM) Host() environment.HostActions {
 }
 
 func (l limaVM) Env(s string) (string, error) {
-	if !l.Running() {
+	ctx := context.Background()
+	if !l.Running(ctx) {
 		return "", fmt.Errorf("not running")
 	}
 	return l.RunOutput("echo", "$"+s)

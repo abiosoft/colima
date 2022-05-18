@@ -20,9 +20,9 @@ type Container interface {
 	// Teardown tears down/uninstall the container runtime.
 	Teardown(ctx context.Context) error
 	// Version returns the container runtime version.
-	Version() string
+	Version(ctx context.Context) string
 	// Running returns if the container runtime is currently running.
-	Running() bool
+	Running(ctx context.Context) bool
 
 	Dependencies
 }

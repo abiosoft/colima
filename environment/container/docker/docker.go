@@ -74,7 +74,7 @@ func (d dockerRuntime) Start(ctx context.Context) error {
 	return a.Exec()
 }
 
-func (d dockerRuntime) Running() bool {
+func (d dockerRuntime) Running(ctx context.Context) bool {
 	return d.guest.RunQuiet("service", "docker", "status") == nil
 }
 
@@ -82,7 +82,7 @@ func (d dockerRuntime) Stop(ctx context.Context) error {
 	a := d.Init(ctx)
 
 	a.Add(func() error {
-		if !d.Running() {
+		if !d.Running(ctx) {
 			return nil
 		}
 		return d.guest.Run("sudo", "service", "docker", "stop")
@@ -109,7 +109,7 @@ func (d dockerRuntime) Dependencies() []string {
 	return []string{"docker"}
 }
 
-func (d dockerRuntime) Version() string {
+func (d dockerRuntime) Version(ctx context.Context) string {
 	version, _ := d.host.RunOutput("docker", "version", "--format", `client: v{{.Client.Version}}{{printf "\n"}}server: v{{.Server.Version}}`)
 	return version
 }

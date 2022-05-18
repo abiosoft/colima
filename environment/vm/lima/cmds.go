@@ -30,6 +30,34 @@ type InstanceInfo struct {
 	Runtime   string `json:"runtime,omitempty"`
 }
 
+func (i InstanceInfo) Running() bool { return i.Status == limaStatusRunning }
+
+// Lima statuses
+const (
+	limaStatusRunning = "Running"
+)
+
+// Instance returns current instance.
+func Instance() (InstanceInfo, error) {
+	return getInstance(config.Profile().ID)
+}
+
+func getInstance(profileID string) (InstanceInfo, error) {
+	var i InstanceInfo
+	var buf bytes.Buffer
+	cmd := cli.Command("limactl", "list", profileID, "--json")
+	cmd.Stdout = &buf
+
+	if err := cmd.Run(); err != nil {
+		return i, fmt.Errorf("error retrieving instance: %w", err)
+	}
+	if err := json.Unmarshal(buf.Bytes(), &i); err != nil {
+		return i, fmt.Errorf("error retrieving instance: %w", err)
+	}
+
+	return i, nil
+}
+
 // Instances returns Lima instances created by colima.
 func Instances() ([]InstanceInfo, error) {
 	var buf bytes.Buffer
@@ -54,7 +82,7 @@ func Instances() ([]InstanceInfo, error) {
 			continue
 		}
 
-		if i.Status == "Running" {
+		if i.Running() {
 			if len(i.Network) > 0 && i.Network[0].Interface != "" {
 				i.IPAddress = getIPAddress(i.Name, i.Network[0].Interface)
 			}
@@ -131,7 +159,7 @@ func getRuntime(profile string) string {
 }
 
 // IPAddress returns the ip address for profile.
-// It returns the PTP address is networking is enabled or falls back to 127.0.0.1
+// It returns the PTP address if networking is enabled or falls back to 127.0.0.1
 // TODO: unnecessary round-trip is done to get instance details from Lima.
 func IPAddress(profile string) string {
 	profile = toUserFriendlyName(profile)

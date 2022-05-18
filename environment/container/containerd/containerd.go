@@ -69,7 +69,7 @@ func (c containerdRuntime) Start(ctx context.Context) error {
 	return a.Exec()
 }
 
-func (c containerdRuntime) Running() bool {
+func (c containerdRuntime) Running(ctx context.Context) bool {
 	return c.guest.RunQuiet("service", "containerd", "status") == nil
 }
 
@@ -91,7 +91,7 @@ func (c containerdRuntime) Dependencies() []string {
 	return nil
 }
 
-func (c containerdRuntime) Version() string {
+func (c containerdRuntime) Version(ctx context.Context) string {
 	version, _ := c.guest.RunOutput("sudo", "nerdctl", "version", "--format", `client: {{.Client.Version}}{{printf "\n"}}server: {{(index .Server.Components 0).Version}}`)
 	return version
 }
