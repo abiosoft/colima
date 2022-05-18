@@ -3,6 +3,7 @@ package lima
 import (
 	"bufio"
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
+	"gopkg.in/yaml.v3"
 )
 
 // InstanceInfo is the information about a Lima instance
@@ -32,8 +34,31 @@ type InstanceInfo struct {
 }
 
 func (i InstanceInfo) Running() bool { return i.Status == limaStatusRunning }
+
 func (i InstanceInfo) Config() (config.Config, error) {
-	return config.Config{}, nil
+	var c config.Config
+
+	b, err := os.ReadFile(filepath.Join(i.Dir, "lima.yaml"))
+	if err != nil {
+		return c, fmt.Errorf("error reading Lima config file: %w", err)
+	}
+	var value struct {
+		Colima string `yaml:"colimaState"`
+	}
+
+	if err := yaml.Unmarshal(b, &value); err != nil {
+		return c, fmt.Errorf("error decoding Lima config yaml: %w", err)
+	}
+
+	b, err = base64.StdEncoding.DecodeString(value.Colima)
+	if err != nil {
+		return c, fmt.Errorf("error decoding Colima encoded config: %w", err)
+	}
+
+	if err := yaml.Unmarshal(b, &c); err != nil {
+		return c, fmt.Errorf("error decoding Colima yaml: %w", err)
+	}
+	return c, nil
 }
 
 // Lima statuses
@@ -44,6 +69,15 @@ const (
 // Instance returns current instance.
 func Instance() (InstanceInfo, error) {
 	return getInstance(config.CurrentProfile().ID)
+}
+
+// InstanceConfig returns the current instance config.
+func InstanceConfig() (config.Config, error) {
+	i, err := Instance()
+	if err != nil {
+		return config.Config{}, err
+	}
+	return i.Config()
 }
 
 func getInstance(profileID string) (InstanceInfo, error) {
@@ -92,13 +126,12 @@ func Instances() ([]InstanceInfo, error) {
 			if len(i.Network) > 0 && i.Network[0].Interface != "" {
 				i.IPAddress = getIPAddress(i.Name, i.Network[0].Interface)
 			}
-			i.Runtime = getRuntime(i.Name)
+			conf, _ := i.Config()
+			i.Runtime = getRuntime(conf)
 		}
 
 		// rename to local friendly names
-		var p config.ProfileInfo
-		p.Set(i.Name)
-		i.Name = p.ShortName
+		i.Name = config.Profile(i.Name).ShortName
 
 		// network is low level, remove
 		i.Network = nil
@@ -140,30 +173,19 @@ func ubuntuSSHPort(profileID string) (int, error) {
 	return port, nil
 }
 
-func getRuntime(profile string) string {
-	run := func(args ...string) bool {
-		cmd := "limactl"
-		args = append([]string{"shell", profile}, args...)
-		c := cli.Command(cmd, args...)
-		c.Stdout = nil
-		c.Stderr = nil
-		return c.Run() == nil
-	}
-
+func getRuntime(conf config.Config) string {
 	var runtime string
-	// docker
-	if run("docker", "info") {
-		runtime = "docker"
-	} else if run("nerdctl", "info") {
-		runtime = "containerd"
-	}
 
-	// nothing is running
-	if runtime == "" {
+	switch conf.Runtime {
+	case "docker":
+		runtime = "docker"
+	case "containerd":
+		runtime = "containerd"
+	default:
 		return ""
 	}
 
-	if run("kubectl", "cluster-info") {
+	if conf.Kubernetes.Enabled {
 		runtime += "+k3s"
 	}
 	return runtime
