@@ -7,32 +7,42 @@ assignees: ''
 
 ---
 
-**Describe the bug**
+### Describe the Bug
 A clear and concise description of what the bug is.
 
-**Colima Version:**
+### Version
+
+#### Colima Version:
+
 What is the output of `colima version`
 
-**Lima Version:**
+#### Lima Version:
+
 What is the output of `limactl --version`
 
-**Qemu Version**
-What is the output of `qemu --version`
+#### Qemu Version
 
-**Operating System**
-[ ] macOS Intel
-[ ] macOS m1
-[ ] Linux
+What is the output of `qemu-img --version`
 
-**To Reproduce**
+### Operating System
+
+- [ ] macOS Intel
+- [ ] macOS m1
+- [ ] Linux
+
+### To Reproduce
+
 Steps to reproduce the behavior:
+
 1. 
 2.
 3.
 4.
 
-**Expected behavior**
+### Expected behavior
+
 A clear and concise description of what you expected to happen.
 
-**Additional context**
+### Additional context
+
 Add any other context about the problem here.

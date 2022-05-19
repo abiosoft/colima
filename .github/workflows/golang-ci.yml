@@ -3,9 +3,11 @@ on:
   push:
     tags: [v*]
     branches: [main]
+    paths-ignore:
+      - '**/*.md'
   pull_request:
-  paths-ignore:
-    - '**/*.md'
+    paths-ignore:
+      - '**/*.md'
 jobs:
   golangci:
     name: lint
