@@ -6,7 +6,8 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-
+  paths-ignore:
+    - '**/*.md'
 jobs:
   kubernetes-docker:
     runs-on: macos-11

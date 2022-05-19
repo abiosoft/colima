@@ -4,6 +4,8 @@ on:
     tags: [v*]
     branches: [main]
   pull_request:
+  paths-ignore:
+    - '**/*.md'
 jobs:
   golangci:
     name: lint
