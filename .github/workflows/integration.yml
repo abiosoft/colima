@@ -4,10 +4,12 @@ on:
   push:
     tags: ["v*"]
     branches: [main]
+    paths-ignore:
+      - '**/*.md'
   pull_request:
     branches: [main]
-  paths-ignore:
-    - '**/*.md'
+    paths-ignore:
+      - '**/*.md'
 jobs:
   kubernetes-docker:
     runs-on: macos-11

@@ -3,9 +3,11 @@ name: Go
 on:
   push:
     tags: ["v*"]
+    paths-ignore:
+      - '**/*.md'
   pull_request:
     branches: [main]
-  paths-ignore:
+    paths-ignore:
       - '**/*.md'
 
 jobs:
