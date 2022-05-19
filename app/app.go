@@ -216,14 +216,15 @@ func (c colimaApp) SSH(layer bool, args ...string) error {
 		return c.guest.RunInteractive(args...)
 	}
 
-	cmdArgs, layer, err := lima.ShowSSH(config.CurrentProfile().ID, layer, "args")
+	resp, err := lima.ShowSSH(config.CurrentProfile().ID, layer, "args")
 	if err != nil {
 		return fmt.Errorf("error getting ssh config: %w", err)
 	}
-
-	if !layer {
+	if !resp.Layer {
 		return c.guest.RunInteractive(args...)
 	}
+
+	cmdArgs := resp.Output
 
 	wd, err := os.Getwd()
 	if err != nil {
@@ -231,9 +232,9 @@ func (c colimaApp) SSH(layer bool, args ...string) error {
 	}
 
 	if len(args) > 0 {
-		args = append([]string{"-q", "-t", "127.0.0.1", "--"}, args...)
+		args = append([]string{"-q", "-t", resp.IPAddress, "--"}, args...)
 	} else if wd != "" {
-		args = []string{"-q", "-t", "127.0.0.1", "--", "cd " + wd + " 2> /dev/null; bash --login"}
+		args = []string{"-q", "-t", resp.IPAddress, "--", "cd " + wd + " 2> /dev/null; bash --login"}
 	}
 
 	args = append(strings.Fields(cmdArgs), args...)
