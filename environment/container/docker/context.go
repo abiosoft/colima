@@ -1,7 +1,6 @@
 package docker
 
 import (
-	"fmt"
 	"path/filepath"
 
 	"github.com/abiosoft/colima/config"
@@ -14,8 +13,7 @@ func LegacyDefaultHostSocketFile() string {
 }
 
 func (d dockerRuntime) isContextCreated() bool {
-	command := fmt.Sprintf(`docker context ls -q | grep "^%s$"`, config.CurrentProfile().ID)
-	return d.host.RunQuiet("sh", "-c", command) == nil
+	return d.host.RunQuiet("docker", "context", "inspect", config.CurrentProfile().ID) == nil
 }
 
 func (d dockerRuntime) setupContext() error {

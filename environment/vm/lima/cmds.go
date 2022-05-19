@@ -190,7 +190,8 @@ func getRuntime(conf config.Config) string {
 }
 
 // IPAddress returns the ip address for profile.
-// It returns the PTP address if networking is enabled or falls back to 127.0.0.1
+// It returns the PTP address if networking is enabled or falls back to 127.0.0.1.
+// It is guaranteed to return a value.
 // TODO: unnecessary round-trip is done to get instance details from Lima.
 func IPAddress(profileID string) string {
 	// profile = toUserFriendlyName(profile)
@@ -210,14 +211,18 @@ func IPAddress(profileID string) string {
 
 // ShowSSH runs the show-ssh command in Lima.
 // returns the ssh output, if in layer, and an error if any
-func ShowSSH(profileID string, layer bool, format string) (string, bool, error) {
+func ShowSSH(profileID string, layer bool, format string) (resp struct {
+	Output    string
+	IPAddress string
+	Layer     bool
+}, err error) {
 	var buf bytes.Buffer
 	cmd := cli.Command("limactl", "show-ssh", "--format", format, profileID)
 	cmd.Stdout = &buf
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		return "", false, fmt.Errorf("error retrieving ssh config: %w", err)
+		return resp, fmt.Errorf("error retrieving ssh config: %w", err)
 	}
 
 	ip := IPAddress(profileID)
@@ -239,10 +244,13 @@ func ShowSSH(profileID string, layer bool, format string) (string, bool, error) 
 	case "cmd", "args":
 		out = replaceSSHCmd(out, profileID, ip, port)
 	default:
-		return "", false, fmt.Errorf("unsupported format '%v'", format)
+		return resp, fmt.Errorf("unsupported format '%v'", format)
 	}
 
-	return out, port > 0, nil
+	resp.Output = out
+	resp.IPAddress = ip
+	resp.Layer = port > 0
+	return resp, nil
 }
 
 func replaceSSHCmd(cmd string, name string, ip string, port int) string {
