@@ -3,6 +3,7 @@ package lima
 import (
 	"bufio"
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
+	"gopkg.in/yaml.v3"
 )
 
 // InstanceInfo is the information about a Lima instance
@@ -22,6 +24,7 @@ type InstanceInfo struct {
 	CPU     int    `json:"cpus,omitempty"`
 	Memory  int64  `json:"memory,omitempty"`
 	Disk    int64  `json:"disk,omitempty"`
+	Dir     string `json:"dir,omitempty"`
 	Network []struct {
 		VNL       string `json:"vnl,omitempty"`
 		Interface string `json:"interface,omitempty"`
@@ -30,10 +33,75 @@ type InstanceInfo struct {
 	Runtime   string `json:"runtime,omitempty"`
 }
 
+func (i InstanceInfo) Running() bool { return i.Status == limaStatusRunning }
+
+func (i InstanceInfo) Config() (config.Config, error) {
+	var c config.Config
+
+	b, err := os.ReadFile(filepath.Join(i.Dir, "lima.yaml"))
+	if err != nil {
+		return c, fmt.Errorf("error reading Lima config file: %w", err)
+	}
+	var value struct {
+		Colima string `yaml:"colimaState"`
+	}
+
+	if err := yaml.Unmarshal(b, &value); err != nil {
+		return c, fmt.Errorf("error decoding Lima config yaml: %w", err)
+	}
+
+	b, err = base64.StdEncoding.DecodeString(value.Colima)
+	if err != nil {
+		return c, fmt.Errorf("error decoding Colima encoded config: %w", err)
+	}
+
+	if err := yaml.Unmarshal(b, &c); err != nil {
+		return c, fmt.Errorf("error decoding Colima yaml: %w", err)
+	}
+	return c, nil
+}
+
+// Lima statuses
+const (
+	limaStatusRunning = "Running"
+)
+
+// Instance returns current instance.
+func Instance() (InstanceInfo, error) {
+	return getInstance(config.CurrentProfile().ID)
+}
+
+// InstanceConfig returns the current instance config.
+func InstanceConfig() (config.Config, error) {
+	i, err := Instance()
+	if err != nil {
+		return config.Config{}, err
+	}
+	return i.Config()
+}
+
+func getInstance(profileID string) (InstanceInfo, error) {
+	var i InstanceInfo
+	var buf bytes.Buffer
+	cmd := cli.Command("limactl", "list", profileID, "--json")
+	cmd.Stderr = nil
+	cmd.Stdout = &buf
+
+	if err := cmd.Run(); err != nil {
+		return i, fmt.Errorf("error retrieving instance: %w", err)
+	}
+	if err := json.Unmarshal(buf.Bytes(), &i); err != nil {
+		return i, fmt.Errorf("error retrieving instance: %w", err)
+	}
+
+	return i, nil
+}
+
 // Instances returns Lima instances created by colima.
 func Instances() ([]InstanceInfo, error) {
 	var buf bytes.Buffer
 	cmd := cli.Command("limactl", "list", "--json")
+	cmd.Stderr = nil
 	cmd.Stdout = &buf
 
 	if err := cmd.Run(); err != nil {
@@ -54,15 +122,16 @@ func Instances() ([]InstanceInfo, error) {
 			continue
 		}
 
-		if i.Status == "Running" {
+		if i.Running() {
 			if len(i.Network) > 0 && i.Network[0].Interface != "" {
 				i.IPAddress = getIPAddress(i.Name, i.Network[0].Interface)
 			}
-			i.Runtime = getRuntime(i.Name)
+			conf, _ := i.Config()
+			i.Runtime = getRuntime(conf)
 		}
 
 		// rename to local friendly names
-		i.Name = toUserFriendlyName(i.Name)
+		i.Name = config.Profile(i.Name).ShortName
 
 		// network is low level, remove
 		i.Network = nil
@@ -78,6 +147,7 @@ func getIPAddress(profileID, interfaceName string) string {
 	// TODO: this should be less hacky
 	cmd := cli.Command("limactl", "shell", profileID, "sh", "-c",
 		`ifconfig `+interfaceName+` | grep "inet addr:" | awk -F' ' '{print $2}' | awk -F':' '{print $2}'`)
+	cmd.Stderr = nil
 	cmd.Stdout = &buf
 
 	_ = cmd.Run()
@@ -101,54 +171,38 @@ func ubuntuSSHPort(profileID string) (int, error) {
 	return port, nil
 }
 
-func getRuntime(profile string) string {
-	run := func(args ...string) bool {
-		cmd := "limactl"
-		args = append([]string{"shell", profile}, args...)
-		c := cli.Command(cmd, args...)
-		c.Stdout = nil
-		c.Stderr = nil
-		return c.Run() == nil
-	}
-
+func getRuntime(conf config.Config) string {
 	var runtime string
-	// docker
-	if run("docker", "info") {
-		runtime = "docker"
-	} else if run("nerdctl", "info") {
-		runtime = "containerd"
-	}
 
-	// nothing is running
-	if runtime == "" {
+	switch conf.Runtime {
+	case "docker":
+		runtime = "docker"
+	case "containerd":
+		runtime = "containerd"
+	default:
 		return ""
 	}
 
-	if run("kubectl", "cluster-info") {
+	if conf.Kubernetes.Enabled {
 		runtime += "+k3s"
 	}
 	return runtime
 }
 
 // IPAddress returns the ip address for profile.
-// It returns the PTP address is networking is enabled or falls back to 127.0.0.1
+// It returns the PTP address if networking is enabled or falls back to 127.0.0.1
 // TODO: unnecessary round-trip is done to get instance details from Lima.
-func IPAddress(profile string) string {
-	profile = toUserFriendlyName(profile)
+func IPAddress(profileID string) string {
+	// profile = toUserFriendlyName(profile)
 
 	const fallback = "127.0.0.1"
-	instances, err := Instances()
+	instance, err := getInstance(profileID)
 	if err != nil {
 		return fallback
 	}
 
-	for _, instance := range instances {
-		if instance.Name == profile {
-			if instance.IPAddress != "" {
-				return instance.IPAddress
-			}
-			break
-		}
+	if len(instance.Network) > 0 {
+		return getIPAddress(profileID, instance.Network[0].Interface)
 	}
 
 	return fallback
@@ -251,11 +305,4 @@ func replaceSSHConfig(conf string, name string, ip string, port int) string {
 		_, _ = fmt.Fprintln(&out, line)
 	}
 	return out.String()
-}
-
-func toUserFriendlyName(name string) string {
-	if name == "colima" {
-		name = "default"
-	}
-	return strings.TrimPrefix(name, "colima-")
 }

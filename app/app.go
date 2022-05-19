@@ -56,7 +56,7 @@ func (c colimaApp) Start(conf config.Config) error {
 		if conf.Kubernetes.Enabled {
 			runtime += "+k3s"
 		}
-		log.Println("starting", config.Profile().DisplayName)
+		log.Println("starting", config.CurrentProfile().DisplayName)
 		log.Println("runtime:", runtime)
 	}
 	var containers []environment.Container
@@ -117,14 +117,14 @@ func (c colimaApp) Start(conf config.Config) error {
 
 func (c colimaApp) Stop(force bool) error {
 	ctx := context.Background()
-	log.Println("stopping", config.Profile().DisplayName)
+	log.Println("stopping", config.CurrentProfile().DisplayName)
 
 	// the order for stop is:
 	//   container stop -> vm stop
 
 	// stop container runtimes if not a forceful shutdown
-	if c.guest.Running() && !force {
-		containers, err := c.currentContainerEnvironments()
+	if c.guest.Running(ctx) && !force {
+		containers, err := c.currentContainerEnvironments(ctx)
 		if err != nil {
 			log.Warnln(fmt.Errorf("error retrieving runtimes: %w", err))
 		}
@@ -157,7 +157,7 @@ func (c colimaApp) Stop(force bool) error {
 
 func (c colimaApp) Delete() error {
 	ctx := context.Background()
-	log.Println("deleting", config.Profile().DisplayName)
+	log.Println("deleting", config.CurrentProfile().DisplayName)
 
 	// the order for teardown is:
 	//   container teardown -> vm teardown
@@ -167,8 +167,8 @@ func (c colimaApp) Delete() error {
 	// it is thereby necessary to teardown containers as well.
 
 	// teardown container runtimes
-	if c.guest.Running() {
-		containers, err := c.currentContainerEnvironments()
+	if c.guest.Running(ctx) {
+		containers, err := c.currentContainerEnvironments(ctx)
 		if err != nil {
 			log.Warnln(fmt.Errorf("error retrieving runtimes: %w", err))
 		}
@@ -199,16 +199,29 @@ func (c colimaApp) Delete() error {
 }
 
 func (c colimaApp) SSH(layer bool, args ...string) error {
-	if !c.guest.Running() {
-		return fmt.Errorf("%s not running", config.Profile().DisplayName)
+	ctx := context.Background()
+	if !c.guest.Running(ctx) {
+		return fmt.Errorf("%s not running", config.CurrentProfile().DisplayName)
 	}
 
-	cmdArgs, inLayer, err := lima.ShowSSH(config.Profile().ID, layer, "args")
+	if !layer {
+		return c.guest.RunInteractive(args...)
+	}
+
+	conf, err := lima.InstanceConfig()
+	if err != nil {
+		return err
+	}
+	if !conf.Layer {
+		return c.guest.RunInteractive(args...)
+	}
+
+	cmdArgs, layer, err := lima.ShowSSH(config.CurrentProfile().ID, layer, "args")
 	if err != nil {
 		return fmt.Errorf("error getting ssh config: %w", err)
 	}
 
-	if !layer || !inLayer {
+	if !layer {
 		return c.guest.RunInteractive(args...)
 	}
 
@@ -229,16 +242,17 @@ func (c colimaApp) SSH(layer bool, args ...string) error {
 }
 
 func (c colimaApp) Status() error {
-	if !c.guest.Running() {
-		return fmt.Errorf("%s is not running", config.Profile().DisplayName)
+	ctx := context.Background()
+	if !c.guest.Running(ctx) {
+		return fmt.Errorf("%s is not running", config.CurrentProfile().DisplayName)
 	}
 
-	currentRuntime, err := c.currentRuntime()
+	currentRuntime, err := c.currentRuntime(ctx)
 	if err != nil {
 		return err
 	}
 
-	log.Println(config.Profile().DisplayName, "is running")
+	log.Println(config.CurrentProfile().DisplayName, "is running")
 	log.Println("arch:", c.guest.Arch())
 	log.Println("runtime:", currentRuntime)
 	if currentRuntime == docker.Name {
@@ -246,7 +260,7 @@ func (c colimaApp) Status() error {
 	}
 
 	// kubernetes
-	if k, err := c.Kubernetes(); err == nil && k.Running() {
+	if k, err := c.Kubernetes(); err == nil && k.Running(ctx) {
 		log.Println("kubernetes: enabled")
 	}
 
@@ -254,39 +268,44 @@ func (c colimaApp) Status() error {
 }
 
 func (c colimaApp) Version() error {
-	if !c.guest.Running() {
+	ctx := context.Background()
+	if !c.guest.Running(ctx) {
 		return nil
 	}
 
-	containerRuntimes, err := c.currentContainerEnvironments()
+	containerRuntimes, err := c.currentContainerEnvironments(ctx)
 	if err != nil {
 		return err
 	}
 
 	var kube environment.Container
 	for _, cont := range containerRuntimes {
-		if cont.Name() == kubernetes.Name {
+		switch cont.Name() {
+		case kubernetes.Name:
 			kube = cont
 			continue
+		case ubuntu.Name:
+			continue
 		}
+
 		fmt.Println()
 		fmt.Println("runtime:", cont.Name())
 		fmt.Println("arch:", c.guest.Arch())
-		fmt.Println(cont.Version())
+		fmt.Println(cont.Version(ctx))
 	}
 
-	if kube != nil && kube.Version() != "" {
+	if kube != nil && kube.Version(ctx) != "" {
 		fmt.Println()
 		fmt.Println(kubernetes.Name)
-		fmt.Println(kube.Version())
+		fmt.Println(kube.Version(ctx))
 	}
 
 	return nil
 }
 
-func (c colimaApp) currentRuntime() (string, error) {
-	if !c.guest.Running() {
-		return "", fmt.Errorf("%s is not running", config.Profile().DisplayName)
+func (c colimaApp) currentRuntime(ctx context.Context) (string, error) {
+	if !c.guest.Running(ctx) {
+		return "", fmt.Errorf("%s is not running", config.CurrentProfile().DisplayName)
 	}
 
 	r := c.guest.Get(environment.ContainerRuntimeKey)
@@ -301,12 +320,12 @@ func (c colimaApp) setRuntime(runtime string) error {
 	return c.guest.Set(environment.ContainerRuntimeKey, runtime)
 }
 
-func (c colimaApp) currentContainerEnvironments() ([]environment.Container, error) {
+func (c colimaApp) currentContainerEnvironments(ctx context.Context) ([]environment.Container, error) {
 	var containers []environment.Container
 
 	// runtime
 	{
-		runtime, err := c.currentRuntime()
+		runtime, err := c.currentRuntime(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -318,12 +337,12 @@ func (c colimaApp) currentContainerEnvironments() ([]environment.Container, erro
 	}
 
 	// detect and add kubernetes
-	if k, err := c.containerEnvironment(kubernetes.Name); err == nil && k.Running() {
+	if k, err := c.containerEnvironment(kubernetes.Name); err == nil && k.Running(ctx) {
 		containers = append(containers, k)
 	}
 
 	// detect and add ubuntu layer
-	if u, err := c.containerEnvironment(ubuntu.Name); err == nil && u.Running() {
+	if u, err := c.containerEnvironment(ubuntu.Name); err == nil && u.Running(ctx) {
 		containers = append(containers, u)
 	}
 
@@ -343,7 +362,7 @@ func (c colimaApp) containerEnvironment(runtime string) (environment.Container, 
 }
 
 func (c colimaApp) Runtime() (string, error) {
-	return c.currentRuntime()
+	return c.currentRuntime(context.Background())
 }
 
 func (c colimaApp) Kubernetes() (environment.Container, error) {
@@ -351,5 +370,5 @@ func (c colimaApp) Kubernetes() (environment.Container, error) {
 }
 
 func (c colimaApp) Active() bool {
-	return c.guest.Running()
+	return c.guest.Running(context.Background())
 }

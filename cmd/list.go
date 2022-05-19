@@ -35,6 +35,8 @@ A new instance can be created during 'colima start' by specifying the '--profile
 			encoder := json.NewEncoder(cmd.OutOrStdout())
 			// print instance per line to conform with Lima's output
 			for _, instance := range instances {
+				// dir should be hidden from the output
+				instance.Dir = ""
 				if err := encoder.Encode(instance); err != nil {
 					return err
 				}

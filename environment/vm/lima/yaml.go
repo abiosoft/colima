@@ -2,6 +2,7 @@ package lima
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"net"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"github.com/abiosoft/colima/environment/vm/lima/network"
 	"github.com/abiosoft/colima/environment/vm/lima/network/daemon/gvproxy"
 	"github.com/abiosoft/colima/environment/vm/lima/network/daemon/vmnet"
+	"gopkg.in/yaml.v3"
 
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/embedded"
@@ -22,26 +24,26 @@ import (
 )
 
 func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
+	l.Arch = environment.Arch(conf.Arch).Value()
+
 	{
-		l.Arch = environment.Arch(conf.Arch).Value()
-
-		if conf.CPUType != "" && conf.CPUType != "host" {
-			l.CPUType = map[environment.Arch]string{
-				l.Arch: conf.CPUType,
-			}
+		b, err := yaml.Marshal(conf)
+		if err != nil {
+			logrus.Warnln(fmt.Errorf("error persisting Colima state: %w", err))
+		} else {
+			l.Colima = base64.StdEncoding.EncodeToString(b)
 		}
+	}
 
-		sameAsHostArch := l.Arch == environment.HostArch().Value()
-		if conf.CPUType == "qemu64" || (!sameAsHostArch && l.Arch == environment.X8664 && conf.CPUType == "") {
-			l.CPUType = map[environment.Arch]string{
-				l.Arch: "kvm64",
-			}
+	if conf.CPUType != "" && conf.CPUType != "host" {
+		l.CPUType = map[environment.Arch]string{
+			l.Arch: conf.CPUType,
 		}
 	}
 
 	l.Images = append(l.Images,
-		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.4.0-5/alpine-lima-clm-3.15.4-aarch64.iso", Digest: "sha512:d9fc671befb5e1d2b1ab202fb1853d6ee0ebc8746c6f4e89ec8ddda362b59f527aa37894881b3884e62ca9fdcaa559d03a5040403a029ab86eed5e370bc40a27"},
-		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.4.0-5/alpine-lima-clm-3.15.4-x86_64.iso", Digest: "sha512:6ce50a109cc90f537cc0eb363ab938ba10ea690dc59e1f4c0081ecd90907da5fb305ab27a98ebec774e97d41a713f73f0a4e7edc44019a7db134a07181bb8801"},
+		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.4.2-1/alpine-lima-clm-3.14.6-aarch64.iso", Digest: "sha512:8e05be487fb6c3cf45f6378ca667f2f175c4fb07f162458ff9254f5ef4290ea94f176a6f2f9f854ab60f9668865e4d9bf0d9b24f0bb88dca4e30596855cc4013"},
+		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.4.2-1/alpine-lima-clm-3.14.6-x86_64.iso", Digest: "sha512:229121f3ff3cb645a602e3f21d687207ad14c48330001330430c84e88fb0311a70b4a94250c2e24e80e8d3522ee573e169fef76337214136d1dde9bbc4ec1354"},
 	)
 
 	if conf.CPU > 0 {
@@ -55,7 +57,6 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	}
 	l.SSH = SSH{LocalPort: 0, LoadDotSSHPubKeys: false, ForwardAgent: conf.ForwardAgent}
 	l.Containerd = Containerd{System: false, User: false}
-	l.Firmware.LegacyBIOS = false
 
 	l.DNS = conf.Network.DNS
 	if len(l.DNS) == 0 {
@@ -203,7 +204,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 					HostSocket:  docker.HostSocketFile(),
 					Proto:       TCP,
 				})
-			if config.Profile().ShortName == "default" {
+			if config.CurrentProfile().ShortName == "default" {
 				// for backward compatibility, will be removed in future releases
 				l.PortForwards = append(l.PortForwards,
 					PortForward{
@@ -252,7 +253,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	if len(conf.Mounts) == 0 {
 		l.Mounts = append(l.Mounts,
 			Mount{Location: "~", Writable: true},
-			Mount{Location: filepath.Join("/tmp", config.Profile().ID), Writable: true},
+			Mount{Location: filepath.Join("/tmp", config.CurrentProfile().ID), Writable: true},
 		)
 	} else {
 		// overlapping mounts are problematic in Lima https://github.com/lima-vm/lima/issues/302
@@ -312,6 +313,8 @@ type Config struct {
 	Networks     []Network         `yaml:"networks,omitempty"`
 	Provision    []Provision       `yaml:"provision,omitempty" json:"provision,omitempty"`
 	CPUType      map[Arch]string   `yaml:"cpuType,omitempty" json:"cpuType,omitempty"`
+
+	Colima string `yaml:"colimaState"`
 }
 
 type File struct {

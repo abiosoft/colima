@@ -60,7 +60,7 @@ func (c kubernetesRuntime) isVersionInstalled(version string) bool {
 	return strings.Contains(out, version)
 }
 
-func (c kubernetesRuntime) Running() bool {
+func (c kubernetesRuntime) Running(ctx context.Context) bool {
 	return c.guest.RunQuiet("sudo", "service", "k3s", "status") == nil
 }
 
@@ -88,7 +88,7 @@ func (c kubernetesRuntime) setConfig(conf config.Kubernetes) error {
 func (c *kubernetesRuntime) Provision(ctx context.Context) error {
 	log := c.Logger(ctx)
 	a := c.Init(ctx)
-	if c.Running() {
+	if c.Running(ctx) {
 		return nil
 	}
 
@@ -143,7 +143,7 @@ func (c *kubernetesRuntime) Provision(ctx context.Context) error {
 func (c kubernetesRuntime) Start(ctx context.Context) error {
 	log := c.Logger(ctx)
 	a := c.Init(ctx)
-	if c.Running() {
+	if c.Running(ctx) {
 		log.Println("already running")
 		return nil
 	}
@@ -263,7 +263,7 @@ func (c kubernetesRuntime) Dependencies() []string {
 	return []string{"kubectl"}
 }
 
-func (c kubernetesRuntime) Version() string {
-	version, _ := c.host.RunOutput("kubectl", "--context", config.Profile().ID, "version", "--short")
+func (c kubernetesRuntime) Version(ctx context.Context) string {
+	version, _ := c.host.RunOutput("kubectl", "--context", config.CurrentProfile().ID, "version", "--short")
 	return version
 }

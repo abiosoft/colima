@@ -123,7 +123,7 @@ func Info() struct {
 		PidFile string
 		PTPFile string
 	}{
-		PidFile: filepath.Join(runDir(), "vmnet-"+config.Profile().ShortName+".pid"),
+		PidFile: filepath.Join(runDir(), "vmnet-"+config.CurrentProfile().ShortName+".pid"),
 		PTPFile: filepath.Join(daemon.Dir(), "vmnet.ptp"),
 	}
 }

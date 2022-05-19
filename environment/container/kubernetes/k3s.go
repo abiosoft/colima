@@ -129,7 +129,7 @@ func installK3sCluster(
 	}
 
 	// replace ip address if networking is enabled
-	ipAddress := lima.IPAddress(config.Profile().ID)
+	ipAddress := lima.IPAddress(config.CurrentProfile().ID)
 	if ipAddress != "127.0.0.1" {
 		args = append(args, "--bind-address", ipAddress)
 		args = append(args, "--advertise-address", ipAddress)

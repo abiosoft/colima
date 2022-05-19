@@ -147,7 +147,7 @@ func (u ubuntuRuntime) createContainer(conf config.Config) error {
 	if err != nil {
 		return fmt.Errorf("error retrieving username in guest: %w", err)
 	}
-	hostname := config.Profile().ID
+	hostname := config.CurrentProfile().ID
 	home := "/home/" + username + ".linux"
 	args := nerdctl("create",
 		"--name", containerName,
@@ -162,7 +162,7 @@ func (u ubuntuRuntime) createContainer(conf config.Config) error {
 	if len(mounts) == 0 {
 		// TODO: should be not be repeated here but rather populated externally
 		mounts = append(mounts, config.Mount{Location: util.HomeDir()})
-		mounts = append(mounts, config.Mount{Location: filepath.Join("/tmp", config.Profile().ID)})
+		mounts = append(mounts, config.Mount{Location: filepath.Join("/tmp", config.CurrentProfile().ID)})
 	}
 	for _, m := range mounts {
 		args = append(args, "--volume", m.Location+":"+m.Location)

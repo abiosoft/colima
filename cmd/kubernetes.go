@@ -24,7 +24,7 @@ var kubernetesCmd = &cobra.Command{
 			return err
 		}
 		if !newApp().Active() {
-			return fmt.Errorf("%s is not running", config.Profile().DisplayName)
+			return fmt.Errorf("%s is not running", config.CurrentProfile().DisplayName)
 		}
 		return nil
 	},
@@ -58,16 +58,17 @@ var kubernetesStopCmd = &cobra.Command{
 	Long:  `Stop the Kubernetes cluster.`,
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		ctx := cmd.Context()
 		app := newApp()
 		k, err := app.Kubernetes()
 		if err != nil {
 			return err
 		}
-		if !k.Running() {
+		if !k.Running(ctx) {
 			return fmt.Errorf("%s is not enabled", kubernetes.Name)
 		}
 
-		return k.Stop(context.Background())
+		return k.Stop(ctx)
 	},
 }
 
@@ -78,16 +79,17 @@ var kubernetesDeleteCmd = &cobra.Command{
 	Long:  `Delete the Kubernetes cluster.`,
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		ctx := cmd.Context()
 		app := newApp()
 		k, err := app.Kubernetes()
 		if err != nil {
 			return err
 		}
-		if !k.Running() {
+		if !k.Running(ctx) {
 			return fmt.Errorf("%s is not enabled", kubernetes.Name)
 		}
 
-		return k.Teardown(context.Background())
+		return k.Teardown(ctx)
 	},
 }
 

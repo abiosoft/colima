@@ -16,7 +16,7 @@ var sshConfigCmd = &cobra.Command{
 	Long:  `Show configuration of the SSH connection to the VM.`,
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		out, _, err := lima.ShowSSH(config.Profile().ID, sshConfigCmdArgs.layer, sshConfigCmdArgs.format)
+		out, _, err := lima.ShowSSH(config.CurrentProfile().ID, sshConfigCmdArgs.layer, sshConfigCmdArgs.format)
 		if err == nil {
 			fmt.Println(out)
 		}

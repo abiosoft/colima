@@ -52,7 +52,7 @@ type GuestActions interface {
 	// Created returns if the VM has been previously created.
 	Created() bool
 	// Running returns if the VM is currently running.
-	Running() bool
+	Running(ctx context.Context) bool
 	// Env retrieves environment variable in the VM.
 	Env(string) (string, error)
 	// Get retrieves a configuration in the VM.
