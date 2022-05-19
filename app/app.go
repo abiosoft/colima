@@ -256,6 +256,9 @@ func (c colimaApp) Status() error {
 	log.Println(config.CurrentProfile().DisplayName, "is running")
 	log.Println("arch:", c.guest.Arch())
 	log.Println("runtime:", currentRuntime)
+	if conf, err := lima.InstanceConfig(); err == nil {
+		log.Println("mountType:", conf.MountType)
+	}
 	if currentRuntime == docker.Name {
 		log.Println("socket:", "unix://"+docker.HostSocketFile())
 	}
