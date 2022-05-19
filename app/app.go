@@ -280,10 +280,14 @@ func (c colimaApp) Version() error {
 
 	var kube environment.Container
 	for _, cont := range containerRuntimes {
-		if cont.Name() == kubernetes.Name {
+		switch cont.Name() {
+		case kubernetes.Name:
 			kube = cont
 			continue
+		case ubuntu.Name:
+			continue
 		}
+
 		fmt.Println()
 		fmt.Println("runtime:", cont.Name())
 		fmt.Println("arch:", c.guest.Arch())
