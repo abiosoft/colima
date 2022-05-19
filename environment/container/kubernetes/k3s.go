@@ -81,7 +81,7 @@ func installK3sCache(
 	case containerd.Name:
 		a.Stage("loading oci images")
 		a.Add(func() error {
-			if err := guest.Run("sudo", "ctr", "-n", "k8s.io", "images", "import", downloadPathTar); err != nil {
+			if err := guest.Run("sudo", "ctr", "-n", "k8s.io", "images", "import", "--all-platforms", downloadPathTar); err != nil {
 				log.Warnln(fmt.Errorf("error loading oci images: %w", err))
 				log.Warnln("startup may delay a bit as images will be pulled from oci registry")
 			}
