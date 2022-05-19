@@ -199,6 +199,11 @@ func (c colimaApp) Delete() error {
 }
 
 func (c colimaApp) SSH(layer bool, args ...string) error {
+	ctx := context.Background()
+	if !c.guest.Running(ctx) {
+		return fmt.Errorf("%s not running", config.CurrentProfile().DisplayName)
+	}
+
 	if !layer {
 		return c.guest.RunInteractive(args...)
 	}
@@ -209,11 +214,6 @@ func (c colimaApp) SSH(layer bool, args ...string) error {
 	}
 	if !conf.Layer {
 		return c.guest.RunInteractive(args...)
-	}
-
-	ctx := context.Background()
-	if !c.guest.Running(ctx) {
-		return fmt.Errorf("%s not running", config.CurrentProfile().DisplayName)
 	}
 
 	cmdArgs, layer, err := lima.ShowSSH(config.CurrentProfile().ID, layer, "args")

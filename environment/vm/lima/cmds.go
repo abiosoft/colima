@@ -135,8 +135,6 @@ func Instances() ([]InstanceInfo, error) {
 
 		// network is low level, remove
 		i.Network = nil
-		// directory should be abstracted from the output
-		i.Dir = ""
 
 		instances = append(instances, i)
 	}
