@@ -5,6 +5,8 @@ on:
     tags: ["v*"]
   pull_request:
     branches: [main]
+  paths-ignore:
+      - '**/*.md'
 
 jobs:
   build:
