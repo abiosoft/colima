@@ -121,7 +121,6 @@ func installK3sCluster(
 	args := []string{
 		"--write-kubeconfig-mode", "644",
 		"--resolv-conf", "/etc/resolv.conf",
-		"--flannel-iface", "eth0",
 	}
 
 	if !ingress {
@@ -130,9 +129,12 @@ func installK3sCluster(
 
 	// replace ip address if networking is enabled
 	ipAddress := lima.IPAddress(config.CurrentProfile().ID)
-	if ipAddress != "127.0.0.1" {
+	if ipAddress == "127.0.0.1" {
+		args = append(args, "--flannel-iface", "eth0")
+	} else {
 		args = append(args, "--bind-address", ipAddress)
 		args = append(args, "--advertise-address", ipAddress)
+		args = append(args, "--flannel-iface", "col0")
 	}
 
 	switch containerRuntime {
