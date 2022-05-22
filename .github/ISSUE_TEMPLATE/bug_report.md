@@ -1,5 +1,5 @@
 ---
-name: Bug report
+name: Isse report
 about: Create a report to help us improve
 title: ''
 labels: ''
@@ -7,7 +7,7 @@ assignees: ''
 
 ---
 
-### Describe the Bug
+### Describe the Issue
 A clear and concise description of what the bug is.
 
 ### Version
