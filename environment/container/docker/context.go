@@ -12,12 +12,12 @@ func LegacyDefaultHostSocketFile() string {
 	return filepath.Join(filepath.Dir(config.Dir()), "docker.sock")
 }
 
-func (d dockerRuntime) isContextCreated() bool {
+func (d dockerRuntime) contextCreated() bool {
 	return d.host.RunQuiet("docker", "context", "inspect", config.CurrentProfile().ID) == nil
 }
 
 func (d dockerRuntime) setupContext() error {
-	if d.isContextCreated() {
+	if d.contextCreated() {
 		return nil
 	}
 
@@ -34,7 +34,7 @@ func (d dockerRuntime) useContext() error {
 }
 
 func (d dockerRuntime) teardownContext() error {
-	if !d.isContextCreated() {
+	if !d.contextCreated() {
 		return nil
 	}
 

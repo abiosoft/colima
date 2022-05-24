@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -92,8 +93,11 @@ func (v *verboseWriter) Close() error {
 
 func (v verboseWriter) sanitizeLine(line string) string {
 	// remove logrus noises
-	if strings.HasPrefix(line, "time=") {
-		line = line[strings.Index(line, "msg="):]
+	if strings.HasPrefix(line, "time=") && strings.Contains(line, "msg=") {
+		line = line[strings.Index(line, "msg=")+4:]
+		if l, err := strconv.Unquote(line); err == nil {
+			line = l
+		}
 	}
 
 	return "> " + line
