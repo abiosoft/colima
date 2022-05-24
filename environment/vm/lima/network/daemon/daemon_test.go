@@ -28,8 +28,6 @@ func TestStart(t *testing.T) {
 		done <- Run(ctx, processes...)
 	}()
 
-	// wait some second for the commands
-	time.Sleep(time.Second * 5)
 	cancel()
 
 	select {
@@ -58,7 +56,7 @@ func (pinger) Name() string { return "pinger" }
 
 // Start implements BgProcess
 func (p *pinger) Start(ctx context.Context) error {
-	return p.run(ctx, "ping", p.address)
+	return p.run(ctx, "ping", "-c10", p.address)
 }
 
 // Start implements BgProcess

@@ -35,7 +35,7 @@ func TestStart(t *testing.T) {
 		processes = append(processes, &pinger{address: add})
 	}
 
-	timeout := time.Second * 30
+	timeout := time.Second * 5
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -45,8 +45,20 @@ func TestStart(t *testing.T) {
 	}
 	t.Log("start successful")
 
-	// wait some second for the commands
-	time.Sleep(time.Second * 5)
+	{
+	loop:
+		for {
+			select {
+			case <-ctx.Done():
+				t.Skipf("daemon not supported: %v", ctx.Err())
+			default:
+				if p, err := os.ReadFile(info.PidFile); err == nil && len(p) > 0 {
+					break loop
+				}
+				time.Sleep(1 * time.Second)
+			}
+		}
+	}
 
 	// verify the processes are running
 	if err := status(); err != nil {
@@ -82,7 +94,7 @@ func (pinger) Name() string { return "pinger" }
 
 // Start implements BgProcess
 func (p *pinger) Start(ctx context.Context) error {
-	return p.run(ctx, "ping", p.address)
+	return p.run(ctx, "ping", "-c10", p.address)
 }
 
 // Start implements BgProcess
