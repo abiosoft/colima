@@ -123,7 +123,7 @@ This can be fixed by any of the following approaches. Ensure the Docker socket p
 3. Linking the Colima socket to the default socket path. **Note** that this may break other Docker servers. 
 
    ```sh
-   sudo ln -sf /var/run/docker.sock $HOME/.colima/default/docker.sock
+   sudo ln -sf $HOME/.colima/default/docker.sock /var/run/docker.sock
    ```
 
 
