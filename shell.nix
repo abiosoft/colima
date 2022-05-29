@@ -8,6 +8,6 @@ pkgs.mkShell {
     coreutils
   ];
   shellHook = ''
-    echo export CGO_ENABLED=0
+    export CGO_ENABLED=0
   '';
 }
