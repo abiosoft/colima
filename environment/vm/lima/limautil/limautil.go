@@ -1,4 +1,4 @@
-package lima
+package limautil
 
 import (
 	"bufio"
@@ -15,6 +15,44 @@ import (
 	"github.com/abiosoft/colima/config"
 	"gopkg.in/yaml.v3"
 )
+
+const (
+	LayerEnvVar = "COLIMA_LAYER_SSH_PORT"
+)
+
+// Instance returns current instance.
+func Instance() (InstanceInfo, error) {
+	return getInstance(config.CurrentProfile().ID)
+}
+
+// InstanceConfig returns the current instance config.
+func InstanceConfig() (config.Config, error) {
+	i, err := Instance()
+	if err != nil {
+		return config.Config{}, err
+	}
+	return i.Config()
+}
+
+// IPAddress returns the ip address for profile.
+// It returns the PTP address if networking is enabled or falls back to 127.0.0.1.
+// It is guaranteed to return a value.
+// TODO: unnecessary round-trip is done to get instance details from Lima.
+func IPAddress(profileID string) string {
+	// profile = toUserFriendlyName(profile)
+
+	const fallback = "127.0.0.1"
+	instance, err := getInstance(profileID)
+	if err != nil {
+		return fallback
+	}
+
+	if len(instance.Network) > 0 {
+		return getIPAddress(profileID, instance.Network[0].Interface)
+	}
+
+	return fallback
+}
 
 // InstanceInfo is the information about a Lima instance
 type InstanceInfo struct {
@@ -59,152 +97,6 @@ func (i InstanceInfo) Config() (config.Config, error) {
 		return c, fmt.Errorf("error decoding Colima yaml: %w", err)
 	}
 	return c, nil
-}
-
-// Lima statuses
-const (
-	limaStatusRunning = "Running"
-)
-
-// Instance returns current instance.
-func Instance() (InstanceInfo, error) {
-	return getInstance(config.CurrentProfile().ID)
-}
-
-// InstanceConfig returns the current instance config.
-func InstanceConfig() (config.Config, error) {
-	i, err := Instance()
-	if err != nil {
-		return config.Config{}, err
-	}
-	return i.Config()
-}
-
-func getInstance(profileID string) (InstanceInfo, error) {
-	var i InstanceInfo
-	var buf bytes.Buffer
-	cmd := cli.Command("limactl", "list", profileID, "--json")
-	cmd.Stderr = nil
-	cmd.Stdout = &buf
-
-	if err := cmd.Run(); err != nil {
-		return i, fmt.Errorf("error retrieving instance: %w", err)
-	}
-	if err := json.Unmarshal(buf.Bytes(), &i); err != nil {
-		return i, fmt.Errorf("error retrieving instance: %w", err)
-	}
-
-	return i, nil
-}
-
-// Instances returns Lima instances created by colima.
-func Instances() ([]InstanceInfo, error) {
-	var buf bytes.Buffer
-	cmd := cli.Command("limactl", "list", "--json")
-	cmd.Stderr = nil
-	cmd.Stdout = &buf
-
-	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("error retrieving instances: %w", err)
-	}
-
-	var instances []InstanceInfo
-	scanner := bufio.NewScanner(&buf)
-	for scanner.Scan() {
-		var i InstanceInfo
-		line := scanner.Bytes()
-		if err := json.Unmarshal(line, &i); err != nil {
-			return nil, fmt.Errorf("error retrieving instances: %w", err)
-		}
-
-		// limit to colima instances
-		if !strings.HasPrefix(i.Name, "colima") {
-			continue
-		}
-
-		if i.Running() {
-			if len(i.Network) > 0 && i.Network[0].Interface != "" {
-				i.IPAddress = getIPAddress(i.Name, i.Network[0].Interface)
-			}
-			conf, _ := i.Config()
-			i.Runtime = getRuntime(conf)
-		}
-
-		// rename to local friendly names
-		i.Name = config.Profile(i.Name).ShortName
-
-		// network is low level, remove
-		i.Network = nil
-
-		instances = append(instances, i)
-	}
-
-	return instances, nil
-}
-
-func getIPAddress(profileID, interfaceName string) string {
-	var buf bytes.Buffer
-	// TODO: this should be less hacky
-	cmd := cli.Command("limactl", "shell", profileID, "sh", "-c",
-		`ifconfig `+interfaceName+` | grep "inet addr:" | awk -F' ' '{print $2}' | awk -F':' '{print $2}'`)
-	cmd.Stderr = nil
-	cmd.Stdout = &buf
-
-	_ = cmd.Run()
-	return strings.TrimSpace(buf.String())
-}
-
-func ubuntuSSHPort(profileID string) (int, error) {
-	var buf bytes.Buffer
-	cmd := cli.Command("limactl", "shell", profileID, "--", "sh", "-c", "echo $"+layerEnvVar)
-	cmd.Stdout = &buf
-
-	if err := cmd.Run(); err != nil {
-		return 0, fmt.Errorf("cannot retrieve ubuntu layer SSH port: %w", err)
-	}
-
-	port, err := strconv.Atoi(strings.TrimSpace(buf.String()))
-	if err != nil {
-		return 0, fmt.Errorf("invalid ubuntu layer SSH port '%d': %w", port, err)
-	}
-
-	return port, nil
-}
-
-func getRuntime(conf config.Config) string {
-	var runtime string
-
-	switch conf.Runtime {
-	case "docker", "containerd":
-		runtime = conf.Runtime
-	default:
-		return ""
-	}
-
-	if conf.Kubernetes.Enabled {
-		runtime += "+k3s"
-	}
-	return runtime
-}
-
-// IPAddress returns the ip address for profile.
-// It returns the PTP address if networking is enabled or falls back to 127.0.0.1.
-// It is guaranteed to return a value.
-// TODO: unnecessary round-trip is done to get instance details from Lima.
-func IPAddress(profileID string) string {
-	// profile = toUserFriendlyName(profile)
-
-	const fallback = "127.0.0.1"
-	instance, err := getInstance(profileID)
-	if err != nil {
-		return fallback
-	}
-
-	if len(instance.Network) > 0 {
-		return getIPAddress(profileID, instance.Network[0].Interface)
-	}
-
-	return fallback
 }
 
 // ShowSSH runs the show-ssh command in Lima.
@@ -311,4 +203,115 @@ func replaceSSHConfig(conf string, name string, ip string, port int) string {
 		_, _ = fmt.Fprintln(&out, line)
 	}
 	return out.String()
+}
+
+// Lima statuses
+const (
+	limaStatusRunning = "Running"
+)
+
+func getInstance(profileID string) (InstanceInfo, error) {
+	var i InstanceInfo
+	var buf bytes.Buffer
+	cmd := cli.Command("limactl", "list", profileID, "--json")
+	cmd.Stderr = nil
+	cmd.Stdout = &buf
+
+	if err := cmd.Run(); err != nil {
+		return i, fmt.Errorf("error retrieving instance: %w", err)
+	}
+	if err := json.Unmarshal(buf.Bytes(), &i); err != nil {
+		return i, fmt.Errorf("error retrieving instance: %w", err)
+	}
+
+	return i, nil
+}
+
+// Instances returns Lima instances created by colima.
+func Instances() ([]InstanceInfo, error) {
+	var buf bytes.Buffer
+	cmd := cli.Command("limactl", "list", "--json")
+	cmd.Stderr = nil
+	cmd.Stdout = &buf
+
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("error retrieving instances: %w", err)
+	}
+
+	var instances []InstanceInfo
+	scanner := bufio.NewScanner(&buf)
+	for scanner.Scan() {
+		var i InstanceInfo
+		line := scanner.Bytes()
+		if err := json.Unmarshal(line, &i); err != nil {
+			return nil, fmt.Errorf("error retrieving instances: %w", err)
+		}
+
+		// limit to colima instances
+		if !strings.HasPrefix(i.Name, "colima") {
+			continue
+		}
+
+		if i.Running() {
+			if len(i.Network) > 0 && i.Network[0].Interface != "" {
+				i.IPAddress = getIPAddress(i.Name, i.Network[0].Interface)
+			}
+			conf, _ := i.Config()
+			i.Runtime = getRuntime(conf)
+		}
+
+		// rename to local friendly names
+		i.Name = config.Profile(i.Name).ShortName
+
+		// network is low level, remove
+		i.Network = nil
+
+		instances = append(instances, i)
+	}
+
+	return instances, nil
+}
+func getIPAddress(profileID, interfaceName string) string {
+	var buf bytes.Buffer
+	// TODO: this should be less hacky
+	cmd := cli.Command("limactl", "shell", profileID, "sh", "-c",
+		`ifconfig `+interfaceName+` | grep "inet addr:" | awk -F' ' '{print $2}' | awk -F':' '{print $2}'`)
+	cmd.Stderr = nil
+	cmd.Stdout = &buf
+
+	_ = cmd.Run()
+	return strings.TrimSpace(buf.String())
+}
+
+func ubuntuSSHPort(profileID string) (int, error) {
+	var buf bytes.Buffer
+	cmd := cli.Command("limactl", "shell", profileID, "--", "sh", "-c", "echo $"+LayerEnvVar)
+	cmd.Stdout = &buf
+
+	if err := cmd.Run(); err != nil {
+		return 0, fmt.Errorf("cannot retrieve ubuntu layer SSH port: %w", err)
+	}
+
+	port, err := strconv.Atoi(strings.TrimSpace(buf.String()))
+	if err != nil {
+		return 0, fmt.Errorf("invalid ubuntu layer SSH port '%d': %w", port, err)
+	}
+
+	return port, nil
+}
+
+func getRuntime(conf config.Config) string {
+	var runtime string
+
+	switch conf.Runtime {
+	case "docker", "containerd":
+		runtime = conf.Runtime
+	default:
+		return ""
+	}
+
+	if conf.Kubernetes.Enabled {
+		runtime += "+k3s"
+	}
+	return runtime
 }

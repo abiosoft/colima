@@ -82,6 +82,7 @@ type Config struct {
 	// volume mounts
 	Mounts    []Mount `yaml:"mounts,omitempty"`
 	MountType string  `yaml:"mountType,omitempty"`
+	FSNotify  bool    `yaml:"mountNotify,omitempty"`
 
 	// Runtime is one of docker, containerd.
 	Runtime string `yaml:"runtime,omitempty"`

@@ -19,21 +19,27 @@ func setDir(t *testing.T) {
 	dir = func() string { return testDir }
 }
 
-func TestStart(t *testing.T) {
-	setDir(t)
-	info := Info()
-
+func getProcesses() []process.Process {
 	var addresses = []string{
 		"localhost",
 		"127.0.0.1",
 	}
 
-	t.Log("pidfile", info.PidFile)
-
 	var processes []process.Process
 	for _, add := range addresses {
 		processes = append(processes, &pinger{address: add})
 	}
+
+	return processes
+}
+
+func TestStart(t *testing.T) {
+	setDir(t)
+	info := Info()
+
+	processes := getProcesses()
+
+	t.Log("pidfile", info.PidFile)
 
 	timeout := time.Second * 5
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
@@ -54,6 +60,8 @@ func TestStart(t *testing.T) {
 			default:
 				if p, err := os.ReadFile(info.PidFile); err == nil && len(p) > 0 {
 					break loop
+				} else if err != nil {
+					t.Logf("encountered err: %v", err)
 				}
 				time.Sleep(1 * time.Second)
 			}
@@ -75,6 +83,31 @@ func TestStart(t *testing.T) {
 	if err := status(); err == nil {
 		t.Errorf("process with pidFile %s is still running", info.PidFile)
 		return
+	}
+
+}
+
+func TestRunProcesses(t *testing.T) {
+	processes := getProcesses()
+
+	timeout := time.Second * 5
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+
+	// start the processes
+	done := make(chan error, 1)
+	go func() {
+		done <- RunProcesses(ctx, processes...)
+	}()
+
+	cancel()
+
+	select {
+	case <-ctx.Done():
+		if err := ctx.Err(); err != context.Canceled {
+			t.Error(err)
+		}
+	case err := <-done:
+		t.Error(err)
 	}
 
 }

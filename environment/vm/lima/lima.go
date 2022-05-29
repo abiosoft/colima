@@ -12,8 +12,10 @@ import (
 	"time"
 
 	"github.com/abiosoft/colima/daemon"
+	"github.com/abiosoft/colima/daemon/process/fsnotify"
 	"github.com/abiosoft/colima/daemon/process/gvproxy"
 	"github.com/abiosoft/colima/daemon/process/vmnet"
+	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
@@ -54,7 +56,6 @@ const (
 	limaInstanceEnvVar = "LIMA_INSTANCE"
 	lima               = "lima"
 	limactl            = "limactl"
-	layerEnvVar        = "COLIMA_LAYER_SSH_PORT"
 )
 
 func limaHome() (string, error) {
@@ -105,7 +106,7 @@ func (l limaVM) Dependencies() []string {
 	}
 }
 
-func (l *limaVM) prepareNetwork(ctx context.Context, conf config.Network) (context.Context, error) {
+func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.Context, error) {
 	// limited to macOS for now
 	if !util.MacOS() {
 		return ctx, nil
@@ -113,6 +114,11 @@ func (l *limaVM) prepareNetwork(ctx context.Context, conf config.Network) (conte
 
 	ctxKeyVmnet := daemon.CtxKey(vmnet.Name())
 	ctxKeyGVProxy := daemon.CtxKey(gvproxy.Name())
+	ctxKeyFSNotify := daemon.CtxKey(fsnotify.Name())
+
+	if conf.FSNotify {
+		ctx = context.WithValue(ctx, ctxKeyFSNotify, true)
+	}
 
 	// use a nested chain for convenience
 	a := l.Init(ctx)
@@ -121,7 +127,7 @@ func (l *limaVM) prepareNetwork(ctx context.Context, conf config.Network) (conte
 	a.Stage("preparing network")
 	a.Add(func() error {
 		ctx = context.WithValue(ctx, ctxKeyGVProxy, true)
-		if conf.Address {
+		if conf.Network.Address {
 			ctx = context.WithValue(ctx, ctxKeyVmnet, true)
 		}
 		deps, root := l.daemon.Dependencies(ctx)
@@ -143,8 +149,8 @@ func (l *limaVM) prepareNetwork(ctx context.Context, conf config.Network) (conte
 	})
 
 	// delay to ensure that the vmnet is running
-	statusKey := "networkStatus"
-	if conf.Address {
+	statusKey := struct{ key string }{key: "networkStatus"}
+	if conf.Network.Address {
 		a.Retry("", time.Second*3, 5, func(i int) error {
 			s, err := l.daemon.Running(ctx)
 			ctx = context.WithValue(ctx, statusKey, s)
@@ -200,7 +206,7 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 	}
 
 	a.Add(func() (err error) {
-		ctx, err = l.prepareNetwork(ctx, conf.Network)
+		ctx, err = l.startDaemon(ctx, conf)
 		return err
 	})
 
@@ -255,7 +261,7 @@ func (l limaVM) resume(ctx context.Context, conf config.Config) error {
 	}
 
 	a.Add(func() (err error) {
-		ctx, err = l.prepareNetwork(ctx, conf.Network)
+		ctx, err = l.startDaemon(ctx, conf)
 		return err
 	})
 
@@ -281,7 +287,7 @@ func (l limaVM) resume(ctx context.Context, conf config.Config) error {
 }
 
 func (l limaVM) Running(ctx context.Context) bool {
-	i, err := Instance()
+	i, err := limautil.Instance()
 	if err != nil {
 		logrus.Trace(fmt.Errorf("error retrieving running instance: %w", err))
 		return false

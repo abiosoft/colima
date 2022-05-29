@@ -5,7 +5,7 @@ import (
 
 	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
-	"github.com/abiosoft/colima/environment/vm/lima"
+	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/spf13/cobra"
 )
 
@@ -16,7 +16,7 @@ var sshConfigCmd = &cobra.Command{
 	Long:  `Show configuration of the SSH connection to the VM.`,
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		resp, err := lima.ShowSSH(config.CurrentProfile().ID, sshConfigCmdArgs.layer, sshConfigCmdArgs.format)
+		resp, err := limautil.ShowSSH(config.CurrentProfile().ID, sshConfigCmdArgs.layer, sshConfigCmdArgs.format)
 		if err == nil {
 			fmt.Println(resp.Output)
 		}

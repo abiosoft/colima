@@ -9,13 +9,13 @@ import (
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
-	"github.com/abiosoft/colima/environment/vm/lima"
+	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 )
 
 const masterAddressKey = "master_address"
 
 func (c kubernetesRuntime) provisionKubeconfig(ctx context.Context) error {
-	ip := lima.IPAddress(config.CurrentProfile().ID)
+	ip := limautil.IPAddress(config.CurrentProfile().ID)
 	if ip == c.guest.Get(masterAddressKey) {
 		return nil
 	}

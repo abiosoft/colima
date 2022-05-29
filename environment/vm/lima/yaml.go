@@ -19,6 +19,7 @@ import (
 	"github.com/abiosoft/colima/embedded"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/docker"
+	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/util"
 	"github.com/sirupsen/logrus"
 )
@@ -185,7 +186,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	if conf.Layer {
 		port := util.RandomAvailablePort()
 		// set port for future retrieval
-		l.Env[layerEnvVar] = strconv.Itoa(port)
+		l.Env[limautil.LayerEnvVar] = strconv.Itoa(port)
 		// forward port
 		l.PortForwards = append(l.PortForwards,
 			PortForward{

@@ -4,44 +4,14 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"sync"
 
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/daemon/process"
+	"github.com/abiosoft/colima/daemon/process/fsnotify"
 	"github.com/abiosoft/colima/daemon/process/gvproxy"
 	"github.com/abiosoft/colima/daemon/process/vmnet"
 	"github.com/abiosoft/colima/environment"
-	"github.com/sirupsen/logrus"
 )
-
-// Run runs the daemon with background processes.
-// NOTE: this must be called from the program entrypoint with minimal intermediary logic
-// due to the creation of the daemon.
-func Run(ctx context.Context, processes ...process.Process) error {
-	ctx, stop := context.WithCancel(ctx)
-	defer stop()
-
-	var wg sync.WaitGroup
-	wg.Add(len(processes))
-
-	for _, bg := range processes {
-		go func(bg process.Process) {
-			err := bg.Start(ctx)
-			if err != nil {
-				logrus.Error(fmt.Errorf("error starting %s: %w", bg.Name(), err))
-				stop()
-			}
-			wg.Done()
-		}(bg)
-	}
-
-	<-ctx.Done()
-	logrus.Info("terminate signal received")
-
-	wg.Wait()
-
-	return ctx.Err()
-}
 
 // Manager handles running background processes.
 type Manager interface {
@@ -124,6 +94,9 @@ func (l processManager) Start(ctx context.Context) error {
 	if opts.GVProxy {
 		args = append(args, "--gvproxy")
 	}
+	if opts.FSNotify {
+		args = append(args, "--fsnotify")
+	}
 
 	return l.host.RunQuiet(args...)
 }
@@ -135,15 +108,18 @@ func (l processManager) Stop(ctx context.Context) error {
 }
 
 func optsFromCtx(ctx context.Context) struct {
-	Vmnet   bool
-	GVProxy bool
+	Vmnet    bool
+	GVProxy  bool
+	FSNotify bool
 } {
 	var opts = struct {
-		Vmnet   bool
-		GVProxy bool
+		Vmnet    bool
+		GVProxy  bool
+		FSNotify bool
 	}{}
 	opts.Vmnet, _ = ctx.Value(CtxKey(vmnet.Name())).(bool)
 	opts.GVProxy, _ = ctx.Value(CtxKey(gvproxy.Name())).(bool)
+	opts.FSNotify, _ = ctx.Value(CtxKey(fsnotify.Name())).(bool)
 
 	return opts
 }
@@ -157,6 +133,9 @@ func processesFromCtx(ctx context.Context) []process.Process {
 	}
 	if opts.GVProxy {
 		processes = append(processes, gvproxy.New())
+	}
+	if opts.FSNotify {
+		processes = append(processes, fsnotify.New())
 	}
 
 	return processes

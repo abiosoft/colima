@@ -15,6 +15,7 @@ import (
 	"github.com/abiosoft/colima/environment/container/ubuntu"
 	"github.com/abiosoft/colima/environment/host"
 	"github.com/abiosoft/colima/environment/vm/lima"
+	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -208,7 +209,7 @@ func (c colimaApp) SSH(layer bool, args ...string) error {
 		return c.guest.RunInteractive(args...)
 	}
 
-	conf, err := lima.InstanceConfig()
+	conf, err := limautil.InstanceConfig()
 	if err != nil {
 		return err
 	}
@@ -216,7 +217,7 @@ func (c colimaApp) SSH(layer bool, args ...string) error {
 		return c.guest.RunInteractive(args...)
 	}
 
-	resp, err := lima.ShowSSH(config.CurrentProfile().ID, layer, "args")
+	resp, err := limautil.ShowSSH(config.CurrentProfile().ID, layer, "args")
 	if err != nil {
 		return fmt.Errorf("error getting ssh config: %w", err)
 	}
@@ -256,7 +257,7 @@ func (c colimaApp) Status() error {
 	log.Println(config.CurrentProfile().DisplayName, "is running")
 	log.Println("arch:", c.guest.Arch())
 	log.Println("runtime:", currentRuntime)
-	if conf, err := lima.InstanceConfig(); err == nil {
+	if conf, err := limautil.InstanceConfig(); err == nil {
 		log.Println("mountType:", conf.MountType)
 	}
 	if currentRuntime == docker.Name {

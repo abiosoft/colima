@@ -9,12 +9,19 @@ import (
 	"sync"
 	"time"
 
-	"github.com/abiosoft/colima/app"
 	"github.com/abiosoft/colima/daemon/process"
-	"github.com/abiosoft/colima/environment/vm/lima"
+	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/fsnotify/fsnotify"
 	"github.com/sirupsen/logrus"
 )
+
+var (
+	CtxKeyGuest = func() any { return struct{ guestKey string }{guestKey: "guest"} }
+)
+
+// Name returns the name
+func Name() string { return "fsnotify" }
 
 // New returns fsnotify process.
 func New() process.Process {
@@ -22,7 +29,7 @@ func New() process.Process {
 }
 
 type fsnotifyProcess struct {
-	app   app.App
+	guest environment.GuestActions
 	dirs  []string
 	alive bool
 	sync.Mutex
@@ -45,19 +52,19 @@ func (*fsnotifyProcess) Dependencies() (deps []process.Dependency, root bool) {
 }
 
 // Name implements process.Process
-func (*fsnotifyProcess) Name() string { return "fsnotify" }
+func (*fsnotifyProcess) Name() string { return Name() }
 
 // Start implements process.Process
 func (f *fsnotifyProcess) Start(ctx context.Context) error {
-	app, err := app.New()
-	if err != nil {
-		return fmt.Errorf("error starting fsnotify: %w", err)
+	guest, ok := ctx.Value(CtxKeyGuest()).(environment.GuestActions)
+	if !ok {
+		return fmt.Errorf("environment.GuestAction missing in context")
 	}
-	f.app = app
+	f.guest = guest
 
 	f.waitForLima(ctx)
 
-	c, err := lima.InstanceConfig()
+	c, err := limautil.InstanceConfig()
 	if err != nil {
 		return fmt.Errorf("error retrieving config")
 	}
@@ -67,7 +74,7 @@ func (f *fsnotifyProcess) Start(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("error retrieving mount path: %w", err)
 		}
-		f.dirs = append(f.dirs, p)
+		f.dirs = append(f.dirs, strings.TrimSuffix(p, "/")) // trailing slash must be ommitted for fsnotify
 	}
 
 	return f.watch(ctx)
@@ -86,7 +93,7 @@ func (f *fsnotifyProcess) waitForLima(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-after:
-			i, err := lima.Instance()
+			i, err := limautil.Instance()
 			if err == nil && i.Running() {
 				return
 			}
@@ -104,19 +111,27 @@ func (f *fsnotifyProcess) watch(ctx context.Context) error {
 
 	// traverse directory and add to watch list
 	for _, dir := range f.dirs {
-		filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+		err := filepath.Walk(dir, func(path string, d fs.FileInfo, err error) error {
+			if err != nil {
+				logrus.Error(fmt.Errorf("error in walkdir for '%s': %w", path, err))
+			}
 			// skip all hidden files/folders
 			if strings.HasPrefix(d.Name(), ".") {
+				logrus.Tracef("fsnotify: skipped hidden dir '%s'", path)
 				return filepath.SkipDir
 			}
 
 			if d.IsDir() {
 				if err := watcher.Add(path); err != nil {
-					return fmt.Errorf("error adding '%s' to watch directories: %w", path, err)
+					return fmt.Errorf("fsnotify: error adding '%s' to watch directories: %w", path, err)
 				}
+				logrus.Tracef("fsnotify: added %s to watch directories", path)
 			}
 			return nil
 		})
+		if err != nil {
+			return fmt.Errorf("error in directory walk: %w", err)
+		}
 	}
 
 	f.Lock()
@@ -187,5 +202,5 @@ func (f *fsnotifyProcess) Dispatch(events []fsnotify.Event) {
 }
 
 func (f *fsnotifyProcess) Touch(file string) error {
-	return f.app.SSH(false, "touch", file)
+	return f.guest.RunQuiet("touch", file)
 }
