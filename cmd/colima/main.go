@@ -10,7 +10,8 @@ import (
 	_ "github.com/abiosoft/colima/cmd"        // for other commands
 	_ "github.com/abiosoft/colima/cmd/daemon" // for vmnet daemon
 	_ "github.com/abiosoft/colima/embedded"   // for embedded assets
-	"github.com/abiosoft/colima/environment/vm/lima/network/daemon/gvproxy"
+
+	"github.com/abiosoft/colima/daemon/gvproxy"
 	"github.com/abiosoft/colima/util"
 	"github.com/sirupsen/logrus"
 
@@ -27,6 +28,7 @@ func main() {
 		root.Execute()
 	}
 }
+
 func qemuWrapper(qemu string) {
 	if profile := os.Getenv(config.SubprocessProfileEnvVar); profile != "" {
 		config.SetProfile(profile)
@@ -79,6 +81,12 @@ func qemuWrapper(qemu string) {
 		cmd.ExtraFiles = append(cmd.ExtraFiles, fd)
 	}
 
-	_ = cmd.Run()
+	err := cmd.Run()
+	if err != nil {
+		if err, ok := err.(*exec.ExitError); ok {
+			os.Exit(err.ExitCode())
+		}
+		os.Exit(1)
+	}
 
 }

@@ -8,9 +8,9 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/abiosoft/colima/daemon"
 	"github.com/abiosoft/colima/embedded"
 	"github.com/abiosoft/colima/environment"
-	"github.com/abiosoft/colima/environment/vm/lima/network/daemon"
 )
 
 var _ daemon.Dependency = sudoerFile{}

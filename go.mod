@@ -35,9 +35,10 @@ require (
 require (
 	github.com/containers/gvisor-tap-vsock v0.3.0
 	github.com/docker/go-units v0.4.0
+	github.com/fsnotify/fsnotify v1.5.4
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mattn/go-isatty v0.0.12 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	golang.org/x/sys v0.0.0-20210809222454-d867a43fc93e // indirect
+	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad // indirect
 )

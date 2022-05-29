@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/abiosoft/colima/environment/vm/lima/network/daemon/gvproxy"
-	"github.com/abiosoft/colima/environment/vm/lima/network/daemon/vmnet"
+	"github.com/abiosoft/colima/daemon/gvproxy"
+	"github.com/abiosoft/colima/daemon/vmnet"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"

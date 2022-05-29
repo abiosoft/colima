@@ -10,9 +10,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/abiosoft/colima/daemon/gvproxy"
+	"github.com/abiosoft/colima/daemon/vmnet"
 	"github.com/abiosoft/colima/environment/vm/lima/network"
-	"github.com/abiosoft/colima/environment/vm/lima/network/daemon/gvproxy"
-	"github.com/abiosoft/colima/environment/vm/lima/network/daemon/vmnet"
 	"gopkg.in/yaml.v3"
 
 	"github.com/abiosoft/colima/config"

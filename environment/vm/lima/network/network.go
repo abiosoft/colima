@@ -6,10 +6,10 @@ import (
 	"os"
 
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/daemon"
+	"github.com/abiosoft/colima/daemon/gvproxy"
+	"github.com/abiosoft/colima/daemon/vmnet"
 	"github.com/abiosoft/colima/environment"
-	"github.com/abiosoft/colima/environment/vm/lima/network/daemon"
-	"github.com/abiosoft/colima/environment/vm/lima/network/daemon/gvproxy"
-	"github.com/abiosoft/colima/environment/vm/lima/network/daemon/vmnet"
 )
 
 // Manager handles networking between the host and the vm.

@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/daemon"
 	"github.com/abiosoft/colima/environment"
-	"github.com/abiosoft/colima/environment/vm/lima/network/daemon"
 )
 
 var _ daemon.Dependency = qemuBinsSymlinks{}

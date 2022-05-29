@@ -11,7 +11,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/abiosoft/colima/environment/vm/lima/network/daemon"
+	"github.com/abiosoft/colima/daemon"
 	"github.com/abiosoft/colima/util"
 	"github.com/containers/gvisor-tap-vsock/pkg/transport"
 	"github.com/containers/gvisor-tap-vsock/pkg/types"
@@ -56,10 +56,10 @@ func (*gvproxyProcess) Alive(context.Context) error {
 	return nil
 }
 
-// Name implements daemon.BgProcess
+// Name implements daemon.Process
 func (*gvproxyProcess) Name() string { return Name() }
 
-// Start implements daemon.BgProcess
+// Start implements daemon.Process
 func (*gvproxyProcess) Start(ctx context.Context) error {
 	info := Info()
 	return run(ctx, info.Socket)

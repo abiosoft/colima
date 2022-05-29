@@ -4,9 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/abiosoft/colima/environment/vm/lima/network/daemon"
-	"github.com/abiosoft/colima/environment/vm/lima/network/daemon/gvproxy"
-	"github.com/abiosoft/colima/environment/vm/lima/network/daemon/vmnet"
+	"github.com/abiosoft/colima/daemon"
+	"github.com/abiosoft/colima/daemon/fsnotify"
+	"github.com/abiosoft/colima/daemon/gvproxy"
+	"github.com/abiosoft/colima/daemon/vmnet"
 
 	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
@@ -18,10 +19,6 @@ var daemonCmd = &cobra.Command{
 	Short:  "daemon",
 	Long:   `runner for background daemons.`,
 	Hidden: true,
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		cmd.SilenceUsage = true
-		cmd.SilenceErrors = true
-	},
 }
 
 var startCmd = &cobra.Command{
@@ -38,6 +35,9 @@ var startCmd = &cobra.Command{
 		}
 		if daemonArgs.gvproxy {
 			processes = append(processes, gvproxy.New())
+		}
+		if daemonArgs.fsnotify {
+			processes = append(processes, fsnotify.New())
 		}
 
 		return start(cmd.Context(), processes)
@@ -74,8 +74,11 @@ var statusCmd = &cobra.Command{
 }
 
 var daemonArgs struct {
-	vmnet   bool
-	gvproxy bool
+	vmnet    bool
+	gvproxy  bool
+	fsnotify bool
+
+	verbose bool
 }
 
 func init() {
@@ -87,4 +90,5 @@ func init() {
 
 	startCmd.Flags().BoolVar(&daemonArgs.vmnet, "vmnet", false, "start vmnet")
 	startCmd.Flags().BoolVar(&daemonArgs.gvproxy, "gvproxy", false, "start gvproxy")
+	startCmd.Flags().BoolVar(&daemonArgs.fsnotify, "fsnotify", false, "start fsnotify")
 }

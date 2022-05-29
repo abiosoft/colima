@@ -175,10 +175,8 @@ func getRuntime(conf config.Config) string {
 	var runtime string
 
 	switch conf.Runtime {
-	case "docker":
-		runtime = "docker"
-	case "containerd":
-		runtime = "containerd"
+	case "docker", "containerd":
+		runtime = conf.Runtime
 	default:
 		return ""
 	}

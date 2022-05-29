@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/abiosoft/colima/environment/vm/lima/network/daemon"
+	"github.com/abiosoft/colima/daemon"
 )
 
 var testDir string

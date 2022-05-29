@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/abiosoft/colima/cli"
-	"github.com/abiosoft/colima/environment/vm/lima/network/daemon"
+	"github.com/abiosoft/colima/daemon"
 	godaemon "github.com/sevlyar/go-daemon"
 	"github.com/sirupsen/logrus"
 )
