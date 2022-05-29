@@ -3,91 +3,21 @@ package daemon
 import (
 	"context"
 	"fmt"
-	"path/filepath"
+	"os"
 	"sync"
 
 	"github.com/abiosoft/colima/config"
-
+	"github.com/abiosoft/colima/daemon/process"
+	"github.com/abiosoft/colima/daemon/process/gvproxy"
+	"github.com/abiosoft/colima/daemon/process/vmnet"
 	"github.com/abiosoft/colima/environment"
 	"github.com/sirupsen/logrus"
 )
 
-// Process is a background process managed by the daemon.
-type Process interface {
-	// Name for the background process
-	Name() string
-	// Start starts the background process.
-	// The process is expected to terminate when ctx is done.
-	Start(ctx context.Context) error
-	// Alive checks if the process is the alive.
-	Alive(ctx context.Context) error
-	// Dependencies are requirements for start to succeed.
-	// root should be true if root access is required for
-	// installing any of the dependencies.
-	Dependencies() (deps []Dependency, root bool)
-}
-
-// Dir is the directory for network related files.
-func Dir() string { return filepath.Join(config.Dir(), "network") }
-
-// Dependency is a requirement to be fulfilled before a process can be started.
-type Dependency interface {
-	Installed() bool
-	Install(environment.HostActions) error
-}
-
-// Dependencies returns the dependencies for the processes.
-// root returns if root access is required
-func Dependencies(processes ...Process) (deps Dependency, root bool) {
-	// check rootful for user info message
-	rootful := false
-	for _, p := range processes {
-		deps, root := p.Dependencies()
-		for _, dep := range deps {
-			if !dep.Installed() && root {
-				rootful = true
-				break
-			}
-		}
-	}
-
-	return processDeps(processes), rootful
-}
-
-type processDeps []Process
-
-func (p processDeps) Installed() bool {
-	for _, process := range p {
-		deps, _ := process.Dependencies()
-		for _, d := range deps {
-			if !d.Installed() {
-				return false
-			}
-		}
-	}
-
-	return true
-}
-
-func (p processDeps) Install(host environment.HostActions) error {
-	for _, process := range p {
-		deps, _ := process.Dependencies()
-		for _, d := range deps {
-			if !d.Installed() {
-				if err := d.Install(host); err != nil {
-					return fmt.Errorf("error occured installing dependencies for '%s': %w", process.Name(), err)
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
 // Run runs the daemon with background processes.
 // NOTE: this must be called from the program entrypoint with minimal intermediary logic
 // due to the creation of the daemon.
-func Run(ctx context.Context, processes ...Process) error {
+func Run(ctx context.Context, processes ...process.Process) error {
 	ctx, stop := context.WithCancel(ctx)
 	defer stop()
 
@@ -95,7 +25,7 @@ func Run(ctx context.Context, processes ...Process) error {
 	wg.Add(len(processes))
 
 	for _, bg := range processes {
-		go func(bg Process) {
+		go func(bg process.Process) {
 			err := bg.Start(ctx)
 			if err != nil {
 				logrus.Error(fmt.Errorf("error starting %s: %w", bg.Name(), err))
@@ -111,4 +41,123 @@ func Run(ctx context.Context, processes ...Process) error {
 	wg.Wait()
 
 	return ctx.Err()
+}
+
+// Manager handles running background processes.
+type Manager interface {
+	Start(context.Context) error
+	Stop(context.Context) error
+	Running(ctx context.Context) (Status, error)
+	Dependencies(ctx context.Context) (deps process.Dependency, root bool)
+}
+
+type Status struct {
+	// Parent process
+	Running bool
+	// Subprocesses
+	Processes []processStatus
+}
+type processStatus struct {
+	Name    string
+	Running bool
+	Error   error
+}
+
+// NewManager creates a new process manager.
+func NewManager(host environment.HostActions) Manager {
+	return &processManager{
+		host: host,
+	}
+}
+
+func CtxKey(s string) any { return struct{ key string }{key: s} }
+
+var _ Manager = (*processManager)(nil)
+
+type processManager struct {
+	host environment.HostActions
+}
+
+func (l processManager) Dependencies(ctx context.Context) (deps process.Dependency, root bool) {
+	processes := processesFromCtx(ctx)
+	return process.Dependencies(processes...)
+}
+
+func (l processManager) init() error {
+	// dependencies for network
+	if err := os.MkdirAll(process.Dir(), 0755); err != nil {
+		return fmt.Errorf("error preparing vmnet: %w", err)
+	}
+	return nil
+}
+
+func (l processManager) Running(ctx context.Context) (s Status, err error) {
+	err = l.host.RunQuiet(os.Args[0], "daemon", "status", config.CurrentProfile().ShortName)
+	if err != nil {
+		return
+	}
+	s.Running = true
+
+	for _, process := range processesFromCtx(ctx) {
+		pErr := process.Alive(ctx)
+		s.Processes = append(s.Processes, processStatus{
+			Name:    process.Name(),
+			Running: pErr == nil,
+			Error:   pErr,
+		})
+	}
+	return
+}
+
+func (l processManager) Start(ctx context.Context) error {
+	_ = l.Stop(ctx) // this is safe, nothing is done when not running
+
+	if err := l.init(); err != nil {
+		return fmt.Errorf("error preparing network directory: %w", err)
+	}
+
+	args := []string{os.Args[0], "daemon", "start", config.CurrentProfile().ShortName}
+	opts := optsFromCtx(ctx)
+	if opts.Vmnet {
+		args = append(args, "--vmnet")
+	}
+	if opts.GVProxy {
+		args = append(args, "--gvproxy")
+	}
+
+	return l.host.RunQuiet(args...)
+}
+func (l processManager) Stop(ctx context.Context) error {
+	if s, err := l.Running(ctx); err != nil || !s.Running {
+		return nil
+	}
+	return l.host.RunQuiet(os.Args[0], "daemon", "stop", config.CurrentProfile().ShortName)
+}
+
+func optsFromCtx(ctx context.Context) struct {
+	Vmnet   bool
+	GVProxy bool
+} {
+	var opts = struct {
+		Vmnet   bool
+		GVProxy bool
+	}{}
+	opts.Vmnet, _ = ctx.Value(CtxKey(vmnet.Name())).(bool)
+	opts.GVProxy, _ = ctx.Value(CtxKey(gvproxy.Name())).(bool)
+
+	return opts
+}
+
+func processesFromCtx(ctx context.Context) []process.Process {
+	var processes []process.Process
+
+	opts := optsFromCtx(ctx)
+	if opts.Vmnet {
+		processes = append(processes, vmnet.New())
+	}
+	if opts.GVProxy {
+		processes = append(processes, gvproxy.New())
+	}
+
+	return processes
 }

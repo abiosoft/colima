@@ -8,12 +8,12 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/abiosoft/colima/daemon"
+	"github.com/abiosoft/colima/daemon/process"
 	"github.com/abiosoft/colima/embedded"
 	"github.com/abiosoft/colima/environment"
 )
 
-var _ daemon.Dependency = sudoerFile{}
+var _ process.Dependency = sudoerFile{}
 
 type sudoerFile struct{}
 
@@ -55,7 +55,7 @@ func (s sudoerFile) Install(host environment.HostActions) error {
 	return nil
 }
 
-var _ daemon.Dependency = vmnetFile{}
+var _ process.Dependency = vmnetFile{}
 
 const BinaryPath = "/opt/colima/bin/vde_vmnet"
 const LibraryPath = "/opt/colima/lib/libvdeplug.3.dylib"
@@ -113,7 +113,7 @@ func (v vmnetFile) Install(host environment.HostActions) error {
 	return nil
 }
 
-var _ daemon.Dependency = vmnetRunDir{}
+var _ process.Dependency = vmnetRunDir{}
 
 type vmnetRunDir struct{}
 

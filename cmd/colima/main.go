@@ -11,12 +11,11 @@ import (
 	_ "github.com/abiosoft/colima/cmd/daemon" // for vmnet daemon
 	_ "github.com/abiosoft/colima/embedded"   // for embedded assets
 
-	"github.com/abiosoft/colima/daemon/gvproxy"
-	"github.com/abiosoft/colima/util"
-	"github.com/sirupsen/logrus"
-
 	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/daemon/process/gvproxy"
+	"github.com/abiosoft/colima/util"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {

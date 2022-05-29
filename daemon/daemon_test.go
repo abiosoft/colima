@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"testing"
 	"time"
+
+	"github.com/abiosoft/colima/daemon/process"
 )
 
 func TestStart(t *testing.T) {
@@ -14,7 +16,7 @@ func TestStart(t *testing.T) {
 		"127.0.0.1",
 	}
 
-	var processes []Process
+	var processes []process.Process
 	for _, add := range addresses {
 		processes = append(processes, &pinger{address: add})
 	}
@@ -41,7 +43,7 @@ func TestStart(t *testing.T) {
 
 }
 
-var _ Process = (*pinger)(nil)
+var _ process.Process = (*pinger)(nil)
 
 type pinger struct {
 	address string
@@ -60,7 +62,7 @@ func (p *pinger) Start(ctx context.Context) error {
 }
 
 // Start implements BgProcess
-func (p *pinger) Dependencies() ([]Dependency, bool) { return nil, false }
+func (p *pinger) Dependencies() ([]process.Dependency, bool) { return nil, false }
 
 func (p *pinger) run(ctx context.Context, command string, args ...string) error {
 	cmd := exec.CommandContext(ctx, command, args...)

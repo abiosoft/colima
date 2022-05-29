@@ -10,14 +10,14 @@ import (
 	"time"
 
 	"github.com/abiosoft/colima/app"
-	"github.com/abiosoft/colima/daemon"
+	"github.com/abiosoft/colima/daemon/process"
 	"github.com/abiosoft/colima/environment/vm/lima"
 	"github.com/fsnotify/fsnotify"
 	"github.com/sirupsen/logrus"
 )
 
 // New returns fsnotify process.
-func New() daemon.Process {
+func New() process.Process {
 	return &fsnotifyProcess{}
 }
 
@@ -28,7 +28,7 @@ type fsnotifyProcess struct {
 	sync.Mutex
 }
 
-// Alive implements daemon.Process
+// Alive implements process.Process
 func (f *fsnotifyProcess) Alive(ctx context.Context) error {
 	f.Lock()
 	defer f.Unlock()
@@ -39,15 +39,15 @@ func (f *fsnotifyProcess) Alive(ctx context.Context) error {
 	return fmt.Errorf("not running")
 }
 
-// Dependencies implements daemon.Process
-func (*fsnotifyProcess) Dependencies() (deps []daemon.Dependency, root bool) {
+// Dependencies implements process.Process
+func (*fsnotifyProcess) Dependencies() (deps []process.Dependency, root bool) {
 	return nil, false
 }
 
-// Name implements daemon.Process
+// Name implements process.Process
 func (*fsnotifyProcess) Name() string { return "fsnotify" }
 
-// Start implements daemon.Process
+// Start implements process.Process
 func (f *fsnotifyProcess) Start(ctx context.Context) error {
 	app, err := app.New()
 	if err != nil {

@@ -11,7 +11,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/abiosoft/colima/daemon"
+	"github.com/abiosoft/colima/daemon/process"
 	"github.com/abiosoft/colima/util"
 	"github.com/containers/gvisor-tap-vsock/pkg/transport"
 	"github.com/containers/gvisor-tap-vsock/pkg/types"
@@ -20,7 +20,7 @@ import (
 )
 
 // New creates a new Process for gvproxy.
-func New() daemon.Process {
+func New() process.Process {
 	return &gvproxyProcess{}
 }
 
@@ -39,12 +39,12 @@ func Info() struct {
 		Socket     Socket
 		MacAddress string
 	}{
-		Socket:     Socket(filepath.Join(daemon.Dir(), socketFileName)),
+		Socket:     Socket(filepath.Join(process.Dir(), socketFileName)),
 		MacAddress: MacAddress(),
 	}
 }
 
-var _ daemon.Process = (*gvproxyProcess)(nil)
+var _ process.Process = (*gvproxyProcess)(nil)
 
 type gvproxyProcess struct{}
 
@@ -87,7 +87,7 @@ func MacAddress() string {
 	// there is not much concern about the precision of the uniqueness.
 	// this can be revisited
 	if macAddress == nil {
-		sum := util.SHA256Hash(daemon.Dir())
+		sum := util.SHA256Hash(process.Dir())
 		macAddress = append(macAddress, baseHWAddr...)
 		macAddress = append(macAddress, sum[0:3]...)
 	}
@@ -207,8 +207,8 @@ func searchDomains() []string {
 	return nil
 }
 
-func (gvproxyProcess) Dependencies() (deps []daemon.Dependency, root bool) {
-	return []daemon.Dependency{
+func (gvproxyProcess) Dependencies() (deps []process.Dependency, root bool) {
+	return []process.Dependency{
 		qemuBinsSymlinks{},
 		qemuShareDirSymlink{},
 	}, false

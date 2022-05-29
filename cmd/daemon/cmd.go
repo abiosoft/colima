@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/abiosoft/colima/daemon"
-	"github.com/abiosoft/colima/daemon/fsnotify"
-	"github.com/abiosoft/colima/daemon/gvproxy"
-	"github.com/abiosoft/colima/daemon/vmnet"
+	"github.com/abiosoft/colima/daemon/process"
+	"github.com/abiosoft/colima/daemon/process/fsnotify"
+	"github.com/abiosoft/colima/daemon/process/gvproxy"
+	"github.com/abiosoft/colima/daemon/process/vmnet"
 
 	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
@@ -29,7 +29,7 @@ var startCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		config.SetProfile(args[0])
 
-		var processes []daemon.Process
+		var processes []process.Process
 		if daemonArgs.vmnet {
 			processes = append(processes, vmnet.New())
 		}

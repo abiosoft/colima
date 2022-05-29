@@ -12,11 +12,12 @@ import (
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/daemon"
+	"github.com/abiosoft/colima/daemon/process"
 	godaemon "github.com/sevlyar/go-daemon"
 	"github.com/sirupsen/logrus"
 )
 
-var dir = daemon.Dir
+var dir = process.Dir
 
 // daemonize creates the daemon and returns if this is a child process
 func daemonize() (ctx *godaemon.Context, child bool, err error) {
@@ -49,7 +50,7 @@ func daemonize() (ctx *godaemon.Context, child bool, err error) {
 	return ctx, true, nil
 }
 
-func start(ctx context.Context, processes []daemon.Process) error {
+func start(ctx context.Context, processes []process.Process) error {
 	if status() == nil {
 		logrus.Info("daemon already running, startup ignored")
 		return nil
