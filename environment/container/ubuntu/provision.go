@@ -7,7 +7,6 @@ import (
 	"strconv"
 
 	"github.com/abiosoft/colima/config"
-	"github.com/abiosoft/colima/util"
 )
 
 type buildArgs struct {
@@ -158,12 +157,7 @@ func (u ubuntuRuntime) createContainer(conf config.Config) error {
 		"--volume", "/:/host",
 	)
 
-	mounts := conf.Mounts
-	if len(mounts) == 0 {
-		// TODO: should be not be repeated here but rather populated externally
-		mounts = append(mounts, config.Mount{Location: util.HomeDir()})
-		mounts = append(mounts, config.Mount{Location: filepath.Join("/tmp", config.CurrentProfile().ID)})
-	}
+	mounts := conf.MountsOrDefault()
 	for _, m := range mounts {
 		args = append(args, "--volume", m.Location+":"+m.Location)
 	}

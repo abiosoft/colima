@@ -132,6 +132,17 @@ func (m Mount) CleanPath() (string, error) {
 	return strings.TrimSuffix(str, "/") + "/", nil
 }
 
+func (c Config) MountsOrDefault() []Mount {
+	if len(c.Mounts) > 0 {
+		return c.Mounts
+	}
+
+	return []Mount{
+		{Location: util.HomeDir(), Writable: true},
+		{Location: filepath.Join("/tmp", CurrentProfile().ID), Writable: true},
+	}
+}
+
 // Empty checks if the configuration is empty.
 func (c Config) Empty() bool { return c.Runtime == "" } // this may be better but not really needed.
 
