@@ -11,13 +11,14 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/abiosoft/colima/environment/vm/lima/network/daemon/gvproxy"
-	"github.com/abiosoft/colima/environment/vm/lima/network/daemon/vmnet"
+	"github.com/abiosoft/colima/daemon"
+	"github.com/abiosoft/colima/daemon/process/gvproxy"
+	"github.com/abiosoft/colima/daemon/process/vmnet"
+	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
-	"github.com/abiosoft/colima/environment/vm/lima/network"
 	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/yamlutil"
 	"github.com/sirupsen/logrus"
@@ -46,7 +47,7 @@ func New(host environment.HostActions) environment.VM {
 		host:         host.WithEnv(envs...),
 		home:         home,
 		CommandChain: cli.New("vm"),
-		network:      network.NewManager(host),
+		daemon:       daemon.NewManager(host),
 	}
 }
 
@@ -54,7 +55,6 @@ const (
 	limaInstanceEnvVar = "LIMA_INSTANCE"
 	lima               = "lima"
 	limactl            = "limactl"
-	layerEnvVar        = "COLIMA_LAYER_SSH_PORT"
 )
 
 func limaHome() (string, error) {
@@ -96,7 +96,7 @@ type limaVM struct {
 	home string
 
 	// network between host and the vm
-	network network.Manager
+	daemon daemon.Manager
 }
 
 func (l limaVM) Dependencies() []string {
@@ -105,14 +105,14 @@ func (l limaVM) Dependencies() []string {
 	}
 }
 
-func (l *limaVM) prepareNetwork(ctx context.Context, conf config.Network) (context.Context, error) {
+func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.Context, error) {
 	// limited to macOS for now
 	if !util.MacOS() {
 		return ctx, nil
 	}
 
-	ctxKeyVmnet := network.CtxKey(vmnet.Name())
-	ctxKeyGVProxy := network.CtxKey(gvproxy.Name())
+	ctxKeyVmnet := daemon.CtxKey(vmnet.Name())
+	ctxKeyGVProxy := daemon.CtxKey(gvproxy.Name())
 
 	// use a nested chain for convenience
 	a := l.Init(ctx)
@@ -121,10 +121,10 @@ func (l *limaVM) prepareNetwork(ctx context.Context, conf config.Network) (conte
 	a.Stage("preparing network")
 	a.Add(func() error {
 		ctx = context.WithValue(ctx, ctxKeyGVProxy, true)
-		if conf.Address {
+		if conf.Network.Address {
 			ctx = context.WithValue(ctx, ctxKeyVmnet, true)
 		}
-		deps, root := l.network.Dependencies(ctx)
+		deps, root := l.daemon.Dependencies(ctx)
 		if deps.Installed() {
 			return nil
 		}
@@ -139,14 +139,14 @@ func (l *limaVM) prepareNetwork(ctx context.Context, conf config.Network) (conte
 	})
 
 	a.Add(func() error {
-		return l.network.Start(ctx)
+		return l.daemon.Start(ctx)
 	})
 
 	// delay to ensure that the vmnet is running
-	statusKey := "networkStatus"
-	if conf.Address {
+	statusKey := struct{ key string }{key: "networkStatus"}
+	if conf.Network.Address {
 		a.Retry("", time.Second*3, 5, func(i int) error {
-			s, err := l.network.Running(ctx)
+			s, err := l.daemon.Running(ctx)
 			ctx = context.WithValue(ctx, statusKey, s)
 			if err != nil {
 				return err
@@ -166,7 +166,7 @@ func (l *limaVM) prepareNetwork(ctx context.Context, conf config.Network) (conte
 	// network failure is not fatal
 	if err := a.Exec(); err != nil {
 		func() {
-			status, ok := ctx.Value(statusKey).(network.Status)
+			status, ok := ctx.Value(statusKey).(daemon.Status)
 			if !ok {
 				return
 			}
@@ -177,7 +177,7 @@ func (l *limaVM) prepareNetwork(ctx context.Context, conf config.Network) (conte
 
 			for _, p := range status.Processes {
 				if !p.Running {
-					ctx = context.WithValue(ctx, network.CtxKey(p.Name), false)
+					ctx = context.WithValue(ctx, daemon.CtxKey(p.Name), false)
 					log.Warnln(fmt.Errorf("error starting %s: %w", p.Name, err))
 				}
 			}
@@ -185,7 +185,7 @@ func (l *limaVM) prepareNetwork(ctx context.Context, conf config.Network) (conte
 	}
 
 	// preserve gvproxy context
-	if gvproxyEnabled, _ := ctx.Value(network.CtxKey(gvproxy.Name())).(bool); gvproxyEnabled {
+	if gvproxyEnabled, _ := ctx.Value(daemon.CtxKey(gvproxy.Name())).(bool); gvproxyEnabled {
 		l.host = l.host.WithEnv(gvproxy.SubProcessEnvVar + "=1")
 	}
 
@@ -200,7 +200,7 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 	}
 
 	a.Add(func() (err error) {
-		ctx, err = l.prepareNetwork(ctx, conf.Network)
+		ctx, err = l.startDaemon(ctx, conf)
 		return err
 	})
 
@@ -255,7 +255,7 @@ func (l limaVM) resume(ctx context.Context, conf config.Config) error {
 	}
 
 	a.Add(func() (err error) {
-		ctx, err = l.prepareNetwork(ctx, conf.Network)
+		ctx, err = l.startDaemon(ctx, conf)
 		return err
 	})
 
@@ -281,7 +281,7 @@ func (l limaVM) resume(ctx context.Context, conf config.Config) error {
 }
 
 func (l limaVM) Running(ctx context.Context) bool {
-	i, err := Instance()
+	i, err := limautil.Instance()
 	if err != nil {
 		logrus.Trace(fmt.Errorf("error retrieving running instance: %w", err))
 		return false
@@ -301,7 +301,7 @@ func (l limaVM) Stop(ctx context.Context, force bool) error {
 
 	if util.MacOS() {
 		a.Retry("", time.Second*1, 10, func(retryCount int) error {
-			return l.network.Stop(ctx)
+			return l.daemon.Stop(ctx)
 		})
 	}
 
@@ -320,7 +320,7 @@ func (l limaVM) Teardown(ctx context.Context) error {
 
 	if util.MacOS() {
 		a.Retry("", time.Second*1, 10, func(retryCount int) error {
-			return l.network.Stop(ctx)
+			return l.daemon.Stop(ctx)
 		})
 	}
 

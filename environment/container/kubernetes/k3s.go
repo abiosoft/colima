@@ -9,7 +9,7 @@ import (
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/environment/container/docker"
-	"github.com/abiosoft/colima/environment/vm/lima"
+	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/util/downloader"
 	"github.com/sirupsen/logrus"
 )
@@ -128,7 +128,7 @@ func installK3sCluster(
 	}
 
 	// replace ip address if networking is enabled
-	ipAddress := lima.IPAddress(config.CurrentProfile().ID)
+	ipAddress := limautil.IPAddress(config.CurrentProfile().ID)
 	if ipAddress == "127.0.0.1" {
 		args = append(args, "--flannel-iface", "eth0")
 	} else {

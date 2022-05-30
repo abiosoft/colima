@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/abiosoft/colima/environment/vm/lima/network/daemon"
+	"github.com/abiosoft/colima/daemon/process"
 )
 
 var testDir string
@@ -19,21 +19,27 @@ func setDir(t *testing.T) {
 	dir = func() string { return testDir }
 }
 
-func TestStart(t *testing.T) {
-	setDir(t)
-	info := Info()
-
+func getProcesses() []process.Process {
 	var addresses = []string{
 		"localhost",
 		"127.0.0.1",
 	}
 
-	t.Log("pidfile", info.PidFile)
-
-	var processes []daemon.Process
+	var processes []process.Process
 	for _, add := range addresses {
 		processes = append(processes, &pinger{address: add})
 	}
+
+	return processes
+}
+
+func TestStart(t *testing.T) {
+	setDir(t)
+	info := Info()
+
+	processes := getProcesses()
+
+	t.Log("pidfile", info.PidFile)
 
 	timeout := time.Second * 5
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
@@ -54,6 +60,8 @@ func TestStart(t *testing.T) {
 			default:
 				if p, err := os.ReadFile(info.PidFile); err == nil && len(p) > 0 {
 					break loop
+				} else if err != nil {
+					t.Logf("encountered err: %v", err)
 				}
 				time.Sleep(1 * time.Second)
 			}
@@ -79,7 +87,32 @@ func TestStart(t *testing.T) {
 
 }
 
-var _ daemon.Process = (*pinger)(nil)
+func TestRunProcesses(t *testing.T) {
+	processes := getProcesses()
+
+	timeout := time.Second * 5
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+
+	// start the processes
+	done := make(chan error, 1)
+	go func() {
+		done <- RunProcesses(ctx, processes...)
+	}()
+
+	cancel()
+
+	select {
+	case <-ctx.Done():
+		if err := ctx.Err(); err != context.Canceled {
+			t.Error(err)
+		}
+	case err := <-done:
+		t.Error(err)
+	}
+
+}
+
+var _ process.Process = (*pinger)(nil)
 
 type pinger struct {
 	address string
@@ -98,7 +131,7 @@ func (p *pinger) Start(ctx context.Context) error {
 }
 
 // Start implements BgProcess
-func (p *pinger) Dependencies() ([]daemon.Dependency, bool) { return nil, false }
+func (p *pinger) Dependencies() ([]process.Dependency, bool) { return nil, false }
 
 func (p *pinger) run(ctx context.Context, command string, args ...string) error {
 	cmd := exec.CommandContext(ctx, command, args...)

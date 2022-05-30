@@ -8,11 +8,11 @@ import (
 	"strings"
 
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/daemon/process"
 	"github.com/abiosoft/colima/environment"
-	"github.com/abiosoft/colima/environment/vm/lima/network/daemon"
 )
 
-var _ daemon.Dependency = qemuBinsSymlinks{}
+var _ process.Dependency = qemuBinsSymlinks{}
 
 // only these two are required for Lima
 var qemuBins = []string{"qemu-system-aarch64", "qemu-system-x86_64"}
@@ -52,7 +52,7 @@ func (q qemuBinsSymlinks) Install(host environment.HostActions) error {
 	return nil
 }
 
-var _ daemon.Dependency = qemuShareDirSymlink{}
+var _ process.Dependency = qemuShareDirSymlink{}
 
 type qemuShareDirSymlink struct{}
 

@@ -9,7 +9,7 @@ import (
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
-	"github.com/abiosoft/colima/environment/vm/lima/network/daemon"
+	"github.com/abiosoft/colima/daemon/process"
 )
 
 const (
@@ -18,10 +18,10 @@ const (
 	NetInterface = "col0"
 )
 
-var _ daemon.Process = (*vmnetProcess)(nil)
+var _ process.Process = (*vmnetProcess)(nil)
 
-func New() daemon.Process { return &vmnetProcess{} }
-func Name() string        { return "vmnet" }
+func New() process.Process { return &vmnetProcess{} }
+func Name() string         { return "vmnet" }
 
 type vmnetProcess struct{}
 
@@ -44,10 +44,10 @@ func (*vmnetProcess) Alive(ctx context.Context) error {
 	return nil
 }
 
-// Name implements daemon.BgProcess
+// Name implements process.BgProcess
 func (*vmnetProcess) Name() string { return Name() }
 
-// Start implements daemon.BgProcess
+// Start implements process.BgProcess
 func (*vmnetProcess) Start(ctx context.Context) error {
 	info := Info()
 	ptp := info.PTPFile
@@ -88,8 +88,8 @@ func (*vmnetProcess) Start(ctx context.Context) error {
 	return nil
 }
 
-func (vmnetProcess) Dependencies() (deps []daemon.Dependency, root bool) {
-	return []daemon.Dependency{
+func (vmnetProcess) Dependencies() (deps []process.Dependency, root bool) {
+	return []process.Dependency{
 		sudoerFile{},
 		vmnetFile{},
 		vmnetRunDir{},
@@ -124,6 +124,6 @@ func Info() struct {
 		PTPFile string
 	}{
 		PidFile: filepath.Join(runDir(), "vmnet-"+config.CurrentProfile().ShortName+".pid"),
-		PTPFile: filepath.Join(daemon.Dir(), "vmnet.ptp"),
+		PTPFile: filepath.Join(process.Dir(), "vmnet.ptp"),
 	}
 }

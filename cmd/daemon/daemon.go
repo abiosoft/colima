@@ -7,16 +7,17 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"syscall"
 	"time"
 
 	"github.com/abiosoft/colima/cli"
-	"github.com/abiosoft/colima/environment/vm/lima/network/daemon"
+	"github.com/abiosoft/colima/daemon/process"
 	godaemon "github.com/sevlyar/go-daemon"
 	"github.com/sirupsen/logrus"
 )
 
-var dir = daemon.Dir
+var dir = process.Dir
 
 // daemonize creates the daemon and returns if this is a child process
 func daemonize() (ctx *godaemon.Context, child bool, err error) {
@@ -49,7 +50,7 @@ func daemonize() (ctx *godaemon.Context, child bool, err error) {
 	return ctx, true, nil
 }
 
-func start(ctx context.Context, processes []daemon.Process) error {
+func start(ctx context.Context, processes []process.Process) error {
 	if status() == nil {
 		logrus.Info("daemon already running, startup ignored")
 		return nil
@@ -75,7 +76,7 @@ func start(ctx context.Context, processes []daemon.Process) error {
 	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	return daemon.Run(ctx, processes...)
+	return RunProcesses(ctx, processes...)
 }
 
 func stop(ctx context.Context) error {
@@ -152,4 +153,33 @@ func Info() struct {
 		PidFile: filepath.Join(dir, pidFileName),
 		LogFile: filepath.Join(dir, logFileName),
 	}
+}
+
+// Run runs the daemon with background processes.
+// NOTE: this must be called from the program entrypoint with minimal intermediary logic
+// due to the creation of the daemon.
+func RunProcesses(ctx context.Context, processes ...process.Process) error {
+	ctx, stop := context.WithCancel(ctx)
+	defer stop()
+
+	var wg sync.WaitGroup
+	wg.Add(len(processes))
+
+	for _, bg := range processes {
+		go func(bg process.Process) {
+			err := bg.Start(ctx)
+			if err != nil {
+				logrus.Error(fmt.Errorf("error starting %s: %w", bg.Name(), err))
+				stop()
+			}
+			wg.Done()
+		}(bg)
+	}
+
+	<-ctx.Done()
+	logrus.Info("terminate signal received")
+
+	wg.Wait()
+
+	return ctx.Err()
 }

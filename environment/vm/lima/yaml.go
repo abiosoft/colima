@@ -10,15 +10,16 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/abiosoft/colima/environment/vm/lima/network"
-	"github.com/abiosoft/colima/environment/vm/lima/network/daemon/gvproxy"
-	"github.com/abiosoft/colima/environment/vm/lima/network/daemon/vmnet"
+	"github.com/abiosoft/colima/daemon"
+	"github.com/abiosoft/colima/daemon/process/gvproxy"
+	"github.com/abiosoft/colima/daemon/process/vmnet"
 	"gopkg.in/yaml.v3"
 
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/embedded"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/docker"
+	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/util"
 	"github.com/sirupsen/logrus"
 )
@@ -60,11 +61,11 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 
 	l.DNS = conf.Network.DNS
 	if len(l.DNS) == 0 {
-		gvProxyEnabled, _ := ctx.Value(network.CtxKey(gvproxy.Name())).(bool)
+		gvProxyEnabled, _ := ctx.Value(daemon.CtxKey(gvproxy.Name())).(bool)
 		if gvProxyEnabled {
 			l.DNS = append(l.DNS, net.ParseIP(gvproxy.GatewayIP))
 		}
-		reachableIPAddress, _ := ctx.Value(network.CtxKey(vmnet.Name())).(bool)
+		reachableIPAddress, _ := ctx.Value(daemon.CtxKey(vmnet.Name())).(bool)
 		if reachableIPAddress {
 			l.DNS = append(l.DNS, net.ParseIP(vmnet.NetGateway))
 		}
@@ -84,7 +85,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 
 	// network setup
 	{
-		reachableIPAddress, _ := ctx.Value(network.CtxKey(vmnet.Name())).(bool)
+		reachableIPAddress, _ := ctx.Value(daemon.CtxKey(vmnet.Name())).(bool)
 
 		// network is currently limited to macOS.
 		// gvproxy is cross platform but not needed on Linux as slirp is only erratic on macOS.
@@ -128,7 +129,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 				values.Vmnet.Interface = vmnet.NetInterface
 			}
 
-			gvProxyEnabled, _ := ctx.Value(network.CtxKey(gvproxy.Name())).(bool)
+			gvProxyEnabled, _ := ctx.Value(daemon.CtxKey(gvproxy.Name())).(bool)
 			if gvProxyEnabled {
 				values.GVProxy.Enabled = true
 				values.GVProxy.MacAddress = strings.ToUpper(gvproxy.MacAddress())
@@ -185,7 +186,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	if conf.Layer {
 		port := util.RandomAvailablePort()
 		// set port for future retrieval
-		l.Env[layerEnvVar] = strconv.Itoa(port)
+		l.Env[limautil.LayerEnvVar] = strconv.Itoa(port)
 		// forward port
 		l.PortForwards = append(l.PortForwards,
 			PortForward{

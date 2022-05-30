@@ -1,4 +1,4 @@
-package network
+package daemon
 
 import (
 	"context"
@@ -6,18 +6,18 @@ import (
 	"os"
 
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/daemon/process"
+	"github.com/abiosoft/colima/daemon/process/gvproxy"
+	"github.com/abiosoft/colima/daemon/process/vmnet"
 	"github.com/abiosoft/colima/environment"
-	"github.com/abiosoft/colima/environment/vm/lima/network/daemon"
-	"github.com/abiosoft/colima/environment/vm/lima/network/daemon/gvproxy"
-	"github.com/abiosoft/colima/environment/vm/lima/network/daemon/vmnet"
 )
 
-// Manager handles networking between the host and the vm.
+// Manager handles running background processes.
 type Manager interface {
 	Start(context.Context) error
 	Stop(context.Context) error
 	Running(ctx context.Context) (Status, error)
-	Dependencies(ctx context.Context) (deps daemon.Dependency, root bool)
+	Dependencies(ctx context.Context) (deps process.Dependency, root bool)
 }
 
 type Status struct {
@@ -32,35 +32,35 @@ type processStatus struct {
 	Error   error
 }
 
-// NewManager creates a new network manager.
+// NewManager creates a new process manager.
 func NewManager(host environment.HostActions) Manager {
-	return &limaNetworkManager{
+	return &processManager{
 		host: host,
 	}
 }
 
 func CtxKey(s string) any { return struct{ key string }{key: s} }
 
-var _ Manager = (*limaNetworkManager)(nil)
+var _ Manager = (*processManager)(nil)
 
-type limaNetworkManager struct {
+type processManager struct {
 	host environment.HostActions
 }
 
-func (l limaNetworkManager) Dependencies(ctx context.Context) (deps daemon.Dependency, root bool) {
+func (l processManager) Dependencies(ctx context.Context) (deps process.Dependency, root bool) {
 	processes := processesFromCtx(ctx)
-	return daemon.Dependencies(processes...)
+	return process.Dependencies(processes...)
 }
 
-func (l limaNetworkManager) init() error {
+func (l processManager) init() error {
 	// dependencies for network
-	if err := os.MkdirAll(daemon.Dir(), 0755); err != nil {
+	if err := os.MkdirAll(process.Dir(), 0755); err != nil {
 		return fmt.Errorf("error preparing vmnet: %w", err)
 	}
 	return nil
 }
 
-func (l limaNetworkManager) Running(ctx context.Context) (s Status, err error) {
+func (l processManager) Running(ctx context.Context) (s Status, err error) {
 	err = l.host.RunQuiet(os.Args[0], "daemon", "status", config.CurrentProfile().ShortName)
 	if err != nil {
 		return
@@ -78,7 +78,7 @@ func (l limaNetworkManager) Running(ctx context.Context) (s Status, err error) {
 	return
 }
 
-func (l limaNetworkManager) Start(ctx context.Context) error {
+func (l processManager) Start(ctx context.Context) error {
 	_ = l.Stop(ctx) // this is safe, nothing is done when not running
 
 	if err := l.init(); err != nil {
@@ -93,10 +93,13 @@ func (l limaNetworkManager) Start(ctx context.Context) error {
 	if opts.GVProxy {
 		args = append(args, "--gvproxy")
 	}
+	if opts.FSNotify {
+		args = append(args, "--fsnotify")
+	}
 
 	return l.host.RunQuiet(args...)
 }
-func (l limaNetworkManager) Stop(ctx context.Context) error {
+func (l processManager) Stop(ctx context.Context) error {
 	if s, err := l.Running(ctx); err != nil || !s.Running {
 		return nil
 	}
@@ -104,12 +107,14 @@ func (l limaNetworkManager) Stop(ctx context.Context) error {
 }
 
 func optsFromCtx(ctx context.Context) struct {
-	Vmnet   bool
-	GVProxy bool
+	Vmnet    bool
+	GVProxy  bool
+	FSNotify bool
 } {
 	var opts = struct {
-		Vmnet   bool
-		GVProxy bool
+		Vmnet    bool
+		GVProxy  bool
+		FSNotify bool
 	}{}
 	opts.Vmnet, _ = ctx.Value(CtxKey(vmnet.Name())).(bool)
 	opts.GVProxy, _ = ctx.Value(CtxKey(gvproxy.Name())).(bool)
@@ -117,8 +122,8 @@ func optsFromCtx(ctx context.Context) struct {
 	return opts
 }
 
-func processesFromCtx(ctx context.Context) []daemon.Process {
-	var processes []daemon.Process
+func processesFromCtx(ctx context.Context) []process.Process {
+	var processes []process.Process
 
 	opts := optsFromCtx(ctx)
 	if opts.Vmnet {

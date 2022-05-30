@@ -1,15 +1,13 @@
-package daemon
+package process
 
 import (
 	"context"
 	"fmt"
 	"path/filepath"
-	"sync"
 
 	"github.com/abiosoft/colima/config"
 
 	"github.com/abiosoft/colima/environment"
-	"github.com/sirupsen/logrus"
 )
 
 // Process is a background process managed by the daemon.
@@ -27,8 +25,8 @@ type Process interface {
 	Dependencies() (deps []Dependency, root bool)
 }
 
-// Dir is the directory for network related files.
-func Dir() string { return filepath.Join(config.Dir(), "network") }
+// Dir is the directory for daemon files.
+func Dir() string { return filepath.Join(config.Dir(), "daemon") }
 
 // Dependency is a requirement to be fulfilled before a process can be started.
 type Dependency interface {
@@ -82,33 +80,4 @@ func (p processDeps) Install(host environment.HostActions) error {
 	}
 
 	return nil
-}
-
-// Run runs the daemon with background processes.
-// NOTE: this must be called from the program entrypoint with minimal intermediary logic
-// due to the creation of the daemon.
-func Run(ctx context.Context, processes ...Process) error {
-	ctx, stop := context.WithCancel(ctx)
-	defer stop()
-
-	var wg sync.WaitGroup
-	wg.Add(len(processes))
-
-	for _, bg := range processes {
-		go func(bg Process) {
-			err := bg.Start(ctx)
-			if err != nil {
-				logrus.Error(fmt.Errorf("error starting %s: %w", bg.Name(), err))
-				stop()
-			}
-			wg.Done()
-		}(bg)
-	}
-
-	<-ctx.Done()
-	logrus.Info("terminate signal received")
-
-	wg.Wait()
-
-	return ctx.Err()
 }
