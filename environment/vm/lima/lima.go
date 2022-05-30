@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/abiosoft/colima/daemon"
-	"github.com/abiosoft/colima/daemon/process/fsnotify"
 	"github.com/abiosoft/colima/daemon/process/gvproxy"
 	"github.com/abiosoft/colima/daemon/process/vmnet"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
@@ -114,11 +113,6 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 
 	ctxKeyVmnet := daemon.CtxKey(vmnet.Name())
 	ctxKeyGVProxy := daemon.CtxKey(gvproxy.Name())
-	ctxKeyFSNotify := daemon.CtxKey(fsnotify.Name())
-
-	if conf.FSNotify {
-		ctx = context.WithValue(ctx, ctxKeyFSNotify, true)
-	}
 
 	// use a nested chain for convenience
 	a := l.Init(ctx)

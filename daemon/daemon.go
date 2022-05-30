@@ -7,7 +7,6 @@ import (
 
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/daemon/process"
-	"github.com/abiosoft/colima/daemon/process/fsnotify"
 	"github.com/abiosoft/colima/daemon/process/gvproxy"
 	"github.com/abiosoft/colima/daemon/process/vmnet"
 	"github.com/abiosoft/colima/environment"
@@ -119,7 +118,6 @@ func optsFromCtx(ctx context.Context) struct {
 	}{}
 	opts.Vmnet, _ = ctx.Value(CtxKey(vmnet.Name())).(bool)
 	opts.GVProxy, _ = ctx.Value(CtxKey(gvproxy.Name())).(bool)
-	opts.FSNotify, _ = ctx.Value(CtxKey(fsnotify.Name())).(bool)
 
 	return opts
 }
@@ -133,9 +131,6 @@ func processesFromCtx(ctx context.Context) []process.Process {
 	}
 	if opts.GVProxy {
 		processes = append(processes, gvproxy.New())
-	}
-	if opts.FSNotify {
-		processes = append(processes, fsnotify.New())
 	}
 
 	return processes

@@ -5,11 +5,8 @@ import (
 	"time"
 
 	"github.com/abiosoft/colima/daemon/process"
-	"github.com/abiosoft/colima/daemon/process/fsnotify"
 	"github.com/abiosoft/colima/daemon/process/gvproxy"
 	"github.com/abiosoft/colima/daemon/process/vmnet"
-	"github.com/abiosoft/colima/environment/host"
-	"github.com/abiosoft/colima/environment/vm/lima"
 
 	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
@@ -38,11 +35,6 @@ var startCmd = &cobra.Command{
 		}
 		if daemonArgs.gvproxy {
 			processes = append(processes, gvproxy.New())
-		}
-		if daemonArgs.fsnotify {
-			// this is required in context, otherwise fsnotify will fail to start.
-			ctx = context.WithValue(ctx, fsnotify.CtxKeyGuest(), lima.New(host.New()))
-			processes = append(processes, fsnotify.New())
 		}
 
 		return start(ctx, processes)
