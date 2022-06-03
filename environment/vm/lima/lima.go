@@ -118,6 +118,8 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 	a := l.Init(ctx)
 	log := l.Logger(ctx)
 
+	installedKey := struct{ key string }{key: "installed"}
+
 	a.Stage("preparing network")
 	a.Add(func() error {
 		ctx = context.WithValue(ctx, ctxKeyGVProxy, true)
@@ -126,6 +128,7 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 		}
 		deps, root := l.daemon.Dependencies(ctx)
 		if deps.Installed() {
+			ctx = context.WithValue(ctx, installedKey, true)
 			return nil
 		}
 
@@ -135,7 +138,13 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 			log.Println("dependencies missing for setting up reachable IP address")
 			log.Println("sudo password may be required")
 		}
-		return deps.Install(l.host)
+
+		// install deps
+		err := deps.Install(l.host)
+		if err != nil {
+			ctx = context.WithValue(ctx, installedKey, false)
+		}
+		return err
 	})
 
 	a.Add(func() error {
@@ -166,6 +175,12 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 	// network failure is not fatal
 	if err := a.Exec(); err != nil {
 		func() {
+			installed, _ := ctx.Value(installedKey).(bool)
+			if !installed {
+				log.Warnln(fmt.Errorf("error setting up network dependencies: %w", err))
+				return
+			}
+
 			status, ok := ctx.Value(statusKey).(daemon.Status)
 			if !ok {
 				return
