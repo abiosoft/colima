@@ -73,7 +73,7 @@ func (q qemuShareDirSymlink) Install(host environment.HostActions) error {
 		return fmt.Errorf("error preparing qemu wrapper shared directory: %w", err)
 	}
 
-	qemu, err := exec.LookPath("qemu-img")
+	qemu, err := exec.LookPath("qemu-system-" + string(environment.HostArch().Value()))
 	if err != nil {
 		return fmt.Errorf("error locating qemu binaries in PATH: %w", err)
 	}
