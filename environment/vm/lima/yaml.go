@@ -76,12 +76,20 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		l.Env = make(map[string]string)
 	}
 
-	// add user to docker group
-	// "sudo", "usermod", "-aG", "docker", user
-	l.Provision = append(l.Provision, Provision{
-		Mode:   ProvisionModeUser,
-		Script: "sudo usermod -aG docker $USER",
-	})
+	{
+		// fix inotify
+		l.Provision = append(l.Provision, Provision{
+			Mode:   ProvisionModeSystem,
+			Script: "sysctl -w fs.inotify.max_user_watches=1048576",
+		})
+
+		// add user to docker group
+		// "sudo", "usermod", "-aG", "docker", user
+		l.Provision = append(l.Provision, Provision{
+			Mode:   ProvisionModeUser,
+			Script: "sudo usermod -aG docker $USER",
+		})
+	}
 
 	// network setup
 	{
