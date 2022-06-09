@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 
 	"github.com/abiosoft/colima/app"
@@ -93,13 +94,9 @@ func launchEditor(editor string, file string) error {
 
 	// vscode needs the wait flag, add it if the user did not.
 	switch editor {
-	case "code", "code-insiders", "code-oss", "codium":
-		editor += " --wait --new-window"
+	case "code", "code-insiders", "code-oss", "codium", "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code":
+		editor = strconv.Quote(editor) + " --wait --new-window"
 	}
 
-	args := strings.Fields(editor)
-	cmd := args[0]
-	args = append(args[1:], file)
-
-	return cli.CommandInteractive(cmd, args...).Run()
+	return cli.CommandInteractive("sh", "-c", editor+" "+file).Run()
 }
