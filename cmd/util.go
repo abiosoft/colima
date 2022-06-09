@@ -97,9 +97,5 @@ func launchEditor(editor string, file string) error {
 		editor += " --wait --new-window"
 	}
 
-	args := strings.Fields(editor)
-	cmd := args[0]
-	args = append(args[1:], file)
-
-	return cli.CommandInteractive(cmd, args...).Run()
+	return cli.CommandInteractive("sh", "-c", editor+" "+file).Run()
 }
