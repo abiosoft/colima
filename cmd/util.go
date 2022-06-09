@@ -93,7 +93,7 @@ func launchEditor(editor string, file string) error {
 
 	// vscode needs the wait flag, add it if the user did not.
 	switch editor {
-	case "code", "code-insiders", "code-oss", "codium":
+	case "code", "code-insiders", "code-oss", "codium", "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code":
 		editor += " --wait --new-window"
 	}
 
