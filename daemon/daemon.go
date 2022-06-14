@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/daemon/process"
 	"github.com/abiosoft/colima/daemon/process/gvproxy"
@@ -95,6 +96,10 @@ func (l processManager) Start(ctx context.Context) error {
 	}
 	if opts.FSNotify {
 		args = append(args, "--fsnotify")
+	}
+
+	if cli.Settings.Verbose {
+		args = append(args, "--verbose")
 	}
 
 	return l.host.RunQuiet(args...)
