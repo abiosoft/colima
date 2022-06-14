@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/daemon/process"
 	"github.com/abiosoft/colima/util"
 	"github.com/containers/gvisor-tap-vsock/pkg/transport"
@@ -96,7 +97,7 @@ func MacAddress() string {
 
 func configuration() types.Configuration {
 	return types.Configuration{
-		Debug:             true,
+		Debug:             cli.Settings.Verbose,
 		CaptureFile:       "",
 		MTU:               mtu,
 		Subnet:            subnet,
