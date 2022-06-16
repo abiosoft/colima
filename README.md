@@ -154,10 +154,14 @@ Check [here](docs/FAQ.md) for Frequently Asked Questions.
 - Documentation (wiki pages)
 - Testing on M1 Macs
 
+## License
+
+MIT
+
+
 ## Sponsoring the Project
 
 If you (or your company) are benefiting from the project and would like to support the contributors, kindly support the project on [Patreon](https://patreon.com/colima).
 
-## License
+[![powered-by-macstadium](https://uploads-ssl.webflow.com/5ac3c046c82724970fc60918/5c019d917bba312af7553b49_MacStadium-developerlogo.png)](https://macstadium.com)
 
-MIT
