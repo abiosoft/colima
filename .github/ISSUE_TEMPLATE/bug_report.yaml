@@ -15,7 +15,7 @@ body:
       description: What is the output of `limactl --version`
   - type: input
     attributes:
-      label: Lima Version
+      label: Qemu Version
       description: What is the output of `qemu-img --version`
   - type: checkboxes
     attributes:
