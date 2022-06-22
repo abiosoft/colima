@@ -1,22 +1,18 @@
-name: Issue report
-description: Report an issue
+name: Bug report
+description: Report a bug or issue
 body:
   - type: textarea
     attributes:
       label: Description
       description: A clear and concise description of what the issue is.
-  - type: input
+  - type: textarea
     attributes:
-      label: Colima Version
-      description: What is the output of `colima version`
-  - type: input
-    attributes:
-      label: Lima Version
-      description: What is the output of `limactl --version`
-  - type: input
-    attributes:
-      label: Qemu Version
-      description: What is the output of `qemu-img --version`
+      label: Version
+      description: What is the output of `colima version`, `limactl --version` and `qemu-img --version`
+      value: |
+        Colima Version:
+        Lima Version:
+        Qemu Version:
   - type: checkboxes
     attributes:
       label: Operating System
