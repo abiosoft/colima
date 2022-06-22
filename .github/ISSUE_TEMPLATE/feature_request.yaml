@@ -1,0 +1,6 @@
+name: Feature request
+description: Request a missing feature
+body:
+  - type: textarea
+    attributes:
+      label: Description
