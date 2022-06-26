@@ -8,6 +8,6 @@ pkgs.mkShell {
     coreutils
   ];
   shellHook = ''
-    export CGO_ENABLED=0
+    echo Nix Shell with $(go version)
   '';
 }

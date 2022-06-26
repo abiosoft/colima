@@ -11,7 +11,7 @@ mkdir -p "$OUTPUT_DIR"
 
 OUTPUT_BIN="colima-${OS}-${ARCH}"
 
-go build \
+CGO_ENABLED=0 go build \
     -ldflags "-X ${PACKAGE}.appVersion=${VERSION} -X ${PACKAGE}.revision=${REVISION}" \
     -o "$OUTPUT_DIR/$OUTPUT_BIN" \
     ./cmd/colima
