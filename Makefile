@@ -27,6 +27,9 @@ vmnet:
 	sh scripts/build_vmnet.sh
 
 install:
+    # macOS 12.4 has a weird behaviour of killing replaced binaries, removing the
+    # binary before copying over seems to work better.
+	rm -f /usr/local/bin/colima
 	cp _output/binaries/colima-$(OS)-$(ARCH) /usr/local/bin/colima
 	chmod +x /usr/local/bin/colima
 
