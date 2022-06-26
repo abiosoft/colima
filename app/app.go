@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
@@ -16,6 +15,7 @@ import (
 	"github.com/abiosoft/colima/environment/host"
 	"github.com/abiosoft/colima/environment/vm/lima"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
+	"github.com/abiosoft/colima/util"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -238,9 +238,8 @@ func (c colimaApp) SSH(layer bool, args ...string) error {
 		args = []string{"-q", "-t", resp.IPAddress, "--", "cd " + wd + " 2> /dev/null; bash --login"}
 	}
 
-	args = append(strings.Fields(cmdArgs), args...)
+	args = append(util.ShellSplit(cmdArgs), args...)
 	return cli.CommandInteractive("ssh", args...).Run()
-
 }
 
 func (c colimaApp) Status() error {

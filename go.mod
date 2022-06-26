@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/fatih/color v1.12.0
+	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.2.1
 	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
@@ -35,7 +36,6 @@ require (
 require (
 	github.com/containers/gvisor-tap-vsock v0.3.0
 	github.com/docker/go-units v0.4.0
-	github.com/fsnotify/fsnotify v1.5.4
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mattn/go-isatty v0.0.12 // indirect

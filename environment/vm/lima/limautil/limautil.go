@@ -13,6 +13,7 @@ import (
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/util"
 	"gopkg.in/yaml.v3"
 )
 
@@ -146,7 +147,7 @@ func ShowSSH(profileID string, layer bool, format string) (resp struct {
 func replaceSSHCmd(cmd string, name string, ip string, port int) string {
 	var out []string
 
-	for _, s := range strings.Fields(cmd) {
+	for _, s := range util.ShellSplit(cmd) {
 		if port > 0 {
 			if strings.HasPrefix(s, "ControlPath=") {
 				s = "ControlPath=" + strconv.Quote(filepath.Join(config.Dir(), "ssh.sock"))
