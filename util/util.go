@@ -8,6 +8,9 @@ import (
 	"os"
 	"runtime"
 	"strings"
+
+	"github.com/google/shlex"
+	"github.com/sirupsen/logrus"
 )
 
 // HomeDir returns the user home directory.
@@ -69,4 +72,16 @@ func RandomAvailablePort() int {
 	}
 
 	return listener.Addr().(*net.TCPAddr).Port
+}
+
+// ShellSplit splids cmd into arguments using.
+func ShellSplit(cmd string) []string {
+	split, err := shlex.Split(cmd)
+	if err != nil {
+		logrus.Warnln("error splitting into args: %w", err)
+		logrus.Warnln("falling back to whitespace split", err)
+		split = strings.Fields(cmd)
+	}
+
+	return split
 }
