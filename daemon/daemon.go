@@ -11,6 +11,7 @@ import (
 	"github.com/abiosoft/colima/daemon/process/gvproxy"
 	"github.com/abiosoft/colima/daemon/process/vmnet"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/util"
 )
 
 // Manager handles running background processes.
@@ -62,7 +63,7 @@ func (l processManager) init() error {
 }
 
 func (l processManager) Running(ctx context.Context) (s Status, err error) {
-	err = l.host.RunQuiet(os.Args[0], "daemon", "status", config.CurrentProfile().ShortName)
+	err = l.host.RunQuiet(util.Executable(), "daemon", "status", config.CurrentProfile().ShortName)
 	if err != nil {
 		return
 	}
@@ -86,7 +87,7 @@ func (l processManager) Start(ctx context.Context) error {
 		return fmt.Errorf("error preparing network directory: %w", err)
 	}
 
-	args := []string{os.Args[0], "daemon", "start", config.CurrentProfile().ShortName}
+	args := []string{util.Executable(), "daemon", "start", config.CurrentProfile().ShortName}
 	opts := optsFromCtx(ctx)
 	if opts.Vmnet {
 		args = append(args, "--vmnet")
@@ -108,7 +109,7 @@ func (l processManager) Stop(ctx context.Context) error {
 	if s, err := l.Running(ctx); err != nil || !s.Running {
 		return nil
 	}
-	return l.host.RunQuiet(os.Args[0], "daemon", "stop", config.CurrentProfile().ShortName)
+	return l.host.RunQuiet(util.Executable(), "daemon", "stop", config.CurrentProfile().ShortName)
 }
 
 func optsFromCtx(ctx context.Context) struct {

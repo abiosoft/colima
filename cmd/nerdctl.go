@@ -13,6 +13,7 @@ import (
 	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment/container/containerd"
+	"github.com/abiosoft/colima/util"
 	"github.com/spf13/cobra"
 )
 
@@ -96,7 +97,7 @@ var nerdctlLinkFunc = func() *cobra.Command {
 				ColimaApp string
 				Profile   string
 			}{
-				ColimaApp: os.Args[0],
+				ColimaApp: util.Executable(),
 				Profile:   config.CurrentProfile().ShortName,
 			}
 			var buf bytes.Buffer

@@ -3,7 +3,6 @@ package util
 import (
 	"crypto/sha256"
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"runtime"
@@ -18,7 +17,7 @@ func HomeDir() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		// this should never happen
-		log.Fatal(fmt.Errorf("error retrieving home directory: %w", err))
+		logrus.Fatal(fmt.Errorf("error retrieving home directory: %w", err))
 	}
 	return home
 }
@@ -64,11 +63,11 @@ func RemoveFromPath(path, dir string) string {
 func RandomAvailablePort() int {
 	listener, err := net.Listen("tcp", ":0")
 	if err != nil {
-		log.Fatal(fmt.Errorf("error picking an available port: %w", err))
+		logrus.Fatal(fmt.Errorf("error picking an available port: %w", err))
 	}
 
 	if err := listener.Close(); err != nil {
-		log.Fatal(fmt.Errorf("error closing temporary port listener: %w", err))
+		logrus.Fatal(fmt.Errorf("error closing temporary port listener: %w", err))
 	}
 
 	return listener.Addr().(*net.TCPAddr).Port
@@ -84,4 +83,25 @@ func ShellSplit(cmd string) []string {
 	}
 
 	return split
+}
+
+// Executable returns the path name for the executable that started
+// the current process. There is no guarantee that the path is still
+// pointing to the correct executable. If a symlink was used to start
+// the process, depending on the operating system, the result might
+// be the symlink or the path it pointed to. If a stable result is
+// needed, path/filepath.EvalSymlinks might help.
+//
+// Executable returns an absolute path unless an error occurred.
+//
+// The main use case is finding resources located relative to an
+// executable.
+func Executable() string {
+	e, err := os.Executable()
+	if err != nil {
+		// this should never happen, thereby it is safe to do
+		logrus.Warnln(fmt.Errorf("cannot detect current running executable: %w, falling back to first CLI argument", err))
+		return os.Args[0]
+	}
+	return e
 }

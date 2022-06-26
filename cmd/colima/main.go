@@ -19,7 +19,7 @@ import (
 )
 
 func main() {
-	_, cmd := filepath.Split(os.Args[0])
+	_, cmd := filepath.Split(util.Executable())
 	switch cmd {
 	case "qemu-system-x86_64", "qemu-system-aarch64":
 		qemuWrapper(cmd)
