@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/abiosoft/colima/util"
 	"github.com/sirupsen/logrus"
 )
 
@@ -73,7 +74,9 @@ var (
 			if err != nil {
 				return "", err
 			}
-			return filepath.Join(dir, ".colima", "_wrapper"), nil
+			// generate unique directory for the current binary
+			uniqueDir := util.SHA1(util.Executable())
+			return filepath.Join(dir, ".colima", "_wrapper", uniqueDir.String()), nil
 		},
 	}
 )

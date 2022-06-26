@@ -26,11 +26,14 @@ import (
 
 // New creates a new virtual machine.
 func New(host environment.HostActions) environment.VM {
+	// environment variables for the subprocesses
 	var envs []string
 	envLimaInstance := limaInstanceEnvVar + "=" + config.CurrentProfile().ID
 	envSubprocess := config.SubprocessProfileEnvVar + "=" + config.CurrentProfile().ShortName
-	envs = append(envs, envLimaInstance, envSubprocess)
+	envBinary := util.EnvColimaBinary + "=" + util.Executable()
+	envs = append(envs, envLimaInstance, envSubprocess, envBinary)
 
+	// modify the PATH for qemu wrapper
 	binDir := filepath.Join(config.WrapperDir(), "bin")
 	envs = append(envs, "PATH="+util.AppendToPath(os.Getenv("PATH"), binDir))
 

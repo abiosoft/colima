@@ -88,9 +88,9 @@ func MacAddress() string {
 	// there is not much concern about the precision of the uniqueness.
 	// this can be revisited
 	if macAddress == nil {
-		sum := util.SHA256Hash(process.Dir())
+		sum := util.SHA256(process.Dir())
 		macAddress = append(macAddress, baseHWAddr...)
-		macAddress = append(macAddress, sum[0:3]...)
+		macAddress = append(macAddress, sum.Bytes()[0:3]...)
 	}
 	return macAddress.String()
 }

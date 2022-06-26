@@ -37,7 +37,7 @@ type downloader struct {
 }
 
 func (d downloader) cacheFileName(url string) string {
-	return filepath.Join(config.CacheDir(), "caches", util.SHA256Hash(url).String())
+	return filepath.Join(config.CacheDir(), "caches", util.SHA256(url).String())
 }
 
 func (d downloader) cacheDownloadingFileName(url string) string {

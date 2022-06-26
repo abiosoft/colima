@@ -1,10 +1,11 @@
 package util
 
 import (
-	"crypto/sha256"
 	"fmt"
 	"net"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -20,15 +21,6 @@ func HomeDir() string {
 		logrus.Fatal(fmt.Errorf("error retrieving home directory: %w", err))
 	}
 	return home
-}
-
-type SHA256 [32]byte
-
-func (s SHA256) String() string { return fmt.Sprintf("%x", s[:]) }
-
-// SHA256Hash computes a sha256sum of a string.
-func SHA256Hash(s string) SHA256 {
-	return sha256.Sum256([]byte(s))
 }
 
 // MacOS returns if the current OS is macOS.
@@ -85,23 +77,40 @@ func ShellSplit(cmd string) []string {
 	return split
 }
 
+const EnvColimaBinary = "COLIMA_BINARY"
+
 // Executable returns the path name for the executable that started
-// the current process. There is no guarantee that the path is still
-// pointing to the correct executable. If a symlink was used to start
-// the process, depending on the operating system, the result might
-// be the symlink or the path it pointed to. If a stable result is
-// needed, path/filepath.EvalSymlinks might help.
-//
-// Executable returns an absolute path unless an error occurred.
-//
-// The main use case is finding resources located relative to an
-// executable.
+// the current process.
 func Executable() string {
-	e, err := os.Executable()
+	e, err := func(s string) (string, error) {
+		// prioritize env var in case this is a nested process
+		if e := os.Getenv(EnvColimaBinary); e != "" {
+			return e, nil
+		}
+
+		if filepath.IsAbs(s) {
+			return s, nil
+		}
+
+		e, err := exec.LookPath(s)
+		if err != nil {
+			return "", fmt.Errorf("error looking up '%s' in PATH: %w", s, err)
+		}
+
+		abs, err := filepath.Abs(e)
+		if err != nil {
+			return "", fmt.Errorf("error computing absolute path of '%s': %w", e, err)
+		}
+
+		return abs, nil
+	}(os.Args[0])
+
 	if err != nil {
 		// this should never happen, thereby it is safe to do
-		logrus.Warnln(fmt.Errorf("cannot detect current running executable: %w, falling back to first CLI argument", err))
+		logrus.Warnln(fmt.Errorf("cannot detect current running executable: %w", err))
+		logrus.Warnln("falling back to first CLI argument")
 		return os.Args[0]
 	}
+
 	return e
 }
