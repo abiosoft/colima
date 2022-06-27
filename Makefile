@@ -41,6 +41,10 @@ build:
 	go build -ldflags="$(LDFLAGS)" -o $(OUTPUT_DIR)/$(OUTPUT_BIN) ./cmd/colima
 	openssl sha256 -r -out $(OUTPUT_DIR)/$(OUTPUT_BIN).sha256sum $(OUTPUT_DIR)/$(OUTPUT_BIN)
 
+.PHONY: test
+test:
+	go test -race -v -ldflags="$(LD_FLAGS)" ./cmd/...
+
 .PHONY: vmnet
 vmnet:
 	sh scripts/build_vmnet.sh
