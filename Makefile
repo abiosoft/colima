@@ -52,6 +52,7 @@ vmnet:
 .PHONY: install
 install:
 	mkdir -p $(INSTALL_DIR)
+	rm -f $(INSTALL_DIR)/$(BIN_NAME)
 	cp _output/binaries/colima-$(OS)-$(ARCH) $(INSTALL_DIR)/$(BIN_NAME)
 	chmod +x $(INSTALL_DIR)/$(BIN_NAME)
 
