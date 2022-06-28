@@ -36,3 +36,9 @@ install:
 .PHONY: lint
 lint: ## Assumes that golangci-lint is installed and in the path.  To install: https://golangci-lint.run/usage/install/
 	golangci-lint --timeout 3m run
+
+.PHONY: nix-derivation-shell
+nix-derivation-shell:
+	$(eval DERIVATION=$(shell nix-build))
+	echo $(DERIVATION) | grep ^/nix
+	nix-shell -p $(DERIVATION)

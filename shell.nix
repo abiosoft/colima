@@ -6,6 +6,7 @@ pkgs.mkShell {
     go_1_18
     git
     coreutils
+    lima
   ];
   shellHook = ''
     echo Nix Shell with $(go version)
