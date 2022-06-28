@@ -10,6 +10,7 @@ import (
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/daemon/process"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/util/fsutil"
 )
 
 var _ process.Dependency = qemuBinsSymlinks{}
@@ -34,7 +35,7 @@ func (q qemuBinsSymlinks) Installed() bool {
 
 func (q qemuBinsSymlinks) Install(host environment.HostActions) error {
 	dir := q.dir()
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := fsutil.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("error preparing qemu wrapper bin directory: %w", err)
 	}
 	this, err := os.Executable()
@@ -69,7 +70,7 @@ func (q qemuShareDirSymlink) Installed() bool {
 func (q qemuShareDirSymlink) Install(host environment.HostActions) error {
 	dir := q.dir()
 	parent := filepath.Dir(dir)
-	if err := os.MkdirAll(parent, 0755); err != nil {
+	if err := fsutil.MkdirAll(parent, 0755); err != nil {
 		return fmt.Errorf("error preparing qemu wrapper shared directory: %w", err)
 	}
 

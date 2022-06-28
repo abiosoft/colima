@@ -13,7 +13,7 @@ import (
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/daemon/process"
-	"github.com/abiosoft/colima/util"
+	"github.com/abiosoft/colima/util/shautil"
 	"github.com/containers/gvisor-tap-vsock/pkg/transport"
 	"github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/gvisor-tap-vsock/pkg/virtualnetwork"
@@ -88,7 +88,7 @@ func MacAddress() string {
 	// there is not much concern about the precision of the uniqueness.
 	// this can be revisited
 	if macAddress == nil {
-		sum := util.SHA256(process.Dir())
+		sum := shautil.SHA256(process.Dir())
 		macAddress = append(macAddress, baseHWAddr...)
 		macAddress = append(macAddress, sum.Bytes()[0:3]...)
 	}

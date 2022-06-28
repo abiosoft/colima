@@ -13,6 +13,7 @@ import (
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/daemon/process"
+	"github.com/abiosoft/colima/util/fsutil"
 	godaemon "github.com/sevlyar/go-daemon"
 	"github.com/sirupsen/logrus"
 )
@@ -22,7 +23,7 @@ var dir = process.Dir
 // daemonize creates the daemon and returns if this is a child process
 func daemonize() (ctx *godaemon.Context, child bool, err error) {
 	dir := dir()
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := fsutil.MkdirAll(dir, 0755); err != nil {
 		return nil, false, fmt.Errorf("cannot make dir: %w", err)
 	}
 

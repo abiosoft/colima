@@ -6,7 +6,9 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/abiosoft/colima/util"
+	"github.com/abiosoft/colima/util/fsutil"
+	"github.com/abiosoft/colima/util/osutil"
+	"github.com/abiosoft/colima/util/shautil"
 	"github.com/sirupsen/logrus"
 )
 
@@ -29,7 +31,7 @@ func (r *requiredDir) Dir() string {
 	}
 
 	r.once.Do(func() {
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := fsutil.MkdirAll(dir, 0755); err != nil {
 			logrus.Fatal(fmt.Errorf("cannot make required directory: %w", err))
 		}
 	})
@@ -75,7 +77,7 @@ var (
 				return "", err
 			}
 			// generate unique directory for the current binary
-			uniqueDir := util.SHA1(util.Executable())
+			uniqueDir := shautil.SHA1(osutil.Executable())
 			return filepath.Join(dir, ".colima", "_wrapper", uniqueDir.String()), nil
 		},
 	}

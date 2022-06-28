@@ -20,6 +20,7 @@ import (
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/util"
+	"github.com/abiosoft/colima/util/osutil"
 	"github.com/abiosoft/colima/util/yamlutil"
 	"github.com/sirupsen/logrus"
 )
@@ -30,7 +31,7 @@ func New(host environment.HostActions) environment.VM {
 	var envs []string
 	envLimaInstance := limaInstanceEnvVar + "=" + config.CurrentProfile().ID
 	envSubprocess := config.SubprocessProfileEnvVar + "=" + config.CurrentProfile().ShortName
-	envBinary := util.EnvColimaBinary + "=" + util.Executable()
+	envBinary := osutil.EnvColimaBinary + "=" + osutil.Executable()
 	envs = append(envs, envLimaInstance, envSubprocess, envBinary)
 
 	// modify the PATH for qemu wrapper

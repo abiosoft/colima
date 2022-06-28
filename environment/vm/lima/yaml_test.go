@@ -8,6 +8,7 @@ import (
 
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/util"
+	"github.com/abiosoft/colima/util/fsutil"
 )
 
 func Test_checkOverlappingMounts(t *testing.T) {
@@ -43,6 +44,7 @@ func Test_checkOverlappingMounts(t *testing.T) {
 }
 
 func Test_config_Mounts(t *testing.T) {
+	fsutil.FS = fsutil.FakeFS
 	tests := []struct {
 		mounts        []string
 		isDefault     bool

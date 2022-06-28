@@ -13,7 +13,8 @@ import (
 	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment/container/containerd"
-	"github.com/abiosoft/colima/util"
+	"github.com/abiosoft/colima/util/fsutil"
+	"github.com/abiosoft/colima/util/osutil"
 	"github.com/spf13/cobra"
 )
 
@@ -97,7 +98,7 @@ var nerdctlLinkFunc = func() *cobra.Command {
 				ColimaApp string
 				Profile   string
 			}{
-				ColimaApp: util.Executable(),
+				ColimaApp: osutil.Executable(),
 				Profile:   config.CurrentProfile().ShortName,
 			}
 			var buf bytes.Buffer
@@ -113,7 +114,7 @@ var nerdctlLinkFunc = func() *cobra.Command {
 						return fmt.Errorf("error backing up existing file: %w", err)
 					}
 				}
-				if err := os.MkdirAll("/usr/local/bin", 0755); err != nil {
+				if err := fsutil.MkdirAll("/usr/local/bin", 0755); err != nil {
 					return nil
 				}
 				return os.WriteFile(nerdctlCmdArgs.path, buf.Bytes(), 0755)
