@@ -51,11 +51,10 @@ vmnet:
 
 .PHONY: install
 install:
-    # macOS 12.4 has a weird behaviour of killing replaced binaries, removing the
-    # binary before copying over seems to work better.
-	rm -f /usr/local/bin/colima
-	cp _output/binaries/colima-$(OS)-$(ARCH) /usr/local/bin/colima
-	chmod +x /usr/local/bin/colima
+	mkdir -p $(INSTALL_DIR)
+	rm -f $(INSTALL_DIR)/$(BIN_NAME)
+	cp $(OUTPUT_DIR)/colima-$(OS)-$(ARCH) $(INSTALL_DIR)/$(BIN_NAME)
+	chmod +x $(INSTALL_DIR)/$(BIN_NAME)
 
 .PHONY: lint
 lint: ## Assumes that golangci-lint is installed and in the path.  To install: https://golangci-lint.run/usage/install/
