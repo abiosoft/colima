@@ -39,7 +39,7 @@ fmt:
 .PHONY: build
 build:
 	go build -ldflags="$(LDFLAGS)" -o $(OUTPUT_DIR)/$(OUTPUT_BIN) ./cmd/colima
-	openssl sha256 -r -out $(OUTPUT_DIR)/$(OUTPUT_BIN).sha256sum $(OUTPUT_DIR)/$(OUTPUT_BIN)
+	cd $(OUTPUT_DIR) && openssl sha256 -r -out $(OUTPUT_BIN).sha256sum $(OUTPUT_BIN)
 
 .PHONY: test
 test:
