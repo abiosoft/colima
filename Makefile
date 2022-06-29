@@ -38,7 +38,7 @@ fmt:
 
 .PHONY: build
 build:
-	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags="$(LDFLAGS)" -o $(OUTPUT_DIR)/$(OUTPUT_BIN) ./cmd/colima
+	GOOS=$(GOOS) GOARCH=$(GOARCH) CGO_ENABLED=0 go build -ldflags="$(LDFLAGS)" -o $(OUTPUT_DIR)/$(OUTPUT_BIN) ./cmd/colima
 	cd $(OUTPUT_DIR) && openssl sha256 -r -out $(OUTPUT_BIN).sha256sum $(OUTPUT_BIN)
 
 .PHONY: test
@@ -59,3 +59,9 @@ install:
 .PHONY: lint
 lint: ## Assumes that golangci-lint is installed and in the path.  To install: https://golangci-lint.run/usage/install/
 	golangci-lint --timeout 3m run
+
+.PHONY: nix-derivation-shell
+nix-derivation-shell:
+	$(eval DERIVATION=$(shell nix-build))
+	echo $(DERIVATION) | grep ^/nix
+	nix-shell -p $(DERIVATION)

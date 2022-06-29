@@ -7,7 +7,7 @@ import (
 
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
-	"github.com/abiosoft/colima/util"
+	"github.com/abiosoft/colima/util/shautil"
 	"github.com/abiosoft/colima/util/terminal"
 )
 
@@ -37,7 +37,7 @@ type downloader struct {
 }
 
 func (d downloader) cacheFileName(url string) string {
-	return filepath.Join(config.CacheDir(), "caches", util.SHA256Hash(url).String())
+	return filepath.Join(config.CacheDir(), "caches", shautil.SHA256(url).String())
 }
 
 func (d downloader) cacheDownloadingFileName(url string) string {

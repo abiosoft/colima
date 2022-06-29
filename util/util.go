@@ -1,9 +1,7 @@
 package util
 
 import (
-	"crypto/sha256"
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"runtime"
@@ -18,18 +16,9 @@ func HomeDir() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		// this should never happen
-		log.Fatal(fmt.Errorf("error retrieving home directory: %w", err))
+		logrus.Fatal(fmt.Errorf("error retrieving home directory: %w", err))
 	}
 	return home
-}
-
-type SHA256 [32]byte
-
-func (s SHA256) String() string { return fmt.Sprintf("%x", s[:]) }
-
-// SHA256Hash computes a sha256sum of a string.
-func SHA256Hash(s string) SHA256 {
-	return sha256.Sum256([]byte(s))
 }
 
 // MacOS returns if the current OS is macOS.
@@ -64,11 +53,11 @@ func RemoveFromPath(path, dir string) string {
 func RandomAvailablePort() int {
 	listener, err := net.Listen("tcp", ":0")
 	if err != nil {
-		log.Fatal(fmt.Errorf("error picking an available port: %w", err))
+		logrus.Fatal(fmt.Errorf("error picking an available port: %w", err))
 	}
 
 	if err := listener.Close(); err != nil {
-		log.Fatal(fmt.Errorf("error closing temporary port listener: %w", err))
+		logrus.Fatal(fmt.Errorf("error closing temporary port listener: %w", err))
 	}
 
 	return listener.Addr().(*net.TCPAddr).Port
