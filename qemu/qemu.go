@@ -41,6 +41,16 @@ func (i InstallDir) Root() string {
 	return string(i)
 }
 
+// BinsEnvVar returns the environment variables for the Qemu binaries.
+//  QEMU_SYSTEM_X86_64=/path/to/x86-bin
+//  QEMU_SYSTEM_AARCH64=/path/to/aarch64-bin
+func (i InstallDir) BinsEnvVar() []string {
+	return []string{
+		"QEMU_SYSTEM_X86_64=" + filepath.Join(i.Bin(), BinX8664),
+		"QEMU_SYSTEM_AARCH64=" + filepath.Join(i.Bin(), BinAARCH64),
+	}
+}
+
 // HostDir returns the install directory for Qemu on the host.
 func HostDir() (InstallDir, error) {
 	qemu, err := exec.LookPath("qemu-system-" + string(environment.HostArch().Value()))
