@@ -15,6 +15,7 @@ import (
 	"github.com/abiosoft/colima/daemon/process/gvproxy"
 	"github.com/abiosoft/colima/daemon/process/vmnet"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
+	"github.com/abiosoft/colima/qemu"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
@@ -34,9 +35,8 @@ func New(host environment.HostActions) environment.VM {
 	envBinary := osutil.EnvColimaBinary + "=" + osutil.Executable()
 	envs = append(envs, envLimaInstance, envSubprocess, envBinary)
 
-	// modify the PATH for qemu wrapper
-	binDir := filepath.Join(config.WrapperDir(), "bin")
-	envs = append(envs, "PATH="+util.AppendToPath(os.Getenv("PATH"), binDir))
+	// use qemu wrapper for Lima by specifying wrapper binaries via env var
+	envs = append(envs, qemu.LimaDir().BinsEnvVar()...)
 
 	home, err := limaHome()
 	if err != nil {
