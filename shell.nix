@@ -5,8 +5,8 @@ pkgs.mkShell {
   nativeBuildInputs = with pkgs.buildPackages; [
     go_1_18
     git
-    coreutils
     lima
+    qemu
   ];
   shellHook = ''
     echo Nix Shell with $(go version)
