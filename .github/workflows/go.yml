@@ -4,11 +4,15 @@ on:
   push:
     tags: ["v*"]
     paths-ignore:
-      - '**/*.md'
+      - "**/*.md"
+      - "**/*.nix"
+      - "**/*.lock"
   pull_request:
     branches: [main]
     paths-ignore:
-      - '**/*.md'
+      - "**/*.md"
+      - "**/*.nix"
+      - "**/*.lock"
 
 jobs:
   build:
