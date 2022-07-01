@@ -5,11 +5,15 @@ on:
     tags: ["v*"]
     branches: [main]
     paths-ignore:
-      - '**/*.md'
+      - "**/*.md"
+      - "**/*.nix"
+      - "**/*.lock"
   pull_request:
     branches: [main]
     paths-ignore:
-      - '**/*.md'
+      - "**/*.md"
+      - "**/*.nix"
+      - "**/*.lock"
 jobs:
   kubernetes-docker:
     runs-on: macos-11
