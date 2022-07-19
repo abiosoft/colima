@@ -36,7 +36,9 @@ func New(host environment.HostActions) environment.VM {
 	envs = append(envs, envLimaInstance, envSubprocess, envBinary)
 
 	// use qemu wrapper for Lima by specifying wrapper binaries via env var
-	envs = append(envs, qemu.LimaDir().BinsEnvVar()...)
+	if util.MacOS() {
+		envs = append(envs, qemu.LimaDir().BinsEnvVar()...)
+	}
 
 	home, err := limaHome()
 	if err != nil {
