@@ -100,8 +100,6 @@ func encodeYAML(conf config.Config) ([]byte, error) {
 		return nil, fmt.Errorf("error encoding yaml file: %w", err)
 	}
 
-	tmp := string(b)
-	_ = tmp
 	return b, nil
 }
 
