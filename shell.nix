@@ -10,5 +10,6 @@ pkgs.mkShell {
   ];
   shellHook = ''
     echo Nix Shell with $(go version)
+    alias colima="$PWD/_output/binaries/colima-Darwin-arm64"
   '';
 }
