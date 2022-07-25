@@ -122,6 +122,13 @@ func (c kubernetesRuntime) unsetKubeconfig(a *cli.ActiveCommandChain) {
 	a.Add(func() error {
 		return c.host.Run("kubectl", "config", "unset", "clusters."+profile)
 	})
+	// kubectl config unset current-context
+	a.Add(func() error {
+		if c, _ := c.host.RunOutput("kubectl", "config", "current-context"); c != config.CurrentProfile().ID {
+			return nil
+		}
+		return c.host.Run("kubectl", "config", "unset", "current-context")
+	})
 }
 
 func (c kubernetesRuntime) teardownKubeconfig(a *cli.ActiveCommandChain) {
