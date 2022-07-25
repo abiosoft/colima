@@ -2,7 +2,6 @@ package lima
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -41,7 +40,7 @@ func New(host environment.HostActions) environment.VM {
 	// use qemu wrapper for Lima by specifying wrapper binaries via env var
 	envs = append(envs, qemu.LimaDir().BinsEnvVar()...)
 
-	home, err := limaHome()
+	home, err := limautil.LimaHome()
 	if err != nil {
 		err = fmt.Errorf("error detecting Lima config directory: %w", err)
 		logrus.Warnln(err)
@@ -63,28 +62,6 @@ const (
 	lima               = "lima"
 	limactl            = "limactl"
 )
-
-func limaHome() (string, error) {
-	var buf bytes.Buffer
-	cmd := cli.Command("limactl", "info")
-	cmd.Stdout = &buf
-
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("error retrieving lima info: %w", err)
-	}
-
-	var resp struct {
-		LimaHome string `json:"limaHome"`
-	}
-	if err := json.NewDecoder(&buf).Decode(&resp); err != nil {
-		return "", fmt.Errorf("error decoding json for lima info: %w", err)
-	}
-	if resp.LimaHome == "" {
-		return "", fmt.Errorf("error retrieving lima info, ensure lima version is >0.7.4")
-	}
-
-	return resp.LimaHome, nil
-}
 
 func (l limaVM) limaConfDir() string {
 	return filepath.Join(l.home, config.CurrentProfile().ID)

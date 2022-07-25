@@ -68,15 +68,6 @@ func (u ubuntuRuntime) buildArgs() (b buildArgs, err error) {
 	return
 }
 
-func (u ubuntuRuntime) imageBasename() string {
-	return "ubuntu-layer-" + string(u.guest.Arch().Value())
-}
-
-func (u ubuntuRuntime) imageArchive() string {
-	name := "ubuntu-layer-" + string(u.guest.Arch().Value()) + ".tar.gz"
-	return filepath.Join("/usr/share/colima", name)
-}
-
 func (u ubuntuRuntime) imageCreated() bool {
 	args := nerdctl("image", "inspect", imageName)
 	return u.guest.RunQuiet(args...) == nil

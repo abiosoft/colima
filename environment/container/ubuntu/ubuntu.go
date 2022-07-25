@@ -8,6 +8,7 @@ import (
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/containerd"
+	"github.com/sirupsen/logrus"
 )
 
 // Name is container runtime name
@@ -98,6 +99,9 @@ func (u ubuntuRuntime) Stop(context.Context) error {
 }
 
 func (u ubuntuRuntime) Teardown(context.Context) error {
+	if err := u.guest.Run(nerdctl("stop", containerName)...); err != nil {
+		logrus.Warn(fmt.Errorf("error stopping container: %w", err))
+	}
 	return u.guest.Run(nerdctl("rm", "-f", containerName)...)
 }
 
