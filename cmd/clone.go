@@ -87,7 +87,7 @@ var cloneCmd = &cobra.Command{
 		}
 
 		logrus.Info("clone successful")
-		logrus.Infof("run `colima start %s` to start the clone profile", to.ShortName)
+		logrus.Infof("run `colima start %s` to start the newly cloned profile", to.ShortName)
 		return nil
 	},
 }
