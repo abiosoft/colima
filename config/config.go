@@ -84,7 +84,8 @@ type Config struct {
 	MountType string  `yaml:"mountType,omitempty"`
 
 	// Runtime is one of docker, containerd.
-	Runtime string `yaml:"runtime,omitempty"`
+	Runtime         string `yaml:"runtime,omitempty"`
+	ActivateRuntime *bool  `yaml:"autoActivate,omitempty"`
 
 	// Kubernetes configuration
 	Kubernetes Kubernetes `yaml:"kubernetes,omitempty"`
@@ -141,6 +142,14 @@ func (c Config) MountsOrDefault() []Mount {
 		{Location: util.HomeDir(), Writable: true},
 		{Location: filepath.Join("/tmp", CurrentProfile().ID), Writable: true},
 	}
+}
+
+// AutoActivate returns if auto-activation of host client config is enabled.
+func (c Config) AutoActivate() bool {
+	if c.ActivateRuntime == nil {
+		return true
+	}
+	return *c.ActivateRuntime
 }
 
 // Empty checks if the configuration is empty.

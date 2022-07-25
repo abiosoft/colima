@@ -91,14 +91,17 @@ func (c kubernetesRuntime) provisionKubeconfig(ctx context.Context) error {
 	})
 
 	// set new context
-	a.Add(func() error {
-		out, err := c.host.RunOutput("kubectl", "config", "use-context", profile)
-		if err != nil {
-			return err
-		}
-		log.Println(out)
-		return nil
-	})
+	conf, _ := ctx.Value(config.CtxKey()).(config.Config)
+	if conf.AutoActivate() {
+		a.Add(func() error {
+			out, err := c.host.RunOutput("kubectl", "config", "use-context", profile)
+			if err != nil {
+				return err
+			}
+			log.Println(out)
+			return nil
+		})
+	}
 
 	// save settings
 	a.Add(func() error {
