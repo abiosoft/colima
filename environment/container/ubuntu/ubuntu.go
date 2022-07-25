@@ -82,8 +82,15 @@ func (u ubuntuRuntime) Provision(ctx context.Context) error {
 	return a.Exec()
 }
 
-func (u ubuntuRuntime) Start(context.Context) error {
-	return u.guest.Run(nerdctl("start", containerName)...)
+func (u ubuntuRuntime) Start(ctx context.Context) error {
+	a := u.Init(ctx)
+
+	a.Add(func() error {
+		return u.guest.Run(nerdctl("start", containerName)...)
+	})
+	a.Add(u.syncHostname)
+
+	return a.Exec()
 }
 
 func (u ubuntuRuntime) Stop(context.Context) error {
@@ -91,7 +98,7 @@ func (u ubuntuRuntime) Stop(context.Context) error {
 }
 
 func (u ubuntuRuntime) Teardown(context.Context) error {
-	return u.guest.Run(nerdctl("rm", containerName)...)
+	return u.guest.Run(nerdctl("rm", "-f", containerName)...)
 }
 
 func (u ubuntuRuntime) Version(ctx context.Context) string {

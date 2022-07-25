@@ -170,3 +170,19 @@ func (u ubuntuRuntime) createContainer(conf config.Config) error {
 	args = append(args, imageName)
 	return u.guest.Run(args...)
 }
+
+func (u ubuntuRuntime) syncHostname() error {
+	currentHostname := func() string {
+		args := nerdctl("exec", containerName, "hostname")
+		hostname, _ := u.guest.RunOutput(args...)
+		return hostname
+	}()
+
+	hostname := config.CurrentProfile().ID
+	if currentHostname == hostname {
+		return nil
+	}
+
+	args := nerdctl("exec", containerName, "sudo", "hostname", hostname)
+	return u.guest.RunQuiet(args...)
+}
