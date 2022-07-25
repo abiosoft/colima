@@ -54,7 +54,9 @@ func (d dockerRuntime) Provision(ctx context.Context) error {
 
 	// docker context
 	a.Add(d.setupContext)
-	a.Add(d.useContext)
+	if conf.AutoActivate() {
+		a.Add(d.useContext)
+	}
 
 	return a.Exec()
 }

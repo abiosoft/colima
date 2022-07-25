@@ -102,6 +102,7 @@ var startCmdArgs struct {
 		LegacyKubernetes bool // for backward compatibility
 		Edit             bool
 		Editor           string
+		ActivateRuntime  bool
 	}
 }
 
@@ -111,6 +112,7 @@ func init() {
 
 	root.Cmd().AddCommand(startCmd)
 	startCmd.Flags().StringVarP(&startCmdArgs.Runtime, "runtime", "r", docker.Name, "container runtime ("+runtimes+")")
+	startCmd.Flags().BoolVar(&startCmdArgs.Flags.ActivateRuntime, "activate", true, "set as active Docker/Kubernetes context on startup")
 	startCmd.Flags().IntVarP(&startCmdArgs.CPU, "cpu", "c", defaultCPU, "number of CPUs")
 	startCmd.Flags().StringVar(&startCmdArgs.CPUType, "cpu-type", "", "the CPU type, options can be checked with 'qemu-system-"+defaultArch+" -cpu help'")
 	startCmd.Flags().IntVarP(&startCmdArgs.Memory, "memory", "m", defaultMemory, "memory in GiB")
@@ -179,6 +181,7 @@ func prepareConfig(cmd *cobra.Command) {
 
 	// convert cli to config file format
 	startCmdArgs.Mounts = mountsFromFlag(startCmdArgs.Flags.Mounts)
+	startCmdArgs.ActivateRuntime = &startCmdArgs.Flags.ActivateRuntime
 
 	// if there is no existing settings
 	if current.Empty() {
@@ -234,6 +237,11 @@ func prepareConfig(cmd *cobra.Command) {
 	}
 	if !cmd.Flag("layer").Changed {
 		startCmdArgs.Layer = current.Layer
+	}
+	if !cmd.Flag("activate").Changed {
+		if current.ActivateRuntime != nil { // backward compatibility for `activate`
+			startCmdArgs.ActivateRuntime = current.ActivateRuntime
+		}
 	}
 	if util.MacOS() {
 		if !cmd.Flag("network-address").Changed {

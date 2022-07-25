@@ -91,14 +91,17 @@ func (c kubernetesRuntime) provisionKubeconfig(ctx context.Context) error {
 	})
 
 	// set new context
-	a.Add(func() error {
-		out, err := c.host.RunOutput("kubectl", "config", "use-context", profile)
-		if err != nil {
-			return err
-		}
-		log.Println(out)
-		return nil
-	})
+	conf, _ := ctx.Value(config.CtxKey()).(config.Config)
+	if conf.AutoActivate() {
+		a.Add(func() error {
+			out, err := c.host.RunOutput("kubectl", "config", "use-context", profile)
+			if err != nil {
+				return err
+			}
+			log.Println(out)
+			return nil
+		})
+	}
 
 	// save settings
 	a.Add(func() error {
@@ -118,6 +121,13 @@ func (c kubernetesRuntime) unsetKubeconfig(a *cli.ActiveCommandChain) {
 	})
 	a.Add(func() error {
 		return c.host.Run("kubectl", "config", "unset", "clusters."+profile)
+	})
+	// kubectl config unset current-context
+	a.Add(func() error {
+		if c, _ := c.host.RunOutput("kubectl", "config", "current-context"); c != config.CurrentProfile().ID {
+			return nil
+		}
+		return c.host.Run("kubectl", "config", "unset", "current-context")
 	})
 }
 

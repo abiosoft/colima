@@ -1,7 +1,7 @@
 package lima
 
 import (
-	"bytes"
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -9,6 +9,8 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/abiosoft/colima/daemon"
@@ -40,7 +42,7 @@ func New(host environment.HostActions) environment.VM {
 		envs = append(envs, qemu.LimaDir().BinsEnvVar()...)
 	}
 
-	home, err := limaHome()
+	home, err := limautil.LimaHome()
 	if err != nil {
 		err = fmt.Errorf("error detecting Lima config directory: %w", err)
 		logrus.Warnln(err)
@@ -62,28 +64,6 @@ const (
 	lima               = "lima"
 	limactl            = "limactl"
 )
-
-func limaHome() (string, error) {
-	var buf bytes.Buffer
-	cmd := cli.Command("limactl", "info")
-	cmd.Stdout = &buf
-
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("error retrieving lima info: %w", err)
-	}
-
-	var resp struct {
-		LimaHome string `json:"limaHome"`
-	}
-	if err := json.NewDecoder(&buf).Decode(&resp); err != nil {
-		return "", fmt.Errorf("error decoding json for lima info: %w", err)
-	}
-	if resp.LimaHome == "" {
-		return "", fmt.Errorf("error retrieving lima info, ensure lima version is >0.7.4")
-	}
-
-	return resp.LimaHome, nil
-}
 
 func (l limaVM) limaConfDir() string {
 	return filepath.Join(l.home, config.CurrentProfile().ID)
@@ -242,20 +222,7 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 		return os.Remove(configFile)
 	})
 
-	// host file
-	{
-		// add docker host alias
-		a.Add(func() error {
-			return l.addHost("host.docker.internal", net.ParseIP("192.168.5.2"))
-		})
-		// prevent chroot host error for layer
-		a.Add(func() error {
-			return l.addHost(config.CurrentProfile().ID, net.ParseIP("127.0.0.1"))
-		})
-	}
-
-	// registry certs
-	a.Add(l.copyCerts)
+	l.addPostStartActions(a)
 
 	// adding it to command chain to execute only after successful startup.
 	a.Add(func() error {
@@ -295,8 +262,7 @@ func (l limaVM) resume(ctx context.Context, conf config.Config) error {
 		return l.host.Run(limactl, "start", config.CurrentProfile().ID)
 	})
 
-	// registry certs
-	a.Add(l.copyCerts)
+	l.addPostStartActions(a)
 
 	return a.Exec()
 }
@@ -500,4 +466,47 @@ func (l limaVM) User() (string, error) {
 func (l limaVM) Arch() environment.Arch {
 	a, _ := l.RunOutput("uname", "-m")
 	return environment.Arch(a)
+}
+
+func (l limaVM) addHost(host string, ip net.IP) error {
+	if hostsFile, err := l.Read("/etc/hosts"); err == nil && includesHost(hostsFile, host, ip) {
+		return nil
+	} else if err != nil {
+		logrus.Warnln(fmt.Errorf("cannot read /etc/hosts in the VM: %w", err))
+	}
+
+	line := fmt.Sprintf("%s\t%s", ip.String(), host)
+	line = fmt.Sprintf("echo -e %s >> /etc/hosts", strconv.Quote(line))
+	return l.Run("sudo", "sh", "-c", line)
+}
+
+func includesHost(hostsFileContent, host string, ip net.IP) bool {
+	scanner := bufio.NewScanner(strings.NewReader(hostsFileContent))
+	for scanner.Scan() {
+		str := strings.Fields(scanner.Text())
+		if str[0] != ip.String() {
+			continue
+		}
+		if len(str) > 1 && str[1] == host {
+			return true
+		}
+	}
+	return false
+}
+
+func (l limaVM) addPostStartActions(a *cli.ActiveCommandChain) {
+	// host file
+	{
+		// add docker host alias
+		a.Add(func() error {
+			return l.addHost("host.docker.internal", net.ParseIP("192.168.5.2"))
+		})
+		// prevent chroot host error for layer
+		a.Add(func() error {
+			return l.addHost(config.CurrentProfile().ID, net.ParseIP("127.0.0.1"))
+		})
+	}
+
+	// registry certs
+	a.Add(l.copyCerts)
 }

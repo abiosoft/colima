@@ -28,11 +28,18 @@ kubernetes:
   # Kubernetes version to use.
   # This needs to exactly match a k3s version https://github.com/k3s-io/k3s/releases
   # Default: latest stable release
-  version: v1.23.6+k3s1
+  version: v1.24.3+k3s1
 
   # Enable the traefik ingress controller
   # Default: false
   ingress: false
+
+# Auto-activate on the Host for client access.
+# Setting to true does the following on startup
+#  - sets as active Docker context (for Docker runtime).
+#  - sets as active Kubernetes context (if Kubernetes is enabled).
+# Default: true
+autoActivate: true
 
 # Network configurations for the virtual machine.
 network:

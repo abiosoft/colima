@@ -46,7 +46,6 @@ func (c containerdRuntime) Name() string {
 }
 
 func (c containerdRuntime) Provision(context.Context) error {
-	// already provisioned as part of Lima
 	return c.guest.Write(buildKitConfFile, buildKitConf)
 }
 

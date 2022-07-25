@@ -316,3 +316,26 @@ func getRuntime(conf config.Config) string {
 	}
 	return runtime
 }
+
+// LimaHome returns the config directory for Lima.
+func LimaHome() (string, error) {
+	var buf bytes.Buffer
+	cmd := cli.Command("limactl", "info")
+	cmd.Stdout = &buf
+
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("error retrieving lima info: %w", err)
+	}
+
+	var resp struct {
+		LimaHome string `json:"limaHome"`
+	}
+	if err := json.NewDecoder(&buf).Decode(&resp); err != nil {
+		return "", fmt.Errorf("error decoding json for lima info: %w", err)
+	}
+	if resp.LimaHome == "" {
+		return "", fmt.Errorf("error retrieving lima info, ensure lima version is >0.7.4")
+	}
+
+	return resp.LimaHome, nil
+}

@@ -3,9 +3,7 @@ package lima
 import (
 	"context"
 	"fmt"
-	"net"
 	"path/filepath"
-	"strconv"
 
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/util"
@@ -44,10 +42,4 @@ func (l limaVM) copyCerts() error {
 		log.Warnln(fmt.Errorf("cannot copy registry certs to vm: %w", err))
 	}
 	return nil
-}
-
-func (l limaVM) addHost(host string, ip net.IP) error {
-	line := fmt.Sprintf("%s\t%s", ip.String(), host)
-	line = fmt.Sprintf("echo -e %s >> /etc/hosts", strconv.Quote(line))
-	return l.Run("sudo", "sh", "-c", line)
 }
