@@ -1,9 +1,14 @@
 package app
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
@@ -113,6 +118,10 @@ func (c colimaApp) Start(conf config.Config) error {
 	}
 
 	log.Println("done")
+
+	if err := generateSSHConfig(); err != nil {
+		log.Trace("error generating ssh_config: %w", err)
+	}
 	return nil
 }
 
@@ -153,6 +162,10 @@ func (c colimaApp) Stop(force bool) error {
 	}
 
 	log.Println("done")
+
+	if err := generateSSHConfig(); err != nil {
+		log.Trace("error generating ssh_config: %w", err)
+	}
 	return nil
 }
 
@@ -196,6 +209,10 @@ func (c colimaApp) Delete() error {
 	}
 
 	log.Println("done")
+
+	if err := generateSSHConfig(); err != nil {
+		log.Trace("error generating ssh_config: %w", err)
+	}
 	return nil
 }
 
@@ -375,4 +392,92 @@ func (c colimaApp) Kubernetes() (environment.Container, error) {
 
 func (c colimaApp) Active() bool {
 	return c.guest.Running(context.Background())
+}
+
+func generateSSHConfig() error {
+	instances, err := limautil.Instances()
+	if err != nil {
+		return fmt.Errorf("error retrieving instances: %w", err)
+	}
+	var buf bytes.Buffer
+
+	for _, i := range instances {
+		if !i.Running() {
+			continue
+		}
+
+		profile := config.Profile(i.Name)
+		conf, err := i.Config()
+		if err != nil {
+			log.Trace(fmt.Errorf("error retrieving profile config for '%s': %w", i.Name, err))
+			continue
+		}
+
+		resp, err := limautil.ShowSSH(profile.ID, conf.Layer, "config")
+		if err != nil {
+			log.Trace(fmt.Errorf("error retrieving SSH config for '%s': %w", i.Name, err))
+			continue
+		}
+
+		fmt.Fprintln(&buf, resp.Output)
+	}
+
+	sshFileColima := filepath.Join(filepath.Dir(config.Dir()), "ssh_config")
+	if err := os.WriteFile(sshFileColima, buf.Bytes(), 0644); err != nil {
+		return fmt.Errorf("error writing ssh_config file: %w", err)
+	}
+
+	includeLine := "Include " + sshFileColima
+
+	sshFileSystem := filepath.Join(util.HomeDir(), ".ssh", "config")
+
+	// include the SSH config file if not included
+	// if ssh file missing, the only content will be the include
+	if _, err := os.Stat(sshFileSystem); err != nil {
+		if err := os.MkdirAll(filepath.Dir(sshFileSystem), 0700); err != nil {
+			return fmt.Errorf("error creating ssh directory: %w", err)
+		}
+
+		if err := ioutil.WriteFile(sshFileSystem, []byte(includeLine), 0644); err != nil {
+			return fmt.Errorf("error modifying %s: %w", sshFileSystem, err)
+		}
+
+		return nil
+	}
+
+	sshContent, err := os.ReadFile(sshFileSystem)
+	if err != nil {
+		return fmt.Errorf("error reading ssh config: %w", err)
+	}
+
+	scanner := bufio.NewScanner(bytes.NewReader(sshContent))
+	for scanner.Scan() {
+		words := strings.Fields(scanner.Text())
+
+		// empty line
+		if len(words) == 0 {
+			continue
+		}
+
+		// comment
+		if strings.HasPrefix(words[0], "#") {
+			continue
+		}
+
+		// not an include line
+		if len(words) < 2 {
+			continue
+		}
+
+		if words[0] == "Include" && words[1] == sshFileColima {
+			// already present
+			return nil
+		}
+	}
+
+	// not found, prepend file
+	if err := os.WriteFile(sshFileSystem, []byte(includeLine+"\n\n"+string(sshContent)), 0644); err != nil {
+		return fmt.Errorf("error modifying %s: %w", sshFileSystem, err)
+	}
+	return nil
 }
