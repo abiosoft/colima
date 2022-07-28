@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -156,11 +157,21 @@ func init() {
 func mountsFromFlag(mounts []string) []config.Mount {
 	mnts := make([]config.Mount, len(mounts))
 	for i, mount := range mounts {
-		str := strings.SplitN(mount, ":", 2)
-		mnts[i] = config.Mount{
-			Location: str[0],
-			Writable: len(str) >= 2 && str[1] == "w",
+		str := strings.SplitN(mount, ":", 3)
+		mnt := config.Mount{Location: str[0]}
+
+		if len(str) > 1 {
+			if filepath.IsAbs(str[1]) {
+				mnt.MountPoint = str[1]
+			} else if str[1] == "w" {
+				mnt.Writable = true
+			}
 		}
+		if len(str) > 2 && str[2] == "w" {
+			mnt.Writable = true
+		}
+
+		mnts[i] = mnt
 	}
 	return mnts
 }

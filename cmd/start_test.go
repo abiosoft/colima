@@ -39,6 +39,17 @@ func Test_mountsFromFlag(t *testing.T) {
 				{Location: "/tmp"},
 			},
 		},
+		{
+			mounts: []string{
+				"/home/users:/home/users", "/home/another:w", "/tmp:/users/tmp", "/tmp:/users/tmp:w",
+			},
+			want: []config.Mount{
+				{Location: "/home/users", MountPoint: "/home/users"},
+				{Location: "/home/another", Writable: true},
+				{Location: "/tmp", MountPoint: "/users/tmp"},
+				{Location: "/tmp", MountPoint: "/users/tmp", Writable: true},
+			},
+		},
 	}
 	for i, tt := range tests {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {

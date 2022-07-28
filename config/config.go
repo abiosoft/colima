@@ -112,8 +112,9 @@ type Network struct {
 
 // Mount is volume mount
 type Mount struct {
-	Location string `yaml:"location"`
-	Writable bool   `yaml:"writable"`
+	Location   string `yaml:"location"`
+	MountPoint string `yaml:"mountPoint,omitempty"`
+	Writable   bool   `yaml:"writable"`
 }
 
 // CleanPath returns the absolute path to the mount location.

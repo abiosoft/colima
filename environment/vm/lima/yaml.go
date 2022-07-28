@@ -281,7 +281,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 				return
 			}
 
-			mount := Mount{Location: location, Writable: m.Writable}
+			mount := Mount{Location: location, MountPoint: m.MountPoint, Writable: m.Writable}
 
 			// use passthrough for readonly 9p mounts
 			if conf.MountType == NINEP && !m.Writable {
@@ -333,9 +333,10 @@ type File struct {
 }
 
 type Mount struct {
-	Location string `yaml:"location"` // REQUIRED
-	Writable bool   `yaml:"writable"`
-	NineP    NineP  `yaml:"9p,omitempty" json:"9p,omitempty"`
+	Location   string `yaml:"location"` // REQUIRED
+	MountPoint string `yaml:"mountPoint,omitempty"`
+	Writable   bool   `yaml:"writable"`
+	NineP      NineP  `yaml:"9p,omitempty" json:"9p,omitempty"`
 }
 
 type SSH struct {
