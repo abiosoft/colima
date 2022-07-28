@@ -237,12 +237,17 @@ func (c colimaApp) SSH(layer bool, args ...string) error {
 		if err != nil {
 			return err
 		}
-		for _, m := range conf.Mounts {
-			location, err := util.CleanPath(m.Location)
+		for _, m := range conf.MountsOrDefault() {
+			location := m.MountPoint
+			if location == "" {
+				location = m.Location
+			}
+			location, err := util.CleanPath(location)
 			if err != nil {
+				log.Trace(err)
 				continue
 			}
-			if strings.HasPrefix(location, pwd) {
+			if strings.HasPrefix(pwd, location) {
 				return nil
 			}
 		}
