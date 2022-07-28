@@ -288,6 +288,7 @@ func ubuntuSSHPort(profileID string) (int, error) {
 	var buf bytes.Buffer
 	cmd := cli.Command("limactl", "shell", profileID, "--", "sh", "-c", "echo $"+LayerEnvVar)
 	cmd.Stdout = &buf
+	cmd.Stderr = nil
 
 	if err := cmd.Run(); err != nil {
 		return 0, fmt.Errorf("cannot retrieve ubuntu layer SSH port: %w", err)

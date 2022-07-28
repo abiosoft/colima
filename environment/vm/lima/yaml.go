@@ -275,13 +275,17 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		cacheOverlapFound := false
 
 		for _, m := range conf.Mounts {
-			var location string
-			location, err = m.CleanPath()
+			var location, mountPoint string
+			location, err = util.CleanPath(m.Location)
+			if err != nil {
+				return
+			}
+			mountPoint, err = util.CleanPath(m.MountPoint)
 			if err != nil {
 				return
 			}
 
-			mount := Mount{Location: location, MountPoint: m.MountPoint, Writable: m.Writable}
+			mount := Mount{Location: location, MountPoint: mountPoint, Writable: m.Writable}
 
 			// use passthrough for readonly 9p mounts
 			if conf.MountType == NINEP && !m.Writable {
@@ -417,12 +421,12 @@ type NineP struct {
 func checkOverlappingMounts(mounts []config.Mount) error {
 	for i := 0; i < len(mounts)-1; i++ {
 		for j := i + 1; j < len(mounts); j++ {
-			a, err := mounts[i].CleanPath()
+			a, err := util.CleanPath(mounts[i].Location)
 			if err != nil {
 				return err
 			}
 
-			b, err := mounts[j].CleanPath()
+			b, err := util.CleanPath(mounts[j].Location)
 			if err != nil {
 				return err
 			}
