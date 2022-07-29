@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -73,4 +74,25 @@ func ShellSplit(cmd string) []string {
 	}
 
 	return split
+}
+
+// CleanPath returns the absolute path to the mount location.
+// If location is an empty string, nothing is done.
+func CleanPath(location string) (string, error) {
+	if location == "" {
+		return "", nil
+	}
+
+	str := os.ExpandEnv(location)
+
+	if strings.HasPrefix(str, "~") {
+		str = strings.Replace(str, "~", HomeDir(), 1)
+	}
+
+	str = filepath.Clean(str)
+	if !filepath.IsAbs(str) {
+		return "", fmt.Errorf("relative paths not supported for mount '%s'", location)
+	}
+
+	return strings.TrimSuffix(str, "/") + "/", nil
 }

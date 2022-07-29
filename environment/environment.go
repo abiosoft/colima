@@ -49,6 +49,8 @@ type GuestActions interface {
 	Stop(ctx context.Context, force bool) error
 	// Restart restarts the VM
 	Restart(ctx context.Context) error
+	// SSH performs an ssh connection to the VM
+	SSH(workingDir string, args ...string) error
 	// Created returns if the VM has been previously created.
 	Created() bool
 	// Running returns if the VM is currently running.

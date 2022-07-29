@@ -1,9 +1,7 @@
 package config
 
 import (
-	"fmt"
 	"net"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -112,25 +110,9 @@ type Network struct {
 
 // Mount is volume mount
 type Mount struct {
-	Location string `yaml:"location"`
-	Writable bool   `yaml:"writable"`
-}
-
-// CleanPath returns the absolute path to the mount location.
-func (m Mount) CleanPath() (string, error) {
-	split := strings.SplitN(m.Location, ":", 2)
-	str := os.ExpandEnv(split[0])
-
-	if strings.HasPrefix(str, "~") {
-		str = strings.Replace(str, "~", util.HomeDir(), 1)
-	}
-
-	str = filepath.Clean(str)
-	if !filepath.IsAbs(str) {
-		return "", fmt.Errorf("relative paths not supported for mount '%s'", m.Location)
-	}
-
-	return strings.TrimSuffix(str, "/") + "/", nil
+	Location   string `yaml:"location"`
+	MountPoint string `yaml:"mountPoint,omitempty"`
+	Writable   bool   `yaml:"writable"`
 }
 
 func (c Config) MountsOrDefault() []Mount {

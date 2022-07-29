@@ -222,8 +222,50 @@ func (c colimaApp) SSH(layer bool, args ...string) error {
 		return fmt.Errorf("%s not running", config.CurrentProfile().DisplayName)
 	}
 
+	workDir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("error retrieving current working directory: %w", err)
+	}
+	// peek the current directory to see if it is mounted to prevent `cd` errors
+	// with limactl ssh
+	if err := func() error {
+		conf, err := limautil.InstanceConfig()
+		if err != nil {
+			return err
+		}
+		pwd, err := util.CleanPath(workDir)
+		if err != nil {
+			return err
+		}
+		for _, m := range conf.MountsOrDefault() {
+			location := m.MountPoint
+			if location == "" {
+				location = m.Location
+			}
+			location, err := util.CleanPath(location)
+			if err != nil {
+				log.Trace(err)
+				continue
+			}
+			if strings.HasPrefix(pwd, location) {
+				return nil
+			}
+		}
+		return fmt.Errorf("not a mounted directory: %s", workDir)
+	}(); err != nil {
+		// the errors returned here is not critical and thereby silenced.
+		// the goal is to prevent unecessary warning message from Lima.
+		log.Trace(fmt.Errorf("error checking if PWD is mounted: %w", err))
+
+		// fallback to the user's homedir
+		username, err := c.guest.User()
+		if err == nil {
+			workDir = "/home/" + username + ".linux"
+		}
+	}
+
 	if !layer {
-		return c.guest.RunInteractive(args...)
+		return c.guest.SSH(workDir, args...)
 	}
 
 	conf, err := limautil.InstanceConfig()
@@ -231,7 +273,7 @@ func (c colimaApp) SSH(layer bool, args ...string) error {
 		return err
 	}
 	if !conf.Layer {
-		return c.guest.RunInteractive(args...)
+		return c.guest.SSH(workDir, args...)
 	}
 
 	resp, err := limautil.ShowSSH(config.CurrentProfile().ID, layer, "args")
@@ -244,15 +286,10 @@ func (c colimaApp) SSH(layer bool, args ...string) error {
 
 	cmdArgs := resp.Output
 
-	wd, err := os.Getwd()
-	if err != nil {
-		log.Debug(fmt.Errorf("cannot get working dir: %w", err))
-	}
-
 	if len(args) > 0 {
 		args = append([]string{"-q", "-t", resp.IPAddress, "--"}, args...)
-	} else if wd != "" {
-		args = []string{"-q", "-t", resp.IPAddress, "--", "cd " + wd + " 2> /dev/null; bash --login"}
+	} else if workDir != "" {
+		args = []string{"-q", "-t", resp.IPAddress, "--", "cd " + workDir + " 2> /dev/null; bash --login"}
 	}
 
 	args = append(util.ShellSplit(cmdArgs), args...)

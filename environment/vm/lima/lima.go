@@ -349,6 +349,18 @@ func (l limaVM) Run(args ...string) error {
 	return a.Exec()
 }
 
+func (l limaVM) SSH(workingDir string, args ...string) error {
+	args = append([]string{limactl, "shell", "--workdir", workingDir, config.CurrentProfile().ID}, args...)
+
+	a := l.Init(context.Background())
+
+	a.Add(func() error {
+		return l.host.RunInteractive(args...)
+	})
+
+	return a.Exec()
+}
+
 func (l limaVM) RunInteractive(args ...string) error {
 	args = append([]string{lima}, args...)
 

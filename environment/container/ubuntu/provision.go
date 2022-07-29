@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/util"
 )
 
 type buildArgs struct {
@@ -150,7 +151,16 @@ func (u ubuntuRuntime) createContainer(conf config.Config) error {
 
 	mounts := conf.MountsOrDefault()
 	for _, m := range mounts {
-		args = append(args, "--volume", m.Location+":"+m.Location)
+		location := m.MountPoint
+		if location == "" {
+			location = m.Location
+		}
+
+		location, err := util.CleanPath(location)
+		if err != nil {
+			return err
+		}
+		args = append(args, "--volume", location+":"+location)
 	}
 
 	env := conf.Env
