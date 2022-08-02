@@ -94,5 +94,6 @@ var cloneCmd = &cobra.Command{
 
 func init() {
 	root.Cmd().AddCommand(cloneCmd)
+	cloneCmd.Hidden = true
 
 }
