@@ -93,6 +93,9 @@ type Config struct {
 
 	// layer
 	Layer bool `yaml:"layer,omitempty"`
+
+	// provision scripts
+	Provision []Provision `yaml:"provision,omitempty"`
 }
 
 // Kubernetes is kubernetes configuration
@@ -113,6 +116,11 @@ type Mount struct {
 	Location   string `yaml:"location"`
 	MountPoint string `yaml:"mountPoint,omitempty"`
 	Writable   bool   `yaml:"writable"`
+}
+
+type Provision struct {
+	Mode   string `yaml:"mode"`
+	Script string `yaml:"script"`
 }
 
 func (c Config) MountsOrDefault() []Mount {

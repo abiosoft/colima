@@ -108,6 +108,25 @@ cpuType: host
 # Default: false
 layer: false
 
+# Custom provision scripts for the virtual machine.
+# Provisioning scripts are executed on startup and therefore needs to be idempotent.
+#
+# Example - script exected as root
+# provision:
+#   - mode: system
+#     script: apk add htop vim
+#
+# Example - script exected as user
+# provision:
+#   - mode: user
+#     script: |
+#       [ -f ~/.provision ] && exit 0;
+#       echo provisioning as $USER...
+#       touch ~/.provision
+#
+# Default: []
+provision: []
+
 # Configure volume mounts for the virtual machine.
 # Colima mounts user's home directory by default to provide a familiar
 # user experience.

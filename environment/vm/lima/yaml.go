@@ -302,6 +302,14 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		}
 	}
 
+	// provision scripts
+	for _, script := range conf.Provision {
+		l.Provision = append(l.Provision, Provision{
+			Mode:   script.Mode,
+			Script: script.Script,
+		})
+	}
+
 	return
 }
 
