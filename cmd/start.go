@@ -207,6 +207,8 @@ func prepareConfig(cmd *cobra.Command) {
 
 	// docker can only be set in config file
 	startCmdArgs.Docker = current.Docker
+	// provision scripts can only be set in config file
+	startCmdArgs.Provision = current.Provision
 
 	// use current settings for unchanged configs
 	// otherwise may be reverted to their default values.
