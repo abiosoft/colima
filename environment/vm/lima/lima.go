@@ -37,11 +37,6 @@ func New(host environment.HostActions) environment.VM {
 	envBinary := osutil.EnvColimaBinary + "=" + osutil.Executable()
 	envs = append(envs, envLimaInstance, envSubprocess, envBinary)
 
-	// use qemu wrapper for Lima by specifying wrapper binaries via env var
-	if util.MacOS() {
-		envs = append(envs, qemu.LimaDir().BinsEnvVar()...)
-	}
-
 	home, err := limautil.LimaHome()
 	if err != nil {
 		err = fmt.Errorf("error detecting Lima config directory: %w", err)
@@ -108,7 +103,9 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 
 	a.Stage("preparing network")
 	a.Add(func() error {
-		ctx = context.WithValue(ctx, ctxKeyGVProxy, true)
+		if conf.Network.Driver == gvproxy.Name() {
+			ctx = context.WithValue(ctx, ctxKeyGVProxy, true)
+		}
 		if conf.Network.Address {
 			ctx = context.WithValue(ctx, ctxKeyVmnet, true)
 		}
@@ -187,7 +184,14 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 
 	// preserve gvproxy context
 	if gvproxyEnabled, _ := ctx.Value(daemon.CtxKey(gvproxy.Name())).(bool); gvproxyEnabled {
-		l.host = l.host.WithEnv(gvproxy.SubProcessEnvVar + "=1")
+		var envs []string
+
+		// env var for subproxy to detect gvproxy
+		envs = append(envs, gvproxy.SubProcessEnvVar+"=1")
+		// use qemu wrapper for Lima by specifying wrapper binaries via env var
+		envs = append(envs, qemu.LimaDir().BinsEnvVar()...)
+
+		l.host = l.host.WithEnv(envs...)
 	}
 
 	return ctx, nil

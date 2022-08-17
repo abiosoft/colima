@@ -1,6 +1,15 @@
 #!/usr/bin/env sh
 
 FILE=/etc/network/interfaces
+BACKUP="$FILE.bak"
+
+# this only happens one in the beginning
+if [ ! -f "$BACKUP" ]; then
+    cp "$FILE" "$BACKUP"
+fi
+
+# reset the network file
+cp "$BACKUP" "$FILE"
 
 written() (
     grep -q "^auto ${1}" "${FILE}"

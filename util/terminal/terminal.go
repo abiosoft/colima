@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
-var isTerminal = terminal.IsTerminal(int(os.Stdout.Fd()))
+var isTerminal = term.IsTerminal(int(os.Stdout.Fd()))
 
 // ClearLine clears the previous line of the terminal
 func ClearLine() {
