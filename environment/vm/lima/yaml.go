@@ -61,6 +61,9 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 
 	l.DNS = conf.Network.DNS
 	l.HostResolver.Enabled = true
+	l.HostResolver.Hosts = map[string]string{
+		"host.docker.internal": "host.lima.internal",
+	}
 	if len(l.DNS) == 0 {
 		gvProxyEnabled, _ := ctx.Value(daemon.CtxKey(gvproxy.Name())).(bool)
 		if gvProxyEnabled {
