@@ -249,6 +249,7 @@ This is by design. Reachable IP address is not enabled by default because it req
   network:
   -  address: false
   +  address: true
+  ```
 
 ## Are Lima overrides supported?
 
