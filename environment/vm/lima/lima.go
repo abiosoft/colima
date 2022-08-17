@@ -108,7 +108,9 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 
 	a.Stage("preparing network")
 	a.Add(func() error {
-		ctx = context.WithValue(ctx, ctxKeyGVProxy, true)
+		if conf.Network.Driver == gvproxy.Name() {
+			ctx = context.WithValue(ctx, ctxKeyGVProxy, true)
+		}
 		if conf.Network.Address {
 			ctx = context.WithValue(ctx, ctxKeyVmnet, true)
 		}

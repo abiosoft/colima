@@ -60,10 +60,12 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	l.Containerd = Containerd{System: false, User: false}
 
 	l.DNS = conf.Network.DNS
+	l.HostResolver.Enabled = true
 	if len(l.DNS) == 0 {
 		gvProxyEnabled, _ := ctx.Value(daemon.CtxKey(gvproxy.Name())).(bool)
 		if gvProxyEnabled {
 			l.DNS = append(l.DNS, net.ParseIP(gvproxy.GatewayIP))
+			l.HostResolver.Enabled = false
 		}
 		reachableIPAddress, _ := ctx.Value(daemon.CtxKey(vmnet.Name())).(bool)
 		if reachableIPAddress {

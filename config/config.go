@@ -109,6 +109,7 @@ type Kubernetes struct {
 type Network struct {
 	Address bool     `yaml:"address"`
 	DNS     []net.IP `yaml:"dns"`
+	Driver  string   `yaml:"driver"`
 }
 
 // Mount is volume mount
