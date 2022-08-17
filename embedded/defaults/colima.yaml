@@ -59,8 +59,8 @@ network:
   # Network driver to use (slirp, gvproxy)
   #   - slirp is the default user mode networking provided by Qemu
   #   - gvproxy is an alternative to VPNKit based on gVisor https://github.com/containers/gvisor-tap-vsock
-  # Default: gvproxy
-  driver: gvproxy
+  # Default: slirp
+  driver: slirp
 
 # ===================================================================== #
 # ADVANCED CONFIGURATION
