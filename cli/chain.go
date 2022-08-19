@@ -3,7 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -43,7 +43,7 @@ type namedCommandChain struct {
 func (n namedCommandChain) Logger(ctx context.Context) *log.Entry {
 	if quiet, _ := ctx.Value(CtxKeyQuiet).(bool); quiet {
 		l := log.New()
-		l.SetOutput(ioutil.Discard)
+		l.SetOutput(io.Discard)
 		return l.WithContext(ctx)
 	}
 	if n.log == nil {
