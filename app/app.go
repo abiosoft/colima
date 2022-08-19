@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -475,7 +474,7 @@ func generateSSHConfig() error {
 			return fmt.Errorf("error creating ssh directory: %w", err)
 		}
 
-		if err := ioutil.WriteFile(sshFileSystem, []byte(includeLine), 0644); err != nil {
+		if err := os.WriteFile(sshFileSystem, []byte(includeLine), 0644); err != nil {
 			return fmt.Errorf("error modifying %s: %w", sshFileSystem, err)
 		}
 
