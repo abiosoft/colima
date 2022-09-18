@@ -2,7 +2,6 @@ package lima
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"net"
 	"os"
@@ -13,7 +12,6 @@ import (
 	"github.com/abiosoft/colima/daemon"
 	"github.com/abiosoft/colima/daemon/process/gvproxy"
 	"github.com/abiosoft/colima/daemon/process/vmnet"
-	"gopkg.in/yaml.v3"
 
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/embedded"
@@ -26,15 +24,6 @@ import (
 
 func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	l.Arch = environment.Arch(conf.Arch).Value()
-
-	{
-		b, err := yaml.Marshal(conf)
-		if err != nil {
-			logrus.Warnln(fmt.Errorf("error persisting Colima state: %w", err))
-		} else {
-			l.Colima = base64.StdEncoding.EncodeToString(b)
-		}
-	}
 
 	if conf.CPUType != "" && conf.CPUType != "host" {
 		l.CPUType = map[environment.Arch]string{
@@ -339,8 +328,6 @@ type Config struct {
 	Networks     []Network         `yaml:"networks,omitempty"`
 	Provision    []Provision       `yaml:"provision,omitempty" json:"provision,omitempty"`
 	CPUType      map[Arch]string   `yaml:"cpuType,omitempty" json:"cpuType,omitempty"`
-
-	Colima string `yaml:"colimaState"`
 }
 
 type File struct {
