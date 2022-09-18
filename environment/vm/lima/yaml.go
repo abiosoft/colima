@@ -32,8 +32,8 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	}
 
 	l.Images = append(l.Images,
-		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.4.2-1/alpine-lima-clm-3.14.6-aarch64.iso", Digest: "sha512:8e05be487fb6c3cf45f6378ca667f2f175c4fb07f162458ff9254f5ef4290ea94f176a6f2f9f854ab60f9668865e4d9bf0d9b24f0bb88dca4e30596855cc4013"},
-		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.4.2-1/alpine-lima-clm-3.14.6-x86_64.iso", Digest: "sha512:229121f3ff3cb645a602e3f21d687207ad14c48330001330430c84e88fb0311a70b4a94250c2e24e80e8d3522ee573e169fef76337214136d1dde9bbc4ec1354"},
+		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.4.5-1/alpine-lima-clm-3.16.2-aarch64.iso", Digest: "sha512:a79cdb3de4b297ddbc944f9f5de18ea34697b122facc94c7048324267929c19c4502fee8d2495f11f77867e2629dc721feed487affc96025212b0cccd49b28d1"},
+		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.4.5-1/alpine-lima-clm-3.16.2-x86_64.iso", Digest: "sha512:a57bf6766a3ace16dea694023f2833d88725fe4077832328edbfcc56865c0537700caa62529465e6a6e4d3386de05bc2212d3b0bb2de56d19c18dd4557ccf15c"},
 	)
 
 	if conf.CPU > 0 {
