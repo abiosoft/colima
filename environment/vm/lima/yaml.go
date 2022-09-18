@@ -49,7 +49,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	l.Containerd = Containerd{System: false, User: false}
 
 	l.DNS = conf.Network.DNS
-	l.HostResolver.Enabled = true
+	l.HostResolver.Enabled = len(l.DNS) == 0
 	l.HostResolver.Hosts = map[string]string{
 		"host.docker.internal": "host.lima.internal",
 	}
@@ -62,6 +62,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		reachableIPAddress, _ := ctx.Value(daemon.CtxKey(vmnet.Name())).(bool)
 		if reachableIPAddress {
 			l.DNS = append(l.DNS, net.ParseIP(vmnet.NetGateway))
+			l.HostResolver.Enabled = false
 		}
 	}
 
