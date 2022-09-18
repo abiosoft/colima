@@ -9,7 +9,6 @@ import (
 	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
-	"github.com/abiosoft/colima/util"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -24,14 +23,7 @@ var cloneCmd = &cobra.Command{
 		from := config.Profile(args[0])
 		to := config.Profile(args[1])
 
-		limaHome, err := limautil.LimaHome()
-		if err != nil {
-			err = fmt.Errorf("error detecting Lima config directory: %w", err)
-			logrus.Warnln(err)
-			logrus.Warnln("falling back to default '$HOME/.lima'")
-			limaHome = filepath.Join(util.HomeDir(), ".lima")
-		}
-
+		limaHome := limautil.LimaHome()
 		limaDir := func(p config.ProfileInfo) string {
 			return filepath.Join(limaHome, p.ID)
 		}

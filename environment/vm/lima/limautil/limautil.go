@@ -3,7 +3,6 @@ package limautil
 import (
 	"bufio"
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -13,8 +12,9 @@ import (
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/config/configmanager"
 	"github.com/abiosoft/colima/util"
-	"gopkg.in/yaml.v3"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -75,29 +75,7 @@ type InstanceInfo struct {
 func (i InstanceInfo) Running() bool { return i.Status == limaStatusRunning }
 
 func (i InstanceInfo) Config() (config.Config, error) {
-	var c config.Config
-
-	b, err := os.ReadFile(filepath.Join(i.Dir, "lima.yaml"))
-	if err != nil {
-		return c, fmt.Errorf("error reading Lima config file: %w", err)
-	}
-	var value struct {
-		Colima string `yaml:"colimaState"`
-	}
-
-	if err := yaml.Unmarshal(b, &value); err != nil {
-		return c, fmt.Errorf("error decoding Lima config yaml: %w", err)
-	}
-
-	b, err = base64.StdEncoding.DecodeString(value.Colima)
-	if err != nil {
-		return c, fmt.Errorf("error decoding Colima encoded config: %w", err)
-	}
-
-	if err := yaml.Unmarshal(b, &c); err != nil {
-		return c, fmt.Errorf("error decoding Colima yaml: %w", err)
-	}
-	return c, nil
+	return configmanager.LoadFrom(ColimaStateFile(i.Name))
 }
 
 // ShowSSH runs the show-ssh command in Lima.
@@ -318,25 +296,50 @@ func getRuntime(conf config.Config) string {
 	return runtime
 }
 
+var limaHome string
+
 // LimaHome returns the config directory for Lima.
-func LimaHome() (string, error) {
-	var buf bytes.Buffer
-	cmd := cli.Command("limactl", "info")
-	cmd.Stdout = &buf
-
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("error retrieving lima info: %w", err)
+func LimaHome() string {
+	if limaHome != "" {
+		return limaHome
 	}
 
-	var resp struct {
-		LimaHome string `json:"limaHome"`
-	}
-	if err := json.NewDecoder(&buf).Decode(&resp); err != nil {
-		return "", fmt.Errorf("error decoding json for lima info: %w", err)
-	}
-	if resp.LimaHome == "" {
-		return "", fmt.Errorf("error retrieving lima info, ensure lima version is >0.7.4")
+	home, err := func() (string, error) {
+		var buf bytes.Buffer
+		cmd := cli.Command("limactl", "info")
+		cmd.Stdout = &buf
+
+		if err := cmd.Run(); err != nil {
+			return "", fmt.Errorf("error retrieving lima info: %w", err)
+		}
+
+		var resp struct {
+			LimaHome string `json:"limaHome"`
+		}
+		if err := json.NewDecoder(&buf).Decode(&resp); err != nil {
+			return "", fmt.Errorf("error decoding json for lima info: %w", err)
+		}
+		if resp.LimaHome == "" {
+			return "", fmt.Errorf("error retrieving lima info, ensure lima version is >0.7.4")
+		}
+
+		return resp.LimaHome, nil
+	}()
+
+	if err != nil {
+		err = fmt.Errorf("error detecting Lima config directory: %w", err)
+		logrus.Warnln(err)
+		logrus.Warnln("falling back to default '$HOME/.lima'")
+		home = filepath.Join(util.HomeDir(), ".lima")
 	}
 
-	return resp.LimaHome, nil
+	limaHome = home
+	return home
+}
+
+const colimaStateFileName = "colima.yaml"
+
+// ColimaStateFile returns path to the colima state yaml file.
+func ColimaStateFile(profileID string) string {
+	return filepath.Join(LimaHome(), profileID, colimaStateFileName)
 }
