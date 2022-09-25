@@ -61,7 +61,9 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		}
 		reachableIPAddress, _ := ctx.Value(daemon.CtxKey(vmnet.Name())).(bool)
 		if reachableIPAddress {
-			l.HostResolver.Enabled = true // vmnet is only for IP address
+			if gvProxyEnabled {
+				l.DNS = append(l.DNS, net.ParseIP(vmnet.NetGateway))
+			}
 		}
 	}
 
