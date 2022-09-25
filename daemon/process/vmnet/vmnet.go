@@ -12,6 +12,8 @@ import (
 	"github.com/abiosoft/colima/daemon/process"
 )
 
+const Name = "vmnet"
+
 const (
 	NetGateway   = "192.168.106.1"
 	NetDHCPEnd   = "192.168.106.254"
@@ -21,7 +23,6 @@ const (
 var _ process.Process = (*vmnetProcess)(nil)
 
 func New() process.Process { return &vmnetProcess{} }
-func Name() string         { return "vmnet" }
 
 type vmnetProcess struct{}
 
@@ -45,7 +46,7 @@ func (*vmnetProcess) Alive(ctx context.Context) error {
 }
 
 // Name implements process.BgProcess
-func (*vmnetProcess) Name() string { return Name() }
+func (*vmnetProcess) Name() string { return Name }
 
 // Start implements process.BgProcess
 func (*vmnetProcess) Start(ctx context.Context) error {

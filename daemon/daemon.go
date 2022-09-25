@@ -122,8 +122,8 @@ func optsFromCtx(ctx context.Context) struct {
 		GVProxy  bool
 		FSNotify bool
 	}{}
-	opts.Vmnet, _ = ctx.Value(CtxKey(vmnet.Name())).(bool)
-	opts.GVProxy, _ = ctx.Value(CtxKey(gvproxy.Name())).(bool)
+	opts.Vmnet, _ = ctx.Value(CtxKey(vmnet.Name)).(bool)
+	opts.GVProxy, _ = ctx.Value(CtxKey(gvproxy.Name)).(bool)
 
 	return opts
 }

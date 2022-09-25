@@ -86,8 +86,8 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 		return ctx, nil
 	}
 
-	ctxKeyVmnet := daemon.CtxKey(vmnet.Name())
-	ctxKeyGVProxy := daemon.CtxKey(gvproxy.Name())
+	ctxKeyVmnet := daemon.CtxKey(vmnet.Name)
+	ctxKeyGVProxy := daemon.CtxKey(gvproxy.Name)
 
 	// use a nested chain for convenience
 	a := l.Init(ctx)
@@ -97,7 +97,7 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 
 	a.Stage("preparing network")
 	a.Add(func() error {
-		if conf.Network.Driver == gvproxy.Name() {
+		if conf.Network.Driver == gvproxy.Name {
 			ctx = context.WithValue(ctx, ctxKeyGVProxy, true)
 		}
 		if conf.Network.Address {
@@ -177,7 +177,7 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 	}
 
 	// preserve gvproxy context
-	if gvproxyEnabled, _ := ctx.Value(daemon.CtxKey(gvproxy.Name())).(bool); gvproxyEnabled {
+	if gvproxyEnabled, _ := ctx.Value(daemon.CtxKey(gvproxy.Name)).(bool); gvproxyEnabled {
 		var envs []string
 
 		// env var for subproxy to detect gvproxy
