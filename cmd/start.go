@@ -124,8 +124,8 @@ func init() {
 	startCmd.Flags().StringVarP(&startCmdArgs.Arch, "arch", "a", defaultArch, "architecture (aarch64, x86_64)")
 
 	// network
-	startCmd.Flags().StringVar(&startCmdArgs.Network.Driver, "network-driver", defaultNetworkDriver, "network driver to use ("+networkDrivers+")")
 	if util.MacOS() {
+		startCmd.Flags().StringVar(&startCmdArgs.Network.Driver, "network-driver", defaultNetworkDriver, "network driver to use ("+networkDrivers+")")
 		startCmd.Flags().BoolVar(&startCmdArgs.Network.Address, "network-address", false, "assign reachable IP address to the VM")
 	}
 
@@ -260,10 +260,10 @@ func prepareConfig(cmd *cobra.Command) {
 			startCmdArgs.ActivateRuntime = current.ActivateRuntime
 		}
 	}
-	if !cmd.Flag("network-driver").Changed {
-		startCmdArgs.Network.Driver = current.Network.Driver
-	}
 	if util.MacOS() {
+		if !cmd.Flag("network-driver").Changed {
+			startCmdArgs.Network.Driver = current.Network.Driver
+		}
 		if !cmd.Flag("network-address").Changed {
 			startCmdArgs.Network.Address = current.Network.Address
 		}
