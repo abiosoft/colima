@@ -54,15 +54,16 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		"host.docker.internal": "host.lima.internal",
 	}
 	if len(l.DNS) == 0 {
-		gvProxyEnabled, _ := ctx.Value(daemon.CtxKey(gvproxy.Name())).(bool)
+		gvProxyEnabled, _ := ctx.Value(daemon.CtxKey(gvproxy.Name)).(bool)
 		if gvProxyEnabled {
 			l.DNS = append(l.DNS, net.ParseIP(gvproxy.GatewayIP))
 			l.HostResolver.Enabled = false
 		}
-		reachableIPAddress, _ := ctx.Value(daemon.CtxKey(vmnet.Name())).(bool)
+		reachableIPAddress, _ := ctx.Value(daemon.CtxKey(vmnet.Name)).(bool)
 		if reachableIPAddress {
-			l.DNS = append(l.DNS, net.ParseIP(vmnet.NetGateway))
-			l.HostResolver.Enabled = false
+			if gvProxyEnabled {
+				l.DNS = append(l.DNS, net.ParseIP(vmnet.NetGateway))
+			}
 		}
 	}
 
@@ -88,7 +89,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 
 	// network setup
 	{
-		reachableIPAddress, _ := ctx.Value(daemon.CtxKey(vmnet.Name())).(bool)
+		reachableIPAddress, _ := ctx.Value(daemon.CtxKey(vmnet.Name)).(bool)
 
 		// network is currently limited to macOS.
 		// gvproxy is cross platform but not needed on Linux as slirp is only erratic on macOS.
@@ -132,7 +133,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 				values.Vmnet.Interface = vmnet.NetInterface
 			}
 
-			gvProxyEnabled, _ := ctx.Value(daemon.CtxKey(gvproxy.Name())).(bool)
+			gvProxyEnabled, _ := ctx.Value(daemon.CtxKey(gvproxy.Name)).(bool)
 			if gvProxyEnabled {
 				values.GVProxy.Enabled = true
 				values.GVProxy.MacAddress = strings.ToUpper(gvproxy.MacAddress())

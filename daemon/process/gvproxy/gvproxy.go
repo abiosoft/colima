@@ -20,12 +20,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const Name = "gvproxy"
+
 // New creates a new Process for gvproxy.
 func New() process.Process {
 	return &gvproxyProcess{}
 }
-
-func Name() string { return "gvproxy" }
 
 type Socket string
 
@@ -58,7 +58,7 @@ func (*gvproxyProcess) Alive(context.Context) error {
 }
 
 // Name implements daemon.Process
-func (*gvproxyProcess) Name() string { return Name() }
+func (*gvproxyProcess) Name() string { return Name }
 
 // Start implements daemon.Process
 func (*gvproxyProcess) Start(ctx context.Context) error {

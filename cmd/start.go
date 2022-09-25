@@ -94,7 +94,7 @@ const (
 	defaultDisk              = 60
 	defaultKubernetesVersion = kubernetes.DefaultVersion
 	defaultMountType         = "sshfs"
-	defaultNetworkDriver     = "slirp"
+	defaultNetworkDriver     = gvproxy.Name
 )
 
 var startCmdArgs struct {
@@ -111,7 +111,7 @@ var startCmdArgs struct {
 
 func init() {
 	runtimes := strings.Join(environment.ContainerRuntimes(), ", ")
-	networkDrivers := strings.Join([]string{defaultNetworkDriver, gvproxy.Name()}, ", ")
+	networkDrivers := strings.Join([]string{"slirp", gvproxy.Name}, ", ")
 	defaultArch := string(environment.HostArch().Value())
 
 	root.Cmd().AddCommand(startCmd)
