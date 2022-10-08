@@ -341,5 +341,5 @@ const colimaStateFileName = "colima.yaml"
 
 // ColimaStateFile returns path to the colima state yaml file.
 func ColimaStateFile(profileID string) string {
-	return filepath.Join(LimaHome(), profileID, colimaStateFileName)
+	return filepath.Join(LimaHome(), config.Profile(profileID).ID, colimaStateFileName)
 }
