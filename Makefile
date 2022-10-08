@@ -21,7 +21,7 @@ BIN_NAME := colima
 LDFLAGS := $(VERSION_VARIABLES)
 
 .PHONY: all
-all: build 
+all: build
 
 .PHONY: clean
 clean:
@@ -59,6 +59,10 @@ install:
 .PHONY: lint
 lint: ## Assumes that golangci-lint is installed and in the path.  To install: https://golangci-lint.run/usage/install/
 	golangci-lint --timeout 3m run
+
+.PHONY: print-binary-name
+print-binary-name:
+	@echo $(OUTPUT_DIR)/$(OUTPUT_BIN)
 
 .PHONY: nix-derivation-shell
 nix-derivation-shell:
