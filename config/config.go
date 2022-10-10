@@ -8,8 +8,10 @@ import (
 	"github.com/abiosoft/colima/util"
 )
 
-const AppName = "colima"
-const SubprocessProfileEnvVar = "COLIMA_PROFILE"
+const (
+	AppName                 = "colima"
+	SubprocessProfileEnvVar = "COLIMA_PROFILE"
+)
 
 var profile = ProfileInfo{ID: AppName, DisplayName: AppName, ShortName: "default"}
 
@@ -103,9 +105,9 @@ type Config struct {
 
 // Kubernetes is kubernetes configuration
 type Kubernetes struct {
-	Enabled bool   `yaml:"enabled"`
-	Version string `yaml:"version"`
-	Ingress bool   `yaml:"ingress"`
+	Enabled bool     `yaml:"enabled"`
+	Version string   `yaml:"version"`
+	Disable []string `yaml:"disable"`
 }
 
 // Network is VM network configuration

@@ -37,7 +37,8 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 		"  colima start --runtime containerd --kubernetes\n" +
 		"  colima start --cpu 4 --memory 8 --disk 100\n" +
 		"  colima start --arch aarch64\n" +
-		"  colima start --dns 1.1.1.1 --dns 8.8.8.8",
+		"  colima start --dns 1.1.1.1 --dns 8.8.8.8\n" +
+		"  colima start --kubernetes --kubernetes-disable=coredns,servicelb,traefik,local-storage,metrics-server",
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		app := newApp()
@@ -147,7 +148,7 @@ func init() {
 	startCmd.Flags().BoolVarP(&startCmdArgs.Kubernetes.Enabled, "kubernetes", "k", false, "start with Kubernetes")
 	startCmd.Flags().BoolVar(&startCmdArgs.Flags.LegacyKubernetes, "with-kubernetes", false, "start with Kubernetes")
 	startCmd.Flags().StringVar(&startCmdArgs.Kubernetes.Version, "kubernetes-version", defaultKubernetesVersion, "must match a k3s version https://github.com/k3s-io/k3s/releases")
-	startCmd.Flags().BoolVar(&startCmdArgs.Kubernetes.Ingress, "kubernetes-ingress", false, "enable Traefik ingress controller")
+	startCmd.Flags().StringSliceVar(&startCmdArgs.Kubernetes.Disable, "kubernetes-disable", nil, "a slice of packaged component names to disable when running with k3s (default empty)")
 	startCmd.Flag("with-kubernetes").Hidden = true
 
 	// layer
