@@ -21,10 +21,11 @@ func installK3s(host environment.HostActions,
 	containerRuntime string,
 	k3sVersion string,
 	ingress bool,
+	servicelb bool,
 ) {
 	installK3sBinary(host, guest, a, k3sVersion)
 	installK3sCache(host, guest, a, log, containerRuntime, k3sVersion)
-	installK3sCluster(host, guest, a, containerRuntime, k3sVersion, ingress)
+	installK3sCluster(host, guest, a, containerRuntime, k3sVersion, ingress, servicelb)
 }
 
 func installK3sBinary(
@@ -97,7 +98,6 @@ func installK3sCache(
 			return nil
 		})
 	}
-
 }
 
 func installK3sCluster(
@@ -107,6 +107,7 @@ func installK3sCluster(
 	containerRuntime string,
 	k3sVersion string,
 	ingress bool,
+	servicelb bool,
 ) {
 	// install k3s last to ensure it is the last step
 	downloadPath := "/tmp/k3s-install.sh"
@@ -125,6 +126,9 @@ func installK3sCluster(
 
 	if !ingress {
 		args = append(args, "--disable", "traefik")
+	}
+	if !servicelb {
+		args = append(args, "--disable", "servicelb")
 	}
 
 	// replace ip address if networking is enabled
@@ -146,5 +150,4 @@ func installK3sCluster(
 	a.Add(func() error {
 		return guest.Run("sh", "-c", "INSTALL_K3S_SKIP_DOWNLOAD=true INSTALL_K3S_SKIP_ENABLE=true k3s-install.sh "+strings.Join(args, " "))
 	})
-
 }

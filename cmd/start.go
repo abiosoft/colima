@@ -145,6 +145,7 @@ func init() {
 	startCmd.Flags().BoolVar(&startCmdArgs.Flags.LegacyKubernetes, "with-kubernetes", false, "start with Kubernetes")
 	startCmd.Flags().StringVar(&startCmdArgs.Kubernetes.Version, "kubernetes-version", defaultKubernetesVersion, "must match a k3s version https://github.com/k3s-io/k3s/releases")
 	startCmd.Flags().BoolVar(&startCmdArgs.Kubernetes.Ingress, "kubernetes-ingress", false, "enable Traefik ingress controller")
+	startCmd.Flags().BoolVar(&startCmdArgs.Kubernetes.ServiceLB, "kubernetes-servicelb", true, "enable service LB controller")
 	startCmd.Flag("with-kubernetes").Hidden = true
 
 	// layer
