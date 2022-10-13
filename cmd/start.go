@@ -140,6 +140,9 @@ func init() {
 	// ssh agent
 	startCmd.Flags().BoolVarP(&startCmdArgs.ForwardAgent, "ssh-agent", "s", false, "forward SSH agent to the VM")
 
+	// ssh config generation
+	startCmd.Flags().BoolVar(&startCmdArgs.SSHConfig, "ssh-config", true, "generate SSH config in ~/.ssh/config")
+
 	// k8s
 	startCmd.Flags().BoolVarP(&startCmdArgs.Kubernetes.Enabled, "kubernetes", "k", false, "start with Kubernetes")
 	startCmd.Flags().BoolVar(&startCmdArgs.Flags.LegacyKubernetes, "with-kubernetes", false, "start with Kubernetes")
@@ -245,6 +248,9 @@ func prepareConfig(cmd *cobra.Command) {
 	}
 	if !cmd.Flag("ssh-agent").Changed {
 		startCmdArgs.ForwardAgent = current.ForwardAgent
+	}
+	if !cmd.Flag("ssh-config").Changed {
+		startCmdArgs.SSHConfig = current.SSHConfig
 	}
 	if !cmd.Flag("dns").Changed {
 		startCmdArgs.Network.DNS = current.Network.DNS

@@ -118,7 +118,7 @@ func (c colimaApp) Start(conf config.Config) error {
 
 	log.Println("done")
 
-	if err := generateSSHConfig(); err != nil {
+	if err := generateSSHConfig(conf.SSHConfig); err != nil {
 		log.Trace("error generating ssh_config: %w", err)
 	}
 	return nil
@@ -162,7 +162,7 @@ func (c colimaApp) Stop(force bool) error {
 
 	log.Println("done")
 
-	if err := generateSSHConfig(); err != nil {
+	if err := generateSSHConfig(false); err != nil {
 		log.Trace("error generating ssh_config: %w", err)
 	}
 	return nil
@@ -209,7 +209,7 @@ func (c colimaApp) Delete() error {
 
 	log.Println("done")
 
-	if err := generateSSHConfig(); err != nil {
+	if err := generateSSHConfig(false); err != nil {
 		log.Trace("error generating ssh_config: %w", err)
 	}
 	return nil
@@ -430,7 +430,7 @@ func (c colimaApp) Active() bool {
 	return c.guest.Running(context.Background())
 }
 
-func generateSSHConfig() error {
+func generateSSHConfig(modifySSHConfig bool) error {
 	instances, err := limautil.Instances()
 	if err != nil {
 		return fmt.Errorf("error retrieving instances: %w", err)
@@ -461,6 +461,11 @@ func generateSSHConfig() error {
 	sshFileColima := filepath.Join(filepath.Dir(config.Dir()), "ssh_config")
 	if err := os.WriteFile(sshFileColima, buf.Bytes(), 0644); err != nil {
 		return fmt.Errorf("error writing ssh_config file: %w", err)
+	}
+
+	if !modifySSHConfig {
+		// ~/.ssh/config modification disabled
+		return nil
 	}
 
 	includeLine := "Include " + sshFileColima

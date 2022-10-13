@@ -133,6 +133,11 @@ layer: false
 # Default: []
 provision: []
 
+# Modify ~/.ssh/config automatically to include a SSH config for the virtual machine.
+# SSH config will still be generated in ~/.colima/ssh_config regardless.
+# Default: true
+sshConfig: true
+
 # Configure volume mounts for the virtual machine.
 # Colima mounts user's home directory by default to provide a familiar
 # user experience.
