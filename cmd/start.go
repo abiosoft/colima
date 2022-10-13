@@ -148,7 +148,7 @@ func init() {
 	startCmd.Flags().BoolVarP(&startCmdArgs.Kubernetes.Enabled, "kubernetes", "k", false, "start with Kubernetes")
 	startCmd.Flags().BoolVar(&startCmdArgs.Flags.LegacyKubernetes, "with-kubernetes", false, "start with Kubernetes")
 	startCmd.Flags().StringVar(&startCmdArgs.Kubernetes.Version, "kubernetes-version", defaultKubernetesVersion, "must match a k3s version https://github.com/k3s-io/k3s/releases")
-	startCmd.Flags().StringSliceVar(&startCmdArgs.Kubernetes.Disable, "kubernetes-disable", nil, "components to disable for k3s e.g. traefik,servicelb (default empty)")
+	startCmd.Flags().StringSliceVar(&startCmdArgs.Kubernetes.Disable, "kubernetes-disable", nil, "components to disable for k3s e.g. traefik,servicelb")
 	startCmd.Flag("with-kubernetes").Hidden = true
 
 	// layer
@@ -231,6 +231,9 @@ func prepareConfig(cmd *cobra.Command) {
 	}
 	if !cmd.Flag("kubernetes-version").Changed {
 		startCmdArgs.Kubernetes.Version = current.Kubernetes.Version
+	}
+	if !cmd.Flag("kubernetes-disable").Changed {
+		startCmdArgs.Kubernetes.Disable = current.Kubernetes.Disable
 	}
 	if !cmd.Flag("runtime").Changed {
 		startCmdArgs.Runtime = current.Runtime
