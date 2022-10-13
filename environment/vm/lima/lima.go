@@ -275,7 +275,7 @@ func (l limaVM) Running(ctx context.Context) bool {
 func (l limaVM) Stop(ctx context.Context, force bool) error {
 	log := l.Logger(ctx)
 	a := l.Init(ctx)
-	if !l.Running(ctx) {
+	if !l.Running(ctx) && !force {
 		log.Println("not running")
 		return nil
 	}

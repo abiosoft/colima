@@ -96,6 +96,9 @@ type Config struct {
 
 	// provision scripts
 	Provision []Provision `yaml:"provision,omitempty"`
+
+	// SSH config generation
+	SSHConfig bool `yaml:"sshConfig,omitempty"`
 }
 
 // Kubernetes is kubernetes configuration
