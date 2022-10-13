@@ -228,6 +228,9 @@ func prepareConfig(cmd *cobra.Command) {
 	if !cmd.Flag("kubernetes").Changed {
 		startCmdArgs.Kubernetes.Enabled = current.Kubernetes.Enabled
 	}
+	if !cmd.Flag("kubernetes-version").Changed {
+		startCmdArgs.Kubernetes.Version = current.Kubernetes.Version
+	}
 	if !cmd.Flag("runtime").Changed {
 		startCmdArgs.Runtime = current.Runtime
 	}
