@@ -148,7 +148,7 @@ func init() {
 	startCmd.Flags().BoolVarP(&startCmdArgs.Kubernetes.Enabled, "kubernetes", "k", false, "start with Kubernetes")
 	startCmd.Flags().BoolVar(&startCmdArgs.Flags.LegacyKubernetes, "with-kubernetes", false, "start with Kubernetes")
 	startCmd.Flags().StringVar(&startCmdArgs.Kubernetes.Version, "kubernetes-version", defaultKubernetesVersion, "must match a k3s version https://github.com/k3s-io/k3s/releases")
-	startCmd.Flags().StringSliceVar(&startCmdArgs.Kubernetes.Disable, "kubernetes-disable", nil, "a slice of packaged component names to disable when running with k3s (default empty)")
+	startCmd.Flags().StringSliceVar(&startCmdArgs.Kubernetes.Disable, "kubernetes-disable", nil, "components to disable for k3s e.g. traefik,servicelb (default empty)")
 	startCmd.Flag("with-kubernetes").Hidden = true
 
 	// layer
