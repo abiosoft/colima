@@ -51,6 +51,7 @@ func (c kubernetesRuntime) isInstalled() bool {
 	// it is installed if uninstall script is present.
 	return c.guest.RunQuiet("command", "-v", "k3s-uninstall.sh") == nil
 }
+
 func (c kubernetesRuntime) isVersionInstalled(version string) bool {
 	// validate version change via cli flag/config.
 	out, err := c.guest.RunOutput("k3s", "--version")
@@ -110,7 +111,7 @@ func (c *kubernetesRuntime) Provision(ctx context.Context) error {
 			installK3sCache(c.host, c.guest, a, log, runtime, conf.Version)
 		}
 		// other settings may have changed e.g. ingress
-		installK3sCluster(c.host, c.guest, a, runtime, conf.Version, conf.Ingress)
+		installK3sCluster(c.host, c.guest, a, runtime, conf.Version, conf.Disable)
 	} else {
 		if c.isInstalled() {
 			a.Stagef("version changed to %s, downloading and installing", conf.Version)
@@ -121,7 +122,7 @@ func (c *kubernetesRuntime) Provision(ctx context.Context) error {
 				a.Stage("installing")
 			}
 		}
-		installK3s(c.host, c.guest, a, log, runtime, conf.Version, conf.Ingress)
+		installK3s(c.host, c.guest, a, log, runtime, conf.Version, conf.Disable)
 	}
 
 	// this needs to happen on each startup
@@ -198,7 +199,6 @@ func (c kubernetesRuntime) deleteAllContainers() error {
 }
 
 func (c kubernetesRuntime) stopAllContainers() error {
-
 	ids := c.runningContainerIDs()
 	if ids == "" {
 		return nil
