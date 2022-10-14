@@ -30,9 +30,14 @@ kubernetes:
   # Default: latest stable release
   version: v1.24.3+k3s1
 
-  # Enable the traefik ingress controller
-  # Default: false
-  ingress: false
+  # Disable k3s features [coredns servicelb traefik local-storage metrics-server].
+  # All features are enabled unless disabled.
+  #
+  # EXAMPLE - disable traefik and metrics-server
+  # disable: [traefik, metrics-server]
+  #
+  # Default: []
+  disable: []
 
 # Auto-activate on the Host for client access.
 # Setting to true does the following on startup
