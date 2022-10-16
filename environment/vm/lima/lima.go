@@ -492,7 +492,7 @@ func includesHost(hostsFileContent, host string, ip net.IP) bool {
 	scanner := bufio.NewScanner(strings.NewReader(hostsFileContent))
 	for scanner.Scan() {
 		str := strings.Fields(scanner.Text())
-		if str[0] != ip.String() {
+		if len(str) == 0 || str[0] != ip.String() {
 			continue
 		}
 		if len(str) > 1 && str[1] == host {
