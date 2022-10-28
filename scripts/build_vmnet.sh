@@ -1,7 +1,5 @@
 #!/usr/bin/env sh
 
-# this script is meant to be executed on x86_64 host
-
 set -ex
 
 export DIR_BUILD=$PWD/_build/network
@@ -34,6 +32,13 @@ build_x86_64() (
     sudo rm -rf $PREFIX
     sudo mkdir -p $PREFIX
 
+    # shellcheck disable=SC2155
+    export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
+    export CC=$(xcrun --sdk macosx --find clang)
+    export CXX=$(xcrun --sdk macosx --find clang++)
+    export CFLAGS="-arch x86_64 -isysroot $SDKROOT -Wno-error=implicit-function-declaration"
+    export CXXFLAGS=$CFLAGS
+
     # vde-2
     (
         cd "$DIR_VDE"
@@ -41,7 +46,7 @@ build_x86_64() (
         git checkout 74278b9b7cf816f0356181f387012fdeb6d65b52
         autoreconf -fis
         # compile for x86_64
-        ./configure --prefix=$PREFIX
+        ./configure --prefix=$PREFIX --host=x86_64-apple-darwin
 
         make PREFIX=$PREFIX
         sudo make PREFIX=$PREFIX install
@@ -52,8 +57,8 @@ build_x86_64() (
     # vde_vmnet
     (
         cd "$DIR_VMNET"
-        make PREFIX=$PREFIX
-        sudo make PREFIX=$PREFIX install.bin
+        make PREFIX=$PREFIX ARCH=x86_64
+        sudo make PREFIX=$PREFIX ARCH=x86_64 install.bin
         # cleanup
         rm -f vde_vmnet *.o
     )
@@ -80,7 +85,7 @@ build_arm64() (
         git checkout 74278b9b7cf816f0356181f387012fdeb6d65b52
         autoreconf -fis
         # compile for arm64
-        ./configure --prefix=$PREFIX --host=arm-apple-darwin --target=arm-apple-darwin --build=x86_64-apple-darwin
+        ./configure --prefix=$PREFIX --host=arm-apple-darwin
 
         make PREFIX=$PREFIX
         sudo make PREFIX=$PREFIX install
