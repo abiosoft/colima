@@ -57,8 +57,8 @@ func (s sudoerFile) Install(host environment.HostActions) error {
 
 var _ process.Dependency = vmnetFile{}
 
-const BinaryPath = "/opt/colima/bin/vde_vmnet"
-const LibraryPath = "/opt/colima/lib/libvdeplug.3.dylib"
+const BinaryPath = "/opt/colima/bin/socket_vmnet"
+const ClientBinaryPath = "/opt/colima/bin/socket_vmnet_client"
 
 type vmnetFile struct{}
 
@@ -73,7 +73,7 @@ func (v vmnetFile) Installed() bool {
 }
 
 func (v vmnetFile) bins() []string {
-	return []string{BinaryPath, LibraryPath}
+	return []string{BinaryPath, ClientBinaryPath}
 }
 func (v vmnetFile) Install(host environment.HostActions) error {
 	arch := "x86_64"
