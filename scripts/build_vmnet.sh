@@ -17,48 +17,34 @@ clone https://github.com/lima-vm/socket_vmnet.git "$DIR_VMNET"
 
 move_to_embed_dir() (
     mkdir -p "$EMBED_DIR"/vmnet/bin
-    cp "$PREFIX"/bin/socket_vmnet "$PREFIX"/bin/socket_vmnet_client "$EMBED_DIR"/vmnet/bin
+    cp "$DIR_VMNET"/socket_vmnet "$DIR_VMNET"/socket_vmnet_client "$EMBED_DIR"/vmnet/bin
     cd "$EMBED_DIR"/vmnet && tar cvfz "$EMBED_DIR"/vmnet_"${1}".tar.gz bin/socket_vmnet bin/socket_vmnet_client
     rm -rf "$EMBED_DIR"/vmnet
-    sudo rm -rf /opt/colima
 )
 
 build_x86_64() (
-    export PREFIX=/opt/colima
-    sudo rm -rf $PREFIX
-    sudo mkdir -p $PREFIX
+    cd "$DIR_VMNET"
 
-    # socket_vmnet
-    (
-        cd "$DIR_VMNET"
-        # pinning to a commit for consistency
-        git checkout c630eb8eeb900de58cd4a487302bd318d0da8abd
-        make PREFIX=$PREFIX ARCH=x86_64
-        sudo make PREFIX=$PREFIX ARCH=x86_64 install.bin
-        # cleanup
-        make clean
-    )
+    # pinning to a commit for consistency
+    git checkout c630eb8eeb900de58cd4a487302bd318d0da8abd
+    make ARCH=x86_64
 
     move_to_embed_dir x86_64
+
+    # cleanup
+    make clean
 )
 
 build_arm64() (
-    # shellcheck disable=SC2031
-    export PREFIX=/opt/colima
-    sudo mkdir -p $PREFIX
+    cd "$DIR_VMNET"
 
-    # socket_vmnet
-    (
-        cd "$DIR_VMNET"
-        # pinning to a commit for consistency
-        git checkout c630eb8eeb900de58cd4a487302bd318d0da8abd
-        make PREFIX=$PREFIX ARCH=arm64
-        sudo make PREFIX=$PREFIX ARCH=arm64 install.bin
-        # cleanup
-        make clean
-    )
-
+    # pinning to a commit for consistency
+    git checkout c630eb8eeb900de58cd4a487302bd318d0da8abd
+    make ARCH=arm64
     move_to_embed_dir arm64
+
+    # cleanup
+    make clean
 )
 
 test_archives() (
@@ -81,8 +67,8 @@ test_archives() (
         fi
     )
 
-    assert_not_equal lib/libvdeplug.3.dylib
-    assert_not_equal bin/vde_vmnet
+    assert_not_equal bin/socket_vmnet
+    assert_not_equal bin/socket_vmnet_client
 )
 
 build_x86_64
