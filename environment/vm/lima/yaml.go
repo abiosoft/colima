@@ -283,11 +283,6 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 
 			mount := Mount{Location: location, MountPoint: mountPoint, Writable: m.Writable}
 
-			// use passthrough for readonly 9p mounts
-			if conf.MountType == NINEP && !m.Writable {
-				mount.NineP.SecurityModel = "passthrough"
-			}
-
 			l.Mounts = append(l.Mounts, mount)
 
 			// check if cache directory has been mounted by other mounts, and remove cache directory from mounts
