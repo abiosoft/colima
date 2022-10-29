@@ -38,6 +38,7 @@ func InstanceConfig() (config.Config, error) {
 // IPAddress returns the ip address for profile.
 // It returns the PTP address if networking is enabled or falls back to 127.0.0.1.
 // It is guaranteed to return a value.
+//
 // TODO: unnecessary round-trip is done to get instance details from Lima.
 func IPAddress(profileID string) string {
 	// profile = toUserFriendlyName(profile)

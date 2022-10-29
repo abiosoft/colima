@@ -11,12 +11,15 @@ import (
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/daemon/process"
+	"github.com/abiosoft/colima/util/osutil"
 	"github.com/sirupsen/logrus"
 )
 
 const Name = "vmnet"
 
 const (
+	SubProcessEnvVar = "COLIMA_VMNET"
+
 	NetGateway   = "192.168.106.1"
 	NetDHCPEnd   = "192.168.106.254"
 	NetInterface = "col0"
@@ -31,7 +34,7 @@ type vmnetProcess struct{}
 func (*vmnetProcess) Alive(ctx context.Context) error {
 	info := Info()
 	pidFile := info.PidFile
-	socketFile := info.SocketFile
+	socketFile := info.Socket.File()
 
 	if _, err := os.Stat(pidFile); err == nil {
 		cmd := exec.CommandContext(ctx, "sudo", "pkill", "-0", "-F", pidFile)
@@ -60,12 +63,12 @@ func (*vmnetProcess) Name() string { return Name }
 // Start implements process.BgProcess
 func (*vmnetProcess) Start(ctx context.Context) error {
 	info := Info()
-	socketFile := info.SocketFile
+	socket := info.Socket.File()
 	pid := info.PidFile
 
 	// delete existing sockets if exist
 	// errors ignored on purpose
-	_ = forceDeleteFileIfExists(socketFile)
+	_ = forceDeleteFileIfExists(socket)
 
 	done := make(chan error, 1)
 
@@ -77,7 +80,7 @@ func (*vmnetProcess) Start(ctx context.Context) error {
 			"--vmnet-gateway", NetGateway,
 			"--vmnet-dhcp-end", NetDHCPEnd,
 			"--pidfile", pid,
-			socketFile,
+			socket,
 		)
 
 		if cli.Settings.Verbose {
@@ -130,14 +133,14 @@ func forceDeleteFileIfExists(name string) error {
 }
 
 func Info() struct {
-	PidFile    string
-	SocketFile string
+	PidFile string
+	Socket  osutil.Socket
 } {
 	return struct {
-		PidFile    string
-		SocketFile string
+		PidFile string
+		Socket  osutil.Socket
 	}{
-		PidFile:    filepath.Join(runDir(), "vmnet-"+config.CurrentProfile().ShortName+".pid"),
-		SocketFile: filepath.Join(process.Dir(), "vmnet.sock"),
+		PidFile: filepath.Join(runDir(), "vmnet-"+config.CurrentProfile().ShortName+".pid"),
+		Socket:  osutil.Socket(filepath.Join(process.Dir(), "vmnet.sock")),
 	}
 }

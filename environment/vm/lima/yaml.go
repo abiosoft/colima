@@ -109,7 +109,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 
 			if reachableIPAddress {
 				if err := func() error {
-					socketFile := vmnet.Info().SocketFile
+					socketFile := vmnet.Info().Socket.File()
 					// ensure the socket file exists
 					if _, err := os.Stat(socketFile); err != nil {
 						return fmt.Errorf("vmnet socket file not found: %w", err)

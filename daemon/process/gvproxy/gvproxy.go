@@ -13,6 +13,7 @@ import (
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/daemon/process"
+	"github.com/abiosoft/colima/util/osutil"
 	"github.com/abiosoft/colima/util/shautil"
 	"github.com/containers/gvisor-tap-vsock/pkg/transport"
 	"github.com/containers/gvisor-tap-vsock/pkg/types"
@@ -27,20 +28,15 @@ func New() process.Process {
 	return &gvproxyProcess{}
 }
 
-type Socket string
-
-func (s Socket) Unix() string { return "unix://" + s.File() }
-func (s Socket) File() string { return strings.TrimPrefix(string(s), "unix://") }
-
 func Info() struct {
-	Socket     Socket
+	Socket     osutil.Socket
 	MacAddress string
 } {
 	return struct {
-		Socket     Socket
+		Socket     osutil.Socket
 		MacAddress string
 	}{
-		Socket:     Socket(filepath.Join(process.Dir(), socketFileName)),
+		Socket:     osutil.Socket(filepath.Join(process.Dir(), socketFileName)),
 		MacAddress: MacAddress(),
 	}
 }
@@ -130,7 +126,7 @@ func configuration() types.Configuration {
 	}
 }
 
-func run(ctx context.Context, qemuSocket Socket) error {
+func run(ctx context.Context, qemuSocket osutil.Socket) error {
 	if _, err := os.Stat(qemuSocket.File()); err == nil {
 		if err := os.Remove(qemuSocket.File()); err != nil {
 			return fmt.Errorf("error removing existing qemu socket: %w", err)
