@@ -159,9 +159,9 @@ func traverseNode(parentKey string, node *yaml.Node, vals map[string]*yaml.Node)
 			}
 		}
 	case yaml.SequenceNode:
-		for i := 0; i < len(node.Content); i += 2 {
+		for i := 0; i < len(node.Content); i++ {
 			key := strconv.Itoa(i)
-			val := node.Content[i+1]
+			val := node.Content[i]
 			if parentKey != "" {
 				key = parentKey + "." + key
 			}

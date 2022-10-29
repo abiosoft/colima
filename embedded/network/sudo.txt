@@ -1,5 +1,5 @@
 # starting vmnet daemon
-%staff ALL=(root:wheel) NOPASSWD:NOSETENV: /opt/colima/bin/vde_vmnet --vmnet-mode shared --vde-group staff --vmnet-gateway 192.168.106.1 --vmnet-dhcp-end 192.168.106.254 *
+%staff ALL=(root:wheel) NOPASSWD:NOSETENV: /opt/colima/bin/socket_vmnet --vmnet-mode shared --socket-group staff --vmnet-gateway 192.168.106.1 --vmnet-dhcp-end 192.168.106.254 *
 # terminating vmnet daemon
 %staff ALL=(root:wheel) NOPASSWD:NOSETENV: /usr/bin/pkill -F /opt/colima/run/*.pid
 # validating vmnet daemon

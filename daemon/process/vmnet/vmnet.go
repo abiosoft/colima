@@ -3,6 +3,7 @@ package vmnet
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -10,11 +11,15 @@ import (
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/daemon/process"
+	"github.com/abiosoft/colima/util/osutil"
+	"github.com/sirupsen/logrus"
 )
 
 const Name = "vmnet"
 
 const (
+	SubProcessEnvVar = "COLIMA_VMNET"
+
 	NetGateway   = "192.168.106.1"
 	NetDHCPEnd   = "192.168.106.254"
 	NetInterface = "col0"
@@ -29,7 +34,7 @@ type vmnetProcess struct{}
 func (*vmnetProcess) Alive(ctx context.Context) error {
 	info := Info()
 	pidFile := info.PidFile
-	ptpFile := info.PTPFile
+	socketFile := info.Socket.File()
 
 	if _, err := os.Stat(pidFile); err == nil {
 		cmd := exec.CommandContext(ctx, "sudo", "pkill", "-0", "-F", pidFile)
@@ -38,8 +43,15 @@ func (*vmnetProcess) Alive(ctx context.Context) error {
 		}
 	}
 
-	if _, err := os.Stat(ptpFile); err != nil {
-		return fmt.Errorf("vmnet ptp file error: %w", err)
+	if _, err := os.Stat(socketFile); err != nil {
+		return fmt.Errorf("vmnet socket file not found error: %w", err)
+	}
+	if n, err := net.Dial("unix", socketFile); err != nil {
+		return fmt.Errorf("vmnet socket file error: %w", err)
+	} else {
+		if err := n.Close(); err != nil {
+			logrus.Debugln(fmt.Errorf("error closing ping socket connection: %w", err))
+		}
 	}
 
 	return nil
@@ -51,13 +63,12 @@ func (*vmnetProcess) Name() string { return Name }
 // Start implements process.BgProcess
 func (*vmnetProcess) Start(ctx context.Context) error {
 	info := Info()
-	ptp := info.PTPFile
+	socket := info.Socket.File()
 	pid := info.PidFile
 
 	// delete existing sockets if exist
 	// errors ignored on purpose
-	_ = forceDeleteFileIfExists(ptp)
-	_ = forceDeleteFileIfExists(ptp + "+") // created by running qemu instance
+	_ = forceDeleteFileIfExists(socket)
 
 	done := make(chan error, 1)
 
@@ -65,12 +76,17 @@ func (*vmnetProcess) Start(ctx context.Context) error {
 		// rootfully start the vmnet daemon
 		command := cli.CommandInteractive("sudo", BinaryPath,
 			"--vmnet-mode", "shared",
-			"--vde-group", "staff",
+			"--socket-group", "staff",
 			"--vmnet-gateway", NetGateway,
 			"--vmnet-dhcp-end", NetDHCPEnd,
 			"--pidfile", pid,
-			ptp+"[]",
+			socket,
 		)
+
+		if cli.Settings.Verbose {
+			command.Env = append(command.Env, os.Environ()...)
+			command.Env = append(command.Env, "DEBUG=1")
+		}
 
 		done <- command.Run()
 	}()
@@ -118,13 +134,13 @@ func forceDeleteFileIfExists(name string) error {
 
 func Info() struct {
 	PidFile string
-	PTPFile string
+	Socket  osutil.Socket
 } {
 	return struct {
 		PidFile string
-		PTPFile string
+		Socket  osutil.Socket
 	}{
 		PidFile: filepath.Join(runDir(), "vmnet-"+config.CurrentProfile().ShortName+".pid"),
-		PTPFile: filepath.Join(process.Dir(), "vmnet.ptp"),
+		Socket:  osutil.Socket(filepath.Join(process.Dir(), "vmnet.sock")),
 	}
 }

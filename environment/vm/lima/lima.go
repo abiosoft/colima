@@ -176,11 +176,17 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 		}()
 	}
 
+	// preserve vmnet context
+	if vmnetEnabled, _ := ctx.Value(daemon.CtxKey(vmnet.Name)).(bool); vmnetEnabled {
+		// env var for subprocess to detect vmnet
+		l.host = l.host.WithEnv(vmnet.SubProcessEnvVar + "=1")
+	}
+
 	// preserve gvproxy context
 	if gvproxyEnabled, _ := ctx.Value(daemon.CtxKey(gvproxy.Name)).(bool); gvproxyEnabled {
 		var envs []string
 
-		// env var for subproxy to detect gvproxy
+		// env var for subprocess to detect gvproxy
 		envs = append(envs, gvproxy.SubProcessEnvVar+"=1")
 		// use qemu wrapper for Lima by specifying wrapper binaries via env var
 		envs = append(envs, qemu.LimaDir().BinsEnvVar()...)

@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 )
@@ -46,3 +47,12 @@ func Executable() string {
 
 	return e
 }
+
+// Socket is a unix socket
+type Socket string
+
+// Unix returns the unix address for the socket.
+func (s Socket) Unix() string { return "unix://" + s.File() }
+
+// File returns the file path for the socket.
+func (s Socket) File() string { return strings.TrimPrefix(string(s), "unix://") }

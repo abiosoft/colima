@@ -57,8 +57,8 @@ func (s sudoerFile) Install(host environment.HostActions) error {
 
 var _ process.Dependency = vmnetFile{}
 
-const BinaryPath = "/opt/colima/bin/vde_vmnet"
-const LibraryPath = "/opt/colima/lib/libvdeplug.3.dylib"
+const BinaryPath = "/opt/colima/bin/socket_vmnet"
+const ClientBinaryPath = "/opt/colima/bin/socket_vmnet_client"
 
 type vmnetFile struct{}
 
@@ -73,7 +73,7 @@ func (v vmnetFile) Installed() bool {
 }
 
 func (v vmnetFile) bins() []string {
-	return []string{BinaryPath, LibraryPath}
+	return []string{BinaryPath, ClientBinaryPath}
 }
 func (v vmnetFile) Install(host environment.HostActions) error {
 	arch := "x86_64"
@@ -106,7 +106,7 @@ func (v vmnetFile) Install(host environment.HostActions) error {
 	if err := host.RunInteractive("sudo", "mkdir", "-p", dir); err != nil {
 		return fmt.Errorf("error preparing colima privileged dir: %w", err)
 	}
-	if err := host.RunInteractive("sudo", "sh", "-c", fmt.Sprintf("cd %s && tar xfz %s", dir, f.Name())); err != nil {
+	if err := host.RunInteractive("sudo", "sh", "-c", fmt.Sprintf("cd %s && tar xfz %s 2>/dev/null", dir, f.Name())); err != nil {
 		return fmt.Errorf("error extracting vmnet archive: %w", err)
 	}
 

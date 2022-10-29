@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net"
 	"os"
 	"os/exec"
@@ -14,6 +15,7 @@ import (
 	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/daemon/process/gvproxy"
+	"github.com/abiosoft/colima/daemon/process/vmnet"
 	"github.com/sirupsen/logrus"
 )
 
@@ -32,36 +34,52 @@ func qemuWrapper(qemu string) {
 		config.SetProfile(profile)
 	}
 
-	info := gvproxy.Info()
+	gvproxyInfo := gvproxy.Info()
+	vmnetInfo := vmnet.Info()
 
 	// check if qemu is meant to run by lima
 	// decided by -pidfile flag
 	qemuRunning := false
-	for i := 0; i < len(os.Args)-1; i++ {
-		if os.Args[i] == "-pidfile" {
+	for _, arg := range os.Args {
+		if arg == "-pidfile" {
 			qemuRunning = true
 			break
 		}
 	}
 
 	args := os.Args[1:] // forward all args
-	var fd *os.File
+	var extraFiles []*os.File
 
 	gvproxyEnabled, _ := strconv.ParseBool(os.Getenv(gvproxy.SubProcessEnvVar))
+	vmnetEnabled, _ := strconv.ParseBool(os.Getenv(vmnet.SubProcessEnvVar))
 
 	if qemuRunning && gvproxyEnabled {
-		conn, err := net.Dial("unix", info.Socket.File())
-		if err != nil {
-			logrus.Fatal(err)
-		}
-		fd, err = conn.(*net.UnixConn).File()
-		if err != nil {
-			logrus.Fatal(err)
+		// vmnet should come first as it would be added by Lima and would have the fd 3
+
+		// vmnet
+		if vmnetEnabled {
+			fd := os.NewFile(3, vmnetInfo.Socket.File())
+			extraFiles = append(extraFiles, fd)
 		}
 
+		// gvproxy
+		{
+			conn, err := net.Dial("unix", gvproxyInfo.Socket.File())
+			if err != nil {
+				logrus.Fatal(fmt.Errorf("error connecting to gvproxy socket: %w", err))
+			}
+			fd, err := conn.(*net.UnixConn).File()
+			if err != nil {
+				logrus.Fatal(fmt.Errorf("error retrieving fd for gvproxy socket: %w", err))
+			}
+			extraFiles = append(extraFiles, fd)
+		}
+
+		// gvproxy fd
+		fd := strconv.Itoa(2 + len(extraFiles))
 		args = append(args,
-			"-netdev", "socket,id=vlan,fd=3",
-			"-device", "virtio-net-pci,netdev=vlan,mac="+info.MacAddress,
+			"-netdev", "socket,id=vlan,fd="+fd,
+			"-device", "virtio-net-pci,netdev=vlan,mac="+gvproxyInfo.MacAddress,
 		)
 	}
 
@@ -71,8 +89,8 @@ func qemuWrapper(qemu string) {
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 
-	if fd != nil {
-		cmd.ExtraFiles = append(cmd.ExtraFiles, fd)
+	if len(extraFiles) > 0 {
+		cmd.ExtraFiles = append(cmd.ExtraFiles, extraFiles...)
 	}
 
 	err := cmd.Run()

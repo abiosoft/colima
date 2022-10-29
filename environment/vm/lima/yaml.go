@@ -109,16 +109,15 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 
 			if reachableIPAddress {
 				if err := func() error {
-					ptpFile := vmnet.Info().PTPFile
-					// ensure the ptp file exists
-					if _, err := os.Stat(ptpFile); err != nil {
-						return fmt.Errorf("vmnet ptp socket file not found: %w", err)
+					socketFile := vmnet.Info().Socket.File()
+					// ensure the socket file exists
+					if _, err := os.Stat(socketFile); err != nil {
+						return fmt.Errorf("vmnet socket file not found: %w", err)
 					}
 
 					l.Networks = append(l.Networks, Network{
-						VNL:        ptpFile,
-						SwitchPort: 65535, // this is fixed
-						Interface:  vmnet.NetInterface,
+						Socket:    socketFile,
+						Interface: vmnet.NetInterface,
 					})
 
 					return nil
@@ -283,11 +282,6 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 
 			mount := Mount{Location: location, MountPoint: mountPoint, Writable: m.Writable}
 
-			// use passthrough for readonly 9p mounts
-			if conf.MountType == NINEP && !m.Writable {
-				mount.NineP.SecurityModel = "passthrough"
-			}
-
 			l.Mounts = append(l.Mounts, mount)
 
 			// check if cache directory has been mounted by other mounts, and remove cache directory from mounts
@@ -394,11 +388,17 @@ type HostResolver struct {
 }
 
 type Network struct {
-	// VNL is a Virtual Network Locator (https://github.com/rd235/vdeplug4/commit/089984200f447abb0e825eb45548b781ba1ebccd).
+	// `Lima`, `Socket`, and `VNL` are mutually exclusive; exactly one is required
+	Lima string `yaml:"lima,omitempty" json:"lima,omitempty"`
+	// Socket is a QEMU-compatible socket
+	Socket string `yaml:"socket,omitempty" json:"socket,omitempty"`
+	// VNLDeprecated is a Virtual Network Locator (https://github.com/rd235/vdeplug4/commit/089984200f447abb0e825eb45548b781ba1ebccd).
 	// On macOS, only VDE2-compatible form (optionally with vde:// prefix) is supported.
-	VNL        string `yaml:"vnl,omitempty" json:"vnl,omitempty"`
-	SwitchPort uint16 `yaml:"switchPort,omitempty" json:"switchPort,omitempty"` // VDE Switch port, not TCP/UDP port (only used by VDE networking)
-	Interface  string `yaml:"interface,omitempty" json:"interface,omitempty"`
+	// VNLDeprecated is deprecated. Use Socket.
+	VNLDeprecated        string `yaml:"vnl,omitempty" json:"vnl,omitempty"`
+	SwitchPortDeprecated uint16 `yaml:"switchPort,omitempty" json:"switchPort,omitempty"` // VDE Switch port, not TCP/UDP port (only used by VDE networking)
+	MACAddress           string `yaml:"macAddress,omitempty" json:"macAddress,omitempty"`
+	Interface            string `yaml:"interface,omitempty" json:"interface,omitempty"`
 }
 
 type ProvisionMode = string

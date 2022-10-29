@@ -312,6 +312,13 @@ func (c colimaApp) Status() error {
 	if conf, err := limautil.InstanceConfig(); err == nil {
 		log.Println("mountType:", conf.MountType)
 	}
+
+	// ip address
+	if ipAddress := limautil.IPAddress(config.CurrentProfile().ID); ipAddress != "127.0.0.1" {
+		log.Println("address:", ipAddress)
+	}
+
+	// docker socket
 	if currentRuntime == docker.Name {
 		log.Println("socket:", "unix://"+docker.HostSocketFile())
 	}
