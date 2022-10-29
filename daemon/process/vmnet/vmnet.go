@@ -3,6 +3,7 @@ package vmnet
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -10,13 +11,14 @@ import (
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/daemon/process"
+	"github.com/sirupsen/logrus"
 )
 
 const Name = "vmnet"
 
 const (
-	NetGateway   = "192.168.118.1"
-	NetDHCPEnd   = "192.168.118.254"
+	NetGateway   = "192.168.106.1"
+	NetDHCPEnd   = "192.168.106.254"
 	NetInterface = "col0"
 )
 
@@ -39,7 +41,14 @@ func (*vmnetProcess) Alive(ctx context.Context) error {
 	}
 
 	if _, err := os.Stat(socketFile); err != nil {
+		return fmt.Errorf("vmnet socket file not found error: %w", err)
+	}
+	if n, err := net.Dial("unix", socketFile); err != nil {
 		return fmt.Errorf("vmnet socket file error: %w", err)
+	} else {
+		if err := n.Close(); err != nil {
+			logrus.Debugln(fmt.Errorf("error closing ping socket connection: %w", err))
+		}
 	}
 
 	return nil
@@ -70,6 +79,11 @@ func (*vmnetProcess) Start(ctx context.Context) error {
 			"--pidfile", pid,
 			socketFile,
 		)
+
+		if cli.Settings.Verbose {
+			command.Env = append(command.Env, os.Environ()...)
+			command.Env = append(command.Env, "DEBUG=1")
+		}
 
 		done <- command.Run()
 	}()

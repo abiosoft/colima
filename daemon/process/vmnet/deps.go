@@ -106,7 +106,7 @@ func (v vmnetFile) Install(host environment.HostActions) error {
 	if err := host.RunInteractive("sudo", "mkdir", "-p", dir); err != nil {
 		return fmt.Errorf("error preparing colima privileged dir: %w", err)
 	}
-	if err := host.RunInteractive("sudo", "sh", "-c", fmt.Sprintf("cd %s && tar xfz %s", dir, f.Name())); err != nil {
+	if err := host.RunInteractive("sudo", "sh", "-c", fmt.Sprintf("cd %s && tar xfz %s 2>/dev/null", dir, f.Name())); err != nil {
 		return fmt.Errorf("error extracting vmnet archive: %w", err)
 	}
 
