@@ -1,5 +1,5 @@
 
-![colima-logo](colima.png) 
+![colima-logo](colima.png)
 
 ## Colima - container runtimes on macOS (and Linux) with minimal setup.
 
@@ -160,7 +160,12 @@ MIT
 
 ## Sponsoring the Project
 
-If you (or your company) are benefiting from the project and would like to support the contributors, kindly support the project on [Patreon](https://patreon.com/colima).
+
+If you (or your company) are benefiting from the project and would like to support the contributors, kindly support the project.
+
+<a href="https://www.buymeacoffee.com/abiosoft" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-blue.png" alt="Buy Me A Coffee" style="height: 40px !important;width: 160px !important;" ></a>
+
+
 
 [<img src="https://uploads-ssl.webflow.com/5ac3c046c82724970fc60918/5c019d917bba312af7553b49_MacStadium-developerlogo.png" style="max-height: 150px"/>](https://macstadium.com)
 
