@@ -6,7 +6,11 @@ FROM ubuntu-layer-${ARCH}
 USER root
 
 # change SSH port to avoid clash
-RUN echo "Port 23" >> /etc/ssh/sshd_config
+COPY <<EOF /etc/systemd/system/ssh.socket.d/listen.conf
+[Socket]
+ListenStream=
+ListenStream=23
+EOF
 
 # args
 ARG NONROOT_USER="user"
@@ -51,33 +55,52 @@ RUN ln -s /usr/bin/colima /usr/local/bin/docker
 RUN ln -s /usr/bin/colima /usr/local/bin/nerdctl
 RUN ln -s /usr/bin/colima /usr/local/bin/kubectl
 
-# sockets
-RUN mkdir -p /var/run
-RUN ln -s /host/run/docker.sock /var/run/docker.sock
-RUN mkdir -p /var/run/containerd
-RUN ln -s /host/run/containerd/containerd.sock /var/run/containerd/containerd.sock
-RUN mkdir -p /var/run/buildkit
-RUN ln -s /host/run/buildkit/buildkitd.sock /var/run/buildkit/buildkitd.sock
-
 # backup previous $HOME to get bash prompt
 RUN mkdir -p /prevhome
 RUN chown -R ${UID}:${GID} /prevhome
 RUN cp -r ${HOME}/. /prevhome
 
+ENV STARTUP_SCRIPT="/usr/bin/start.sh"
+
 # startup script
-COPY <<EOF /usr/bin/start.sh
-#!/usr/bin/env/sh
+COPY <<EOF ${STARTUP_SCRIPT}
+#!/usr/bin/env sh
 set -e
+
+# preserve home dir config
 cp -n -r /prevhome/. ${HOME} || echo
-sudo service ssh start
-while true; do sleep 1000; done
+
+# sockets
+sudo mkdir -p /var/run
+sudo ln -s /host/run/docker.sock /var/run/docker.sock
+sudo mkdir -p /var/run/containerd
+sudo ln -s /host/run/containerd/containerd.sock /var/run/containerd/containerd.sock
+sudo mkdir -p /var/run/buildkit
+sudo ln -s /host/run/buildkit/buildkitd.sock /var/run/buildkit/buildkitd.sock
 EOF
+RUN chmod +x "${STARTUP_SCRIPT}"
 
-# revert user to rootless user
-USER ${NONROOT_USER}
+# systemd service file
+COPY <<EOF /lib/systemd/system/colima-start.service
+[Unit]
+Description=setup user environment and symlinks
 
+[Service]
+User=${NONROOT_USER}
+ExecStart=${STARTUP_SCRIPT}
+
+[Install]
+WantedBy=multi-user.target
+EOF
+# enable systemd service
+RUN ln -s /lib/systemd/system/colima-start.service /etc/systemd/system/multi-user.target.wants/colima-start.service
+
+# systemd in container recommendations
+ENV container=containerd
+STOPSIGNAL SIGRTMIN+3
+
+# set default workdir
 WORKDIR ${HOME}
 
-# use recommended init process
-ENTRYPOINT ["tini", "--"]
-CMD ["sh", "/usr/bin/start.sh"]
+# start with systemd
+ENTRYPOINT ["/usr/lib/systemd/systemd"]

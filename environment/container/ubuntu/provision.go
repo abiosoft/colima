@@ -141,14 +141,24 @@ func (u ubuntuRuntime) createContainer(conf config.Config) error {
 	hostname := config.CurrentProfile().ID
 	home := "/home/" + username + ".linux"
 	args := nerdctl("create",
+
+		// essentials
 		"--name", containerName,
 		"--hostname", hostname,
 		"--privileged",
 		"--net", "host",
 		"--volume", home+":"+home,
 		"--volume", "/:/host",
+
+		// systemd
+		"--mount", "type=bind,source=/sys/fs/cgroup,target=/sys/fs/cgroup",
+		"--mount", "type=bind,source=/sys/fs/fuse,target=/sys/fs/fuse",
+		"--mount", "type=bind,source=/tmp/ubuntu,destination=/tmp",
+		"--mount", "type=tmpfs,destination=/run",
+		"--mount", "type=tmpfs,destination=/run/lock",
 	)
 
+	// colima mounts
 	mounts := conf.MountsOrDefault()
 	for _, m := range mounts {
 		location := m.MountPoint
@@ -163,12 +173,15 @@ func (u ubuntuRuntime) createContainer(conf config.Config) error {
 		args = append(args, "--volume", location+":"+location)
 	}
 
+	// environment variables propagation
 	env := conf.Env
 	for k, v := range env {
 		args = append(args, "--env", k+"="+v)
 	}
 
+	// image
 	args = append(args, imageName)
+
 	return u.guest.Run(args...)
 }
 
