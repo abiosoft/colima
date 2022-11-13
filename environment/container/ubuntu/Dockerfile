@@ -21,7 +21,7 @@ RUN groupadd \
     ${NONROOT_USER}
 
 # docker group
- RUN groupadd \
+RUN groupadd \
     --force \
     --gid ${DOCKER_GID} \
     docker
@@ -31,6 +31,7 @@ ENV HOME="/home/${NONROOT_USER}.linux"
 
 # create the passwordless non root user
 RUN useradd \
+    --no-log-init \
     --uid ${UID} \
     --gid ${GID} \
     --groups ${DOCKER_GID} \
