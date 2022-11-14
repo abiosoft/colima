@@ -85,6 +85,12 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 			Mode:   ProvisionModeUser,
 			Script: "sudo usermod -aG docker $USER",
 		})
+
+		// allow env vars propagation for services
+		l.Provision = append(l.Provision, Provision{
+			Mode:   ProvisionModeSystem,
+			Script: `grep -q "^rc_env_allow" /etc/rc.conf || echo 'rc_env_allow="*"' >> /etc/rc.conf`,
+		})
 	}
 
 	// network setup
@@ -92,7 +98,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		reachableIPAddress, _ := ctx.Value(daemon.CtxKey(vmnet.Name)).(bool)
 
 		// network is currently limited to macOS.
-		// gvproxy is cross platform but not needed on Linux as slirp is only erratic on macOS.
+		// gvproxy is cross-platform but not needed on Linux as slirp is only erratic on macOS.
 		if util.MacOS() {
 			var values struct {
 				Vmnet struct {
