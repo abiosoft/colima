@@ -179,11 +179,13 @@ Install Docker Scan
 
 ```sh
 ARCH=amd64 # change to 'arm64' for m1
-VERSION=v0.17.0
+VERSION=v0.21.0
 curl -LO https://github.com/docker/scan-cli-plugin/releases/download/${VERSION}/docker-scan_darwin_${ARCH}
 mkdir -p ~/.docker/cli-plugins
 mv docker-scan_darwin_${ARCH} ~/.docker/cli-plugins/docker-scan
 chmod +x ~/.docker/cli-plugins/docker-scan
+mkdir -p ~/.docker/scan
+echo "{}" > ~/.docker/scan/config.json # config file required by the docker scan plugin
 docker scan --version # verify installation
 ```
 
