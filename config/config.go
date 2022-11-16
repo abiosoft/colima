@@ -79,6 +79,9 @@ type Config struct {
 	Network      Network           `yaml:"network,omitempty"`
 	Env          map[string]string `yaml:"env,omitempty"` // environment variables
 
+	// VM Driver
+	Driver string `yaml:"driver,omitempty"`
+
 	// volume mounts
 	Mounts    []Mount `yaml:"mounts,omitempty"`
 	MountType string  `yaml:"mountType,omitempty"`
@@ -114,7 +117,6 @@ type Kubernetes struct {
 type Network struct {
 	Address bool     `yaml:"address"`
 	DNS     []net.IP `yaml:"dns"`
-	Driver  string   `yaml:"driver"`
 }
 
 // Mount is volume mount

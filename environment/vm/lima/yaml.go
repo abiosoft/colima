@@ -10,11 +10,9 @@ import (
 	"strings"
 
 	"github.com/abiosoft/colima/daemon"
-	"github.com/abiosoft/colima/daemon/process/gvproxy"
 	"github.com/abiosoft/colima/daemon/process/vmnet"
 
 	"github.com/abiosoft/colima/config"
-	"github.com/abiosoft/colima/embedded"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/docker"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
@@ -23,6 +21,11 @@ import (
 )
 
 func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
+	l.VMType = QEMU
+	if util.MacOS13() && conf.Driver == "vz" {
+		l.VMType = VZ
+	}
+
 	l.Arch = environment.Arch(conf.Arch).Value()
 
 	if conf.CPUType != "" && conf.CPUType != "host" {
@@ -54,16 +57,9 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		"host.docker.internal": "host.lima.internal",
 	}
 	if len(l.DNS) == 0 {
-		gvProxyEnabled, _ := ctx.Value(daemon.CtxKey(gvproxy.Name)).(bool)
-		if gvProxyEnabled {
-			l.DNS = append(l.DNS, net.ParseIP(gvproxy.GatewayIP))
-			l.HostResolver.Enabled = false
-		}
 		reachableIPAddress, _ := ctx.Value(daemon.CtxKey(vmnet.Name)).(bool)
 		if reachableIPAddress {
-			if gvProxyEnabled {
-				l.DNS = append(l.DNS, net.ParseIP(vmnet.NetGateway))
-			}
+			l.DNS = append(l.DNS, net.ParseIP(vmnet.NetGateway))
 		}
 	}
 
@@ -99,72 +95,23 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 
 		// network is currently limited to macOS.
 		// gvproxy is cross-platform but not needed on Linux as slirp is only erratic on macOS.
-		if util.MacOS() {
-			var values struct {
-				Vmnet struct {
-					Enabled   bool
-					Interface string
-				}
-				GVProxy struct {
-					Enabled    bool
-					MacAddress string
-					IPAddress  net.IP
-					Gateway    net.IP
-				}
-			}
-
-			if reachableIPAddress {
-				if err := func() error {
-					socketFile := vmnet.Info().Socket.File()
-					// ensure the socket file exists
-					if _, err := os.Stat(socketFile); err != nil {
-						return fmt.Errorf("vmnet socket file not found: %w", err)
-					}
-
-					l.Networks = append(l.Networks, Network{
-						Socket:    socketFile,
-						Interface: vmnet.NetInterface,
-					})
-
-					return nil
-				}(); err != nil {
-					reachableIPAddress = false
-					logrus.Warn(fmt.Errorf("error setting up routable IP address: %w", err))
-				}
-			}
-
-			if reachableIPAddress {
-				values.Vmnet.Enabled = true
-				values.Vmnet.Interface = vmnet.NetInterface
-			}
-
-			gvProxyEnabled, _ := ctx.Value(daemon.CtxKey(gvproxy.Name)).(bool)
-			if gvProxyEnabled {
-				values.GVProxy.Enabled = true
-				values.GVProxy.MacAddress = strings.ToUpper(gvproxy.MacAddress())
-				values.GVProxy.IPAddress = net.ParseIP(gvproxy.DeviceIP)
-				values.GVProxy.Gateway = net.ParseIP(gvproxy.GatewayIP)
-			}
-
+		if util.MacOS() && reachableIPAddress {
 			if err := func() error {
-				tpl, err := embedded.ReadString("network/ifaces.sh")
-				if err != nil {
-					return err
+				socketFile := vmnet.Info().Socket.File()
+				// ensure the socket file exists
+				if _, err := os.Stat(socketFile); err != nil {
+					return fmt.Errorf("vmnet socket file not found: %w", err)
 				}
 
-				script, err := util.ParseTemplate(tpl, values)
-				if err != nil {
-					return fmt.Errorf("error parsing template for network script: %w", err)
-				}
-
-				l.Provision = append(l.Provision, Provision{
-					Mode:   ProvisionModeSystem,
-					Script: string(script),
+				l.Networks = append(l.Networks, Network{
+					Socket:    socketFile,
+					Interface: vmnet.NetInterface,
 				})
 
 				return nil
 			}(); err != nil {
-				logrus.Warn(fmt.Errorf("error setting up gvproxy network: %w", err))
+				reachableIPAddress = false
+				logrus.Warn(fmt.Errorf("error setting up routable IP address: %w", err))
 			}
 		}
 
@@ -260,6 +207,10 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		})
 	}
 
+	if conf.Driver == "vz" {
+		l.MountType = VIRTIOFS
+	}
+
 	if len(conf.Mounts) == 0 {
 		l.Mounts = append(l.Mounts,
 			Mount{Location: "~", Writable: true},
@@ -313,6 +264,7 @@ type Arch = environment.Arch
 
 // Config is lima config. Code copied from lima and modified.
 type Config struct {
+	VMType       VMType            `yaml:"vmType,omitempty" json:"vmType,omitempty"`
 	Arch         Arch              `yaml:"arch,omitempty"`
 	Images       []File            `yaml:"images"`
 	CPUs         *int              `yaml:"cpus,omitempty"`
@@ -362,15 +314,21 @@ type Firmware struct {
 	LegacyBIOS bool `yaml:"legacyBIOS"`
 }
 
-type Proto = string
-
-type MountType = string
+type (
+	Proto     = string
+	MountType = string
+	VMType    = string
+)
 
 const (
 	TCP Proto = "tcp"
 
 	REVSSHFS MountType = "reverse-sshfs"
 	NINEP    MountType = "9p"
+	VIRTIOFS MountType = "virtiofs"
+
+	QEMU VMType = "qemu"
+	VZ   VMType = "vz"
 )
 
 type PortForward struct {
