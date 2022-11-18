@@ -63,6 +63,11 @@ var templateCmd = &cobra.Command{
 
 		log.Println("configurations template saved")
 
+		// save to default config file
+		if err := configmanager.SaveToFile(cf, config.File()); err != nil {
+			return fmt.Errorf("error saving default: %w", err)
+		}
+
 		return nil
 	},
 }
