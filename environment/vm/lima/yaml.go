@@ -21,12 +21,24 @@ import (
 )
 
 func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
-	l.VMType = QEMU
-	if util.MacOS13() && conf.Driver == "vz" {
-		l.VMType = VZ
-	}
-
 	l.Arch = environment.Arch(conf.Arch).Value()
+
+	// VM type is qemu except in few scenarios
+	l.VMType = QEMU
+
+	sameArchitecture := environment.HostArch() == l.Arch
+	isM1 := util.MacOS13() && environment.HostArch() == environment.AARCH64
+
+	// when vz is chosen and OS version supports it
+	if util.MacOS13() && conf.Driver == "vz" && sameArchitecture {
+		l.VMType = VZ
+
+		// Rosetta is only available on M1
+		if isM1 {
+			l.Rosetta.Enabled = true
+			l.Rosetta.BinFmt = true
+		}
+	}
 
 	if conf.CPUType != "" && conf.CPUType != "host" {
 		l.CPUType = map[environment.Arch]string{
@@ -207,7 +219,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		})
 	}
 
-	if conf.Driver == "vz" {
+	if l.VMType == "vz" {
 		l.MountType = VIRTIOFS
 	}
 
@@ -282,6 +294,7 @@ type Config struct {
 	Networks     []Network         `yaml:"networks,omitempty"`
 	Provision    []Provision       `yaml:"provision,omitempty" json:"provision,omitempty"`
 	CPUType      map[Arch]string   `yaml:"cpuType,omitempty" json:"cpuType,omitempty"`
+	Rosetta      Rosetta           `yaml:"rosetta,omitempty" json:"rosetta,omitempty"`
 }
 
 type File struct {
@@ -382,6 +395,11 @@ type NineP struct {
 	ProtocolVersion string `yaml:"protocolVersion,omitempty" json:"protocolVersion,omitempty"`
 	Msize           string `yaml:"msize,omitempty" json:"msize,omitempty"`
 	Cache           string `yaml:"cache,omitempty" json:"cache,omitempty"`
+}
+
+type Rosetta struct {
+	Enabled bool `yaml:"enabled" json:"enabled"`
+	BinFmt  bool `yaml:"binfmt" json:"binfmt"`
 }
 
 func checkOverlappingMounts(mounts []config.Mount) error {

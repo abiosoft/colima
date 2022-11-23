@@ -111,7 +111,7 @@ var startCmdArgs struct {
 
 func init() {
 	runtimes := strings.Join(environment.ContainerRuntimes(), ", ")
-	defaultArch := string(environment.HostArch().Value())
+	defaultArch := string(environment.HostArch())
 
 	defaultMountType := "9p"
 	defaultDriver := "qemu"
