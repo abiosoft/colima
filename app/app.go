@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -114,6 +115,11 @@ func (c colimaApp) Start(conf config.Config) error {
 	// persist the current runtime
 	if err := c.setRuntime(conf.Runtime); err != nil {
 		log.Error(fmt.Errorf("error persisting runtime settings: %w", err))
+	}
+
+	// persist the kubernetes config
+	if err := c.setKubernetes(conf.Kubernetes); err != nil {
+		log.Error(fmt.Errorf("error persisting kubernetes settings: %w", err))
 	}
 
 	log.Println("done")
@@ -388,6 +394,15 @@ func (c colimaApp) currentRuntime(ctx context.Context) (string, error) {
 
 func (c colimaApp) setRuntime(runtime string) error {
 	return c.guest.Set(environment.ContainerRuntimeKey, runtime)
+}
+
+func (c colimaApp) setKubernetes(conf config.Kubernetes) error {
+	b, err := json.Marshal(conf)
+	if err != nil {
+		return err
+	}
+
+	return c.guest.Set(kubernetes.ConfigKey, string(b))
 }
 
 func (c colimaApp) currentContainerEnvironments(ctx context.Context) ([]environment.Container, error) {
