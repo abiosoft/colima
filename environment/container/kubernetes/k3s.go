@@ -122,6 +122,9 @@ func installK3sCluster(
 		"--resolv-conf", "/etc/resolv.conf",
 	}
 
+	// disable traefik defaults
+	args = append(args, "--disable", "traefik")
+
 	for _, d := range disable {
 		args = append(args, "--disable", d)
 	}
