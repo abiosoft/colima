@@ -38,6 +38,13 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 			l.Rosetta.Enabled = true
 			l.Rosetta.BinFmt = true
 		}
+
+		if conf.Network.Address {
+			l.Networks = append(l.Networks, Network{
+				VZNAT:     true,
+				Interface: vmnet.NetInterface,
+			})
+		}
 	}
 
 	if conf.CPUType != "" && conf.CPUType != "host" {
@@ -369,6 +376,9 @@ type Network struct {
 	Lima string `yaml:"lima,omitempty" json:"lima,omitempty"`
 	// Socket is a QEMU-compatible socket
 	Socket string `yaml:"socket,omitempty" json:"socket,omitempty"`
+	// VZNAT uses VZNATNetworkDeviceAttachment. Needs VZ. No root privilege is required.
+	VZNAT bool `yaml:"vzNAT,omitempty" json:"vzNAT,omitempty"`
+
 	// VNLDeprecated is a Virtual Network Locator (https://github.com/rd235/vdeplug4/commit/089984200f447abb0e825eb45548b781ba1ebccd).
 	// On macOS, only VDE2-compatible form (optionally with vde:// prefix) is supported.
 	// VNLDeprecated is deprecated. Use Socket.
