@@ -508,15 +508,25 @@ func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Conf
 	// registry certs
 	a.Add(l.copyCerts)
 
-	// binfmt
+	// use rosetta for x86_64 emulation
 	a.Add(func() error {
 		if !l.limaConf.Rosetta.Enabled {
 			return nil
 		}
+
+		// enable rosetta
 		err := l.Run("sudo", "sh", "-c", `stat /proc/sys/fs/binfmt_misc/rosetta || echo ':rosetta:M::\x7fELF\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x3e\x00:\xff\xff\xff\xff\xff\xfe\xfe\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff:/mnt/lima-rosetta/rosetta:OCF' > /proc/sys/fs/binfmt_misc/register`)
 		if err != nil {
 			logrus.Warn(fmt.Errorf("unable to enable rosetta: %w", err))
+			return nil
 		}
+
+		// disable qemu
+		err = l.Run("sudo", "sh", "-c", `stat /proc/sys/fs/binfmt_misc/qemu-x86_64 && echo 0 > /proc/sys/fs/binfmt_misc/qemu-x86_64`)
+		if err != nil {
+			logrus.Warn(fmt.Errorf("unable to disable qemu x86_84 emulation: %w", err))
+		}
+
 		return nil
 	})
 
