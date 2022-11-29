@@ -212,6 +212,11 @@ func prepareConfig(cmd *cobra.Command) {
 	startCmdArgs.Mounts = mountsFromFlag(startCmdArgs.Flags.Mounts)
 	startCmdArgs.ActivateRuntime = &startCmdArgs.Flags.ActivateRuntime
 
+	// convert mount type for qemu
+	if startCmdArgs.Driver != "vz" && startCmdArgs.MountType == "virtiofs" {
+		startCmdArgs.MountType = "9p"
+	}
+
 	// if there is no existing settings
 	if current.Empty() {
 		// attempt template
