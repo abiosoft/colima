@@ -81,8 +81,8 @@ func (l limaVM) Dependencies() []string {
 }
 
 func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.Context, error) {
-	// limited to macOS for now
-	if !util.MacOS() {
+	// limited to macOS (with Qemu driver)
+	if !util.MacOS() || conf.Driver == VZ {
 		return ctx, nil
 	}
 

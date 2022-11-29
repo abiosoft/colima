@@ -38,13 +38,6 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 			l.Rosetta.Enabled = true
 			l.Rosetta.BinFmt = true
 		}
-
-		if conf.Network.Address {
-			l.Networks = append(l.Networks, Network{
-				VZNAT:     true,
-				Interface: vmnet.NetInterface,
-			})
-		}
 	}
 
 	if conf.CPUType != "" && conf.CPUType != "host" {
@@ -75,18 +68,13 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	l.HostResolver.Hosts = map[string]string{
 		"host.docker.internal": "host.lima.internal",
 	}
-	if len(l.DNS) > 0 {
-		reachableIPAddress, _ := ctx.Value(daemon.CtxKey(vmnet.Name)).(bool)
-		if reachableIPAddress {
-			l.DNS = append(l.DNS, net.ParseIP(vmnet.NetGateway))
-		}
-	}
 
 	l.Env = conf.Env
 	if l.Env == nil {
 		l.Env = make(map[string]string)
 	}
 
+	// extra required provision commands
 	{
 		// fix inotify
 		l.Provision = append(l.Provision, Provision{
@@ -109,28 +97,36 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	}
 
 	// network setup
-	if l.VMType != VZ {
-		reachableIPAddress, _ := ctx.Value(daemon.CtxKey(vmnet.Name)).(bool)
+	if conf.Network.Address {
+		reachableIPAddress := true
 
-		// network is currently limited to macOS.
-		// gvproxy is cross-platform but not needed on Linux as slirp is only erratic on macOS.
-		if util.MacOS() && reachableIPAddress {
-			if err := func() error {
-				socketFile := vmnet.Info().Socket.File()
-				// ensure the socket file exists
-				if _, err := os.Stat(socketFile); err != nil {
-					return fmt.Errorf("vmnet socket file not found: %w", err)
+		if l.VMType == VZ {
+			l.Networks = append(l.Networks, Network{
+				VZNAT:     true,
+				Interface: vmnet.NetInterface,
+			})
+		} else {
+			reachableIPAddress, _ = ctx.Value(daemon.CtxKey(vmnet.Name)).(bool)
+
+			// network is currently limited to macOS.
+			if util.MacOS() && reachableIPAddress {
+				if err := func() error {
+					socketFile := vmnet.Info().Socket.File()
+					// ensure the socket file exists
+					if _, err := os.Stat(socketFile); err != nil {
+						return fmt.Errorf("vmnet socket file not found: %w", err)
+					}
+
+					l.Networks = append(l.Networks, Network{
+						Socket:    socketFile,
+						Interface: vmnet.NetInterface,
+					})
+
+					return nil
+				}(); err != nil {
+					reachableIPAddress = false
+					logrus.Warn(fmt.Errorf("error setting up reachable IP address: %w", err))
 				}
-
-				l.Networks = append(l.Networks, Network{
-					Socket:    socketFile,
-					Interface: vmnet.NetInterface,
-				})
-
-				return nil
-			}(); err != nil {
-				reachableIPAddress = false
-				logrus.Warn(fmt.Errorf("error setting up routable IP address: %w", err))
 			}
 		}
 
