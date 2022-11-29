@@ -157,3 +157,10 @@ func (c Config) Empty() bool { return c.Runtime == "" } // this may be better bu
 func CtxKey() any {
 	return struct{ name string }{name: "colima_config"}
 }
+
+func (c Config) DriverLabel() string {
+	if util.MacOS13() && c.Driver == "vz" {
+		return "macOS Virtualization.Framework"
+	}
+	return "QEMU"
+}
