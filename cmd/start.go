@@ -114,14 +114,14 @@ func init() {
 	defaultArch := string(environment.HostArch())
 
 	defaultMountType := "9p"
-	defaultVMTYpe := "qemu"
+	defaultVMType := "qemu"
 	if util.MacOS13() {
-		defaultVMTYpe = "vz"
+		defaultVMType = "vz"
 		defaultMountType = "virtiofs"
 	}
 
 	mounts := strings.Join([]string{defaultMountType, "sshfs"}, ", ")
-	types := strings.Join([]string{defaultVMTYpe, "qemu"}, ", ")
+	types := strings.Join([]string{defaultVMType, "qemu"}, ", ")
 
 	root.Cmd().AddCommand(startCmd)
 	startCmd.Flags().StringVarP(&startCmdArgs.Runtime, "runtime", "r", docker.Name, "container runtime ("+runtimes+")")
@@ -137,7 +137,7 @@ func init() {
 		startCmd.Flags().BoolVar(&startCmdArgs.Network.Address, "network-address", false, "assign reachable IP address to the VM")
 	}
 	if util.MacOS13() {
-		startCmd.Flags().StringVarP(&startCmdArgs.VMType, "vm-type", "t", defaultVMTYpe, "virtual machine type ("+types+")")
+		startCmd.Flags().StringVarP(&startCmdArgs.VMType, "vm-type", "t", defaultVMType, "virtual machine type ("+types+")")
 	}
 
 	// config
@@ -292,8 +292,10 @@ func prepareConfig(cmd *cobra.Command) {
 		if !cmd.Flag("network-address").Changed {
 			startCmdArgs.Network.Address = current.Network.Address
 		}
-		if !cmd.Flag("vm-type").Changed {
-			startCmdArgs.VMType = current.VMType
+		if util.MacOS13() {
+			if !cmd.Flag("vm-type").Changed {
+				startCmdArgs.VMType = current.VMType
+			}
 		}
 	}
 }
