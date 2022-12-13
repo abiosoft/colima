@@ -86,7 +86,7 @@ func RandomAvailablePort() int {
 	return listener.Addr().(*net.TCPAddr).Port
 }
 
-// ShellSplit splids cmd into arguments using.
+// ShellSplit splits cmd into arguments using.
 func ShellSplit(cmd string) []string {
 	split, err := shlex.Split(cmd)
 	if err != nil {

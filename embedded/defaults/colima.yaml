@@ -88,13 +88,13 @@ forwardAgent: false
 # Default: {}
 docker: {}
 
-# Virtual Machine driver to use (qemu, vz)
+# Virtual Machine type (qemu, vz)
 # NOTE: this is macOS 13 only. For Linux and macOS <13.0, qemu is always used.
 #
 # vz is macOS virtualization framework and requires macOS 13
 #
 # Default: vz
-driver: "vz"
+vmType: "vz"
 
 # Volume mount driver for the virtual machine (sshfs, 9p).
 #

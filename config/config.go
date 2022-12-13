@@ -79,8 +79,8 @@ type Config struct {
 	Network      Network           `yaml:"network,omitempty"`
 	Env          map[string]string `yaml:"env,omitempty"` // environment variables
 
-	// VM Driver
-	Driver string `yaml:"driver,omitempty"`
+	// VM VMType
+	VMType string `yaml:"vmType,omitempty"`
 
 	// volume mounts
 	Mounts    []Mount `yaml:"mounts,omitempty"`
@@ -159,7 +159,7 @@ func CtxKey() any {
 }
 
 func (c Config) DriverLabel() string {
-	if util.MacOS13() && c.Driver == "vz" {
+	if util.MacOS13() && c.VMType == "vz" {
 		return "macOS Virtualization.Framework"
 	}
 	return "QEMU"

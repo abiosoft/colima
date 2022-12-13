@@ -137,7 +137,7 @@ func init() {
 		startCmd.Flags().BoolVar(&startCmdArgs.Network.Address, "network-address", false, "assign reachable IP address to the VM")
 	}
 	if util.MacOS13() {
-		startCmd.Flags().StringVarP(&startCmdArgs.Driver, "driver", "D", defaultDriver, "virtual machine driver ("+drivers+")")
+		startCmd.Flags().StringVarP(&startCmdArgs.VMType, "driver", "D", defaultDriver, "virtual machine driver ("+drivers+")")
 	}
 
 	// config
@@ -213,7 +213,7 @@ func prepareConfig(cmd *cobra.Command) {
 	startCmdArgs.ActivateRuntime = &startCmdArgs.Flags.ActivateRuntime
 
 	// convert mount type for qemu
-	if startCmdArgs.Driver != "vz" && startCmdArgs.MountType == "virtiofs" {
+	if startCmdArgs.VMType != "vz" && startCmdArgs.MountType == "virtiofs" {
 		startCmdArgs.MountType = "9p"
 	}
 
@@ -293,7 +293,7 @@ func prepareConfig(cmd *cobra.Command) {
 			startCmdArgs.Network.Address = current.Network.Address
 		}
 		if !cmd.Flag("driver").Changed {
-			startCmdArgs.Driver = current.Driver
+			startCmdArgs.VMType = current.VMType
 		}
 	}
 }

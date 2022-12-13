@@ -30,7 +30,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	isM1 := util.MacOS13() && environment.HostArch() == environment.AARCH64
 
 	// when vz is chosen and OS version supports it
-	if util.MacOS13() && conf.Driver == VZ && sameArchitecture {
+	if util.MacOS13() && conf.VMType == VZ && sameArchitecture {
 		l.VMType = VZ
 
 		// Rosetta is only available on M1
