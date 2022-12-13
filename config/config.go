@@ -79,6 +79,9 @@ type Config struct {
 	Network      Network           `yaml:"network,omitempty"`
 	Env          map[string]string `yaml:"env,omitempty"` // environment variables
 
+	// VM VMType
+	VMType string `yaml:"vmType,omitempty"`
+
 	// volume mounts
 	Mounts    []Mount `yaml:"mounts,omitempty"`
 	MountType string  `yaml:"mountType,omitempty"`
@@ -114,7 +117,6 @@ type Kubernetes struct {
 type Network struct {
 	Address bool     `yaml:"address"`
 	DNS     []net.IP `yaml:"dns"`
-	Driver  string   `yaml:"driver"`
 }
 
 // Mount is volume mount
@@ -154,4 +156,11 @@ func (c Config) Empty() bool { return c.Runtime == "" } // this may be better bu
 // CtxKey returns the context key for config.
 func CtxKey() any {
 	return struct{ name string }{name: "colima_config"}
+}
+
+func (c Config) DriverLabel() string {
+	if util.MacOS13() && c.VMType == "vz" {
+		return "macOS Virtualization.Framework"
+	}
+	return "QEMU"
 }

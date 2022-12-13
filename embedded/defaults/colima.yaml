@@ -61,12 +61,6 @@ network:
   # Default: []
   dns: []
 
-  # Network driver to use (slirp, gvproxy)
-  #   - slirp is the default user mode networking provided by Qemu
-  #   - gvproxy is an alternative to VPNKit based on gVisor https://github.com/containers/gvisor-tap-vsock
-  # Default: gvproxy
-  driver: gvproxy
-
 # ===================================================================== #
 # ADVANCED CONFIGURATION
 # ===================================================================== #
@@ -93,6 +87,14 @@ forwardAgent: false
 # Colima default behaviour: buildkit enabled
 # Default: {}
 docker: {}
+
+# Virtual Machine type (qemu, vz)
+# NOTE: this is macOS 13 only. For Linux and macOS <13.0, qemu is always used.
+#
+# vz is macOS virtualization framework and requires macOS 13
+#
+# Default: vz
+vmType: "vz"
 
 # Volume mount driver for the virtual machine (sshfs, 9p).
 #

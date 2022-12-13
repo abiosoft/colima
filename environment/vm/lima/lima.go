@@ -13,16 +13,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/abiosoft/colima/config/configmanager"
-	"github.com/abiosoft/colima/daemon"
-	"github.com/abiosoft/colima/daemon/process/gvproxy"
-	"github.com/abiosoft/colima/daemon/process/vmnet"
-	"github.com/abiosoft/colima/environment/vm/lima/limautil"
-	"github.com/abiosoft/colima/qemu"
-
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/config/configmanager"
+	"github.com/abiosoft/colima/daemon"
+	"github.com/abiosoft/colima/daemon/process/vmnet"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/osutil"
 	"github.com/abiosoft/colima/util/yamlutil"
@@ -67,6 +64,9 @@ type limaVM struct {
 	// keep config in case of restart
 	conf config.Config
 
+	// lima config
+	limaConf Config
+
 	// lima config directory
 	home string
 
@@ -81,13 +81,12 @@ func (l limaVM) Dependencies() []string {
 }
 
 func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.Context, error) {
-	// limited to macOS for now
-	if !util.MacOS() {
+	// limited to macOS (with Qemu driver)
+	if !util.MacOS() || conf.VMType == VZ {
 		return ctx, nil
 	}
 
 	ctxKeyVmnet := daemon.CtxKey(vmnet.Name)
-	ctxKeyGVProxy := daemon.CtxKey(gvproxy.Name)
 
 	// use a nested chain for convenience
 	a := l.Init(ctx)
@@ -97,9 +96,6 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 
 	a.Stage("preparing network")
 	a.Add(func() error {
-		if conf.Network.Driver == gvproxy.Name {
-			ctx = context.WithValue(ctx, ctxKeyGVProxy, true)
-		}
 		if conf.Network.Address {
 			ctx = context.WithValue(ctx, ctxKeyVmnet, true)
 		}
@@ -182,18 +178,6 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 		l.host = l.host.WithEnv(vmnet.SubProcessEnvVar + "=1")
 	}
 
-	// preserve gvproxy context
-	if gvproxyEnabled, _ := ctx.Value(daemon.CtxKey(gvproxy.Name)).(bool); gvproxyEnabled {
-		var envs []string
-
-		// env var for subprocess to detect gvproxy
-		envs = append(envs, gvproxy.SubProcessEnvVar+"=1")
-		// use qemu wrapper for Lima by specifying wrapper binaries via env var
-		envs = append(envs, qemu.LimaDir().BinsEnvVar()...)
-
-		l.host = l.host.WithEnv(envs...)
-	}
-
 	return ctx, nil
 }
 
@@ -212,12 +196,12 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 	a.Stage("creating and starting")
 	configFile := filepath.Join(os.TempDir(), config.CurrentProfile().ID+".yaml")
 
-	a.Add(func() error {
-		limaConf, err := newConf(ctx, conf)
+	a.Add(func() (err error) {
+		l.limaConf, err = newConf(ctx, conf)
 		if err != nil {
 			return err
 		}
-		return yamlutil.WriteYAML(limaConf, configFile)
+		return yamlutil.WriteYAML(l.limaConf, configFile)
 	})
 	a.Add(func() error {
 		return l.host.Run(limactl, "start", "--tty=false", configFile)
@@ -237,7 +221,7 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 	return a.Exec()
 }
 
-func (l limaVM) resume(ctx context.Context, conf config.Config) error {
+func (l *limaVM) resume(ctx context.Context, conf config.Config) error {
 	log := l.Logger(ctx)
 	a := l.Init(ctx)
 
@@ -251,12 +235,12 @@ func (l limaVM) resume(ctx context.Context, conf config.Config) error {
 		return err
 	})
 
-	a.Add(func() error {
-		limaConf, err := newConf(ctx, conf)
+	a.Add(func() (err error) {
+		l.limaConf, err = newConf(ctx, conf)
 		if err != nil {
 			return err
 		}
-		return yamlutil.WriteYAML(limaConf, l.limaConfFile())
+		return yamlutil.WriteYAML(l.limaConf, l.limaConfFile())
 	})
 
 	a.Stage("starting")
@@ -269,7 +253,7 @@ func (l limaVM) resume(ctx context.Context, conf config.Config) error {
 	return a.Exec()
 }
 
-func (l limaVM) Running(ctx context.Context) bool {
+func (l limaVM) Running(_ context.Context) bool {
 	i, err := limautil.Instance()
 	if err != nil {
 		logrus.Trace(fmt.Errorf("error retrieving running instance: %w", err))
@@ -508,7 +492,7 @@ func includesHost(hostsFileContent, host string, ip net.IP) bool {
 	return false
 }
 
-func (l limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Config) {
+func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Config) {
 	// host file
 	{
 		// add docker host alias
@@ -523,6 +507,28 @@ func (l limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Confi
 
 	// registry certs
 	a.Add(l.copyCerts)
+
+	// use rosetta for x86_64 emulation
+	a.Add(func() error {
+		if !l.limaConf.Rosetta.Enabled {
+			return nil
+		}
+
+		// enable rosetta
+		err := l.Run("sudo", "sh", "-c", `stat /proc/sys/fs/binfmt_misc/rosetta || echo ':rosetta:M::\x7fELF\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x3e\x00:\xff\xff\xff\xff\xff\xfe\xfe\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff:/mnt/lima-rosetta/rosetta:OCF' > /proc/sys/fs/binfmt_misc/register`)
+		if err != nil {
+			logrus.Warn(fmt.Errorf("unable to enable rosetta: %w", err))
+			return nil
+		}
+
+		// disable qemu
+		err = l.Run("sudo", "sh", "-c", `stat /proc/sys/fs/binfmt_misc/qemu-x86_64 && echo 0 > /proc/sys/fs/binfmt_misc/qemu-x86_64`)
+		if err != nil {
+			logrus.Warn(fmt.Errorf("unable to disable qemu x86_84 emulation: %w", err))
+		}
+
+		return nil
+	})
 
 	// preserve state
 	a.Add(func() error {

@@ -29,7 +29,7 @@ const (
 
 // HostArch returns the host CPU architecture.
 func HostArch() Arch {
-	return Arch(runtime.GOARCH)
+	return Arch(runtime.GOARCH).Value()
 }
 
 // GoArch returns the GOARCH equivalent value for the architecture.

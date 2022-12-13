@@ -11,7 +11,6 @@ import (
 	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/config/configmanager"
-	"github.com/abiosoft/colima/daemon/process/gvproxy"
 	"github.com/abiosoft/colima/embedded"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/docker"
@@ -94,8 +93,6 @@ const (
 	defaultMemory            = 2
 	defaultDisk              = 60
 	defaultKubernetesVersion = kubernetes.DefaultVersion
-	defaultMountType         = "sshfs"
-	defaultNetworkDriver     = gvproxy.Name
 )
 
 var defaultKubernetesDisable = []string{"traefik"}
@@ -114,8 +111,17 @@ var startCmdArgs struct {
 
 func init() {
 	runtimes := strings.Join(environment.ContainerRuntimes(), ", ")
-	networkDrivers := strings.Join([]string{"slirp", gvproxy.Name}, ", ")
-	defaultArch := string(environment.HostArch().Value())
+	defaultArch := string(environment.HostArch())
+
+	defaultMountType := "9p"
+	defaultVMType := "qemu"
+	if util.MacOS13() {
+		defaultVMType = "vz"
+		defaultMountType = "virtiofs"
+	}
+
+	mounts := strings.Join([]string{defaultMountType, "sshfs"}, ", ")
+	types := strings.Join([]string{defaultVMType, "qemu"}, ", ")
 
 	root.Cmd().AddCommand(startCmd)
 	startCmd.Flags().StringVarP(&startCmdArgs.Runtime, "runtime", "r", docker.Name, "container runtime ("+runtimes+")")
@@ -128,8 +134,10 @@ func init() {
 
 	// network
 	if util.MacOS() {
-		startCmd.Flags().StringVar(&startCmdArgs.Network.Driver, "network-driver", defaultNetworkDriver, "network driver to use ("+networkDrivers+")")
 		startCmd.Flags().BoolVar(&startCmdArgs.Network.Address, "network-address", false, "assign reachable IP address to the VM")
+	}
+	if util.MacOS13() {
+		startCmd.Flags().StringVarP(&startCmdArgs.VMType, "vm-type", "t", defaultVMType, "virtual machine type ("+types+")")
 	}
 
 	// config
@@ -138,7 +146,7 @@ func init() {
 
 	// mounts
 	startCmd.Flags().StringSliceVarP(&startCmdArgs.Flags.Mounts, "mount", "V", nil, "directories to mount, suffix ':w' for writable")
-	startCmd.Flags().StringVar(&startCmdArgs.MountType, "mount-type", defaultMountType, "volume driver for the mount (sshfs, 9p)")
+	startCmd.Flags().StringVar(&startCmdArgs.MountType, "mount-type", defaultMountType, "volume driver for the mount ("+mounts+")")
 
 	// ssh agent
 	startCmd.Flags().BoolVarP(&startCmdArgs.ForwardAgent, "ssh-agent", "s", false, "forward SSH agent to the VM")
@@ -203,6 +211,11 @@ func prepareConfig(cmd *cobra.Command) {
 	// convert cli to config file format
 	startCmdArgs.Mounts = mountsFromFlag(startCmdArgs.Flags.Mounts)
 	startCmdArgs.ActivateRuntime = &startCmdArgs.Flags.ActivateRuntime
+
+	// convert mount type for qemu
+	if startCmdArgs.VMType != "vz" && startCmdArgs.MountType == "virtiofs" {
+		startCmdArgs.MountType = "9p"
+	}
 
 	// if there is no existing settings
 	if current.Empty() {
@@ -276,11 +289,13 @@ func prepareConfig(cmd *cobra.Command) {
 		}
 	}
 	if util.MacOS() {
-		if !cmd.Flag("network-driver").Changed {
-			startCmdArgs.Network.Driver = current.Network.Driver
-		}
 		if !cmd.Flag("network-address").Changed {
 			startCmdArgs.Network.Address = current.Network.Address
+		}
+		if util.MacOS13() {
+			if !cmd.Flag("vm-type").Changed {
+				startCmdArgs.VMType = current.VMType
+			}
 		}
 	}
 }

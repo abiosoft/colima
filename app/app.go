@@ -306,10 +306,16 @@ func (c colimaApp) Status() error {
 		return err
 	}
 
-	log.Println(config.CurrentProfile().DisplayName, "is running")
+	driver := "QEMU"
+	conf, _ := limautil.InstanceConfig()
+	if !conf.Empty() {
+		driver = conf.DriverLabel()
+	}
+
+	log.Println(config.CurrentProfile().DisplayName, "is running using", driver)
 	log.Println("arch:", c.guest.Arch())
 	log.Println("runtime:", currentRuntime)
-	if conf, err := limautil.InstanceConfig(); err == nil {
+	if conf.MountType != "" {
 		log.Println("mountType:", conf.MountType)
 	}
 

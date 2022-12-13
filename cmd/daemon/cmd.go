@@ -4,12 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/abiosoft/colima/daemon/process"
-	"github.com/abiosoft/colima/daemon/process/gvproxy"
-	"github.com/abiosoft/colima/daemon/process/vmnet"
-
 	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/daemon/process"
+	"github.com/abiosoft/colima/daemon/process/vmnet"
 	"github.com/spf13/cobra"
 )
 
@@ -32,9 +30,6 @@ var startCmd = &cobra.Command{
 		var processes []process.Process
 		if daemonArgs.vmnet {
 			processes = append(processes, vmnet.New())
-		}
-		if daemonArgs.gvproxy {
-			processes = append(processes, gvproxy.New())
 		}
 
 		return start(ctx, processes)

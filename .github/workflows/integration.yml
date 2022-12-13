@@ -16,14 +16,14 @@ on:
       - "**/*.lock"
 jobs:
   kubernetes-docker:
-    runs-on: macos-11
+    runs-on: macos-12
     steps:
       - uses: actions/checkout@v3
 
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.18
+          go-version: 1.19
 
       - name: Install CLI deps
         run: |
@@ -45,14 +45,14 @@ jobs:
         run: colima delete -f
 
   kubernetes-containerd:
-    runs-on: macos-11
+    runs-on: macos-12
     steps:
       - uses: actions/checkout@v3
 
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.18
+          go-version: 1.19
 
       - name: Install CLI deps
         run: |
@@ -74,14 +74,14 @@ jobs:
         run: colima delete -f
 
   docker:
-    runs-on: macos-11
+    runs-on: macos-12
     steps:
       - uses: actions/checkout@v3
 
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.18
+          go-version: 1.19
 
       - name: Install CLI deps
         run: |
@@ -124,14 +124,14 @@ jobs:
         run: colima delete -f
 
   docker-aarch64:
-    runs-on: macos-11
+    runs-on: macos-12
     steps:
       - uses: actions/checkout@v3
 
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.18
+          go-version: 1.19
 
       - name: Install CLI deps
         run: |
@@ -174,14 +174,14 @@ jobs:
         run: colima delete -f
 
   containerd:
-    runs-on: macos-11
+    runs-on: macos-12
     steps:
       - uses: actions/checkout@v3
 
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.18
+          go-version: 1.19
 
       - name: Install CLI deps
         run: |
@@ -221,14 +221,14 @@ jobs:
         run: colima delete -f
 
   containerd-aarch64:
-    runs-on: macos-11
+    runs-on: macos-12
     steps:
       - uses: actions/checkout@v3
 
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.18
+          go-version: 1.19
 
       - name: Install CLI deps
         run: |
