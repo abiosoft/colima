@@ -18,7 +18,7 @@ import (
 
 const (
 	Name           = "kubernetes"
-	DefaultVersion = "v1.25.3+k3s1"
+	DefaultVersion = "v1.25.4+k3s1"
 
 	configKey = "kubernetes_config"
 )
@@ -61,7 +61,7 @@ func (c kubernetesRuntime) isVersionInstalled(version string) bool {
 	return strings.Contains(out, version)
 }
 
-func (c kubernetesRuntime) Running(ctx context.Context) bool {
+func (c kubernetesRuntime) Running(context.Context) bool {
 	return c.guest.RunQuiet("sudo", "service", "k3s", "status") == nil
 }
 
@@ -263,7 +263,7 @@ func (c kubernetesRuntime) Dependencies() []string {
 	return []string{"kubectl"}
 }
 
-func (c kubernetesRuntime) Version(ctx context.Context) string {
+func (c kubernetesRuntime) Version(context.Context) string {
 	version, _ := c.host.RunOutput("kubectl", "--context", config.CurrentProfile().ID, "version", "--short")
 	return version
 }
