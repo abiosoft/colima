@@ -159,7 +159,7 @@ func CtxKey() any {
 }
 
 func (c Config) DriverLabel() string {
-	if util.MacOS13() && c.VMType == "vz" {
+	if util.MacOS13OrNewer() && c.VMType == "vz" {
 		return "macOS Virtualization.Framework"
 	}
 	return "QEMU"

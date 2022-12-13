@@ -29,8 +29,8 @@ func MacOS() bool {
 	return runtime.GOOS == "darwin"
 }
 
-// MacOS13 returns if the current OS is macOS 13 or newer.
-func MacOS13() bool {
+// MacOS13OrNewer returns if the current OS is macOS 13 or newer.
+func MacOS13OrNewer() bool {
 	if !MacOS() {
 		return false
 	}
