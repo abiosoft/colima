@@ -46,7 +46,7 @@ func MacOS13OrNewer() bool {
 		return false
 	}
 
-	return cver.Equal(*ver) || cver.LessThan(*ver)
+	return cver.Compare(*ver) <= 0
 }
 
 // AppendToPath appends directory to PATH.
