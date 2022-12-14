@@ -115,8 +115,9 @@ type Kubernetes struct {
 
 // Network is VM network configuration
 type Network struct {
-	Address bool     `yaml:"address"`
-	DNS     []net.IP `yaml:"dns"`
+	Address      bool              `yaml:"address"`
+	DNSResolvers []net.IP          `yaml:"dns"`
+	DNSHosts     map[string]string `yaml:"dns_hosts"`
 }
 
 // Mount is volume mount
