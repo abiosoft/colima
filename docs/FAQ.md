@@ -27,6 +27,9 @@
     - [Accessing the underlying Virtual Machine](#accessing-the-underlying-virtual-machine)
   - [The Virtual Machine's IP is not reachable](#the-virtual-machines-ip-is-not-reachable)
     - [Enable reachable IP address](#enable-reachable-ip-address)
+  - [How can disk space be recovered?](#how-can-disk-space-be-recovered)
+    - [Automatic](#automatic)
+    - [Manual](#manual)
   - [Are Lima overrides supported?](#are-lima-overrides-supported)
 
 ## How does Colima compare to Lima?
@@ -107,7 +110,7 @@ docker context use <context-name>
 ```
 ### Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?
 
-Colima uses Docker contexts to allow co-existence with other Docker servers and sets itself as the default Docker context on startup. 
+Colima uses Docker contexts to allow co-existence with other Docker servers and sets itself as the default Docker context on startup.
 
 However, some applications are not aware of Docker contexts and may lead to the error.
 
@@ -120,7 +123,7 @@ This can be fixed by any of the following approaches. Ensure the Docker socket p
    ```sh
    export DOCKER_HOST="unix://${HOME}/.colima/default/docker.sock"
    ```
-3. Linking the Colima socket to the default socket path. **Note** that this may break other Docker servers. 
+3. Linking the Colima socket to the default socket path. **Note** that this may break other Docker servers.
 
    ```sh
    sudo ln -sf $HOME/.colima/default/docker.sock /var/run/docker.sock
@@ -133,24 +136,24 @@ This can be fixed by any of the following approaches. Ensure the Docker socket p
 
   On first startup, Colima generates Docker daemon.json file at `$HOME/.colima/docker/daemon.json`.
   Modify the daemon.json file accordingly and restart Colima.
-   
+
 * v0.4.0 or newer
 
   Start Colima with `--edit` flag.
-  
+
   ```sh
   colima start --edit
   ```
-  
+
   Add the Docker config to the `docker` section.
-  
+
   ```diff
   - docker: {}
   + docker:
   +   insecure-registries:
   +     - myregistry.com:5000
   +     - host.docker.internal:5000
-  ```  
+  ```
 
 ### Docker plugins are missing (buildx, scan)
 
@@ -236,7 +239,7 @@ The underlying Virtual Machine is still accessible by specifying `--layer=false`
 
 ## The Virtual Machine's IP is not reachable
 
-This is by design. Reachable IP address is not enabled by default because it requires root access.
+Reachable IP address is not enabled by default due to slower startup time.
 
 ### Enable reachable IP address
 
@@ -252,6 +255,24 @@ This is by design. Reachable IP address is not enabled by default because it req
   -  address: false
   +  address: true
   ```
+
+## How can disk space be recovered?
+
+Disk space can be freed in the VM by removing containers of running `docker system prune`.
+However, it will not reflect on the host on Colima versions v0.4.x or lower.
+
+### Automatic
+
+For Colima v0.5.0 and above, unused disk space in the VM is released on startup. A restart should be the only requirement.
+
+### Manual
+
+For Colima v0.5.0 and above, user can manually recover the disk space by running `sudo fstrim -a` in the VM.
+
+```sh
+# '-v' may be added for verbose output
+colima ssh -- sudo fstrim -a
+```
 
 ## Are Lima overrides supported?
 
