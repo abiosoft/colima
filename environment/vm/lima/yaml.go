@@ -98,6 +98,12 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 			Mode:   ProvisionModeSystem,
 			Script: `grep -q "^rc_env_allow" /etc/rc.conf || echo 'rc_env_allow="*"' >> /etc/rc.conf`,
 		})
+
+		// trim mounted drive to recover disk space
+		l.Provision = append(l.Provision, Provision{
+			Mode:   ProvisionModeSystem,
+			Script: `readlink /sbin/fstrim || fstrim -a`,
+		})
 	}
 
 	// network setup
