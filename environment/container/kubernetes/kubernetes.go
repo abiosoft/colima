@@ -20,7 +20,7 @@ const (
 	Name           = "kubernetes"
 	DefaultVersion = "v1.25.4+k3s1"
 
-	configKey = "kubernetes_config"
+	ConfigKey = "kubernetes_config"
 )
 
 func newRuntime(host environment.HostActions, guest environment.GuestActions) environment.Container {
@@ -71,7 +71,7 @@ func (c kubernetesRuntime) runtime() string {
 
 func (c kubernetesRuntime) config() config.Kubernetes {
 	conf := config.Kubernetes{Version: DefaultVersion}
-	if b := c.guest.Get(configKey); b != "" {
+	if b := c.guest.Get(ConfigKey); b != "" {
 		_ = json.Unmarshal([]byte(b), &conf)
 	}
 	return conf
@@ -83,7 +83,7 @@ func (c kubernetesRuntime) setConfig(conf config.Kubernetes) error {
 		return fmt.Errorf("error encoding kubernetes config to json: %w", err)
 	}
 
-	return c.guest.Set(configKey, string(b))
+	return c.guest.Set(ConfigKey, string(b))
 }
 
 func (c *kubernetesRuntime) Provision(ctx context.Context) error {
