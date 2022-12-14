@@ -34,8 +34,13 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 
 		// Rosetta is only available on M1
 		if l.Arch == environment.AARCH64 {
-			l.Rosetta.Enabled = true
-			l.Rosetta.BinFmt = true
+			if util.RosettaRunning() {
+				l.Rosetta.Enabled = true
+				l.Rosetta.BinFmt = true
+			} else {
+				logrus.Warnln("Rosetta2 is not installed, linux/amd64 containers will run much slower")
+				logrus.Warnln("Run 'softwareupdate --install-rosetta' to install Rosetta2")
+			}
 		}
 	}
 
