@@ -169,3 +169,15 @@ mounts: []
 #
 # Default: {}
 env: {}
+
+# Host resolver configuration for the virtual machine.
+#
+# EXAMPLE
+# hostResolver:
+#   enabled: true
+#   hosts:
+#     example.com: 1.2.3.4
+hostResolver:
+  enabled: true
+  hosts:
+    host.docker.internal: host.lima.internal

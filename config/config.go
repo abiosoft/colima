@@ -104,6 +104,9 @@ type Config struct {
 
 	// SSH config generation
 	SSHConfig bool `yaml:"sshConfig,omitempty"`
+
+	// dns resolver configuration
+	HostResolver HostResolver `yaml:"hostResolver,omitempty"`
 }
 
 // Kubernetes is kubernetes configuration
@@ -129,6 +132,12 @@ type Mount struct {
 type Provision struct {
 	Mode   string `yaml:"mode"`
 	Script string `yaml:"script"`
+}
+
+type HostResolver struct {
+	Enabled bool              `yaml:"enabled,omitempty"`
+	IPv6    bool              `yaml:"ipv6,omitempty"`
+	Hosts   map[string]string `yaml:"hosts,omitempty"`
 }
 
 func (c Config) MountsOrDefault() []Mount {

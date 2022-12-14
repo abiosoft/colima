@@ -212,6 +212,9 @@ func prepareConfig(cmd *cobra.Command) {
 	startCmdArgs.Mounts = mountsFromFlag(startCmdArgs.Flags.Mounts)
 	startCmdArgs.ActivateRuntime = &startCmdArgs.Flags.ActivateRuntime
 
+	// host resolver only in config file
+	startCmdArgs.HostResolver = current.HostResolver
+
 	// handle macOS virtualization.framework transition
 	{
 		if current.VMType == "" {

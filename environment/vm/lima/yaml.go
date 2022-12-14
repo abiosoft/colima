@@ -63,10 +63,9 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	l.Containerd = Containerd{System: false, User: false}
 
 	l.DNS = conf.Network.DNS
-	l.HostResolver.Enabled = len(l.DNS) == 0
-	l.HostResolver.Hosts = map[string]string{
-		"host.docker.internal": "host.lima.internal",
-	}
+	l.HostResolver.Enabled = conf.HostResolver.Enabled
+	l.HostResolver.IPv6 = conf.HostResolver.IPv6
+	l.HostResolver.Hosts = conf.HostResolver.Hosts
 
 	l.Env = conf.Env
 	if l.Env == nil {
