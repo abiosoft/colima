@@ -29,8 +29,8 @@ func MacOS() bool {
 	return runtime.GOOS == "darwin"
 }
 
-// MacOS13 returns if the current OS is macOS 13 or newer.
-func MacOS13() bool {
+// MacOS13OrNewer returns if the current OS is macOS 13 or newer.
+func MacOS13OrNewer() bool {
 	if !MacOS() {
 		return false
 	}
@@ -46,7 +46,7 @@ func MacOS13() bool {
 		return false
 	}
 
-	return cver.Equal(*ver) || cver.LessThan(*ver)
+	return cver.Compare(*ver) <= 0
 }
 
 // AppendToPath appends directory to PATH.

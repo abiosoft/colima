@@ -27,14 +27,13 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	l.VMType = QEMU
 
 	sameArchitecture := environment.HostArch() == l.Arch
-	isM1 := util.MacOS13() && environment.HostArch() == environment.AARCH64
 
 	// when vz is chosen and OS version supports it
-	if util.MacOS13() && conf.VMType == VZ && sameArchitecture {
+	if util.MacOS13OrNewer() && conf.VMType == VZ && sameArchitecture {
 		l.VMType = VZ
 
 		// Rosetta is only available on M1
-		if isM1 {
+		if l.Arch == environment.AARCH64 {
 			l.Rosetta.Enabled = true
 			l.Rosetta.BinFmt = true
 		}

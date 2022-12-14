@@ -115,7 +115,7 @@ func init() {
 
 	defaultMountType := "9p"
 	defaultVMType := "qemu"
-	if util.MacOS13() {
+	if util.MacOS13OrNewer() {
 		defaultVMType = "vz"
 		defaultMountType = "virtiofs"
 	}
@@ -136,7 +136,7 @@ func init() {
 	if util.MacOS() {
 		startCmd.Flags().BoolVar(&startCmdArgs.Network.Address, "network-address", false, "assign reachable IP address to the VM")
 	}
-	if util.MacOS13() {
+	if util.MacOS13OrNewer() {
 		startCmd.Flags().StringVarP(&startCmdArgs.VMType, "vm-type", "t", defaultVMType, "virtual machine type ("+types+")")
 	}
 
@@ -297,7 +297,7 @@ func prepareConfig(cmd *cobra.Command) {
 		if !cmd.Flag("network-address").Changed {
 			startCmdArgs.Network.Address = current.Network.Address
 		}
-		if util.MacOS13() {
+		if util.MacOS13OrNewer() {
 			if !cmd.Flag("vm-type").Changed {
 				startCmdArgs.VMType = current.VMType
 			}
