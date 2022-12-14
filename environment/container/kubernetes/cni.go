@@ -10,7 +10,7 @@ import (
 	"github.com/abiosoft/colima/environment"
 )
 
-func installContainerdDeps(guest environment.GuestActions, a *cli.ActiveCommandChain) {
+func installCniConfig(guest environment.GuestActions, a *cli.ActiveCommandChain) {
 	// fix cni config
 	a.Add(func() error {
 		flannelFile := "/etc/cni/net.d/10-flannel.conflist"
