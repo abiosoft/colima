@@ -117,7 +117,7 @@ type Kubernetes struct {
 type Network struct {
 	Address      bool              `yaml:"address"`
 	DNSResolvers []net.IP          `yaml:"dns"`
-	DNSHosts     map[string]string `yaml:"dns_hosts"`
+	DNSHosts     map[string]string `yaml:"dnsHosts"`
 }
 
 // Mount is volume mount
