@@ -34,8 +34,13 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 
 		// Rosetta is only available on M1
 		if l.Arch == environment.AARCH64 {
-			l.Rosetta.Enabled = true
-			l.Rosetta.BinFmt = true
+			if util.RosettaRunning() {
+				l.Rosetta.Enabled = true
+				l.Rosetta.BinFmt = true
+			} else {
+				logrus.Warnln("Rosetta2 is not installed, linux/amd64 containers will run much slower")
+				logrus.Warnln("Run 'softwareupdate --install-rosetta' to install Rosetta2")
+			}
 		}
 	}
 
@@ -46,8 +51,8 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	}
 
 	l.Images = append(l.Images,
-		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.5.0/alpine-lima-clm-3.16.2-aarch64.iso", Digest: "sha512:e5e002b2eafbc0a4e64ad817ec9e9fb062aae1f652e35f59da0e34db994f6493f06c2fd93356331babb777f692759035ae4467a2a19d374d955344a6d2a408ef"},
-		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.5.0/alpine-lima-clm-3.16.2-x86_64.iso", Digest: "sha512:8c61342bc5a3258c2455312cf8dba69602535c9e1765fe419344226928dae1ccebffcc73e6c4aa15930e15fdc4dd3cc4920478e746e2f3f1dee6795154a6541d"},
+		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.5.0-2/alpine-lima-clm-3.16.2-aarch64.iso", Digest: "sha512:06abfa8c9fd954f8bfe4ce226bf282dd06e9dfbcd09f57566bf6c20809beb5a3367415b515e0a65d6a1638ecfd3a3bb3fb6d654dee3d72164bd0279370448507"},
+		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.5.0-2/alpine-lima-clm-3.16.2-x86_64.iso", Digest: "sha512:e9e118498f3a0745574ffc3686105d2c9777f7142164fe50ee47909dabd504c80ac29aeb76f9582706173310d1488d3b6f0ee9018e2a6aadc28eefb7767b63ec"},
 	)
 
 	if conf.CPU > 0 {
@@ -92,6 +97,12 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		l.Provision = append(l.Provision, Provision{
 			Mode:   ProvisionModeSystem,
 			Script: `grep -q "^rc_env_allow" /etc/rc.conf || echo 'rc_env_allow="*"' >> /etc/rc.conf`,
+		})
+
+		// trim mounted drive to recover disk space
+		l.Provision = append(l.Provision, Provision{
+			Mode:   ProvisionModeSystem,
+			Script: `readlink /sbin/fstrim || fstrim -a`,
 		})
 	}
 

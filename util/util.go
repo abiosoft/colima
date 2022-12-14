@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/abiosoft/colima/cli"
 	"github.com/coreos/go-semver/semver"
 	"github.com/google/shlex"
 	"github.com/sirupsen/logrus"
@@ -47,6 +48,17 @@ func MacOS13OrNewer() bool {
 	}
 
 	return cver.Compare(*ver) <= 0
+}
+
+// RosettaRunning checks if Rosetta process is running.
+func RosettaRunning() bool {
+	if !MacOS() {
+		return false
+	}
+	cmd := cli.Command("pgrep", "oahd")
+	cmd.Stderr = nil
+	cmd.Stdout = nil
+	return cmd.Run() == nil
 }
 
 // AppendToPath appends directory to PATH.
