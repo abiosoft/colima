@@ -37,6 +37,7 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 		"  colima start --cpu 4 --memory 8 --disk 100\n" +
 		"  colima start --arch aarch64\n" +
 		"  colima start --dns 1.1.1.1 --dns 8.8.8.8\n" +
+		"  colima start --dns-host example.com=1.2.3.4\n" +
 		"  colima start --kubernetes --kubernetes-disable=coredns,servicelb,traefik,local-storage,metrics-server",
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -106,6 +107,7 @@ var startCmdArgs struct {
 		Edit             bool
 		Editor           string
 		ActivateRuntime  bool
+		DNSHosts         []string
 	}
 }
 
@@ -168,7 +170,25 @@ func init() {
 	startCmd.Flags().StringToStringVar(&startCmdArgs.Env, "env", nil, "environment variables for the VM")
 
 	// dns
-	startCmd.Flags().IPSliceVarP(&startCmdArgs.Network.DNS, "dns", "n", nil, "DNS servers for the VM")
+	startCmd.Flags().IPSliceVarP(&startCmdArgs.Network.DNSResolvers, "dns", "n", nil, "DNSResolvers servers for the VM")
+	startCmd.Flags().StringSliceVarP(&startCmdArgs.Flags.DNSHosts, "dns-host", "", nil, "Custom DNS names to provide to resolver")
+}
+
+func dnsHostsFromFlag(hosts []string) map[string]string {
+	mapping := make(map[string]string)
+
+	for _, h := range hosts {
+		str := strings.SplitN(h, "=", 2)
+		if len(str) != 2 {
+			log.Warnf("unable to parse custom dns host: %v, skipping\n", h)
+			continue
+		}
+		src := str[0]
+		target := str[1]
+
+		mapping[src] = target
+	}
+	return mapping
 }
 
 // mountsFromFlag converts mounts from cli flag format to config file format
@@ -210,10 +230,8 @@ func prepareConfig(cmd *cobra.Command) {
 
 	// convert cli to config file format
 	startCmdArgs.Mounts = mountsFromFlag(startCmdArgs.Flags.Mounts)
+	startCmdArgs.Network.DNSHosts = dnsHostsFromFlag(startCmdArgs.Flags.DNSHosts)
 	startCmdArgs.ActivateRuntime = &startCmdArgs.Flags.ActivateRuntime
-
-	// host resolver only in config file
-	startCmdArgs.HostResolver = current.HostResolver
 
 	// handle macOS virtualization.framework transition
 	{
@@ -283,7 +301,10 @@ func prepareConfig(cmd *cobra.Command) {
 		startCmdArgs.SSHConfig = current.SSHConfig
 	}
 	if !cmd.Flag("dns").Changed {
-		startCmdArgs.Network.DNS = current.Network.DNS
+		startCmdArgs.Network.DNSResolvers = current.Network.DNSResolvers
+	}
+	if !cmd.Flag("dns-host").Changed {
+		startCmdArgs.Network.DNSHosts = current.Network.DNSHosts
 	}
 	if !cmd.Flag("env").Changed {
 		startCmdArgs.Env = current.Env

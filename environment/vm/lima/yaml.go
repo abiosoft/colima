@@ -62,10 +62,16 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	l.SSH = SSH{LocalPort: 0, LoadDotSSHPubKeys: false, ForwardAgent: conf.ForwardAgent}
 	l.Containerd = Containerd{System: false, User: false}
 
-	l.DNS = conf.Network.DNS
-	l.HostResolver.Enabled = conf.HostResolver.Enabled
-	l.HostResolver.IPv6 = conf.HostResolver.IPv6
-	l.HostResolver.Hosts = conf.HostResolver.Hosts
+	l.DNS = conf.Network.DNSResolvers
+	l.HostResolver.Enabled = len(conf.Network.DNSResolvers) == 0
+	l.HostResolver.Hosts = conf.Network.DNSHosts
+	if l.HostResolver.Hosts == nil {
+		l.HostResolver.Hosts = make(map[string]string)
+	}
+
+	if _, ok := l.HostResolver.Hosts["host.docker.internal"]; !ok {
+		l.HostResolver.Hosts["host.docker.internal"] = "host.lima.internal"
+	}
 
 	l.Env = conf.Env
 	if l.Env == nil {
