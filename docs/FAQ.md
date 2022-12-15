@@ -258,12 +258,12 @@ Reachable IP address is not enabled by default due to slower startup time.
 
 ## How can disk space be recovered?
 
-Disk space can be freed in the VM by removing containers of running `docker system prune`.
+Disk space can be freed in the VM by removing containers or running `docker system prune`.
 However, it will not reflect on the host on Colima versions v0.4.x or lower.
 
 ### Automatic
 
-For Colima v0.5.0 and above, unused disk space in the VM is released on startup. A restart should be the only requirement.
+For Colima v0.5.0 and above, unused disk space in the VM is released on startup. A restart would suffice.
 
 ### Manual
 
