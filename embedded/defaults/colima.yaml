@@ -64,7 +64,12 @@ network:
   # DNS hostnames to resolve to custom targets using the internal Lima resolver.
   # This setting has no effect if a custom DNS resolver list is supplied above.
   # It does not configure the /etc/hosts files of any machine or container.
-  dns_hosts:
+  # The value can be an IP address or another host.
+  #
+  # EXAMPLE
+  # dnsHosts:
+  #   example.com: 1.2.3.4
+  dnsHosts:
     host.docker.internal: host.lima.internal
 
 # ===================================================================== #
@@ -130,12 +135,12 @@ layer: false
 # Custom provision scripts for the virtual machine.
 # Provisioning scripts are executed on startup and therefore needs to be idempotent.
 #
-# Example - script exected as root
+# EXAMPLE - script exected as root
 # provision:
 #   - mode: system
 #     script: apk add htop vim
 #
-# Example - script exected as user
+# EXAMPLE - script exected as user
 # provision:
 #   - mode: user
 #     script: |

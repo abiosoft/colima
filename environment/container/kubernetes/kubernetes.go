@@ -126,13 +126,15 @@ func (c *kubernetesRuntime) Provision(ctx context.Context) error {
 	}
 
 	// this needs to happen on each startup
-	switch runtime {
-	case containerd.Name:
-		installContainerdDeps(c.guest, a)
-	case docker.Name:
-		a.Retry("waiting for docker cri", time.Second*2, 5, func(int) error {
-			return c.guest.Run("sudo", "service", "cri-dockerd", "start")
-		})
+	{
+		// cni is used by both cri-dockerd and containerd
+		installCniConfig(c.guest, a)
+
+		if runtime == docker.Name {
+			a.Retry("waiting for docker cri", time.Second*2, 5, func(int) error {
+				return c.guest.Run("sudo", "service", "cri-dockerd", "start")
+			})
+		}
 	}
 
 	// provision successful, now we can persist the version

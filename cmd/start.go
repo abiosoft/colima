@@ -170,8 +170,8 @@ func init() {
 	startCmd.Flags().StringToStringVar(&startCmdArgs.Env, "env", nil, "environment variables for the VM")
 
 	// dns
-	startCmd.Flags().IPSliceVarP(&startCmdArgs.Network.DNSResolvers, "dns", "n", nil, "DNSResolvers servers for the VM")
-	startCmd.Flags().StringSliceVarP(&startCmdArgs.Flags.DNSHosts, "dns-host", "", nil, "Custom DNS names to provide to resolver")
+	startCmd.Flags().IPSliceVarP(&startCmdArgs.Network.DNSResolvers, "dns", "n", nil, "DNS resolvers for the VM")
+	startCmd.Flags().StringSliceVar(&startCmdArgs.Flags.DNSHosts, "dns-host", nil, "Custom DNS names to provide to resolver")
 }
 
 func dnsHostsFromFlag(hosts []string) map[string]string {
