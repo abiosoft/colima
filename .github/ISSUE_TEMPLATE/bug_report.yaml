@@ -8,7 +8,7 @@ body:
   - type: textarea
     attributes:
       label: Version
-      description: What is the output of `colima version`, `limactl --version` and `qemu-img --version`
+      description: What is the output of `colima version`, `limactl --version` and `qemu-img --version`.
       value: |
         Colima Version:
         Lima Version:
@@ -27,7 +27,7 @@ body:
   - type: textarea
     attributes:
       label: Reproduction Steps
-      description: Kindly walk us through the steps to reproduce this behaviour
+      description: Kindly walk us through the steps to reproduce this behaviour.
       value: |
         1.
         2.
