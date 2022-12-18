@@ -104,21 +104,22 @@ docker: {}
 #
 # vz is macOS virtualization framework and requires macOS 13
 #
-# Default: vz
+# Default: vz (for macOS 13), qemu (for non-macOS 13)
 vmType: "vz"
 
-# Volume mount driver for the virtual machine (sshfs, 9p).
+# Volume mount driver for the virtual machine (virtiofs, 9p, sshfs).
 #
-# 9p is more POSIX compliant and generally handles file permissions better.
-# However, it does not properly resolve symlinks (that are created on host).
+# virtiofs is limited to macOS and vmType `vz`. It is the fastest of the options.
 #
-# sshfs is faster than 9p but less reliable when there are lots
-# of concurrent reads or writes.
+# 9p is the recommended and the most stable option for vmType `qemu`.
 #
-# Default: sshfs
+# sshfs is faster than 9p but the least reliable of the options (when there are lots
+# of concurrent reads or writes).
+#
+# Default: virtiofs (for vz), 9p (for qemu)
 mountType: sshfs
 
-# The CPU type for the virtual machine.
+# The CPU type for the virtual machine (requires vmType `qemu`).
 # Options available for host emulation can be checked with: `qemu-system-$(arch) -cpu help`.
 # Instructions are also supported by appending to the cpu type e.g. "qemu64,+ssse3".
 # Default: host
