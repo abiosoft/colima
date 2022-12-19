@@ -230,16 +230,17 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	case "", "ssh", "sshfs", "reversessh", "reverse-ssh", "reversesshfs", REVSSHFS:
 		l.MountType = REVSSHFS
 	default:
-		l.MountType = NINEP
-		l.Provision = append(l.Provision, Provision{
-			Mode:   ProvisionModeSystem,
-			Script: "mkmntdirs && mount -a",
-		})
+		if l.VMType == VZ {
+			l.MountType = VIRTIOFS
+		} else { // qemu
+			l.MountType = NINEP
+		}
 	}
 
-	if l.VMType == VZ {
-		l.MountType = VIRTIOFS
-	}
+	l.Provision = append(l.Provision, Provision{
+		Mode:   ProvisionModeSystem,
+		Script: "mkmntdirs && mount -a",
+	})
 
 	if len(conf.Mounts) == 0 {
 		l.Mounts = append(l.Mounts,
