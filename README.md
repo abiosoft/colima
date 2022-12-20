@@ -1,13 +1,9 @@
-
 ![colima-logo](colima.png)
 
 ## Colima - container runtimes on macOS (and Linux) with minimal setup.
 
-
 [![Go](https://github.com/abiosoft/colima/actions/workflows/go.yml/badge.svg)](https://github.com/abiosoft/colima/actions/workflows/go.yml)
 [![Integration](https://github.com/abiosoft/colima/actions/workflows/integration.yml/badge.svg)](https://github.com/abiosoft/colima/actions/workflows/integration.yml)
-
-
 
 ![Demonstration](colima.gif)
 
@@ -19,6 +15,7 @@
 - Port Forwarding
 - Volume mounts
 - Kubernetes
+- Multiple instances
 
 ## Getting Started
 
@@ -45,7 +42,7 @@ brew install --HEAD colima
 
 ### Upgrading
 
-If upgrading from v0.3.4 or lower, it is required to start afresh by deleting existing instance.
+If upgrading from v0.4.6 or lower, it is required to start afresh by deleting existing instance.
 
 ```sh
 colima delete # delete existing instance
@@ -145,7 +142,7 @@ Colima means Containers in [Lima](https://github.com/lima-vm/lima).
 
 Since Lima is aka Linux on Mac. By transitivity, Colima can also mean Containers on Linux on Mac.
 
-## FAQs
+## Troubleshooting and FAQs
 
 Check [here](docs/FAQ.md) for Frequently Asked Questions.
 
@@ -160,12 +157,9 @@ MIT
 
 ## Sponsoring the Project
 
-
 If you (or your company) are benefiting from the project and would like to support the contributors, kindly support the project.
 
 <a href="https://www.buymeacoffee.com/abiosoft" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-blue.png" alt="Buy Me A Coffee" style="height: 40px !important;width: 160px !important;" ></a>
-
-
 
 [<img src="https://uploads-ssl.webflow.com/5ac3c046c82724970fc60918/5c019d917bba312af7553b49_MacStadium-developerlogo.png" style="max-height: 150px"/>](https://macstadium.com)
 

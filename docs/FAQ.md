@@ -31,6 +31,12 @@
     - [Automatic](#automatic)
     - [Manual](#manual)
   - [Are Lima overrides supported?](#are-lima-overrides-supported)
+  - [Troubleshooting](#troubleshooting)
+    - [Colima not starting](#colima-not-starting)
+      - [Broken status](#broken-status)
+      - [FATA\[0000\] error starting vm: error at 'starting': exit status 1](#fata0000-error-starting-vm-error-at-starting-exit-status-1)
+    - [Issues after an upgrade](#issues-after-an-upgrade)
+    - [Colima cannot access the internet.](#colima-cannot-access-the-internet)
 
 ## How does Colima compare to Lima?
 
@@ -279,3 +285,75 @@ colima ssh -- sudo fstrim -a
 Yes, however this should only be done by advanced users.
 
 Overriding the image is not supported as Colima's image includes bundled dependencies that would be missing in the user specified image.
+
+## Troubleshooting
+
+These are some common issues reported by users and how to troubleshoot them.
+
+### Colima not starting
+
+There are multiple reasons that could cause Colima to fail to start.
+
+#### Broken status
+
+This is the case when the output of `colima list` shows a broken status. This can happen due to macOS restart.
+
+```
+colima list
+PROFILE    STATUS     ARCH       CPUS    MEMORY    DISK     RUNTIME    ADDRESS
+default    Broken    aarch64    2       2GiB      60GiB
+```
+This can be fixed by forcefully stopping Colima. The state will be changed to `Stopped` and it should start up normally afterwards.
+
+```
+colima stop --force
+```
+
+#### FATA[0000] error starting vm: error at 'starting': exit status 1
+
+This indicates that a fatal error is preventing Colima from starting, you can enable the debug log with `--verbose` flag to get more info.
+
+If the log output includes `exiting, status={Running:false Degraded:false Exiting:true Errors:[] SSHLocalPort:0}` then it is most certainly due to one of the following.
+
+1. Running on a device without virtualization support.
+2. Running an x86_64 version of homebrew (and Colima) on an M1 device.
+
+### Issues after an upgrade
+
+The recommended way to troubleshoot after an upgrade is to test with a separate profile.
+
+```sh
+# start with a profile named 'debug'
+colima start debug
+```
+If the separate profile starts successfully without issues, then the issue would be resolved by resetting the default profile.
+
+```
+colima delete
+colima start
+```
+
+### Colima cannot access the internet.
+
+Failure for Colima to access the internet is usually down to DNS.
+
+Try custom DNS server(s)
+
+```sh
+colima start --dns 8.8.8.8 --dns 1.1.1.1
+```
+
+Ping an internet address from within the VM to ascertain
+
+```
+colima ssh -- ping -c4 google.com
+PING google.com (216.58.223.238): 56 data bytes
+64 bytes from 216.58.223.238: seq=0 ttl=42 time=0.082 ms
+64 bytes from 216.58.223.238: seq=1 ttl=42 time=0.557 ms
+64 bytes from 216.58.223.238: seq=2 ttl=42 time=0.465 ms
+64 bytes from 216.58.223.238: seq=3 ttl=42 time=0.457 ms
+
+--- google.com ping statistics ---
+4 packets transmitted, 4 packets received, 0% packet loss
+round-trip min/avg/max = 0.082/0.390/0.557 ms
+```
