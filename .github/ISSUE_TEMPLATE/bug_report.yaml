@@ -18,12 +18,37 @@ body:
       label: Operating System
       description: Which Operating System does this issue happen on? Check all that apply.
       options:
-        - label: macOS Intel
+        - label: macOS Intel <= 12 (Monterrey)
           required: false
-        - label: macOS M1
+        - label: macOS Intel >= 13 (Ventura)
+          required: false
+        - label: macOS M1 <= 12 (Monterrey)
+          required: false
+        - label: macOS M1 >= 13 (Ventura)
           required: false
         - label: Linux
           required: false
+  - type: checkboxes
+    attributes:
+      label: Virtualization type
+      description: What virtualization type are you using?
+      options:
+        - label: vz (only macOS Ventura and higher)
+          required: false
+        - label: qemu
+          required: false
+  - type: checkboxes
+    attributes:
+      label: Mount type
+      description: What mount type are you using?
+      options:
+        - label: sshfs
+          required: false
+        - label: 9p
+          required: false
+        - label: virtiofs
+          required: false
+
   - type: textarea
     attributes:
       label: Reproduction Steps
