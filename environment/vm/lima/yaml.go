@@ -222,7 +222,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	}
 
 	switch strings.ToLower(conf.MountType) {
-	case "", "ssh", "sshfs", "reversessh", "reverse-ssh", "reversesshfs", REVSSHFS:
+	case "ssh", "sshfs", "reversessh", "reverse-ssh", "reversesshfs", REVSSHFS:
 		l.MountType = REVSSHFS
 	default:
 		if l.VMType == VZ {

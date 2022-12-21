@@ -117,13 +117,9 @@ func init() {
 
 	defaultMountType := "9p"
 	defaultVMType := "qemu"
-	if util.MacOS13OrNewer() {
-		defaultVMType = "vz"
-		defaultMountType = "virtiofs"
-	}
 
-	mounts := strings.Join([]string{defaultMountType, "sshfs"}, ", ")
-	types := strings.Join([]string{defaultVMType, "qemu"}, ", ")
+	mounts := strings.Join([]string{defaultMountType, "sshfs", "virtiofs"}, ", ")
+	types := strings.Join([]string{defaultVMType, "vz"}, ", ")
 
 	root.Cmd().AddCommand(startCmd)
 	startCmd.Flags().StringVarP(&startCmdArgs.Runtime, "runtime", "r", docker.Name, "container runtime ("+runtimes+")")
@@ -171,7 +167,7 @@ func init() {
 
 	// dns
 	startCmd.Flags().IPSliceVarP(&startCmdArgs.Network.DNSResolvers, "dns", "n", nil, "DNS resolvers for the VM")
-	startCmd.Flags().StringSliceVar(&startCmdArgs.Flags.DNSHosts, "dns-host", nil, "Custom DNS names to provide to resolver")
+	startCmd.Flags().StringSliceVar(&startCmdArgs.Flags.DNSHosts, "dns-host", nil, "custom DNS names to provide to resolver")
 }
 
 func dnsHostsFromFlag(hosts []string) map[string]string {
@@ -241,6 +237,16 @@ func prepareConfig(cmd *cobra.Command) {
 		// convert mount type for qemu
 		if startCmdArgs.VMType != "vz" && startCmdArgs.MountType == "virtiofs" {
 			startCmdArgs.MountType = "9p"
+			if cmd.Flag("mount-type").Changed {
+				log.Warnln("virtiofs is only available for 'vz' vmType, using 9p")
+			}
+		}
+		// convert mount type for vz
+		if startCmdArgs.VMType == "vz" && startCmdArgs.MountType == "9p" {
+			startCmdArgs.MountType = "virtiofs"
+			if cmd.Flag("mount-type").Changed {
+				log.Warnln("9p is only available for 'qemu' vmType, using virtiofs")
+			}
 		}
 	}
 	// if there is no existing settings
