@@ -7,6 +7,7 @@ import (
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/daemon/process"
+	"github.com/abiosoft/colima/daemon/process/gvproxy"
 	"github.com/abiosoft/colima/daemon/process/vmnet"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/util/fsutil"
@@ -91,6 +92,9 @@ func (l processManager) Start(ctx context.Context) error {
 	if opts.Vmnet {
 		args = append(args, "--vmnet")
 	}
+	if opts.GVProxy {
+		args = append(args, "--gvproxy")
+	}
 
 	if cli.Settings.Verbose {
 		args = append(args, "--verbose")
@@ -107,13 +111,16 @@ func (l processManager) Stop(ctx context.Context) error {
 
 func optsFromCtx(ctx context.Context) struct {
 	Vmnet    bool
+	GVProxy  bool
 	FSNotify bool
 } {
 	var opts = struct {
 		Vmnet    bool
+		GVProxy  bool
 		FSNotify bool
 	}{}
 	opts.Vmnet, _ = ctx.Value(CtxKey(vmnet.Name)).(bool)
+	opts.GVProxy, _ = ctx.Value(CtxKey(gvproxy.Name)).(bool)
 
 	return opts
 }
@@ -124,6 +131,9 @@ func processesFromCtx(ctx context.Context) []process.Process {
 	opts := optsFromCtx(ctx)
 	if opts.Vmnet {
 		processes = append(processes, vmnet.New())
+	}
+	if opts.GVProxy {
+		processes = append(processes, gvproxy.New())
 	}
 
 	return processes
