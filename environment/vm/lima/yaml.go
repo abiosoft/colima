@@ -10,9 +10,11 @@ import (
 	"strings"
 
 	"github.com/abiosoft/colima/daemon"
+	"github.com/abiosoft/colima/daemon/process/gvproxy"
 	"github.com/abiosoft/colima/daemon/process/vmnet"
 
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/embedded"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/docker"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
@@ -77,6 +79,19 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	if _, ok := l.HostResolver.Hosts["host.docker.internal"]; !ok {
 		l.HostResolver.Hosts["host.docker.internal"] = "host.lima.internal"
 	}
+	if len(l.DNS) == 0 {
+		gvProxyEnabled, _ := ctx.Value(daemon.CtxKey(gvproxy.Name)).(bool)
+		if gvProxyEnabled {
+			l.DNS = append(l.DNS, net.ParseIP(gvproxy.GatewayIP))
+			l.HostResolver.Enabled = false
+		}
+		reachableIPAddress, _ := ctx.Value(daemon.CtxKey(vmnet.Name)).(bool)
+		if reachableIPAddress {
+			if gvProxyEnabled {
+				l.DNS = append(l.DNS, net.ParseIP(vmnet.NetGateway))
+			}
+		}
+	}
 
 	l.Env = conf.Env
 	if l.Env == nil {
@@ -107,58 +122,110 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	}
 
 	// network setup
-	if conf.Network.Address {
+	{
 		reachableIPAddress := true
+		if conf.Network.Address {
+			if l.VMType == VZ {
+				l.Networks = append(l.Networks, Network{
+					VZNAT:     true,
+					Interface: vmnet.NetInterface,
+				})
+			} else {
+				reachableIPAddress, _ = ctx.Value(daemon.CtxKey(vmnet.Name)).(bool)
 
-		if l.VMType == VZ {
-			l.Networks = append(l.Networks, Network{
-				VZNAT:     true,
-				Interface: vmnet.NetInterface,
-			})
-		} else {
-			reachableIPAddress, _ = ctx.Value(daemon.CtxKey(vmnet.Name)).(bool)
+				// network is currently limited to macOS.
+				if util.MacOS() && reachableIPAddress {
+					if err := func() error {
+						socketFile := vmnet.Info().Socket.File()
+						// ensure the socket file exists
+						if _, err := os.Stat(socketFile); err != nil {
+							return fmt.Errorf("vmnet socket file not found: %w", err)
+						}
 
-			// network is currently limited to macOS.
-			if util.MacOS() && reachableIPAddress {
+						l.Networks = append(l.Networks, Network{
+							Socket:    socketFile,
+							Interface: vmnet.NetInterface,
+						})
+
+						return nil
+					}(); err != nil {
+						reachableIPAddress = false
+						logrus.Warn(fmt.Errorf("error setting up reachable IP address: %w", err))
+					}
+				}
+			}
+
+			// disable ports 80 and 443 when k8s is enabled and there is a reachable IP address
+			// to prevent ingress (traefik) from occupying relevant host ports.
+			if reachableIPAddress && conf.Kubernetes.Enabled && !disableHas(conf.Kubernetes.Disable, "ingress") {
+				l.PortForwards = append(l.PortForwards,
+					PortForward{
+						GuestIP:           net.ParseIP("0.0.0.0"),
+						GuestPort:         80,
+						GuestIPMustBeZero: true,
+						Ignore:            true,
+						Proto:             TCP,
+					},
+					PortForward{
+						GuestIP:           net.ParseIP("0.0.0.0"),
+						GuestPort:         443,
+						GuestIPMustBeZero: true,
+						Ignore:            true,
+						Proto:             TCP,
+					},
+				)
+			}
+		}
+
+		// gvproxy is cross-platform but not needed on Linux as slirp is only erratic on macOS.
+		gvProxyEnabled, _ := ctx.Value(daemon.CtxKey(gvproxy.Name)).(bool)
+		if gvProxyEnabled && util.MacOS() {
+			var values struct {
+				Vmnet struct {
+					Enabled   bool
+					Interface string
+				}
+				GVProxy struct {
+					Enabled    bool
+					MacAddress string
+					IPAddress  net.IP
+					Gateway    net.IP
+				}
+			}
+
+			if reachableIPAddress {
+				values.Vmnet.Enabled = true
+				values.Vmnet.Interface = vmnet.NetInterface
+			}
+
+			gvProxyEnabled, _ := ctx.Value(daemon.CtxKey(gvproxy.Name)).(bool)
+			if gvProxyEnabled {
+				values.GVProxy.Enabled = true
+				values.GVProxy.MacAddress = strings.ToUpper(gvproxy.MacAddress())
+				values.GVProxy.IPAddress = net.ParseIP(gvproxy.DeviceIP)
+				values.GVProxy.Gateway = net.ParseIP(gvproxy.GatewayIP)
+
 				if err := func() error {
-					socketFile := vmnet.Info().Socket.File()
-					// ensure the socket file exists
-					if _, err := os.Stat(socketFile); err != nil {
-						return fmt.Errorf("vmnet socket file not found: %w", err)
+					tpl, err := embedded.ReadString("network/ifaces.sh")
+					if err != nil {
+						return err
 					}
 
-					l.Networks = append(l.Networks, Network{
-						Socket:    socketFile,
-						Interface: vmnet.NetInterface,
+					script, err := util.ParseTemplate(tpl, values)
+					if err != nil {
+						return fmt.Errorf("error parsing template for network script: %w", err)
+					}
+
+					l.Provision = append(l.Provision, Provision{
+						Mode:   ProvisionModeSystem,
+						Script: string(script),
 					})
 
 					return nil
 				}(); err != nil {
-					reachableIPAddress = false
-					logrus.Warn(fmt.Errorf("error setting up reachable IP address: %w", err))
+					logrus.Warn(fmt.Errorf("error setting up gvproxy network: %w", err))
 				}
 			}
-		}
-
-		// disable ports 80 and 443 when k8s is enabled and there is a reachable IP address
-		// to prevent ingress (traefik) from occupying relevant host ports.
-		if reachableIPAddress && conf.Kubernetes.Enabled && !disableHas(conf.Kubernetes.Disable, "ingress") {
-			l.PortForwards = append(l.PortForwards,
-				PortForward{
-					GuestIP:           net.ParseIP("0.0.0.0"),
-					GuestPort:         80,
-					GuestIPMustBeZero: true,
-					Ignore:            true,
-					Proto:             TCP,
-				},
-				PortForward{
-					GuestIP:           net.ParseIP("0.0.0.0"),
-					GuestPort:         443,
-					GuestIPMustBeZero: true,
-					Ignore:            true,
-					Proto:             TCP,
-				},
-			)
 		}
 	}
 
