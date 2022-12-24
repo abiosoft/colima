@@ -28,27 +28,11 @@ body:
           required: false
         - label: Linux
           required: false
-  - type: checkboxes
+  - type: textarea
     attributes:
-      label: Virtualization type
-      description: What virtualization type are you using?
-      options:
-        - label: vz (only macOS Ventura and higher)
-          required: false
-        - label: qemu
-          required: false
-  - type: checkboxes
-    attributes:
-      label: Mount type
-      description: What mount type are you using?
-      options:
-        - label: sshfs
-          required: false
-        - label: 9p
-          required: false
-        - label: virtiofs
-          required: false
-
+      label: Output of `colima status`
+      description: The output of `colima status` or `colima status -p <profilename>` tells us what vm-type and mount type, etc.
+      value: 
   - type: textarea
     attributes:
       label: Reproduction Steps
