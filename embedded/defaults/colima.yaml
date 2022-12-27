@@ -53,15 +53,15 @@ network:
   # Default: false
   address: false
 
-  # Custom DNS nameservers for the virtual machine.
+  # Custom DNS resolvers for the virtual machine.
   #
   # EXAMPLE
-  # dns: [1.1.1.1, 8.8.8.8]
+  # dns: [8.8.8.8, 1.1.1.1]
   #
   # Default: []
   dns: []
 
-  # DNS hostnames to resolve to custom targets using the internal Lima resolver.
+  # DNS hostnames to resolve to custom targets using the internal resolver.
   # This setting has no effect if a custom DNS resolver list is supplied above.
   # It does not configure the /etc/hosts files of any machine or container.
   # The value can be an IP address or another host.
@@ -72,11 +72,11 @@ network:
   dnsHosts:
     host.docker.internal: host.lima.internal
 
-  # Network driver to use (slirp, gvproxy)
+  # Network driver to use (slirp, gvproxy), (requires vmType `qemu`)
   #   - slirp is the default user mode networking provided by Qemu
   #   - gvproxy is an alternative to VPNKit based on gVisor https://github.com/containers/gvisor-tap-vsock
-  # Default: slirp
-  driver: slirp
+  # Default: gvproxy
+  driver: gvproxy
 
 # ===================================================================== #
 # ADVANCED CONFIGURATION

@@ -95,7 +95,7 @@ const (
 	defaultMemory            = 2
 	defaultDisk              = 60
 	defaultKubernetesVersion = kubernetes.DefaultVersion
-	defaultNetworkDriver     = "slirp"
+	defaultNetworkDriver     = "gvproxy"
 )
 
 var defaultKubernetesDisable = []string{"traefik"}
