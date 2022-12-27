@@ -95,7 +95,12 @@ const (
 	defaultMemory            = 2
 	defaultDisk              = 60
 	defaultKubernetesVersion = kubernetes.DefaultVersion
-	defaultNetworkDriver     = "gvproxy"
+
+	defaultNetworkDriver = "gvproxy"
+
+	defaultVMType        = "qemu"
+	defaultMountTypeQEMU = "sshfs"
+	defaultMountTypeVZ   = "virtiofs"
 )
 
 var defaultKubernetesDisable = []string{"traefik"}
@@ -115,13 +120,10 @@ var startCmdArgs struct {
 
 func init() {
 	runtimes := strings.Join(environment.ContainerRuntimes(), ", ")
-	networkDrivers := strings.Join([]string{"slirp", gvproxy.Name}, ", ")
+	networkDrivers := strings.Join([]string{gvproxy.Name, "slirp"}, ", ")
 	defaultArch := string(environment.HostArch())
 
-	defaultMountType := "9p"
-	defaultVMType := "qemu"
-
-	mounts := strings.Join([]string{defaultMountType, "sshfs", "virtiofs"}, ", ")
+	mounts := strings.Join([]string{defaultMountTypeQEMU, "9p", "virtiofs"}, ", ")
 	types := strings.Join([]string{defaultVMType, "vz"}, ", ")
 
 	root.Cmd().AddCommand(startCmd)
@@ -148,7 +150,7 @@ func init() {
 
 	// mounts
 	startCmd.Flags().StringSliceVarP(&startCmdArgs.Flags.Mounts, "mount", "V", nil, "directories to mount, suffix ':w' for writable")
-	startCmd.Flags().StringVar(&startCmdArgs.MountType, "mount-type", defaultMountType, "volume driver for the mount ("+mounts+")")
+	startCmd.Flags().StringVar(&startCmdArgs.MountType, "mount-type", defaultMountTypeQEMU, "volume driver for the mount ("+mounts+")")
 
 	// ssh agent
 	startCmd.Flags().BoolVarP(&startCmdArgs.ForwardAgent, "ssh-agent", "s", false, "forward SSH agent to the VM")
@@ -214,6 +216,35 @@ func mountsFromFlag(mounts []string) []config.Mount {
 	return mnts
 }
 
+func setDefaults(cmd *cobra.Command) {
+	if util.MacOS13OrNewer() {
+		// changing to vz implies changing mount type to virtiofs
+		if cmd.Flag("vm-type").Changed && startCmdArgs.VMType == "vz" && !cmd.Flag("mount-type").Changed {
+			startCmdArgs.MountType = "virtiofs"
+			cmd.Flag("mount-type").Changed = true
+		}
+	}
+
+	// mount type
+	{
+		// convert mount type for qemu
+		if startCmdArgs.VMType != "vz" && startCmdArgs.MountType == defaultMountTypeVZ {
+			startCmdArgs.MountType = defaultMountTypeQEMU
+			if cmd.Flag("mount-type").Changed {
+				log.Warnf("%s is only available for 'vz' vmType, using %s", defaultMountTypeVZ, defaultMountTypeQEMU)
+			}
+		}
+		// convert mount type for vz
+		if startCmdArgs.VMType == "vz" && startCmdArgs.MountType == "9p" {
+			startCmdArgs.MountType = "virtiofs"
+			if cmd.Flag("mount-type").Changed {
+				log.Warnf("9p is only available for 'qemu' vmType, using %s", defaultMountTypeVZ)
+			}
+		}
+	}
+
+}
+
 func prepareConfig(cmd *cobra.Command) {
 	current, err := configmanager.Load()
 	if err != nil {
@@ -233,24 +264,13 @@ func prepareConfig(cmd *cobra.Command) {
 	startCmdArgs.Network.DNSHosts = dnsHostsFromFlag(startCmdArgs.Flags.DNSHosts)
 	startCmdArgs.ActivateRuntime = &startCmdArgs.Flags.ActivateRuntime
 
+	// set relevant missing default values
+	setDefaults(cmd)
+
 	// handle macOS virtualization.framework transition
 	{
 		if current.VMType == "" {
 			current.VMType = "qemu"
-		}
-		// convert mount type for qemu
-		if startCmdArgs.VMType != "vz" && startCmdArgs.MountType == "virtiofs" {
-			startCmdArgs.MountType = "9p"
-			if cmd.Flag("mount-type").Changed {
-				log.Warnln("virtiofs is only available for 'vz' vmType, using 9p")
-			}
-		}
-		// convert mount type for vz
-		if startCmdArgs.VMType == "vz" && startCmdArgs.MountType == "9p" {
-			startCmdArgs.MountType = "virtiofs"
-			if cmd.Flag("mount-type").Changed {
-				log.Warnln("9p is only available for 'qemu' vmType, using virtiofs")
-			}
 		}
 	}
 	// if there is no existing settings
