@@ -310,6 +310,15 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		Script: `readlink /sbin/fstrim || fstrim -a`,
 	})
 
+	// workaround for slow virtiofs https://github.com/drud/ddev/issues/4466#issuecomment-1361261185
+	// TODO: remove when fixed upstream
+	if l.MountType == VIRTIOFS {
+		l.Provision = append(l.Provision, Provision{
+			Mode:   ProvisionModeSystem,
+			Script: `stat /sys/class/block/vda/queue/write_cache && echo 'write through' > /sys/class/block/vda/queue/write_cache`,
+		})
+	}
+
 	if len(conf.Mounts) == 0 {
 		l.Mounts = append(l.Mounts,
 			Mount{Location: "~", Writable: true},

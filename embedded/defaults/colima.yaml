@@ -122,8 +122,8 @@ vmType: qemu
 # sshfs is faster than 9p but the least reliable of the options (when there are lots
 # of concurrent reads or writes).
 #
-# Default: virtiofs (for vz), 9p (for qemu)
-mountType: 9p
+# Default: virtiofs (for vz), sshfs (for qemu)
+mountType: sshfs
 
 # The CPU type for the virtual machine (requires vmType `qemu`).
 # Options available for host emulation can be checked with: `qemu-system-$(arch) -cpu help`.
