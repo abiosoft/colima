@@ -32,8 +32,8 @@ var startCmd = &cobra.Command{
 		if daemonArgs.vmnet {
 			processes = append(processes, vmnet.New())
 		}
-		if daemonArgs.gvproxy {
-			processes = append(processes, gvproxy.New())
+		if daemonArgs.gvproxy.enabled {
+			processes = append(processes, gvproxy.New(daemonArgs.gvproxy.dnsHosts))
 		}
 
 		return start(ctx, processes)
@@ -70,8 +70,11 @@ var statusCmd = &cobra.Command{
 }
 
 var daemonArgs struct {
-	vmnet    bool
-	gvproxy  bool
+	vmnet   bool
+	gvproxy struct {
+		enabled  bool
+		dnsHosts map[string]string
+	}
 	fsnotify bool
 
 	verbose bool
@@ -85,6 +88,7 @@ func init() {
 	daemonCmd.AddCommand(statusCmd)
 
 	startCmd.Flags().BoolVar(&daemonArgs.vmnet, "vmnet", false, "start vmnet")
-	startCmd.Flags().BoolVar(&daemonArgs.gvproxy, "gvproxy", false, "start gvproxy")
+	startCmd.Flags().BoolVar(&daemonArgs.gvproxy.enabled, "gvproxy", false, "start gvproxy")
+	startCmd.Flags().StringToStringVar(&daemonArgs.gvproxy.dnsHosts, "gvproxy-hosts", nil, "start gvproxy")
 	startCmd.Flags().BoolVar(&daemonArgs.fsnotify, "fsnotify", false, "start fsnotify")
 }

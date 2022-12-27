@@ -22,10 +22,23 @@ import (
 )
 
 const Name = "gvproxy"
+const CtxKeyHosts = "gvproxy.hosts"
 
 // New creates a new Process for gvproxy.
-func New() process.Process {
-	return &gvproxyProcess{}
+func New(hosts ...map[string]string) process.Process {
+	dnsHosts := map[string]string{
+		"host.lima.internal":   "192.168.5.2",
+		"host.docker.internal": "host.lima.internal",
+	}
+
+	for _, host := range hosts {
+		for k, v := range host {
+			dnsHosts[k] = v
+		}
+	}
+	return &gvproxyProcess{
+		hosts: dnsHosts,
+	}
 }
 
 func Info() struct {
@@ -43,7 +56,9 @@ func Info() struct {
 
 var _ process.Process = (*gvproxyProcess)(nil)
 
-type gvproxyProcess struct{}
+type gvproxyProcess struct {
+	hosts hostMap
+}
 
 func (*gvproxyProcess) Alive(context.Context) error {
 	info := Info()
@@ -57,9 +72,9 @@ func (*gvproxyProcess) Alive(context.Context) error {
 func (*gvproxyProcess) Name() string { return Name }
 
 // Start implements daemon.Process
-func (*gvproxyProcess) Start(ctx context.Context) error {
+func (g *gvproxyProcess) Start(ctx context.Context) error {
 	info := Info()
-	return run(ctx, info.Socket)
+	return run(ctx, info.Socket, extractZones(g.hosts))
 }
 
 const (
@@ -91,7 +106,7 @@ func MacAddress() string {
 	return macAddress.String()
 }
 
-func configuration() types.Configuration {
+func configuration(zones []types.Zone) types.Configuration {
 	return types.Configuration{
 		Debug:             cli.Settings.Verbose,
 		CaptureFile:       "",
@@ -102,21 +117,7 @@ func configuration() types.Configuration {
 		DHCPStaticLeases: map[string]string{
 			DeviceIP: MacAddress(),
 		},
-		DNS: []types.Zone{
-			{
-				Name: "internal.",
-				Records: []types.Record{
-					{
-						Name: "host.docker",
-						IP:   net.ParseIP("192.168.5.2"),
-					},
-					{
-						Name: "host.lima",
-						IP:   net.ParseIP("192.168.5.2"),
-					},
-				},
-			},
-		},
+		DNS:              zones,
 		DNSSearchDomains: searchDomains(),
 		NAT: map[string]string{
 			natIP: "127.0.0.1",
@@ -126,14 +127,14 @@ func configuration() types.Configuration {
 	}
 }
 
-func run(ctx context.Context, qemuSocket osutil.Socket) error {
+func run(ctx context.Context, qemuSocket osutil.Socket, zones []types.Zone) error {
 	if _, err := os.Stat(qemuSocket.File()); err == nil {
 		if err := os.Remove(qemuSocket.File()); err != nil {
 			return fmt.Errorf("error removing existing qemu socket: %w", err)
 		}
 	}
 
-	conf := configuration()
+	conf := configuration(zones)
 	vn, err := virtualnetwork.New(&conf)
 	if err != nil {
 		return err

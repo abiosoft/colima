@@ -92,8 +92,13 @@ func (l processManager) Start(ctx context.Context) error {
 	if opts.Vmnet {
 		args = append(args, "--vmnet")
 	}
-	if opts.GVProxy {
+	if opts.GVProxy.Enabled {
 		args = append(args, "--gvproxy")
+		if len(opts.GVProxy.Hosts) > 0 {
+			for host, ip := range opts.GVProxy.Hosts {
+				args = append(args, "--gvproxy-hosts", host+"="+ip)
+			}
+		}
 	}
 
 	if cli.Settings.Verbose {
@@ -110,17 +115,25 @@ func (l processManager) Stop(ctx context.Context) error {
 }
 
 func optsFromCtx(ctx context.Context) struct {
-	Vmnet    bool
-	GVProxy  bool
+	Vmnet   bool
+	GVProxy struct {
+		Enabled bool
+		Hosts   map[string]string
+	}
 	FSNotify bool
 } {
 	var opts = struct {
-		Vmnet    bool
-		GVProxy  bool
+		Vmnet   bool
+		GVProxy struct {
+			Enabled bool
+			Hosts   map[string]string
+		}
+
 		FSNotify bool
 	}{}
 	opts.Vmnet, _ = ctx.Value(CtxKey(vmnet.Name)).(bool)
-	opts.GVProxy, _ = ctx.Value(CtxKey(gvproxy.Name)).(bool)
+	opts.GVProxy.Enabled, _ = ctx.Value(CtxKey(gvproxy.Name)).(bool)
+	opts.GVProxy.Hosts, _ = ctx.Value(CtxKey(gvproxy.CtxKeyHosts)).(map[string]string)
 
 	return opts
 }
@@ -132,8 +145,8 @@ func processesFromCtx(ctx context.Context) []process.Process {
 	if opts.Vmnet {
 		processes = append(processes, vmnet.New())
 	}
-	if opts.GVProxy {
-		processes = append(processes, gvproxy.New())
+	if opts.GVProxy.Enabled {
+		processes = append(processes, gvproxy.New(opts.GVProxy.Hosts))
 	}
 
 	return processes
