@@ -9,11 +9,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var versionInfo = config.AppVersion()
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "colima",
-	Short: "container runtimes on macOS with minimal setup",
-	Long:  `Colima provides container runtimes on macOS with minimal setup.`,
+	Use:     "colima",
+	Short:   "container runtimes on macOS with minimal setup",
+	Long:    `Colima provides container runtimes on macOS with minimal setup.`,
+	Version: versionInfo.Version,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 
 		switch cmd.Name() {
