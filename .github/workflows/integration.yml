@@ -14,6 +14,13 @@ on:
       - "**/*.md"
       - "**/*.nix"
       - "**/*.lock"
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: 'Debug with tmate set "debug_enabled"'
+        required: false
+        default: "false"
+
 jobs:
   kubernetes-docker:
     runs-on: macos-12
@@ -31,6 +38,13 @@ jobs:
 
       - name: Build and Install
         run: make && sudo make install
+
+      - name: tmate debugging session
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
 
       - name: Start Colima
         run: colima start --runtime docker --kubernetes
