@@ -221,6 +221,7 @@ func mountsFromFlag(mounts []string) []config.Mount {
 }
 
 func setDefaults(cmd *cobra.Command) {
+	startCmdArgs.VMType = "qemu"
 	if util.MacOS13OrNewer() {
 		// changing to vz implies changing mount type to virtiofs
 		if cmd.Flag("vm-type").Changed && startCmdArgs.VMType == "vz" && !cmd.Flag("mount-type").Changed {
