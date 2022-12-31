@@ -2,6 +2,7 @@ package configmanager
 
 import (
 	"fmt"
+	"github.com/abiosoft/colima/util"
 	"os"
 	"path/filepath"
 
@@ -68,11 +69,17 @@ func ValidateConfig(c config.Config) error {
 		return fmt.Errorf("invalid networkDriver: '%s'", c.Network.Driver)
 	}
 
-	validMountTypes := map[string]bool{"9p": true, "sshfs": true, "virtiofs": true}
+	validMountTypes := map[string]bool{"9p": true, "sshfs": true}
+	if util.MacOS13OrNewer() {
+		validMountTypes["virtiofs"] = true
+	}
 	if _, ok := validMountTypes[c.MountType]; !ok {
 		return fmt.Errorf("invalid mountType: '%s'", c.MountType)
 	}
-	validVMTypes := map[string]bool{"qemu": true, "vz": true}
+	validVMTypes := map[string]bool{"qemu": true}
+	if util.MacOS13OrNewer() {
+		validVMTypes["vz"] = true
+	}
 	if _, ok := validVMTypes[c.VMType]; !ok {
 		return fmt.Errorf("invalid vmType: '%s'", c.VMType)
 	}
