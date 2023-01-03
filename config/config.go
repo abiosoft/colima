@@ -79,8 +79,9 @@ type Config struct {
 	Network      Network           `yaml:"network,omitempty"`
 	Env          map[string]string `yaml:"env,omitempty"` // environment variables
 
-	// VM VMType
-	VMType string `yaml:"vmType,omitempty"`
+	// VM
+	VMType    string `yaml:"vmType,omitempty"`
+	VZRosetta bool   `yaml:"rosetta,omitempty"`
 
 	// volume mounts
 	Mounts    []Mount `yaml:"mounts,omitempty"`

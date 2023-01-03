@@ -35,12 +35,12 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		l.VMType = VZ
 
 		// Rosetta is only available on M1
-		if l.Arch == environment.AARCH64 {
+		if conf.VZRosetta && util.MacOS13OrNewerOnM1() {
 			if util.RosettaRunning() {
 				l.Rosetta.Enabled = true
 				l.Rosetta.BinFmt = true
 			} else {
-				logrus.Warnln("Rosetta2 is not installed, linux/amd64 containers will run much slower")
+				logrus.Warnln("Unable to enable Rosetta: Rosetta2 is not installed")
 				logrus.Warnln("Run 'softwareupdate --install-rosetta' to install Rosetta2")
 			}
 		}
