@@ -31,6 +31,11 @@ func MacOS() bool {
 }
 
 // MacOS13OrNewer returns if the current OS is macOS 13 or newer.
+func MacOS13OrNewerOnM1() bool {
+	return runtime.GOARCH == "arm64" && MacOS13OrNewer()
+}
+
+// MacOS13OrNewer returns if the current OS is macOS 13 or newer.
 func MacOS13OrNewer() bool {
 	if !MacOS() {
 		return false

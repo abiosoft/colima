@@ -146,6 +146,9 @@ func init() {
 	}
 	if util.MacOS13OrNewer() {
 		startCmd.Flags().StringVarP(&startCmdArgs.VMType, "vm-type", "t", defaultVMType, "virtual machine type ("+types+")")
+		if util.MacOS13OrNewerOnM1() {
+			startCmd.Flags().BoolVar(&startCmdArgs.VZRosetta, "vz-rosetta", false, "enable Rosetta for amd64 emulation")
+		}
 	}
 
 	// config
@@ -221,7 +224,10 @@ func mountsFromFlag(mounts []string) []config.Mount {
 }
 
 func setDefaults(cmd *cobra.Command) {
-	startCmdArgs.VMType = "qemu"
+	if startCmdArgs.VMType == "" {
+		startCmdArgs.VMType = "qemu"
+	}
+
 	if util.MacOS13OrNewer() {
 		// changing to vz implies changing mount type to virtiofs
 		if cmd.Flag("vm-type").Changed && startCmdArgs.VMType == "vz" && !cmd.Flag("mount-type").Changed {
@@ -362,6 +368,11 @@ func prepareConfig(cmd *cobra.Command) {
 		if util.MacOS13OrNewer() {
 			if !cmd.Flag("vm-type").Changed {
 				startCmdArgs.VMType = current.VMType
+			}
+		}
+		if util.MacOS13OrNewerOnM1() {
+			if !cmd.Flag("vz-rosetta").Changed {
+				startCmdArgs.VZRosetta = current.VZRosetta
 			}
 		}
 	}
