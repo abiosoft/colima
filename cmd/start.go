@@ -44,6 +44,10 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 	RunE: func(cmd *cobra.Command, args []string) error {
 		app := newApp()
 		conf := startCmdArgs.Config
+		err := configmanager.ValidateConfig(conf)
+		if err != nil {
+			return err
+		}
 
 		if !startCmdArgs.Flags.Edit {
 			if app.Active() {
@@ -54,7 +58,7 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 		}
 
 		// edit flag is specified
-		err := editConfigFile()
+		err = editConfigFile()
 		if err != nil {
 			return err
 		}
@@ -217,6 +221,7 @@ func mountsFromFlag(mounts []string) []config.Mount {
 }
 
 func setDefaults(cmd *cobra.Command) {
+	startCmdArgs.VMType = "qemu"
 	if util.MacOS13OrNewer() {
 		// changing to vz implies changing mount type to virtiofs
 		if cmd.Flag("vm-type").Changed && startCmdArgs.VMType == "vz" && !cmd.Flag("mount-type").Changed {

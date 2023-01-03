@@ -14,6 +14,13 @@ on:
       - "**/*.md"
       - "**/*.nix"
       - "**/*.lock"
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: 'Debug with tmate set "debug_enabled"'
+        required: false
+        default: "false"
+
 jobs:
   kubernetes-docker:
     runs-on: macos-12
@@ -31,6 +38,13 @@ jobs:
 
       - name: Build and Install
         run: make && sudo make install
+
+      - name: tmate debugging session
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
 
       - name: Start Colima
         run: colima start --runtime docker --kubernetes
@@ -61,6 +75,13 @@ jobs:
       - name: Build and Install
         run: make && sudo make install
 
+      - name: tmate debugging session
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
+
       - name: Start
         run: colima start --runtime containerd --kubernetes
 
@@ -89,6 +110,13 @@ jobs:
 
       - name: Build and Install
         run: make && sudo make install
+
+      - name: tmate debugging session
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
 
       - name: Start Colima
         run: colima start --runtime docker
@@ -140,6 +168,13 @@ jobs:
       - name: Build and Install
         run: make && sudo make install
 
+      - name: tmate debugging session
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
+
       - name: Start Colima
         run: colima start --runtime docker --arch aarch64
 
@@ -190,6 +225,13 @@ jobs:
       - name: Build and Install
         run: make && sudo make install
 
+      - name: tmate debugging session
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
+
       - name: Start Colima
         run: colima start --runtime containerd
 
@@ -236,6 +278,13 @@ jobs:
 
       - name: Build and Install
         run: make && sudo make install
+
+      - name: tmate debugging session
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
 
       - name: Start Colima
         run: colima start --runtime containerd --arch aarch64

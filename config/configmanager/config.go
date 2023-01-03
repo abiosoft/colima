@@ -2,6 +2,7 @@ package configmanager
 
 import (
 	"fmt"
+	"github.com/abiosoft/colima/util"
 	"os"
 	"path/filepath"
 
@@ -50,7 +51,40 @@ func LoadFrom(file string) (config.Config, error) {
 	if err != nil {
 		return c, fmt.Errorf("could not load config from file: %w", err)
 	}
+
+	err = ValidateConfig(c)
+	if err != nil {
+		return c, err
+	}
 	return c, nil
+}
+
+// ValidateConfig validates config before we use it
+func ValidateConfig(c config.Config) error {
+
+	// cpuType validation dependent on qemu; harder to do here
+
+	validnetworkDrivers := map[string]bool{"gvproxy": true, "slirp": true}
+	if _, ok := validnetworkDrivers[c.Network.Driver]; !ok {
+		return fmt.Errorf("invalid networkDriver: '%s'", c.Network.Driver)
+	}
+
+	validMountTypes := map[string]bool{"9p": true, "sshfs": true}
+	if util.MacOS13OrNewer() {
+		validMountTypes["virtiofs"] = true
+	}
+	if _, ok := validMountTypes[c.MountType]; !ok {
+		return fmt.Errorf("invalid mountType: '%s'", c.MountType)
+	}
+	validVMTypes := map[string]bool{"qemu": true}
+	if util.MacOS13OrNewer() {
+		validVMTypes["vz"] = true
+	}
+	if _, ok := validVMTypes[c.VMType]; !ok {
+		return fmt.Errorf("invalid vmType: '%s'", c.VMType)
+	}
+
+	return nil
 }
 
 // Load loads the config.
