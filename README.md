@@ -128,6 +128,12 @@ Or by editing the config file with `colima start --edit`.
   colima start --cpu 4 --memory 8
   ```
 
+- create VM with Rosetta 2 emulation (for MacOS Ventura)
+
+  ```
+  colima start --arch aarch64 --vm-type=vz --vz-rosetta
+  ```
+
 ## Project Goal
 
 To provide container runtimes on macOS with minimal setup.
