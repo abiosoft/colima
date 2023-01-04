@@ -44,10 +44,6 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 	RunE: func(cmd *cobra.Command, args []string) error {
 		app := newApp()
 		conf := startCmdArgs.Config
-		err := configmanager.ValidateConfig(conf)
-		if err != nil {
-			return err
-		}
 
 		if !startCmdArgs.Flags.Edit {
 			if app.Active() {
@@ -58,7 +54,7 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 		}
 
 		// edit flag is specified
-		err = editConfigFile()
+		err := editConfigFile()
 		if err != nil {
 			return err
 		}
@@ -66,6 +62,11 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 		conf, err = configmanager.Load()
 		if err != nil {
 			return fmt.Errorf("error opening config file: %w", err)
+		}
+
+		// validate config
+		if err := configmanager.ValidateConfig(conf); err != nil {
+			return fmt.Errorf("error in config file: %w", err)
 		}
 
 		if app.Active() {
@@ -84,6 +85,11 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		// combine args and current config file(if any)
 		prepareConfig(cmd)
+
+		// validate config
+		if err := configmanager.ValidateConfig(startCmdArgs.Config); err != nil {
+			return fmt.Errorf("error in config: %w", err)
+		}
 
 		// persist in preparing of application start
 		if err := configmanager.Save(startCmdArgs.Config); err != nil {
@@ -225,7 +231,11 @@ func mountsFromFlag(mounts []string) []config.Mount {
 
 func setDefaults(cmd *cobra.Command) {
 	if startCmdArgs.VMType == "" {
-		startCmdArgs.VMType = "qemu"
+		startCmdArgs.VMType = defaultVMType
+	}
+
+	if startCmdArgs.Network.Driver == "" {
+		startCmdArgs.Network.Driver = defaultNetworkDriver
 	}
 
 	if util.MacOS13OrNewer() {
