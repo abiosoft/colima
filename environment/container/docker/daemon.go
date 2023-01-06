@@ -24,6 +24,11 @@ func (d dockerRuntime) createDaemonFile(conf map[string]any) error {
 		conf["exec-opts"] = append(opts, "native.cgroupdriver=cgroupfs")
 	}
 
+	// set host-gateway ip to loopback interface (if not set by user)
+	if _, ok := conf["host-gateway"]; !ok {
+		conf["host-gateway-ip"] = "192.168.5.2"
+	}
+
 	b, err := json.MarshalIndent(conf, "", "  ")
 	if err != nil {
 		return fmt.Errorf("error marshaling daemon.json: %w", err)
