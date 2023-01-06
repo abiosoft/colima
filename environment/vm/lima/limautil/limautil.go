@@ -200,17 +200,11 @@ func getInstance(profileID string) (InstanceInfo, error) {
 	if err := cmd.Run(); err != nil {
 		return i, fmt.Errorf("error retrieving instance: %w", err)
 	}
-
-	var resp []InstanceInfo
-	if err := json.Unmarshal(buf.Bytes(), &resp); err != nil {
+	if err := json.Unmarshal(buf.Bytes(), &i); err != nil {
 		return i, fmt.Errorf("error retrieving instance: %w", err)
 	}
 
-	if len(resp) == 0 {
-		return i, fmt.Errorf("error retrieving instance: no instance found")
-	}
-
-	return resp[0], nil
+	return i, nil
 }
 
 // Instances returns Lima instances created by colima.
@@ -225,31 +219,34 @@ func Instances() ([]InstanceInfo, error) {
 	}
 
 	var instances []InstanceInfo
-	if err := json.Unmarshal(buf.Bytes(), &instances); err != nil {
-		return nil, fmt.Errorf("error retrieving instances: %w", err)
-	}
+	scanner := bufio.NewScanner(&buf)
+	for scanner.Scan() {
+		var i InstanceInfo
+		line := scanner.Bytes()
+		if err := json.Unmarshal(line, &i); err != nil {
+			return nil, fmt.Errorf("error retrieving instances: %w", err)
+		}
 
-	for i, inst := range instances {
 		// limit to colima instances
-		if !strings.HasPrefix(inst.Name, "colima") {
+		if !strings.HasPrefix(i.Name, "colima") {
 			continue
 		}
 
-		if inst.Running() {
-			if len(inst.Network) > 0 && inst.Network[0].Interface != "" {
-				inst.IPAddress = getIPAddress(inst.Name, inst.Network[0].Interface)
+		if i.Running() {
+			if len(i.Network) > 0 && i.Network[0].Interface != "" {
+				i.IPAddress = getIPAddress(i.Name, i.Network[0].Interface)
 			}
-			conf, _ := inst.Config()
-			inst.Runtime = getRuntime(conf)
+			conf, _ := i.Config()
+			i.Runtime = getRuntime(conf)
 		}
 
 		// rename to local friendly names
-		inst.Name = config.Profile(inst.Name).ShortName
+		i.Name = config.Profile(i.Name).ShortName
 
 		// network is low level, remove
-		inst.Network = nil
+		i.Network = nil
 
-		instances[i] = inst
+		instances = append(instances, i)
 	}
 
 	return instances, nil
