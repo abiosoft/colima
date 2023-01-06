@@ -2,12 +2,12 @@ package configmanager
 
 import (
 	"fmt"
-	"github.com/abiosoft/colima/util"
 	"os"
 	"path/filepath"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/yamlutil"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
@@ -52,21 +52,16 @@ func LoadFrom(file string) (config.Config, error) {
 		return c, fmt.Errorf("could not load config from file: %w", err)
 	}
 
-	err = ValidateConfig(c)
-	if err != nil {
-		return c, err
-	}
 	return c, nil
 }
 
 // ValidateConfig validates config before we use it
 func ValidateConfig(c config.Config) error {
-
-	// cpuType validation dependent on qemu; harder to do here
-
-	validnetworkDrivers := map[string]bool{"gvproxy": true, "slirp": true}
-	if _, ok := validnetworkDrivers[c.Network.Driver]; !ok {
-		return fmt.Errorf("invalid networkDriver: '%s'", c.Network.Driver)
+	if util.MacOS() {
+		validnetworkDrivers := map[string]bool{"gvproxy": true, "slirp": true}
+		if _, ok := validnetworkDrivers[c.Network.Driver]; !ok {
+			return fmt.Errorf("invalid networkDriver: '%s'", c.Network.Driver)
+		}
 	}
 
 	validMountTypes := map[string]bool{"9p": true, "sshfs": true}
