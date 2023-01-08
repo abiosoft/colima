@@ -31,7 +31,7 @@ type App interface {
 	Stop(force bool) error
 	Delete() error
 	SSH(layer bool, args ...string) error
-	Status() error
+	Status(extended bool) error
 	Version() error
 	Runtime() (string, error)
 	Kubernetes() (environment.Container, error)
@@ -302,7 +302,7 @@ func (c colimaApp) SSH(layer bool, args ...string) error {
 	return cli.CommandInteractive("ssh", args...).Run()
 }
 
-func (c colimaApp) Status(full bool) error {
+func (c colimaApp) Status(extended bool) error {
 	ctx := context.Background()
 	if !c.guest.Running(ctx) {
 		return fmt.Errorf("%s is not running", config.CurrentProfile().DisplayName)
@@ -341,11 +341,13 @@ func (c colimaApp) Status(full bool) error {
 		log.Println("kubernetes: enabled")
 	}
 
-	// instance details
-	if inst, err := limautil.Instance(); err == nil {
-		log.Println("cpu:", inst.CPU)
-		log.Println("mem:", units.BytesSize(float64(inst.Memory)))
-		log.Println("disk: ", units.BytesSize(float64(inst.Disk)))
+	// additional instance details
+	if extended {
+		if inst, err := limautil.Instance(); err == nil {
+			log.Println("cpu:", inst.CPU)
+			log.Println("mem:", units.BytesSize(float64(inst.Memory)))
+			log.Println("disk:", units.BytesSize(float64(inst.Disk)))
+		}
 	}
 
 	return nil
