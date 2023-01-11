@@ -341,8 +341,10 @@ func (c colimaApp) Status(extended bool) error {
 		log.Println("kubernetes: enabled")
 	}
 
-	// additional instance details
+	// additional details
 	if extended {
+		log.Println("networkDriver:", conf.Network.Driver)
+
 		if inst, err := limautil.Instance(); err == nil {
 			log.Println("cpu:", inst.CPU)
 			log.Println("mem:", units.BytesSize(float64(inst.Memory)))

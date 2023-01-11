@@ -23,5 +23,5 @@ var statusCmd = &cobra.Command{
 func init() {
 	root.Cmd().AddCommand(statusCmd)
 
-	statusCmd.Flags().BoolVarP(&statusCmdArgs.extended, "extended", "e", false, "include additional instance details")
+	statusCmd.Flags().BoolVarP(&statusCmdArgs.extended, "extended", "e", false, "include additional details")
 }
