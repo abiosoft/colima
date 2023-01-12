@@ -111,7 +111,15 @@ The VM can be customized either by passing additional flags to `colima start`.
 e.g. `--cpu`, `--memory`, `--disk`, `--runtime`.
 Or by editing the config file with `colima start --edit`.
 
-**NOTE**: disk size cannot be changed after the VM is created.
+Under vm-type qemu disk size can be adjusted using the `qemu-img` utility
+
+```
+qemu-img resize ~/.lima/colima/diffdisk +10G
+```
+
+Make sure to restart colima.
+
+**NOTE**: disk size cannot be changed with vm-type vz once the VM is created.
 
 #### Customization Examples
 
