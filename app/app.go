@@ -21,6 +21,7 @@ import (
 	"github.com/abiosoft/colima/environment/vm/lima"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/util"
+	"github.com/docker/go-units"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -30,7 +31,7 @@ type App interface {
 	Stop(force bool) error
 	Delete() error
 	SSH(layer bool, args ...string) error
-	Status() error
+	Status(extended bool) error
 	Version() error
 	Runtime() (string, error)
 	Kubernetes() (environment.Container, error)
@@ -301,7 +302,7 @@ func (c colimaApp) SSH(layer bool, args ...string) error {
 	return cli.CommandInteractive("ssh", args...).Run()
 }
 
-func (c colimaApp) Status() error {
+func (c colimaApp) Status(extended bool) error {
 	ctx := context.Background()
 	if !c.guest.Running(ctx) {
 		return fmt.Errorf("%s is not running", config.CurrentProfile().DisplayName)
@@ -338,6 +339,17 @@ func (c colimaApp) Status() error {
 	// kubernetes
 	if k, err := c.Kubernetes(); err == nil && k.Running(ctx) {
 		log.Println("kubernetes: enabled")
+	}
+
+	// additional details
+	if extended {
+		log.Println("networkDriver:", conf.Network.Driver)
+
+		if inst, err := limautil.Instance(); err == nil {
+			log.Println("cpu:", inst.CPU)
+			log.Println("mem:", units.BytesSize(float64(inst.Memory)))
+			log.Println("disk:", units.BytesSize(float64(inst.Disk)))
+		}
 	}
 
 	return nil

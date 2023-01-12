@@ -5,6 +5,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var statusCmdArgs struct {
+	extended bool
+}
+
 // statusCmd represents the status command
 var statusCmd = &cobra.Command{
 	Use:   "status [profile]",
@@ -12,10 +16,12 @@ var statusCmd = &cobra.Command{
 	Long:  `Show the status of Colima`,
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return newApp().Status()
+		return newApp().Status(statusCmdArgs.extended)
 	},
 }
 
 func init() {
 	root.Cmd().AddCommand(statusCmd)
+
+	statusCmd.Flags().BoolVarP(&statusCmdArgs.extended, "extended", "e", false, "include additional details")
 }
