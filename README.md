@@ -117,7 +117,7 @@ Under vm-type qemu disk size can be adjusted using the `qemu-img` utility
 qemu-img resize ~/.lima/colima/diffdisk +10G
 ```
 
-Make sure to restart colima.
+Disk size will be resized on the VM next boot if it was created with lima 0.14+.
 
 **NOTE**: disk size cannot be changed with vm-type vz once the VM is created.
 
