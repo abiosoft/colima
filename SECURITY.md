@@ -8,7 +8,7 @@ We will ensure that your finding gets passed along to the appropriate maintainer
 
 ## Reporting Security Issues
 
-If you believe you have found a security vulnerability in any GitHub-owned repository, please report it to us through coordinated disclosure.
+If you believe you have found a security vulnerability in this repository, please report it to us through coordinated disclosure.
 
 **Please do not report security vulnerabilities through public GitHub issues, discussions, or pull requests.**
 
