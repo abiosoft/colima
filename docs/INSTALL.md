@@ -36,6 +36,18 @@ Or using solely in a `nix-shell`
 nix-shell -p colima
 ```
 
+## Arch
+
+Install dependencies
+```
+sudo pacman -S qemu-base go docker
+```
+Install Lima and Colima from Aur
+```
+yay -S lima-bin colima-bin
+```
+
+
 ## Binary
 
 Binaries are available with every release on the [releases page](https://github.com/abiosoft/colima/releases).
