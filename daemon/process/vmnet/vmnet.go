@@ -37,7 +37,7 @@ func (*vmnetProcess) Alive(ctx context.Context) error {
 	socketFile := info.Socket.File()
 
 	if _, err := os.Stat(pidFile); err == nil {
-		cmd := exec.CommandContext(ctx, "sudo", "pkill", "-0", "-F", pidFile)
+		cmd := exec.CommandContext(ctx, "sudo", "/usr/bin/pkill", "-0", "-F", pidFile)
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("error checking vmnet process: %w", err)
 		}
@@ -117,7 +117,7 @@ func stop(pidFile string) error {
 	// rootfully kill the vmnet process.
 	// process is only assumed alive if the pidfile exists
 	if _, err := os.Stat(pidFile); err == nil {
-		if err := cli.CommandInteractive("sudo", "pkill", "-F", pidFile).Run(); err != nil {
+		if err := cli.CommandInteractive("sudo", "/usr/bin/pkill", "-F", pidFile).Run(); err != nil {
 			return fmt.Errorf("error killing vmnet process: %w", err)
 		}
 	}

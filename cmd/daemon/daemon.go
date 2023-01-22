@@ -46,7 +46,7 @@ func daemonize() (ctx *godaemon.Context, child bool, err error) {
 
 	logrus.Info("- - - - - - - - - - - - - - -")
 	logrus.Info("daemon started by colima")
-	logrus.Infof("Run `pkill -F %s` to kill the daemon", info.PidFile)
+	logrus.Infof("Run `/usr/bin/pkill -F %s` to kill the daemon", info.PidFile)
 
 	return ctx, true, nil
 }
@@ -88,7 +88,7 @@ func stop(ctx context.Context) error {
 
 	info := Info()
 
-	if err := cli.CommandInteractive("pkill", "-F", info.PidFile).Run(); err != nil {
+	if err := cli.CommandInteractive("/usr/bin/pkill", "-F", info.PidFile).Run(); err != nil {
 		return fmt.Errorf("error sending sigterm to daemon: %w", err)
 	}
 
