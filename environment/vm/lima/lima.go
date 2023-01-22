@@ -295,7 +295,7 @@ func (l limaVM) Stop(ctx context.Context, force bool) error {
 
 	if util.MacOS() {
 		a.Retry("", time.Second*1, 10, func(retryCount int) error {
-			return l.daemon.Stop(ctx)
+			return cli.ErrNonFatal(l.daemon.Stop(ctx))
 		})
 	}
 
