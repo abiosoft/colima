@@ -119,7 +119,7 @@ func (a ActiveCommandChain) Exec() error {
 			if a.lastStage == "" {
 				a.log.Warnln(err)
 			} else {
-				a.log.Warnln("error at '%s': %w", a.lastStage, err)
+				a.log.Warnln(fmt.Errorf("error at '%s': %w", a.lastStage, err))
 			}
 			continue
 		}
