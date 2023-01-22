@@ -12,6 +12,20 @@ import (
 // CtxKeyQuiet is the context key to mute the chain.
 var CtxKeyQuiet = struct{ quiet bool }{quiet: true}
 
+// errNonFatal is a non fatal error
+type errNonFatal struct {
+	err error
+}
+
+// Error implements error
+func (e errNonFatal) Error() string { return e.err.Error() }
+
+// ErrNonFatal creates a non-fatal error for a command chain.
+// A warning would be printed instead of terminating the chain.
+func ErrNonFatal(err error) error {
+	return errNonFatal{err}
+}
+
 // New creates a new runner instance.
 func New(name string) CommandChain {
 	return &namedCommandChain{
@@ -94,11 +108,23 @@ func (a ActiveCommandChain) Exec() error {
 			continue
 		}
 
+		// success
 		err := f.f()
 		if err == nil {
 			continue
 		}
 
+		// warning
+		if _, ok := err.(errNonFatal); ok {
+			if a.lastStage == "" {
+				a.log.Warnln(err)
+			} else {
+				a.log.Warnln(fmt.Errorf("error at '%s': %w", a.lastStage, err))
+			}
+			continue
+		}
+
+		// error
 		if a.lastStage == "" {
 			return err
 		}

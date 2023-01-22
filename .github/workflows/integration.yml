@@ -179,7 +179,7 @@ jobs:
         run: colima start --runtime docker --arch aarch64
 
       - name: Delay
-        run: sleep 5
+        run: sleep 10
 
       - name: Validate Docker
         run: docker ps && docker info
@@ -290,7 +290,7 @@ jobs:
         run: colima start --runtime containerd --arch aarch64
 
       - name: Delay
-        run: sleep 5
+        run: sleep 10
 
       - name: Validate Containerd
         run: colima nerdctl ps && colima nerdctl info
