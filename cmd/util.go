@@ -96,6 +96,8 @@ func launchEditor(editor string, file string) error {
 	switch editor {
 	case "code", "code-insiders", "code-oss", "codium", "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code":
 		editor = strconv.Quote(editor) + " --wait --new-window"
+	case "mate", "/Applications/TextMate 2.app/Contents/MacOS/mate", "/Applications/TextMate 2.app/Contents/MacOS/TextMate":
+		editor = strconv.Quote(editor) + " --wait"
 	}
 
 	return cli.CommandInteractive("sh", "-c", editor+" "+file).Run()
