@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"time"
+
 	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config/configmanager"
 	"github.com/spf13/cobra"
@@ -22,10 +24,13 @@ should return it back to its previous state.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		app := newApp()
 
-		stopErr := app.Stop(restartCmdArgs.force)
-		if stopErr != nil {
-			return stopErr
+		err := app.Stop(restartCmdArgs.force)
+		if err != nil {
+			return err
 		}
+
+		// delay a bit before starting
+		time.Sleep(time.Second * 3)
 
 		config, err := configmanager.Load()
 		if err != nil {

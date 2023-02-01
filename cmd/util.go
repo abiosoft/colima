@@ -92,7 +92,7 @@ func launchEditor(editor string, file string) error {
 		return fmt.Errorf("no editor found in $PATH, kindly set $EDITOR environment variable and try again")
 	}
 
-	// vscode needs the wait flag, add it if the user did not.
+	// some editors need the wait flag, let us add it if the user has not.
 	switch editor {
 	case "code", "code-insiders", "code-oss", "codium", "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code":
 		editor = strconv.Quote(editor) + " --wait --new-window"
