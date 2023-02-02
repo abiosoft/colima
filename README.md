@@ -134,6 +134,15 @@ Or by editing the config file with `colima start --edit`.
   colima start --arch aarch64 --vm-type=vz --vz-rosetta
   ```
 
+- set the mount-type to `9p` (defaults to `virtiofs` on MacOS Ventura)
+
+  ```
+  colima delete # reset
+  colima start --mount-type 9p
+  ```
+
+  If you are experiencing issues with volume mounting directories in MacOS Ventura (13.x) this may help, by resetting the mount type back to its default.
+
 ## Project Goal
 
 To provide container runtimes on macOS with minimal setup.
