@@ -73,8 +73,10 @@ type InstanceInfo struct {
 	Runtime   string `json:"runtime,omitempty"`
 }
 
+// Running checks if the instance is running.
 func (i InstanceInfo) Running() bool { return i.Status == limaStatusRunning }
 
+// Config returns the current Colima config
 func (i InstanceInfo) Config() (config.Config, error) {
 	return configmanager.LoadFrom(ColimaStateFile(i.Name))
 }
@@ -200,10 +202,14 @@ func getInstance(profileID string) (InstanceInfo, error) {
 	if err := cmd.Run(); err != nil {
 		return i, fmt.Errorf("error retrieving instance: %w", err)
 	}
+
+	if buf.Len() == 0 {
+		return i, fmt.Errorf("instance '%s' does not exist", config.Profile(profileID).DisplayName)
+	}
+
 	if err := json.Unmarshal(buf.Bytes(), &i); err != nil {
 		return i, fmt.Errorf("error retrieving instance: %w", err)
 	}
-
 	return i, nil
 }
 
