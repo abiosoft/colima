@@ -77,7 +77,7 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 				return fmt.Errorf("error stopping :%w", err)
 			}
 			// pause before startup to prevent race condition
-			time.Sleep(time.Second * 5)
+			time.Sleep(time.Second * 3)
 		}
 
 		return app.Start(conf)

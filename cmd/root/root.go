@@ -20,9 +20,17 @@ var rootCmd = &cobra.Command{
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 
 		switch cmd.Name() {
+
 		// special case handling for commands directly interacting with the VM
-		// start, stop, delete, status, version, ssh-config
-		case "start", "stop", "delete", "status", "version", "ssh-config":
+		// start, stop, restart, delete, status, version, ssh-config
+		case "start",
+			"stop",
+			"restart",
+			"delete",
+			"status",
+			"version",
+			"ssh-config":
+
 			// if an arg is passed, assume it to be the profile (provided --profile is unset)
 			// i.e. colima start docker == colima start --profile=docker
 			if len(args) > 0 && !cmd.Flag("profile").Changed {
