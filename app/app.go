@@ -295,7 +295,7 @@ func (c colimaApp) SSH(layer bool, args ...string) error {
 	if len(args) > 0 {
 		args = append([]string{"-q", "-t", resp.IPAddress, "--"}, args...)
 	} else if workDir != "" {
-		args = []string{"-q", "-t", resp.IPAddress, "--", "cd " + workDir + " 2> /dev/null; bash --login"}
+		args = []string{"-q", "-t", resp.IPAddress, "--", "cd " + workDir + " 2> /dev/null; \"$SHELL\" --login"}
 	}
 
 	args = append(util.ShellSplit(cmdArgs), args...)
