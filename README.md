@@ -70,6 +70,12 @@ Or use a config file
 colima start --edit
 ```
 
+Some tools like [skaffold](https://skaffold.dev/docs/environment/local-cluster/) depend on the DOCKER_HOST env variable to be set.
+
+```
+export DOCKER_HOST="unix://$HOME/.colima/docker.sock"
+```
+
 ## Runtimes
 
 On initial startup, Colima initiates with a user specified runtime that defaults to Docker.
