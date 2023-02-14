@@ -44,7 +44,7 @@ Colima is basically a higher level usage of Lima and utilises Lima to provide Do
 
 ## Are M1 macs supported?
 
-Colima supports and works on both Intel and M1 macs.
+Colima supports and works on both Intel and M1 macs. A proper arch should be set in the [config](#setting-the-default-config).
 
 Feedbacks would be appreciated.
 
