@@ -301,7 +301,7 @@ This is the case when the output of `colima list` shows a broken status. This ca
 ```
 colima list
 PROFILE    STATUS     ARCH       CPUS    MEMORY    DISK     RUNTIME    ADDRESS
-default    Broken    aarch64    2       2GiB      60GiB
+default    Broken     aarch64    2       2GiB      60GiB
 ```
 This can be fixed by forcefully stopping Colima. The state will be changed to `Stopped` and it should start up normally afterwards.
 
