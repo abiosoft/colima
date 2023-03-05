@@ -257,6 +257,9 @@ func (l *limaVM) resume(ctx context.Context, conf config.Config) error {
 	})
 
 	a.Add(func() (err error) {
+		// disk must be resized before starting
+		conf = l.syncDiskSize(ctx, conf)
+
 		l.limaConf, err = newConf(ctx, conf)
 		if err != nil {
 			return err
@@ -515,6 +518,53 @@ func includesHost(hostsFileContent, host string, ip net.IP) bool {
 		}
 	}
 	return false
+}
+
+func (l *limaVM) syncDiskSize(ctx context.Context, conf config.Config) config.Config {
+	log := l.Logger(ctx)
+	instance, err := limautil.InstanceConfig()
+	if err != nil {
+		// instance config missing, ignore
+		return conf
+	}
+
+	resized := func() bool {
+		if instance.Disk == conf.Disk {
+			// nothing to do
+			return false
+		}
+
+		if conf.VMType == VZ {
+			log.Warnln("dynamic disk resize not supported for VZ driver, ignoring...")
+			return false
+		}
+
+		size := conf.Disk - instance.Disk
+		if size < 0 {
+			log.Warnln("disk size cannot be reduced, ignoring...")
+			return false
+		}
+
+		sizeStr := fmt.Sprintf("%dG", conf.Disk)
+		args := []string{"qemu-img", "resize"}
+		disk := limautil.ColimaDiffDisk(config.CurrentProfile().ID)
+		args = append(args, disk, sizeStr)
+
+		// qemu-img resize /path/to/diffdisk +10G
+		if err := l.host.RunQuiet(args...); err != nil {
+			log.Warnln(fmt.Errorf("unable to resize disk: %w", err))
+			return false
+		}
+
+		log.Printf("resizing disk to %dGiB...", conf.Disk)
+		return true
+	}()
+
+	if !resized {
+		conf.Disk = instance.Disk
+	}
+
+	return conf
 }
 
 func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Config) {

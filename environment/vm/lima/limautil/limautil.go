@@ -350,3 +350,10 @@ const colimaStateFileName = "colima.yaml"
 func ColimaStateFile(profileID string) string {
 	return filepath.Join(LimaHome(), config.Profile(profileID).ID, colimaStateFileName)
 }
+
+const colimaDiffDisk = "diffdisk"
+
+// ColimaDiffDisk returns path to the diffdisk for the colima VM.
+func ColimaDiffDisk(profileID string) string {
+	return filepath.Join(LimaHome(), config.Profile(profileID).ID, colimaDiffDisk)
+}
