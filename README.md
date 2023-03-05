@@ -111,7 +111,7 @@ The VM can be customized either by passing additional flags to `colima start`.
 e.g. `--cpu`, `--memory`, `--disk`, `--runtime`.
 Or by editing the config file with `colima start --edit`.
 
-**NOTE**: ~~disk size cannot be changed after the VM is created.~~ From v0.6.0, disk size can be increased
+**NOTE**: ~~disk size cannot be changed after the VM is created.~~ From v0.5.3, disk size can be increased
 
 #### Customization Examples
 
@@ -128,7 +128,7 @@ Or by editing the config file with `colima start --edit`.
   colima start --cpu 4 --memory 8
   ```
 
-- create VM with Rosetta 2 emulation (for MacOS Ventura). Requires v0.6.0
+- create VM with Rosetta 2 emulation (for MacOS Ventura). Requires v0.5.3
 
   ```
   colima start --arch aarch64 --vm-type=vz --vz-rosetta
