@@ -263,7 +263,24 @@ func setDefaults(cmd *cobra.Command) {
 			}
 		}
 	}
+}
 
+func setConfigDefaults(conf *config.Config) {
+	// handle macOS virtualization.framework transition
+	if conf.VMType == "" {
+		conf.VMType = defaultVMType
+	}
+
+	if conf.MountType == "" {
+		conf.MountType = defaultMountTypeQEMU
+		if util.MacOS13OrNewer() && conf.VMType == "vz" {
+			conf.MountType = defaultMountTypeVZ
+		}
+	}
+
+	if conf.Network.Driver == "" {
+		conf.Network.Driver = defaultNetworkDriver
+	}
 }
 
 func prepareConfig(cmd *cobra.Command) {
@@ -288,12 +305,6 @@ func prepareConfig(cmd *cobra.Command) {
 	// set relevant missing default values
 	setDefaults(cmd)
 
-	// handle macOS virtualization.framework transition
-	{
-		if current.VMType == "" {
-			current.VMType = "qemu"
-		}
-	}
 	// if there is no existing settings
 	if current.Empty() {
 		// attempt template
@@ -304,6 +315,9 @@ func prepareConfig(cmd *cobra.Command) {
 		}
 		current = template
 	}
+
+	// set missing defaults in the current config
+	setConfigDefaults(&current)
 
 	// docker can only be set in config file
 	startCmdArgs.Docker = current.Docker
