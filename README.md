@@ -128,7 +128,7 @@ Or by editing the config file with `colima start --edit`.
   colima start --cpu 4 --memory 8
   ```
 
-- create VM with Rosetta 2 emulation (for MacOS Ventura). Requires v0.5.3
+- create VM with Rosetta 2 emulation. Requires v0.5.3 and  MacOS >= 13 (Ventura)
 
   ```
   colima start --arch aarch64 --vm-type=vz --vz-rosetta
