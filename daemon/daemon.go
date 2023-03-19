@@ -8,8 +8,10 @@ import (
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/daemon/process"
 	"github.com/abiosoft/colima/daemon/process/gvproxy"
+	"github.com/abiosoft/colima/daemon/process/inotify"
 	"github.com/abiosoft/colima/daemon/process/vmnet"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/fsutil"
 	"github.com/abiosoft/colima/util/osutil"
 )
@@ -92,6 +94,9 @@ func (l processManager) Start(ctx context.Context) error {
 	if opts.Vmnet {
 		args = append(args, "--vmnet")
 	}
+	if opts.INotify {
+		args = append(args, "--inotify")
+	}
 	if opts.GVProxy.Enabled {
 		args = append(args, "--gvproxy")
 		if len(opts.GVProxy.Hosts) > 0 {
@@ -102,10 +107,11 @@ func (l processManager) Start(ctx context.Context) error {
 	}
 
 	if cli.Settings.Verbose {
-		args = append(args, "--verbose")
+		args = append(args, "--very-verbose")
 	}
 
-	return l.host.RunQuiet(args...)
+	host := l.host.WithDir(util.HomeDir())
+	return host.RunQuiet(args...)
 }
 func (l processManager) Stop(ctx context.Context) error {
 	if s, err := l.Running(ctx); err != nil || !s.Running {
@@ -128,12 +134,12 @@ func optsFromCtx(ctx context.Context) struct {
 			Enabled bool
 			Hosts   map[string]string
 		}
-
 		INotify bool
 	}{}
 	opts.Vmnet, _ = ctx.Value(CtxKey(vmnet.Name)).(bool)
 	opts.GVProxy.Enabled, _ = ctx.Value(CtxKey(gvproxy.Name)).(bool)
 	opts.GVProxy.Hosts, _ = ctx.Value(CtxKey(gvproxy.CtxKeyHosts)).(map[string]string)
+	opts.INotify, _ = ctx.Value(CtxKey(inotify.Name)).(bool)
 
 	return opts
 }
@@ -147,6 +153,9 @@ func processesFromCtx(ctx context.Context) []process.Process {
 	}
 	if opts.GVProxy.Enabled {
 		processes = append(processes, gvproxy.New(opts.GVProxy.Hosts))
+	}
+	if opts.INotify {
+		processes = append(processes, inotify.New())
 	}
 
 	return processes

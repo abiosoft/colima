@@ -52,18 +52,21 @@ func (f *inotifyProcess) fetchContainerVolumes(ctx context.Context) error {
 			}
 		}
 
+		log.Tracef("found container volumes: %+v", resp)
+
 		// process and discard redundant volumes
 		vols := []string{}
 		{
 			shouldMount := func(child string) bool {
 				// ignore all invalid directories.
 				// i.e. directories not within the mounted VM directories
-				for _, parent := range f.vmVols {
+				for i, parent := range f.vmVols {
+					log.Tracef("%d: parent: %s, child: %s", i, parent, child)
 					if strings.HasPrefix(child, parent) {
-						return false
+						return true
 					}
 				}
-				return true
+				return false
 			}
 
 			for _, r := range resp {
@@ -111,7 +114,7 @@ func omitChildrenDirectories(dirs []string) []string {
 	var newVols []string
 
 	omitted := map[int]struct{}{}
-	for i := 0; i < len(dirs)-1; i++ {
+	for i := 0; i < len(dirs); i++ {
 		// if the index is ommitted, skip
 		if _, ok := omitted[i]; ok {
 			continue

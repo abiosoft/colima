@@ -8,8 +8,6 @@ import (
 
 	"github.com/abiosoft/colima/daemon/process"
 	"github.com/abiosoft/colima/environment"
-	"github.com/abiosoft/colima/environment/host"
-	"github.com/abiosoft/colima/environment/vm/lima"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/util"
 	"github.com/sirupsen/logrus"
@@ -20,11 +18,13 @@ const Name = "inotify"
 const watchInterval = time.Second * 2
 const volumesInterval = time.Second * 5
 
+var CtxKeyGuest = struct{ name string }{name: "inotify_guest"}
+
 // New returns inotify process.
 func New() process.Process {
 	return &inotifyProcess{
 		interval: watchInterval,
-		log:      *logrus.WithField("context", "inotify"),
+		log:      logrus.WithField("context", "inotify"),
 	}
 }
 
@@ -41,7 +41,7 @@ type inotifyProcess struct {
 	guest    environment.GuestActions
 	runtime  string
 
-	log logrus.Entry
+	log *logrus.Entry
 }
 
 // Alive implements process.Process
@@ -67,6 +67,12 @@ func (*inotifyProcess) Name() string {
 
 // Start implements process.Process
 func (f *inotifyProcess) Start(ctx context.Context) error {
+	guest, ok := ctx.Value(CtxKeyGuest).(environment.GuestActions)
+	if !ok {
+		return fmt.Errorf("environment.GuestActions missing in context")
+	}
+	f.guest = guest
+
 	log := f.log
 
 	log.Trace("waiting for Lima to start")
@@ -78,7 +84,6 @@ func (f *inotifyProcess) Start(ctx context.Context) error {
 		return fmt.Errorf("error retrieving config")
 	}
 	f.runtime = c.Runtime
-	f.guest = lima.New(host.New())
 
 	for _, mount := range c.MountsOrDefault() {
 		p, err := util.CleanPath(mount.Location)

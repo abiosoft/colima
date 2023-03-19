@@ -25,10 +25,10 @@ func (f *inotifyProcess) watchFiles(ctx context.Context) error {
 				return
 			case path := <-changed:
 				now := time.Now()
-				if now.Sub(last) < time.Millisecond*500 {
+				if now.Sub(last) < time.Second {
 					continue
 				}
-				last = time.Now()
+				last = now
 				log.Trace("syncing file notify for ", path)
 				if err := f.guest.Run("touch", path); err != nil {
 					log.Error(err)
@@ -43,7 +43,7 @@ func (f *inotifyProcess) watchFiles(ctx context.Context) error {
 		case <-ctx.Done():
 			err := ctx.Err()
 			if err != nil {
-				log.Tracef("error during watchfile: %w", err)
+				log.Trace(fmt.Errorf("error during watchfile: %w", err))
 			}
 			return err
 
@@ -59,7 +59,9 @@ func (f *inotifyProcess) watchFiles(ctx context.Context) error {
 				continue
 			}
 
-			doWatch(dirs, fileMap, changed)
+			if err := doWatch(dirs, fileMap, changed); err != nil {
+				log.Errorf("error during directory watch: %v", err)
+			}
 		}
 	}
 }
@@ -89,8 +91,10 @@ func doWatch(dirs []string, fileMap map[string]time.Time, changed chan<- string)
 			currentTime, ok := fileMap[path]
 			newTime := info.ModTime()
 
-			if ok && !currentTime.Equal(newTime) {
-				changed <- path
+			if ok && newTime.After(currentTime) {
+				go func(path string) {
+					changed <- path
+				}(path)
 			}
 
 			fileMap[path] = newTime

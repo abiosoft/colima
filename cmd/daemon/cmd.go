@@ -8,7 +8,10 @@ import (
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/daemon/process"
 	"github.com/abiosoft/colima/daemon/process/gvproxy"
+	"github.com/abiosoft/colima/daemon/process/inotify"
 	"github.com/abiosoft/colima/daemon/process/vmnet"
+	"github.com/abiosoft/colima/environment/host"
+	"github.com/abiosoft/colima/environment/vm/lima"
 	"github.com/spf13/cobra"
 )
 
@@ -34,6 +37,11 @@ var startCmd = &cobra.Command{
 		}
 		if daemonArgs.gvproxy.enabled {
 			processes = append(processes, gvproxy.New(daemonArgs.gvproxy.dnsHosts))
+		}
+		if daemonArgs.inotify {
+			processes = append(processes, inotify.New())
+			guest := lima.New(host.New())
+			ctx = context.WithValue(ctx, inotify.CtxKeyGuest, guest)
 		}
 
 		return start(ctx, processes)
