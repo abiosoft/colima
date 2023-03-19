@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 func (f *inotifyProcess) watchFiles(ctx context.Context) error {
@@ -29,8 +31,13 @@ func (f *inotifyProcess) watchFiles(ctx context.Context) error {
 					continue
 				}
 				last = now
-				log.Trace("syncing file notify for ", path)
-				if err := f.guest.Run("touch", path); err != nil {
+				log.Info("syncing file notify for ", path)
+
+				// construct date time in the format YYYY-MM-DD HH:MM:SS
+				// for busybox
+				t := now.Add(-5 * time.Second).Format("2006-01-02 15:04:05")
+				log.Info("setting path modtime to ", t)
+				if err := f.guest.Run("/bin/touch", "-d", t, path); err != nil {
 					log.Error(err)
 				}
 			}
@@ -93,6 +100,7 @@ func doWatch(dirs []string, fileMap map[string]time.Time, changed chan<- string)
 
 			if ok && newTime.After(currentTime) {
 				go func(path string) {
+					logrus.Tracef("changed file modTime %v->%v: %s", currentTime, newTime, path)
 					changed <- path
 				}(path)
 			}

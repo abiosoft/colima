@@ -102,7 +102,7 @@ func (f *inotifyProcess) waitForLima(ctx context.Context) {
 
 	// wait for Lima to finish starting
 	for {
-		log.Trace("waiting for Lima...")
+		log.Info("waiting for Lima...")
 
 		// 5 second interval
 		after := time.After(time.Second * 5)
@@ -113,7 +113,9 @@ func (f *inotifyProcess) waitForLima(ctx context.Context) {
 		case <-after:
 			i, err := limautil.Instance()
 			if err == nil && i.Running() {
-				return
+				if _, err := limautil.InstanceConfig(); err == nil {
+					return
+				}
 			}
 		}
 	}
