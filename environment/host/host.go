@@ -25,13 +25,26 @@ var _ environment.Host = (*hostEnv)(nil)
 
 type hostEnv struct {
 	env []string
+	dir string // working directory
+}
+
+func (h hostEnv) clone() hostEnv {
+	var newHost hostEnv
+	newHost.env = append(newHost.env, h.env...)
+	newHost.dir = h.dir
+	return newHost
 }
 
 func (h hostEnv) WithEnv(env ...string) environment.HostActions {
-	var newHost hostEnv
-	// use current and new env vars
-	newHost.env = append(newHost.env, h.env...)
+	newHost := h.clone()
+	// append new env vars
 	newHost.env = append(newHost.env, env...)
+	return newHost
+}
+
+func (h hostEnv) WithDir(dir string) environment.HostActions {
+	newHost := h.clone()
+	newHost.dir = dir
 	return newHost
 }
 
@@ -41,6 +54,9 @@ func (h hostEnv) Run(args ...string) error {
 	}
 	cmd := cli.Command(args[0], args[1:]...)
 	cmd.Env = append(os.Environ(), h.env...)
+	if h.dir != "" {
+		cmd.Dir = h.dir
+	}
 
 	lineHeight := 6
 	if cli.Settings.Verbose {
@@ -64,6 +80,9 @@ func (h hostEnv) RunQuiet(args ...string) error {
 	}
 	cmd := cli.Command(args[0], args[1:]...)
 	cmd.Env = append(os.Environ(), h.env...)
+	if h.dir != "" {
+		cmd.Dir = h.dir
+	}
 
 	var errBuf bytes.Buffer
 	cmd.Stdout = nil
@@ -84,6 +103,9 @@ func (h hostEnv) RunOutput(args ...string) (string, error) {
 
 	cmd := cli.Command(args[0], args[1:]...)
 	cmd.Env = append(os.Environ(), h.env...)
+	if h.dir != "" {
+		cmd.Dir = h.dir
+	}
 
 	var buf, errBuf bytes.Buffer
 	cmd.Stdout = &buf
@@ -113,6 +135,9 @@ func (h hostEnv) RunInteractive(args ...string) error {
 	}
 	cmd := cli.CommandInteractive(args[0], args[1:]...)
 	cmd.Env = append(os.Environ(), h.env...)
+	if h.dir != "" {
+		cmd.Dir = h.dir
+	}
 	return cmd.Run()
 }
 
@@ -122,6 +147,9 @@ func (h hostEnv) RunWith(stdin io.Reader, stdout io.Writer, args ...string) erro
 	}
 	cmd := cli.CommandInteractive(args[0], args[1:]...)
 	cmd.Env = append(os.Environ(), h.env...)
+	if h.dir != "" {
+		cmd.Dir = h.dir
+	}
 
 	cmd.Stdin = stdin
 	cmd.Stdout = stdout

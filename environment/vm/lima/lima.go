@@ -18,6 +18,7 @@ import (
 	"github.com/abiosoft/colima/config/configmanager"
 	"github.com/abiosoft/colima/daemon"
 	"github.com/abiosoft/colima/daemon/process/gvproxy"
+	"github.com/abiosoft/colima/daemon/process/inotify"
 	"github.com/abiosoft/colima/daemon/process/vmnet"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
@@ -89,6 +90,7 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 	}
 
 	ctxKeyVmnet := daemon.CtxKey(vmnet.Name)
+	ctxKeyInotify := daemon.CtxKey(inotify.Name)
 	ctxKeyGVProxy := daemon.CtxKey(gvproxy.Name)
 	ctxKeyGVProxyHosts := daemon.CtxKey(gvproxy.CtxKeyHosts)
 
@@ -106,6 +108,9 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 		}
 		if conf.Network.Address {
 			ctx = context.WithValue(ctx, ctxKeyVmnet, true)
+		}
+		if conf.MountINotify {
+			ctx = context.WithValue(ctx, ctxKeyInotify, true)
 		}
 		deps, root := l.daemon.Dependencies(ctx)
 		if deps.Installed() {

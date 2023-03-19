@@ -129,6 +129,10 @@ rosetta: false
 # Default: virtiofs (for vz), sshfs (for qemu)
 mountType: sshfs
 
+# Propagate inotify file events to the VM.
+# NOTE: this is experimental.
+mountInotify: false
+
 # The CPU type for the virtual machine (requires vmType `qemu`).
 # Options available for host emulation can be checked with: `qemu-system-$(arch) -cpu help`.
 # Instructions are also supported by appending to the cpu type e.g. "qemu64,+ssse3".

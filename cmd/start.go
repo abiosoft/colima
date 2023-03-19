@@ -164,6 +164,7 @@ func init() {
 	// mounts
 	startCmd.Flags().StringSliceVarP(&startCmdArgs.Flags.Mounts, "mount", "V", nil, "directories to mount, suffix ':w' for writable")
 	startCmd.Flags().StringVar(&startCmdArgs.MountType, "mount-type", defaultMountTypeQEMU, "volume driver for the mount ("+mounts+")")
+	startCmd.Flags().BoolVar(&startCmdArgs.MountINotify, "mount-inotify", false, "propagate inotify file events to the VM")
 
 	// ssh agent
 	startCmd.Flags().BoolVarP(&startCmdArgs.ForwardAgent, "ssh-agent", "s", false, "forward SSH agent to the VM")
@@ -358,6 +359,9 @@ func prepareConfig(cmd *cobra.Command) {
 	}
 	if !cmd.Flag("mount-type").Changed {
 		startCmdArgs.MountType = current.MountType
+	}
+	if !cmd.Flag("mount-inotify").Changed {
+		startCmdArgs.MountINotify = current.MountINotify
 	}
 	if !cmd.Flag("ssh-agent").Changed {
 		startCmdArgs.ForwardAgent = current.ForwardAgent

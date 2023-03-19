@@ -35,6 +35,9 @@ type HostActions interface {
 	// WithEnv creates a new instance based on the current instance
 	// with the specified environment variables.
 	WithEnv(env ...string) HostActions
+	// WithDir creates a new instance based on the current instance
+	// with the working directory set to dir.
+	WithDir(dir string) HostActions
 	// Env retrieves environment variable on the host.
 	Env(string) string
 }

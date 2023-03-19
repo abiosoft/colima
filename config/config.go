@@ -84,8 +84,9 @@ type Config struct {
 	VZRosetta bool   `yaml:"rosetta,omitempty"`
 
 	// volume mounts
-	Mounts    []Mount `yaml:"mounts,omitempty"`
-	MountType string  `yaml:"mountType,omitempty"`
+	Mounts       []Mount `yaml:"mounts,omitempty"`
+	MountType    string  `yaml:"mountType,omitempty"`
+	MountINotify bool    `yaml:"mountInotify,omitempty"`
 
 	// Runtime is one of docker, containerd.
 	Runtime         string `yaml:"runtime,omitempty"`

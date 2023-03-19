@@ -8,7 +8,10 @@ import (
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/daemon/process"
 	"github.com/abiosoft/colima/daemon/process/gvproxy"
+	"github.com/abiosoft/colima/daemon/process/inotify"
 	"github.com/abiosoft/colima/daemon/process/vmnet"
+	"github.com/abiosoft/colima/environment/host"
+	"github.com/abiosoft/colima/environment/vm/lima"
 	"github.com/spf13/cobra"
 )
 
@@ -34,6 +37,11 @@ var startCmd = &cobra.Command{
 		}
 		if daemonArgs.gvproxy.enabled {
 			processes = append(processes, gvproxy.New(daemonArgs.gvproxy.dnsHosts))
+		}
+		if daemonArgs.inotify {
+			processes = append(processes, inotify.New())
+			guest := lima.New(host.New())
+			ctx = context.WithValue(ctx, inotify.CtxKeyGuest, guest)
 		}
 
 		return start(ctx, processes)
@@ -75,7 +83,7 @@ var daemonArgs struct {
 		enabled  bool
 		dnsHosts map[string]string
 	}
-	fsnotify bool
+	inotify bool
 
 	verbose bool
 }
@@ -90,5 +98,5 @@ func init() {
 	startCmd.Flags().BoolVar(&daemonArgs.vmnet, "vmnet", false, "start vmnet")
 	startCmd.Flags().BoolVar(&daemonArgs.gvproxy.enabled, "gvproxy", false, "start gvproxy")
 	startCmd.Flags().StringToStringVar(&daemonArgs.gvproxy.dnsHosts, "gvproxy-hosts", nil, "start gvproxy")
-	startCmd.Flags().BoolVar(&daemonArgs.fsnotify, "fsnotify", false, "start fsnotify")
+	startCmd.Flags().BoolVar(&daemonArgs.inotify, "inotify", false, "start inotify")
 }
