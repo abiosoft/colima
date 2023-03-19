@@ -75,7 +75,7 @@ var daemonArgs struct {
 		enabled  bool
 		dnsHosts map[string]string
 	}
-	fsnotify bool
+	inotify bool
 
 	verbose bool
 }
@@ -90,5 +90,5 @@ func init() {
 	startCmd.Flags().BoolVar(&daemonArgs.vmnet, "vmnet", false, "start vmnet")
 	startCmd.Flags().BoolVar(&daemonArgs.gvproxy.enabled, "gvproxy", false, "start gvproxy")
 	startCmd.Flags().StringToStringVar(&daemonArgs.gvproxy.dnsHosts, "gvproxy-hosts", nil, "start gvproxy")
-	startCmd.Flags().BoolVar(&daemonArgs.fsnotify, "fsnotify", false, "start fsnotify")
+	startCmd.Flags().BoolVar(&daemonArgs.inotify, "inotify", false, "start inotify")
 }

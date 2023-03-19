@@ -1,4 +1,4 @@
-package fsnotify
+package inotify
 
 import (
 	"context"
@@ -15,22 +15,22 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const Name = "fsnotify"
+const Name = "inotify"
 
 const watchInterval = time.Second * 2
 const volumesInterval = time.Second * 5
 
-// New returns fsnotify process.
+// New returns inotify process.
 func New() process.Process {
-	return &fsnotifyProcess{
+	return &inotifyProcess{
 		interval: watchInterval,
-		log:      *logrus.WithField("context", "notify"),
+		log:      *logrus.WithField("context", "inotify"),
 	}
 }
 
-var _ process.Process = (*fsnotifyProcess)(nil)
+var _ process.Process = (*inotifyProcess)(nil)
 
-type fsnotifyProcess struct {
+type inotifyProcess struct {
 	alive         bool
 	containerVols []string
 	// will only be used for alive and containerVols
@@ -45,28 +45,28 @@ type fsnotifyProcess struct {
 }
 
 // Alive implements process.Process
-func (f *fsnotifyProcess) Alive(ctx context.Context) error {
+func (f *inotifyProcess) Alive(ctx context.Context) error {
 	f.Lock()
 	defer f.RUnlock()
 
 	if f.alive {
 		return nil
 	}
-	return fmt.Errorf("fsnotify not running")
+	return fmt.Errorf("inotify not running")
 }
 
 // Dependencies implements process.Process
-func (*fsnotifyProcess) Dependencies() (deps []process.Dependency, root bool) {
+func (*inotifyProcess) Dependencies() (deps []process.Dependency, root bool) {
 	return nil, false
 }
 
 // Name implements process.Process
-func (*fsnotifyProcess) Name() string {
+func (*inotifyProcess) Name() string {
 	return Name
 }
 
 // Start implements process.Process
-func (f *fsnotifyProcess) Start(ctx context.Context) error {
+func (f *inotifyProcess) Start(ctx context.Context) error {
 	log := f.log
 
 	log.Trace("waiting for Lima to start")
@@ -92,7 +92,7 @@ func (f *fsnotifyProcess) Start(ctx context.Context) error {
 }
 
 // waitForLima waits until lima starts and sets the directory to watch.
-func (f *fsnotifyProcess) waitForLima(ctx context.Context) {
+func (f *inotifyProcess) waitForLima(ctx context.Context) {
 	log := f.log
 
 	// wait for Lima to finish starting
@@ -114,7 +114,7 @@ func (f *fsnotifyProcess) waitForLima(ctx context.Context) {
 	}
 }
 
-func (f *fsnotifyProcess) watch(ctx context.Context) error {
+func (f *inotifyProcess) watch(ctx context.Context) error {
 	if err := f.fetchContainerVolumes(ctx); err != nil {
 		return fmt.Errorf("error fetching container volumes")
 	}

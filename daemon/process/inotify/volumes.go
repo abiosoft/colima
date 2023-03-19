@@ -1,4 +1,4 @@
-package fsnotify
+package inotify
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func (f *fsnotifyProcess) fetchContainerVolumes(ctx context.Context) error {
+func (f *inotifyProcess) fetchContainerVolumes(ctx context.Context) error {
 	log := f.log
 
 	if f.runtime == "" {

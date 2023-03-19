@@ -120,7 +120,7 @@ func optsFromCtx(ctx context.Context) struct {
 		Enabled bool
 		Hosts   map[string]string
 	}
-	FSNotify bool
+	INotify bool
 } {
 	var opts = struct {
 		Vmnet   bool
@@ -129,7 +129,7 @@ func optsFromCtx(ctx context.Context) struct {
 			Hosts   map[string]string
 		}
 
-		FSNotify bool
+		INotify bool
 	}{}
 	opts.Vmnet, _ = ctx.Value(CtxKey(vmnet.Name)).(bool)
 	opts.GVProxy.Enabled, _ = ctx.Value(CtxKey(gvproxy.Name)).(bool)

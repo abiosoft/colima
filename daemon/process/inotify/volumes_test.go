@@ -1,4 +1,4 @@
-package fsnotify
+package inotify
 
 import (
 	"reflect"

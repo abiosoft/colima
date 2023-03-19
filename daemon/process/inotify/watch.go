@@ -1,4 +1,4 @@
-package fsnotify
+package inotify
 
 import (
 	"context"
@@ -9,9 +9,9 @@ import (
 	"time"
 )
 
-func (f *fsnotifyProcess) watchFiles(ctx context.Context) error {
+func (f *inotifyProcess) watchFiles(ctx context.Context) error {
 	log := f.log
-	log.Trace("begin fsnotify watcher")
+	log.Trace("begin inotify watcher")
 
 	fileMap := map[string]time.Time{}
 	changed := make(chan string)
