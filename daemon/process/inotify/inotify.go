@@ -15,7 +15,7 @@ import (
 
 const Name = "inotify"
 
-const watchInterval = time.Second * 2
+const watchInterval = time.Second * 1
 const volumesInterval = time.Second * 5
 
 var CtxKeyGuest = struct{ name string }{name: "inotify_guest"}
@@ -75,9 +75,9 @@ func (f *inotifyProcess) Start(ctx context.Context) error {
 
 	log := f.log
 
-	log.Trace("waiting for Lima to start")
+	log.Info("waiting for VM to start")
 	f.waitForLima(ctx)
-	log.Trace("done waiting for Lima to start")
+	log.Info("VM started")
 
 	c, err := limautil.InstanceConfig()
 	if err != nil {
@@ -102,7 +102,7 @@ func (f *inotifyProcess) waitForLima(ctx context.Context) {
 
 	// wait for Lima to finish starting
 	for {
-		log.Info("waiting for Lima...")
+		log.Info("attempting to fetch config from Lima")
 
 		// 5 second interval
 		after := time.After(time.Second * 5)
@@ -123,7 +123,7 @@ func (f *inotifyProcess) waitForLima(ctx context.Context) {
 
 func (f *inotifyProcess) watch(ctx context.Context) error {
 	if err := f.fetchContainerVolumes(ctx); err != nil {
-		return fmt.Errorf("error fetching container volumes")
+		return fmt.Errorf("error fetching container volumes: %w", err)
 	}
 
 	return f.watchFiles(ctx)

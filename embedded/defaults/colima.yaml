@@ -130,6 +130,7 @@ rosetta: false
 mountType: sshfs
 
 # Propagate inotify file events to the VM.
+# NOTE: this is experimental.
 mountInotify: false
 
 # The CPU type for the virtual machine (requires vmType `qemu`).

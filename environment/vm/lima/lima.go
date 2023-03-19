@@ -109,7 +109,7 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 		if conf.Network.Address {
 			ctx = context.WithValue(ctx, ctxKeyVmnet, true)
 		}
-		if conf.INotify {
+		if conf.MountINotify {
 			ctx = context.WithValue(ctx, ctxKeyInotify, true)
 		}
 		deps, root := l.daemon.Dependencies(ctx)

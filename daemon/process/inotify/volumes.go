@@ -27,6 +27,10 @@ func (f *inotifyProcess) fetchContainerVolumes(ctx context.Context) error {
 			}
 			containers = strings.Fields(out)
 			if len(containers) == 0 {
+				f.Lock()
+				f.containerVols = []string{}
+				f.Unlock()
+
 				return nil
 			}
 		}
@@ -52,16 +56,13 @@ func (f *inotifyProcess) fetchContainerVolumes(ctx context.Context) error {
 			}
 		}
 
-		log.Tracef("found container volumes: %+v", resp)
-
 		// process and discard redundant volumes
 		vols := []string{}
 		{
 			shouldMount := func(child string) bool {
 				// ignore all invalid directories.
 				// i.e. directories not within the mounted VM directories
-				for i, parent := range f.vmVols {
-					log.Tracef("%d: parent: %s, child: %s", i, parent, child)
+				for _, parent := range f.vmVols {
 					if strings.HasPrefix(child, parent) {
 						return true
 					}

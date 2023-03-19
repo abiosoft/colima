@@ -23,6 +23,10 @@ func Test_omitChildrenDirectories(t *testing.T) {
 			args: []string{"/someone", "/user/colima/projects/myworks", "/user/colima/projects"},
 			want: []string{"/someone", "/user/colima/projects"},
 		},
+		{
+			args: []string{"/user/colima/projects"},
+			want: []string{"/user/colima/projects"},
+		},
 	}
 	for i, tt := range tests {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {

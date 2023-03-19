@@ -27,16 +27,15 @@ func (f *inotifyProcess) watchFiles(ctx context.Context) error {
 				return
 			case path := <-changed:
 				now := time.Now()
-				if now.Sub(last) < time.Second {
+				if now.Sub(last) < time.Millisecond*500 {
 					continue
 				}
 				last = now
-				log.Info("syncing file notify for ", path)
 
 				// construct date time in the format YYYY-MM-DD HH:MM:SS
 				// for busybox
 				t := now.Add(-5 * time.Second).Format("2006-01-02 15:04:05")
-				log.Info("setting path modtime to ", t)
+				log.Infof("setting modtime to %s for %s ", t, path)
 				if err := f.guest.Run("/bin/touch", "-d", t, path); err != nil {
 					log.Error(err)
 				}
