@@ -8,6 +8,9 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/abiosoft/colima/environment/container/containerd"
+	"github.com/abiosoft/colima/environment/container/docker"
 )
 
 func (f *inotifyProcess) fetchContainerVolumes(ctx context.Context) error {
@@ -16,12 +19,16 @@ func (f *inotifyProcess) fetchContainerVolumes(ctx context.Context) error {
 	if f.runtime == "" {
 		return fmt.Errorf("empty runtime")
 	}
+	runtimeCmd := docker.Name
+	if f.runtime == containerd.Name {
+		runtimeCmd = "nerdctl"
+	}
 
 	fetch := func() error {
 		// fetch all containers
 		var containers []string
 		{
-			out, err := f.guest.RunOutput(f.runtime, "ps", "-q")
+			out, err := f.guest.RunOutput(runtimeCmd, "ps", "-q")
 			if err != nil {
 				return fmt.Errorf("error listing containers: %w", err)
 			}
@@ -44,7 +51,7 @@ func (f *inotifyProcess) fetchContainerVolumes(ctx context.Context) error {
 			} `json:"Mounts"`
 		}
 		{
-			args := []string{f.runtime, "inspect"}
+			args := []string{runtimeCmd, "inspect"}
 			args = append(args, containers...)
 
 			var buf bytes.Buffer
