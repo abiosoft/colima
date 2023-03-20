@@ -71,6 +71,8 @@ func (l processManager) Running(ctx context.Context) (s Status, err error) {
 	}
 	s.Running = true
 
+	ctx = context.WithValue(ctx, process.CtxKeyDaemon(), s.Running)
+
 	for _, p := range processesFromCtx(ctx) {
 		pErr := p.Alive(ctx)
 		s.Processes = append(s.Processes, processStatus{

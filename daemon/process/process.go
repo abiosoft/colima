@@ -10,6 +10,8 @@ import (
 	"github.com/abiosoft/colima/environment"
 )
 
+func CtxKeyDaemon() any { return struct{ key string }{key: "colima_daemon"} }
+
 // Process is a background process managed by the daemon.
 type Process interface {
 	// Name for the background process

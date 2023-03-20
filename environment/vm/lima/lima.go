@@ -157,7 +157,7 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 	statusKey := struct{ key string }{key: "daemonStatus"}
 	// delay to ensure that the processes have started
 	if conf.Network.Address || conf.MountINotify {
-		a.Retry("", time.Second*3, 5, func(i int) error {
+		a.Retry("", time.Second*1, 15, func(i int) error {
 			s, err := l.daemon.Running(ctx)
 			ctx = context.WithValue(ctx, statusKey, s)
 			if err != nil {
