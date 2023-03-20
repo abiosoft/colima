@@ -31,9 +31,8 @@ func New() process.Process {
 var _ process.Process = (*inotifyProcess)(nil)
 
 type inotifyProcess struct {
-	alive         bool
 	containerVols []string
-	// will only be used for alive and containerVols
+	// will only be used for containerVols
 	sync.RWMutex
 
 	interval time.Duration
@@ -46,10 +45,10 @@ type inotifyProcess struct {
 
 // Alive implements process.Process
 func (f *inotifyProcess) Alive(ctx context.Context) error {
-	f.RLock()
-	defer f.RUnlock()
+	daemonRunning, _ := ctx.Value(process.CtxKeyDaemon()).(bool)
 
-	if f.alive {
+	// if the parent is active, we can assume inotify is active.
+	if daemonRunning {
 		return nil
 	}
 	return fmt.Errorf("inotify not running")
@@ -72,10 +71,6 @@ func (f *inotifyProcess) Start(ctx context.Context) error {
 		return fmt.Errorf("environment.GuestActions missing in context")
 	}
 
-	f.Lock()
-	f.alive = true
-	f.Unlock()
-
 	f.guest = guest
 	log := f.log
 
@@ -97,13 +92,7 @@ func (f *inotifyProcess) Start(ctx context.Context) error {
 		f.vmVols = append(f.vmVols, p)
 	}
 
-	err = f.watch(ctx)
-
-	f.Lock()
-	f.alive = false
-	f.Unlock()
-
-	return err
+	return f.watch(ctx)
 }
 
 // waitForLima waits until lima starts and sets the directory to watch.
