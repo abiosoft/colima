@@ -102,7 +102,7 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 	a := l.Init(ctx)
 	log := l.Logger(ctx)
 
-	installedKey := struct{ key string }{key: "installed"}
+	networkInstalledKey := struct{ key string }{key: "network_installed"}
 
 	// add inotify to daemon
 	if conf.MountINotify {
@@ -129,7 +129,7 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 			}
 			deps, root := l.daemon.Dependencies(ctx)
 			if deps.Installed() {
-				ctx = context.WithValue(ctx, installedKey, true)
+				ctx = context.WithValue(ctx, networkInstalledKey, true)
 				return nil
 			}
 
@@ -143,7 +143,7 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 			// install deps
 			err := deps.Install(l.host)
 			if err != nil {
-				ctx = context.WithValue(ctx, installedKey, false)
+				ctx = context.WithValue(ctx, networkInstalledKey, false)
 			}
 			return err
 		})
@@ -179,7 +179,7 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 	if err := a.Exec(); err != nil {
 		if isQEMU {
 			func() {
-				installed, _ := ctx.Value(installedKey).(bool)
+				installed, _ := ctx.Value(networkInstalledKey).(bool)
 				if !installed {
 					log.Warnln(fmt.Errorf("error setting up network dependencies: %w", err))
 					return
@@ -196,6 +196,10 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 
 				// revert gvproxy to boolean
 				for _, p := range status.Processes {
+					// TODO: handle inotify separate from network
+					if p.Name == inotify.Name {
+						continue
+					}
 					if !p.Running {
 						ctx = context.WithValue(ctx, daemon.CtxKey(p.Name), false)
 						log.Warnln(fmt.Errorf("error starting %s: %w", p.Name, err))
