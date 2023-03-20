@@ -46,7 +46,7 @@ type inotifyProcess struct {
 
 // Alive implements process.Process
 func (f *inotifyProcess) Alive(ctx context.Context) error {
-	f.Lock()
+	f.RLock()
 	defer f.RUnlock()
 
 	if f.alive {
