@@ -71,8 +71,12 @@ func (f *inotifyProcess) Start(ctx context.Context) error {
 	if !ok {
 		return fmt.Errorf("environment.GuestActions missing in context")
 	}
-	f.guest = guest
 
+	f.Lock()
+	f.alive = true
+	f.Unlock()
+
+	f.guest = guest
 	log := f.log
 
 	log.Info("waiting for VM to start")
@@ -93,7 +97,13 @@ func (f *inotifyProcess) Start(ctx context.Context) error {
 		f.vmVols = append(f.vmVols, p)
 	}
 
-	return f.watch(ctx)
+	err = f.watch(ctx)
+
+	f.Lock()
+	f.alive = false
+	f.Unlock()
+
+	return err
 }
 
 // waitForLima waits until lima starts and sets the directory to watch.

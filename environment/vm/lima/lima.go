@@ -84,8 +84,12 @@ func (l limaVM) Dependencies() []string {
 }
 
 func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.Context, error) {
+	isQEMU := conf.VMType == QEMU
+	isVZ := conf.VMType == VZ
+
 	// limited to macOS (with Qemu driver)
-	if !util.MacOS() || conf.VMType == VZ {
+	// or vz with inotify enabled
+	if !util.MacOS() || (isVZ && !conf.MountINotify) {
 		return ctx, nil
 	}
 
@@ -100,46 +104,59 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 
 	installedKey := struct{ key string }{key: "installed"}
 
-	a.Stage("preparing network")
-	a.Add(func() error {
-		if conf.Network.Driver == gvproxy.Name {
-			ctx = context.WithValue(ctx, ctxKeyGVProxy, true)
-			ctx = context.WithValue(ctx, ctxKeyGVProxyHosts, conf.Network.DNSHosts)
-		}
-		if conf.Network.Address {
-			ctx = context.WithValue(ctx, ctxKeyVmnet, true)
-		}
-		if conf.MountINotify {
+	// add inotify to daemon
+	if conf.MountINotify {
+		a.Add(func() error {
 			ctx = context.WithValue(ctx, ctxKeyInotify, true)
-		}
-		deps, root := l.daemon.Dependencies(ctx)
-		if deps.Installed() {
-			ctx = context.WithValue(ctx, installedKey, true)
+			deps, _ := l.daemon.Dependencies(ctx)
+			if err := deps.Install(l.host); err != nil {
+				return fmt.Errorf("error setting up inotify dependencies: %w", err)
+			}
 			return nil
-		}
+		})
+	}
 
-		// if user interaction is not required (i.e. root),
-		// no need for another verbose info.
-		if root {
-			log.Println("dependencies missing for setting up reachable IP address")
-			log.Println("sudo password may be required")
-		}
+	// add network processes to daemon
+	if isQEMU {
+		a.Stage("preparing network")
+		a.Add(func() error {
+			if conf.Network.Driver == gvproxy.Name {
+				ctx = context.WithValue(ctx, ctxKeyGVProxy, true)
+				ctx = context.WithValue(ctx, ctxKeyGVProxyHosts, conf.Network.DNSHosts)
+			}
+			if conf.Network.Address {
+				ctx = context.WithValue(ctx, ctxKeyVmnet, true)
+			}
+			deps, root := l.daemon.Dependencies(ctx)
+			if deps.Installed() {
+				ctx = context.WithValue(ctx, installedKey, true)
+				return nil
+			}
 
-		// install deps
-		err := deps.Install(l.host)
-		if err != nil {
-			ctx = context.WithValue(ctx, installedKey, false)
-		}
-		return err
-	})
+			// if user interaction is not required (i.e. root),
+			// no need for another verbose info.
+			if root {
+				log.Println("dependencies missing for setting up reachable IP address")
+				log.Println("sudo password may be required")
+			}
 
+			// install deps
+			err := deps.Install(l.host)
+			if err != nil {
+				ctx = context.WithValue(ctx, installedKey, false)
+			}
+			return err
+		})
+	}
+
+	// start daemon
 	a.Add(func() error {
 		return l.daemon.Start(ctx)
 	})
 
-	// delay to ensure that the vmnet is running
-	statusKey := struct{ key string }{key: "networkStatus"}
-	if conf.Network.Address {
+	statusKey := struct{ key string }{key: "daemonStatus"}
+	// delay to ensure that the processes have started
+	if conf.Network.Address || conf.MountINotify {
 		a.Retry("", time.Second*3, 5, func(i int) error {
 			s, err := l.daemon.Running(ctx)
 			ctx = context.WithValue(ctx, statusKey, s)
@@ -147,7 +164,7 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 				return err
 			}
 			if !s.Running {
-				return fmt.Errorf("network process is not running")
+				return fmt.Errorf("daemon is not running")
 			}
 			for _, p := range s.Processes {
 				if !p.Running {
@@ -160,30 +177,37 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 
 	// network failure is not fatal
 	if err := a.Exec(); err != nil {
-		func() {
-			installed, _ := ctx.Value(installedKey).(bool)
-			if !installed {
-				log.Warnln(fmt.Errorf("error setting up network dependencies: %w", err))
-				return
-			}
-
-			status, ok := ctx.Value(statusKey).(daemon.Status)
-			if !ok {
-				return
-			}
-			if !status.Running {
-				log.Warnln(fmt.Errorf("error starting network: %w", err))
-				return
-			}
-
-			// revert gvproxy to boolean
-			for _, p := range status.Processes {
-				if !p.Running {
-					ctx = context.WithValue(ctx, daemon.CtxKey(p.Name), false)
-					log.Warnln(fmt.Errorf("error starting %s: %w", p.Name, err))
+		if isQEMU {
+			func() {
+				installed, _ := ctx.Value(installedKey).(bool)
+				if !installed {
+					log.Warnln(fmt.Errorf("error setting up network dependencies: %w", err))
+					return
 				}
-			}
-		}()
+
+				status, ok := ctx.Value(statusKey).(daemon.Status)
+				if !ok {
+					return
+				}
+				if !status.Running {
+					log.Warnln(fmt.Errorf("error starting network: %w", err))
+					return
+				}
+
+				// revert gvproxy to boolean
+				for _, p := range status.Processes {
+					if !p.Running {
+						ctx = context.WithValue(ctx, daemon.CtxKey(p.Name), false)
+						log.Warnln(fmt.Errorf("error starting %s: %w", p.Name, err))
+					}
+				}
+			}()
+		}
+	}
+
+	// check if inotify is running
+	if inotifyEnabled, _ := ctx.Value(ctxKeyInotify).(bool); !inotifyEnabled {
+		log.Warnln("error occured enabling inotify daemon")
 	}
 
 	// preserve vmnet context
