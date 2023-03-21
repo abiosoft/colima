@@ -138,7 +138,7 @@ func installK3sCluster(
 
 	switch containerRuntime {
 	case docker.Name:
-		args = append(args, "--container-runtime-endpoint", "unix:///run/cri-dockerd.sock")
+		args = append(args, "--docker")
 	case containerd.Name:
 		args = append(args, "--container-runtime-endpoint", "unix:///run/containerd/containerd.sock")
 	}
