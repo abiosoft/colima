@@ -9,7 +9,6 @@ import (
 	"github.com/abiosoft/colima/daemon/process"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
-	"github.com/abiosoft/colima/util"
 	"github.com/sirupsen/logrus"
 )
 
@@ -18,7 +17,8 @@ const Name = "inotify"
 const watchInterval = time.Second * 1
 const volumesInterval = time.Second * 5
 
-var CtxKeyGuest = struct{ name string }{name: "inotify_guest"}
+func CtxKeyGuest() any { return struct{ name string }{name: "inotify_guest"} }
+func CtxKeyDirs() any  { return struct{ name string }{name: "inotify_dirs"} }
 
 // New returns inotify process.
 func New() process.Process {
@@ -66,9 +66,13 @@ func (*inotifyProcess) Name() string {
 
 // Start implements process.Process
 func (f *inotifyProcess) Start(ctx context.Context) error {
-	guest, ok := ctx.Value(CtxKeyGuest).(environment.GuestActions)
+	guest, ok := ctx.Value(CtxKeyGuest()).(environment.GuestActions)
 	if !ok {
 		return fmt.Errorf("environment.GuestActions missing in context")
+	}
+	f.vmVols, ok = ctx.Value(CtxKeyDirs()).([]string)
+	if !ok {
+		return fmt.Errorf("dirs missing in context")
 	}
 
 	f.guest = guest
@@ -83,14 +87,6 @@ func (f *inotifyProcess) Start(ctx context.Context) error {
 		return fmt.Errorf("error retrieving config")
 	}
 	f.runtime = c.Runtime
-
-	for _, mount := range c.MountsOrDefault() {
-		p, err := util.CleanPath(mount.Location)
-		if err != nil {
-			return fmt.Errorf("error retrieving mount path: %w", err)
-		}
-		f.vmVols = append(f.vmVols, p)
-	}
 
 	return f.watch(ctx)
 }

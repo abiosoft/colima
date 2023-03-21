@@ -22,7 +22,6 @@ import (
 )
 
 const Name = "gvproxy"
-const CtxKeyHosts = "gvproxy.hosts"
 
 // New creates a new Process for gvproxy.
 func New(hosts ...map[string]string) process.Process {

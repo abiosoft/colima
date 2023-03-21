@@ -38,10 +38,11 @@ var startCmd = &cobra.Command{
 		if daemonArgs.gvproxy.enabled {
 			processes = append(processes, gvproxy.New(daemonArgs.gvproxy.dnsHosts))
 		}
-		if daemonArgs.inotify {
+		if daemonArgs.inotify.enabled {
 			processes = append(processes, inotify.New())
 			guest := lima.New(host.New())
-			ctx = context.WithValue(ctx, inotify.CtxKeyGuest, guest)
+			ctx = context.WithValue(ctx, inotify.CtxKeyGuest(), guest)
+			ctx = context.WithValue(ctx, inotify.CtxKeyDirs(), daemonArgs.inotify.dirs)
 		}
 
 		return start(ctx, processes)
@@ -83,7 +84,10 @@ var daemonArgs struct {
 		enabled  bool
 		dnsHosts map[string]string
 	}
-	inotify bool
+	inotify struct {
+		enabled bool
+		dirs    []string
+	}
 
 	verbose bool
 }
@@ -97,6 +101,7 @@ func init() {
 
 	startCmd.Flags().BoolVar(&daemonArgs.vmnet, "vmnet", false, "start vmnet")
 	startCmd.Flags().BoolVar(&daemonArgs.gvproxy.enabled, "gvproxy", false, "start gvproxy")
-	startCmd.Flags().StringToStringVar(&daemonArgs.gvproxy.dnsHosts, "gvproxy-hosts", nil, "start gvproxy")
-	startCmd.Flags().BoolVar(&daemonArgs.inotify, "inotify", false, "start inotify")
+	startCmd.Flags().StringToStringVar(&daemonArgs.gvproxy.dnsHosts, "gvproxy-hosts", nil, "DNS hosts for gvproxy")
+	startCmd.Flags().BoolVar(&daemonArgs.inotify.enabled, "inotify", false, "start inotify")
+	startCmd.Flags().StringSliceVar(&daemonArgs.inotify.dirs, "inotify-dirs", nil, "set inotify directories")
 }

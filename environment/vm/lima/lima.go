@@ -96,7 +96,6 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 	ctxKeyVmnet := daemon.CtxKey(vmnet.Name)
 	ctxKeyInotify := daemon.CtxKey(inotify.Name)
 	ctxKeyGVProxy := daemon.CtxKey(gvproxy.Name)
-	ctxKeyGVProxyHosts := daemon.CtxKey(gvproxy.CtxKeyHosts)
 
 	// use a nested chain for convenience
 	a := l.Init(ctx)
@@ -108,7 +107,7 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 	if conf.MountINotify {
 		a.Add(func() error {
 			ctx = context.WithValue(ctx, ctxKeyInotify, true)
-			deps, _ := l.daemon.Dependencies(ctx)
+			deps, _ := l.daemon.Dependencies(ctx, conf)
 			if err := deps.Install(l.host); err != nil {
 				return fmt.Errorf("error setting up inotify dependencies: %w", err)
 			}
@@ -122,12 +121,11 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 		a.Add(func() error {
 			if conf.Network.Driver == gvproxy.Name {
 				ctx = context.WithValue(ctx, ctxKeyGVProxy, true)
-				ctx = context.WithValue(ctx, ctxKeyGVProxyHosts, conf.Network.DNSHosts)
 			}
 			if conf.Network.Address {
 				ctx = context.WithValue(ctx, ctxKeyVmnet, true)
 			}
-			deps, root := l.daemon.Dependencies(ctx)
+			deps, root := l.daemon.Dependencies(ctx, conf)
 			if deps.Installed() {
 				ctx = context.WithValue(ctx, networkInstalledKey, true)
 				return nil
@@ -151,14 +149,14 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 
 	// start daemon
 	a.Add(func() error {
-		return l.daemon.Start(ctx)
+		return l.daemon.Start(ctx, conf)
 	})
 
 	statusKey := struct{ key string }{key: "daemonStatus"}
 	// delay to ensure that the processes have started
 	if conf.Network.Address || conf.MountINotify {
 		a.Retry("", time.Second*1, 15, func(i int) error {
-			s, err := l.daemon.Running(ctx)
+			s, err := l.daemon.Running(ctx, conf)
 			ctx = context.WithValue(ctx, statusKey, s)
 			if err != nil {
 				return err
@@ -332,8 +330,9 @@ func (l limaVM) Stop(ctx context.Context, force bool) error {
 	a.Stage("stopping")
 
 	if util.MacOS() {
+		conf, _ := limautil.InstanceConfig()
 		a.Retry("", time.Second*1, 10, func(retryCount int) error {
-			err := l.daemon.Stop(ctx)
+			err := l.daemon.Stop(ctx, conf)
 			if err != nil {
 				err = cli.ErrNonFatal(err)
 			}
@@ -355,8 +354,9 @@ func (l limaVM) Teardown(ctx context.Context) error {
 	a := l.Init(ctx)
 
 	if util.MacOS() {
+		conf, _ := limautil.InstanceConfig()
 		a.Retry("", time.Second*1, 10, func(retryCount int) error {
-			return l.daemon.Stop(ctx)
+			return l.daemon.Stop(ctx, conf)
 		})
 	}
 
