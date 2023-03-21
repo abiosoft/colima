@@ -16,8 +16,12 @@ func Test_omitChildrenDirectories(t *testing.T) {
 			want: []string{"/"},
 		},
 		{
-			args: []string{"/someone", "/user", "/user/someone", "/a", "/a/ee", "/a/bb"},
+			args: []string{"/someone", "/user", "/user/someone", "/a", "/a/ee", "/a/bb", "/a"},
 			want: []string{"/a", "/someone", "/user"},
+		},
+		{
+			args: []string{"/someone", "/user/colima/projects/myworks", "/user/colima/projects", "/user/colima/projects/myworks", "/user/colima/projects", "/someone"},
+			want: []string{"/someone", "/user/colima/projects"},
 		},
 		{
 			args: []string{"/someone", "/user/colima/projects/myworks", "/user/colima/projects"},

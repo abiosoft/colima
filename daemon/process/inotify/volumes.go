@@ -119,6 +119,9 @@ func (f *inotifyProcess) fetchContainerVolumes(ctx context.Context) error {
 func omitChildrenDirectories(dirs []string) []string {
 	sort.Strings(dirs) // sort to put the parent directories first
 
+	// keep track for uniqueness
+	set := map[string]struct{}{}
+
 	var newVols []string
 
 	omitted := map[int]struct{}{}
@@ -129,7 +132,10 @@ func omitChildrenDirectories(dirs []string) []string {
 		}
 
 		parent := dirs[i]
-		newVols = append(newVols, parent)
+		if _, ok := set[parent]; !ok {
+			newVols = append(newVols, parent)
+			set[parent] = struct{}{}
+		}
 
 		for j := i + 1; j < len(dirs); j++ {
 			child := dirs[j]
