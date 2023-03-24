@@ -49,6 +49,10 @@ test:
 vmnet:
 	sh scripts/build_vmnet.sh
 
+.PHONY: ftime
+ftime:
+	sh scripts/build_ftime.sh
+
 .PHONY: install
 install:
 	mkdir -p $(INSTALL_DIR)
