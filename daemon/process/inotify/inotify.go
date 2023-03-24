@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/abiosoft/colima/daemon/process"
+	"github.com/abiosoft/colima/embedded"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/sirupsen/logrus"
@@ -87,6 +88,27 @@ func (f *inotifyProcess) Start(ctx context.Context) error {
 		return fmt.Errorf("error retrieving config")
 	}
 	f.runtime = c.Runtime
+
+	// copy ftime binary
+	if err := func() error {
+		var bin string
+		switch environment.Arch(c.Arch).Value() {
+		case environment.AARCH64:
+			bin = "ftime_aarch64"
+		case environment.X8664:
+			bin = "ftime_x86_64"
+		default:
+			return fmt.Errorf("ftime not available for arch '%v'", c.Arch)
+		}
+
+		b, err := embedded.Read("ftime/" + bin)
+		if err != nil {
+			return fmt.Errorf("cannot read embedded ftime binary: %w", err)
+		}
+		return guest.Write("/usr/local/bin/ftime", b)
+	}(); err != nil {
+		return fmt.Errorf("error copy ftime binary: %w", err)
+	}
 
 	return f.watch(ctx)
 }
