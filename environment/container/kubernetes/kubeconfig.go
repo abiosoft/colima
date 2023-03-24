@@ -54,7 +54,7 @@ func (c kubernetesRuntime) provisionKubeconfig(ctx context.Context) error {
 		kubeconfig = strings.ReplaceAll(kubeconfig, ": default", ": "+profile)
 
 		// save on the host
-		return c.host.Write(tmpkubeconfFile, kubeconfig)
+		return c.host.Write(tmpkubeconfFile, []byte(kubeconfig))
 	})
 
 	// merge on host
@@ -70,7 +70,7 @@ func (c kubernetesRuntime) provisionKubeconfig(ctx context.Context) error {
 		}
 
 		// save
-		return host.Write(tmpkubeconfFile, kubeconfig)
+		return host.Write(tmpkubeconfFile, []byte(kubeconfig))
 	})
 
 	// backup current settings and save new config

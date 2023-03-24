@@ -24,7 +24,7 @@ type runActions interface {
 
 type fileActions interface {
 	Read(fileName string) (string, error)
-	Write(fileName, body string) error
+	Write(fileName string, body []byte) error
 	Stat(fileName string) (os.FileInfo, error)
 }
 

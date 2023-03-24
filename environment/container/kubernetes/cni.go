@@ -19,7 +19,7 @@ func installCniConfig(guest environment.GuestActions, a *cli.ActiveCommandChain)
 			return fmt.Errorf("error creating cni config dir: %w", err)
 		}
 
-		flannel, err := embedded.ReadString("k3s/flannel.json")
+		flannel, err := embedded.Read("k3s/flannel.json")
 		if err != nil {
 			return fmt.Errorf("error reading embedded flannel config: %w", err)
 		}

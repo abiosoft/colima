@@ -1,6 +1,7 @@
 package lima
 
 import (
+	"bytes"
 	"fmt"
 	"io/fs"
 	"os"
@@ -20,8 +21,8 @@ func (l limaVM) Read(fileName string) (string, error) {
 	return s, err
 }
 
-func (l *limaVM) Write(fileName, body string) error {
-	var stdin = strings.NewReader(body)
+func (l *limaVM) Write(fileName string, body []byte) error {
+	var stdin = bytes.NewReader(body)
 	dir := filepath.Dir(fileName)
 	if err := l.RunQuiet("sudo", "mkdir", "-p", dir); err != nil {
 		return fmt.Errorf("error creating directory '%s': %w", dir, err)

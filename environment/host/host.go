@@ -173,8 +173,8 @@ func (h hostEnv) Read(fileName string) (string, error) {
 	return string(b), err
 }
 
-func (h hostEnv) Write(fileName, body string) error {
-	return os.WriteFile(fileName, []byte(body), 0644)
+func (h hostEnv) Write(fileName string, body []byte) error {
+	return os.WriteFile(fileName, body, 0644)
 }
 
 func (h hostEnv) Stat(fileName string) (os.FileInfo, error) {
