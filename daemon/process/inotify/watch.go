@@ -75,6 +75,10 @@ func (f *inotifyProcess) watchFiles(ctx context.Context) error {
 	}
 }
 
+var omittedDirs = map[string]struct{}{
+	"node_modules": {},
+}
+
 func doWatch(dirs []string, fileMap map[string]time.Time, changed chan<- modTime) error {
 	for _, dir := range dirs {
 		err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
@@ -82,13 +86,18 @@ func doWatch(dirs []string, fileMap map[string]time.Time, changed chan<- modTime
 				return nil
 			}
 
-			// skip hidden dirs
-			if strings.HasPrefix(d.Name(), ".") && d.IsDir() {
-				return fs.SkipDir
-			}
-
-			// do nothing for directories
 			if d.IsDir() {
+				// avoid traversing hidden dirs
+				if strings.HasPrefix(d.Name(), ".") {
+					return fs.SkipDir
+				}
+
+				// avoid travesing omitted dirs
+				if _, ok := omittedDirs[d.Name()]; ok {
+					return fs.SkipDir
+				}
+
+				// do nothing and continue traversing other directories
 				return nil
 			}
 
