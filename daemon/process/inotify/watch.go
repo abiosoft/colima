@@ -100,14 +100,24 @@ func doWatch(dirs []string, fileMap map[string]time.Time, changed chan<- modTime
 			currentTime, ok := fileMap[path]
 			newTime := info.ModTime()
 
-			if ok && newTime.After(currentTime.Add(time.Millisecond*500)) {
-				go func(path string) {
-					logrus.Tracef("changed file mtime %v->%v: %s", currentTime, newTime, path)
-					changed <- modTime{path: path, FileMode: info.Mode()}
-				}(path)
+			if !ok {
+				fileMap[path] = newTime
+				return nil
 			}
 
-			fileMap[path] = newTime
+			// only respond to files we last updated >500ms ago
+			if newTime.After(currentTime.Add(time.Millisecond * 500)) {
+
+				// send inotify event
+				go func(path string, currentTime, newTime time.Time) {
+					logrus.Tracef("changed file mtime %v->%v: %s", currentTime, newTime, path)
+					changed <- modTime{path: path, FileMode: info.Mode()}
+				}(path, currentTime, newTime)
+
+				// prevent further events for the next 500ms
+				fileMap[path] = newTime
+			}
+
 			return nil
 		})
 
