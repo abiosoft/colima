@@ -20,10 +20,10 @@ type buildArgs struct {
 }
 
 //go:embed Dockerfile
-var dockerfile string
+var dockerfile []byte
 
 //go:embed colima.sh
-var chrootScript string
+var chrootScript []byte
 
 func (u ubuntuRuntime) buildArgs() (b buildArgs, err error) {
 	b.arch = string(u.guest.Arch().Value())

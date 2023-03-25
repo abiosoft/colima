@@ -17,7 +17,7 @@ const Name = "containerd"
 // There may be need to make this flexible for non-Lima VMs.
 
 //go:embed buildkitd.toml
-var buildKitConf string
+var buildKitConf []byte
 
 const buildKitConfFile = "/etc/buildkit/buildkitd.toml"
 

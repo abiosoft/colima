@@ -13,8 +13,10 @@ import (
 
 type modTime struct {
 	path string // filename
-	time.Time
+	fs.FileMode
 }
+
+func (m modTime) Mode() string { return fmt.Sprintf("%o", m.FileMode) }
 
 func (f *inotifyProcess) watchFiles(ctx context.Context) error {
 	log := f.log
@@ -37,15 +39,11 @@ func (f *inotifyProcess) watchFiles(ctx context.Context) error {
 				}
 				last = now
 
-				// construct date time in the format YYYY-MM-DD HH:MM:SS
-				// for busybox
-				t := ev.Format("2006-01-02 15:04:05")
-				log.Infof("setting modtime to %s for %s ", t, ev.path)
-				if err := f.guest.Run("/bin/touch", "-d", t, ev.path); err != nil {
+				log.Infof("refreshing mtime for %s ", ev.path)
+				if err := f.guest.Run("/bin/chmod", ev.Mode(), ev.path); err != nil {
 					log.Error(err)
 				}
 			}
-
 		}
 	}(mod)
 
@@ -104,8 +102,8 @@ func doWatch(dirs []string, fileMap map[string]time.Time, changed chan<- modTime
 
 			if ok && newTime.After(currentTime.Add(time.Millisecond*500)) {
 				go func(path string) {
-					logrus.Tracef("changed file modTime %v->%v: %s", currentTime, newTime, path)
-					changed <- modTime{path: path, Time: newTime}
+					logrus.Tracef("changed file mtime %v->%v: %s", currentTime, newTime, path)
+					changed <- modTime{path: path, FileMode: info.Mode()}
 				}(path)
 			}
 

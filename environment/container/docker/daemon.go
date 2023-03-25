@@ -33,5 +33,5 @@ func (d dockerRuntime) createDaemonFile(conf map[string]any) error {
 	if err != nil {
 		return fmt.Errorf("error marshaling daemon.json: %w", err)
 	}
-	return d.guest.Write(daemonFile, string(b))
+	return d.guest.Write(daemonFile, b)
 }

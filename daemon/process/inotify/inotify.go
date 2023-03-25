@@ -84,7 +84,7 @@ func (f *inotifyProcess) Start(ctx context.Context) error {
 
 	c, err := limautil.InstanceConfig()
 	if err != nil {
-		return fmt.Errorf("error retrieving config")
+		return fmt.Errorf("error retrieving config: %w", err)
 	}
 	f.runtime = c.Runtime
 
@@ -107,10 +107,19 @@ func (f *inotifyProcess) waitForLima(ctx context.Context) {
 			return
 		case <-after:
 			i, err := limautil.Instance()
-			if err == nil && i.Running() {
-				if _, err := limautil.InstanceConfig(); err == nil {
-					return
+			if err != nil || !i.Running() {
+				continue
+			}
+			if err := func() error {
+				if _, err := limautil.InstanceConfig(); err != nil {
+					return err
 				}
+				if err := f.guest.RunQuiet("uname", "-a"); err != nil {
+					return err
+				}
+				return nil
+			}(); err == nil {
+				return
 			}
 		}
 	}

@@ -513,7 +513,7 @@ func (l limaVM) Set(key, value string) error {
 		return fmt.Errorf("error saving settings: %w", err)
 	}
 
-	if err := l.Write(configFile, string(b)); err != nil {
+	if err := l.Write(configFile, b); err != nil {
 		return fmt.Errorf("error saving settings: %w", err)
 	}
 
