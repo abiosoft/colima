@@ -3,6 +3,7 @@ package gvproxy
 import (
 	"fmt"
 	"net"
+	"sort"
 	"testing"
 
 	"github.com/containers/gvisor-tap-vsock/pkg/types"
@@ -125,29 +126,28 @@ func Test_extractZones(t *testing.T) {
 		{
 			wantZones: []types.Zone{
 				{
-					Name: "com.",
-					Records: []types.Record{
-						{Name: "google", IP: net.ParseIP("8.8.4.4")},
-						{Name: "local.google", IP: net.ParseIP("8.8.8.8")},
-						{Name: "local.google", IP: net.ParseIP("8.8.8.8")},
-					},
-				},
-				{
 					Name: "ae.",
 					Records: []types.Record{
 						{Name: "google", IP: net.ParseIP("8.8.4.4")},
 					},
 				},
 				{
-					Name:      "localhost",
-					DefaultIP: net.ParseIP("127.0.0.1"),
+					Name: "com.",
+					Records: []types.Record{
+						{Name: "google", IP: net.ParseIP("8.8.4.4")},
+						{Name: "local.google", IP: net.ParseIP("8.8.8.8")},
+					},
 				},
 				{
 					Name: "internal.",
 					Records: []types.Record{
-						{Name: "host.lima", IP: net.ParseIP("192.168.5.2")},
 						{Name: "host.docker", IP: net.ParseIP("192.168.5.2")},
+						{Name: "host.lima", IP: net.ParseIP("192.168.5.2")},
 					},
+				},
+				{
+					Name:      "localhost",
+					DefaultIP: net.ParseIP("127.0.0.1"),
 				},
 			},
 		},
@@ -155,9 +155,52 @@ func Test_extractZones(t *testing.T) {
 
 	for i, tt := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			if gotZones := extractZones(hosts); !equalZones(gotZones, tt.wantZones) {
+			gotZones := extractZones(hosts)
+			for _, zone := range gotZones {
+				sort.Sort(recordSorter(zone.Records))
+			}
+			sort.Sort(zoneSorter(gotZones))
+
+			if !equalZones(gotZones, tt.wantZones) {
 				t.Errorf("extractZones() = %+v, want %+v", gotZones, tt.wantZones)
 			}
 		})
 	}
+}
+
+var _ sort.Interface = (recordSorter)(nil)
+var _ sort.Interface = (zoneSorter)(nil)
+
+type recordSorter []types.Record
+
+// Len implements sort.Interface
+func (r recordSorter) Len() int {
+	return len(r)
+}
+
+// Less implements sort.Interface
+func (r recordSorter) Less(i int, j int) bool {
+	return r[i].Name < r[j].Name
+}
+
+// Swap implements sort.Interface
+func (r recordSorter) Swap(i int, j int) {
+	r[i], r[j] = r[j], r[i]
+}
+
+type zoneSorter []types.Zone
+
+// Len implements sort.Interface
+func (z zoneSorter) Len() int {
+	return len(z)
+}
+
+// Less implements sort.Interface
+func (z zoneSorter) Less(i int, j int) bool {
+	return z[i].Name < z[j].Name
+}
+
+// Swap implements sort.Interface
+func (z zoneSorter) Swap(i int, j int) {
+	z[i], z[j] = z[j], z[i]
 }
