@@ -25,6 +25,7 @@ func (f *inotifyProcess) handleEvents(ctx context.Context, watcher dirWatcher) e
 	}
 
 	var last time.Time
+	count := 0
 	for {
 		select {
 		case <-ctx.Done():
@@ -33,11 +34,16 @@ func (f *inotifyProcess) handleEvents(ctx context.Context, watcher dirWatcher) e
 		case ev := <-mod:
 			now := time.Now()
 
-			// rate limit, handle an event every 500 ms
+			// rate limit, handle at most 10 events every 500 ms
 			if now.Sub(last) < time.Millisecond*500 {
-				continue
+				count++
+				if count > 10 {
+					continue
+				}
+			} else {
+				last = now
+				count = 0 // >500ms, reset counter
 			}
-			last = now
 
 			log.Infof("refreshing mtime for %s ", ev.path)
 			if err := f.guest.Run("/bin/chmod", ev.Mode(), ev.path); err != nil {
