@@ -83,7 +83,7 @@ func (f *inotifyProcess) waitForLima(ctx context.Context) {
 
 	// wait for Lima to finish starting
 	for {
-		log.Info("attempting to fetch config from Lima")
+		log.Info("waiting 5 secs for VM")
 
 		// 5 second interval
 		after := time.After(time.Second * 5)

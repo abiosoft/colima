@@ -57,6 +57,7 @@ func (d *defaultWatcher) Watch(ctx context.Context, dirs []string, mod chan<- mo
 				stat, err := os.Stat(path)
 				if err != nil {
 					log.Error(fmt.Errorf("unable to stat inotify file '%s': %w", path, err))
+					continue
 				}
 
 				if stat.IsDir() {
