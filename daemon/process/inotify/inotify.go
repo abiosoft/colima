@@ -3,7 +3,6 @@ package inotify
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/abiosoft/colima/daemon/process"
@@ -14,31 +13,21 @@ import (
 
 const Name = "inotify"
 
-const watchInterval = time.Second * 1
-const volumesInterval = time.Second * 5
-
 func CtxKeyGuest() any { return struct{ name string }{name: "inotify_guest"} }
 func CtxKeyDirs() any  { return struct{ name string }{name: "inotify_dirs"} }
 
 // New returns inotify process.
 func New() process.Process {
 	return &inotifyProcess{
-		interval: watchInterval,
-		log:      logrus.WithField("context", "inotify"),
+		log: logrus.WithField("context", "inotify"),
 	}
 }
 
 var _ process.Process = (*inotifyProcess)(nil)
 
 type inotifyProcess struct {
-	containerVols []string
-	// will only be used for containerVols
-	sync.RWMutex
-
-	interval time.Duration
-	vmVols   []string
-	guest    environment.GuestActions
-	runtime  string
+	vmVols []string
+	guest  environment.GuestActions
 
 	log *logrus.Entry
 }
@@ -74,6 +63,7 @@ func (f *inotifyProcess) Start(ctx context.Context) error {
 	if !ok {
 		return fmt.Errorf("dirs missing in context")
 	}
+	f.vmVols = omitChildrenDirectories(f.vmVols)
 
 	f.guest = guest
 	log := f.log
@@ -82,13 +72,9 @@ func (f *inotifyProcess) Start(ctx context.Context) error {
 	f.waitForLima(ctx)
 	log.Info("VM started")
 
-	c, err := limautil.InstanceConfig()
-	if err != nil {
-		return fmt.Errorf("error retrieving config: %w", err)
-	}
-	f.runtime = c.Runtime
+	watcher := &defaultWatcher{log: log}
 
-	return f.watch(ctx)
+	return f.handleEvents(ctx, watcher)
 }
 
 // waitForLima waits until lima starts and sets the directory to watch.
@@ -97,7 +83,7 @@ func (f *inotifyProcess) waitForLima(ctx context.Context) {
 
 	// wait for Lima to finish starting
 	for {
-		log.Info("attempting to fetch config from Lima")
+		log.Info("waiting 5 secs for VM")
 
 		// 5 second interval
 		after := time.After(time.Second * 5)
@@ -110,25 +96,9 @@ func (f *inotifyProcess) waitForLima(ctx context.Context) {
 			if err != nil || !i.Running() {
 				continue
 			}
-			if err := func() error {
-				if _, err := limautil.InstanceConfig(); err != nil {
-					return err
-				}
-				if err := f.guest.RunQuiet("uname", "-a"); err != nil {
-					return err
-				}
-				return nil
-			}(); err == nil {
+			if err := f.guest.RunQuiet("uname", "-a"); err == nil {
 				return
 			}
 		}
 	}
-}
-
-func (f *inotifyProcess) watch(ctx context.Context) error {
-	if err := f.fetchContainerVolumes(ctx); err != nil {
-		return fmt.Errorf("error fetching container volumes: %w", err)
-	}
-
-	return f.watchFiles(ctx)
 }
