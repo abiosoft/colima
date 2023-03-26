@@ -3,127 +3,74 @@ package inotify
 import (
 	"context"
 	"fmt"
-	"io/fs"
-	"path/filepath"
-	"strings"
-	"time"
+	"os"
 
+	"github.com/abiosoft/colima/util"
+	"github.com/rjeczalik/notify"
 	"github.com/sirupsen/logrus"
 )
 
-type modTime struct {
-	path string // filename
-	fs.FileMode
+type dirWatcher interface {
+	// Watch watches directories recursively for changes and sends message via c on
+	// modifications to files within the watched directories.
+	//
+	// Watch blocks and only terminates when the context is done or a fatal error occurs.
+	Watch(ctx context.Context, dirs []string, c chan<- modEvent) error
 }
 
-func (m modTime) Mode() string { return fmt.Sprintf("%o", m.FileMode) }
+type defaultWatcher struct {
+	log *logrus.Entry
+}
 
-func (f *inotifyProcess) watchFiles(ctx context.Context) error {
-	log := f.log
-	log.Trace("begin inotify watcher")
+// Watch implements dirWatcher
+func (d *defaultWatcher) Watch(ctx context.Context, dirs []string, mod chan<- modEvent) error {
+	log := d.log
+	c := make(chan notify.EventInfo, 1)
 
-	fileMap := map[string]time.Time{}
-	mod := make(chan modTime)
+	for _, dir := range dirs {
+		dir, err := util.CleanPath(dir)
+		if err != nil {
+			return fmt.Errorf("invalid directory: %w", err)
+		}
+		err = notify.Watch(dir+"...", c, notify.Write)
+		if err != nil {
+			return fmt.Errorf("error watching directory recursively '%s': %w", dir, err)
+		}
+	}
 
-	go func(mod chan modTime) {
-		var last time.Time
+	go func(ctx context.Context, c chan notify.EventInfo, mod chan<- modEvent) {
 		for {
 			select {
+
 			case <-ctx.Done():
-				close(mod)
-				return
-			case ev := <-mod:
-				now := time.Now()
-				if now.Sub(last) < time.Millisecond*500 {
+				notify.Stop(c)
+				if err := ctx.Err(); err != nil {
+					log.Error(err)
+					return
+				}
+
+			case e := <-c:
+				path := e.Path()
+
+				log.Tracef("received event %s for %s", e.Event().String(), path)
+
+				stat, err := os.Stat(path)
+				if err != nil {
+					log.Error(fmt.Errorf("unable to stat inotify file '%s': %w", path, err))
+				}
+
+				if stat.IsDir() {
+					log.Tracef("'%s' is directory, ignoring.", path)
 					continue
 				}
-				last = now
 
-				log.Infof("refreshing mtime for %s ", ev.path)
-				if err := f.guest.Run("/bin/chmod", ev.Mode(), ev.path); err != nil {
-					log.Error(err)
-				}
+				// send modification event
+				mod <- modEvent{path: path, FileMode: stat.Mode()}
 			}
 		}
-	}(mod)
-
-	for {
-		select {
-		case <-ctx.Done():
-			err := ctx.Err()
-			if err != nil {
-				log.Trace(fmt.Errorf("error during watchfile: %w", err))
-			}
-			return err
-
-		case <-time.After(f.interval):
-			// get updated container directories
-			var dirs []string
-
-			f.RLock()
-			dirs = append(dirs, f.containerVols...) // creating a copy
-			f.RUnlock()
-
-			if len(dirs) == 0 {
-				continue
-			}
-
-			if err := doWatch(dirs, fileMap, mod); err != nil {
-				log.Errorf("error during directory watch: %v", err)
-			}
-		}
-	}
-}
-
-var omittedDirs = map[string]struct{}{
-	"node_modules": {},
-}
-
-func doWatch(dirs []string, fileMap map[string]time.Time, changed chan<- modTime) error {
-	for _, dir := range dirs {
-		err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
-			if err != nil {
-				return nil
-			}
-
-			if d.IsDir() {
-				// avoid traversing hidden dirs
-				if strings.HasPrefix(d.Name(), ".") {
-					return fs.SkipDir
-				}
-
-				// avoid travesing omitted dirs
-				if _, ok := omittedDirs[d.Name()]; ok {
-					return fs.SkipDir
-				}
-
-				// do nothing and continue traversing other directories
-				return nil
-			}
-
-			info, err := d.Info()
-			if err != nil {
-				return nil
-			}
-
-			currentTime, ok := fileMap[path]
-			newTime := info.ModTime()
-
-			if ok && newTime.After(currentTime.Add(time.Millisecond*500)) {
-				go func(path string, currentTime, newTime time.Time) {
-					logrus.Tracef("changed file mtime %v->%v: %s", currentTime, newTime, path)
-					changed <- modTime{path: path, FileMode: info.Mode()}
-				}(path, currentTime, newTime)
-			}
-
-			fileMap[path] = newTime
-			return nil
-		})
-
-		if err != nil {
-			return fmt.Errorf("error during walkdir: %w", err)
-		}
-	}
+	}(ctx, c, mod)
 
 	return nil
 }
+
+var _ dirWatcher = (*defaultWatcher)(nil)

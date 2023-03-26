@@ -103,5 +103,5 @@ func init() {
 	startCmd.Flags().BoolVar(&daemonArgs.gvproxy.enabled, "gvproxy", false, "start gvproxy")
 	startCmd.Flags().StringToStringVar(&daemonArgs.gvproxy.dnsHosts, "gvproxy-hosts", nil, "DNS hosts for gvproxy")
 	startCmd.Flags().BoolVar(&daemonArgs.inotify.enabled, "inotify", false, "start inotify")
-	startCmd.Flags().StringSliceVar(&daemonArgs.inotify.dirs, "inotify-dirs", nil, "set inotify directories")
+	startCmd.Flags().StringSliceVar(&daemonArgs.inotify.dirs, "inotify-dir", nil, "set inotify directories")
 }

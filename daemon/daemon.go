@@ -103,7 +103,7 @@ func (l processManager) Start(ctx context.Context, conf config.Config) error {
 			if err != nil {
 				return fmt.Errorf("error sanitising mount path for inotify: %w", err)
 			}
-			args = append(args, "--inotify-dirs", p)
+			args = append(args, "--inotify-dir", p)
 		}
 	}
 	if conf.Network.Driver == gvproxy.Name {
