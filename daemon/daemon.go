@@ -98,6 +98,7 @@ func (l processManager) Start(ctx context.Context, conf config.Config) error {
 	}
 	if conf.MountINotify {
 		args = append(args, "--inotify")
+		args = append(args, "--inotify-runtime", conf.Runtime)
 		for _, mount := range conf.MountsOrDefault() {
 			p, err := util.CleanPath(mount.Location)
 			if err != nil {

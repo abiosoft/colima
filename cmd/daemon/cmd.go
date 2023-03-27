@@ -41,8 +41,12 @@ var startCmd = &cobra.Command{
 		if daemonArgs.inotify.enabled {
 			processes = append(processes, inotify.New())
 			guest := lima.New(host.New())
-			ctx = context.WithValue(ctx, inotify.CtxKeyGuest(), guest)
-			ctx = context.WithValue(ctx, inotify.CtxKeyDirs(), daemonArgs.inotify.dirs)
+			args := inotify.Args{
+				GuestActions: guest,
+				Runtime:      daemonArgs.inotify.runtime,
+				Dirs:         daemonArgs.inotify.dirs,
+			}
+			ctx = context.WithValue(ctx, inotify.CtxKeyArgs(), args)
 		}
 
 		return start(ctx, processes)
@@ -87,6 +91,7 @@ var daemonArgs struct {
 	inotify struct {
 		enabled bool
 		dirs    []string
+		runtime string
 	}
 
 	verbose bool
@@ -104,4 +109,5 @@ func init() {
 	startCmd.Flags().StringToStringVar(&daemonArgs.gvproxy.dnsHosts, "gvproxy-hosts", nil, "DNS hosts for gvproxy")
 	startCmd.Flags().BoolVar(&daemonArgs.inotify.enabled, "inotify", false, "start inotify")
 	startCmd.Flags().StringSliceVar(&daemonArgs.inotify.dirs, "inotify-dir", nil, "set inotify directories")
+	startCmd.Flags().StringVar(&daemonArgs.inotify.runtime, "inotify-runtime", "docker", "set runtime")
 }
