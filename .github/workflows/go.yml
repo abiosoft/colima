@@ -15,7 +15,7 @@ on:
       - "**/*.lock"
 
 jobs:
-  build:
+  build-linux:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -31,8 +31,24 @@ jobs:
       - name: Test
         run: go test -v ./...
 
-  release:
-    needs: "build"
+  build-macos:
+    runs-on: macos-12
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: "1.20"
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Test
+        run: go test -v ./...
+
+  binaries-linux:
+    needs: "build-linux"
     runs-on: ubuntu-latest
 
     steps:
@@ -43,16 +59,55 @@ jobs:
         with:
           go-version: "1.20"
 
-      - name: generate macOS binaries
-        run: |
-          make OS=Darwin ARCH=x86_64
-          make OS=Darwin ARCH=arm64
-
-      - name: generate Linux binaries
+      - name: generate binaries
         run: |
           make OS=Linux ARCH=x86_64
           make OS=Linux ARCH=aarch64
 
+      - name: upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: artifacts-linux
+          path: _output/binaries/
+
+  binaries-macos:
+    needs: "build-macos"
+    runs-on: macos-12
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: "1.20"
+
+      - name: generate binaries
+        run: |
+          make OS=Darwin ARCH=x86_64
+          make OS=Darwin ARCH=arm64
+
+      - name: upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: artifacts-macos
+          path: _output/binaries/
+
+
+  release:
+    needs: ["binaries-linux", "binaries-macos"]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
+        with:
+          name: artifacts-linux
+          path: _output/binaries/
+      - uses: actions/download-artifact@v3
+        with:
+          name: artifacts-macos
+          path: _output/binaries/
       - name: create release
         if: github.event_name != 'pull_request'
         env:
