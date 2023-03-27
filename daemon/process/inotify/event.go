@@ -19,34 +19,87 @@ func (f *inotifyProcess) handleEvents(ctx context.Context, watcher dirWatcher) e
 	log.Trace("begin inotify event handler")
 
 	mod := make(chan modEvent)
+	vols := make(chan []string)
 
-	if err := watcher.Watch(ctx, f.vmVols, mod); err != nil {
-		return fmt.Errorf("error starting watcher: %w", err)
+	if err := f.monitorContainerVolumes(ctx, vols); err != nil {
+		return fmt.Errorf("error watching container volumes: %w", err)
 	}
 
 	var last time.Time
-	count := 0
+	var cancelWatch context.CancelFunc
+	var currentVols []string
+
+	volsChanged := func(vols []string) bool {
+		if len(currentVols) != len(vols) {
+			return true
+		}
+		for i := range vols {
+			if vols[i] != currentVols[i] {
+				return true
+			}
+		}
+		return false
+	}
+
+	cache := map[string]struct{}{}
+
 	for {
 		select {
+
+		// exit signal
 		case <-ctx.Done():
 			close(mod)
 			return ctx.Err()
+
+		// watch only container volumes
+		case vols := <-vols:
+			if !volsChanged(vols) {
+				continue
+			}
+			log.Tracef("volumes changed from: %+v, to: %+v", currentVols, vols)
+
+			currentVols = vols
+
+			if cancel := cancelWatch; cancel != nil {
+				// delay a bit to avoid zero downtime
+				time.AfterFunc(time.Second*1, cancel)
+			}
+
+			ctx, cancel := context.WithCancel(ctx)
+			cancelWatch = cancel
+
+			go func(ctx context.Context, vols []string, mod chan<- modEvent) {
+				if err := watcher.Watch(ctx, vols, mod); err != nil {
+					log.Error(fmt.Errorf("error running watcher: %w", err))
+				}
+			}(ctx, vols, mod)
+
+		// handle modification events
 		case ev := <-mod:
 			now := time.Now()
 
-			// rate limit, handle at most 10 events every 500 ms
+			// rate limit, handle at most 50 unique items every 500 ms
 			if now.Sub(last) < time.Millisecond*500 {
-				count++
-				if count > 10 {
+				if _, ok := cache[ev.path]; ok {
+					continue // handled, ignore
+				}
+				cache[ev.path] = struct{}{}
+				if len(cache) > 50 {
 					continue
 				}
 			} else {
 				last = now
-				count = 0 // >500ms, reset counter
+				cache = map[string]struct{}{} // >500ms, reset unique cache
+			}
+
+			// validate that file exists
+			if err := f.guest.RunQuiet("stat", ev.path); err != nil {
+				log.Trace(err)
+				continue
 			}
 
 			log.Infof("refreshing mtime for %s ", ev.path)
-			if err := f.guest.Run("/bin/chmod", ev.Mode(), ev.path); err != nil {
+			if err := f.guest.RunQuiet("/bin/chmod", ev.Mode(), ev.path); err != nil {
 				log.Error(err)
 			}
 		}

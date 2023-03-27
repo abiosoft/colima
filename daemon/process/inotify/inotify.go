@@ -12,9 +12,15 @@ import (
 )
 
 const Name = "inotify"
+const volumesInterval = 5 * time.Second
 
-func CtxKeyGuest() any { return struct{ name string }{name: "inotify_guest"} }
-func CtxKeyDirs() any  { return struct{ name string }{name: "inotify_dirs"} }
+type Args struct {
+	environment.GuestActions
+	Dirs    []string
+	Runtime string
+}
+
+func CtxKeyArgs() any { return struct{ name string }{name: "inotify_args"} }
 
 // New returns inotify process.
 func New() process.Process {
@@ -26,8 +32,9 @@ func New() process.Process {
 var _ process.Process = (*inotifyProcess)(nil)
 
 type inotifyProcess struct {
-	vmVols []string
-	guest  environment.GuestActions
+	vmVols  []string
+	guest   environment.GuestActions
+	runtime string
 
 	log *logrus.Entry
 }
@@ -55,17 +62,14 @@ func (*inotifyProcess) Name() string {
 
 // Start implements process.Process
 func (f *inotifyProcess) Start(ctx context.Context) error {
-	guest, ok := ctx.Value(CtxKeyGuest()).(environment.GuestActions)
+	args, ok := ctx.Value(CtxKeyArgs()).(Args)
 	if !ok {
-		return fmt.Errorf("environment.GuestActions missing in context")
+		return fmt.Errorf("args missing in context")
 	}
-	f.vmVols, ok = ctx.Value(CtxKeyDirs()).([]string)
-	if !ok {
-		return fmt.Errorf("dirs missing in context")
-	}
-	f.vmVols = omitChildrenDirectories(f.vmVols)
+	f.vmVols = omitChildrenDirectories(args.Dirs)
 
-	f.guest = guest
+	f.guest = args.GuestActions
+	f.runtime = args.Runtime
 	log := f.log
 
 	log.Info("waiting for VM to start")

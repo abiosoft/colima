@@ -32,7 +32,7 @@ func (d *defaultWatcher) Watch(ctx context.Context, dirs []string, mod chan<- mo
 		if err != nil {
 			return fmt.Errorf("invalid directory: %w", err)
 		}
-		err = notify.Watch(dir+"...", c, notify.Write, notify.Create, notify.Rename)
+		err = notify.Watch(dir+"...", c, notify.Write)
 		if err != nil {
 			return fmt.Errorf("error watching directory recursively '%s': %w", dir, err)
 		}
