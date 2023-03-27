@@ -21,7 +21,9 @@ func (f *inotifyProcess) handleEvents(ctx context.Context, watcher dirWatcher) e
 	mod := make(chan modEvent)
 	vols := make(chan []string)
 
-	go f.monitorContainerVolumes(ctx, vols)
+	if err := f.monitorContainerVolumes(ctx, vols); err != nil {
+		return fmt.Errorf("error watching container volumes: %w", err)
+	}
 
 	var last time.Time
 	var cancelWatch context.CancelFunc
