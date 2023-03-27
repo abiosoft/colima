@@ -83,7 +83,6 @@ func (f *inotifyProcess) handleEvents(ctx context.Context, watcher dirWatcher) e
 				if _, ok := cache[ev.path]; ok {
 					continue // handled, ignore
 				}
-				cache[ev.path] = struct{}{}
 				if len(cache) > 50 {
 					continue
 				}
@@ -91,6 +90,9 @@ func (f *inotifyProcess) handleEvents(ctx context.Context, watcher dirWatcher) e
 				last = now
 				cache = map[string]struct{}{} // >500ms, reset unique cache
 			}
+
+			// cache current event
+			cache[ev.path] = struct{}{}
 
 			// validate that file exists
 			if err := f.guest.RunQuiet("stat", ev.path); err != nil {
