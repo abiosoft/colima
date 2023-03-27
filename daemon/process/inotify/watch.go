@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/abiosoft/colima/util"
 	"github.com/rjeczalik/notify"
@@ -53,11 +54,20 @@ func (d *defaultWatcher) Watch(ctx context.Context, dirs []string, mod chan<- mo
 				path := e.Path()
 
 				log.Tracef("received event %s for %s", e.Event().String(), path)
-
 				stat, err := os.Stat(path)
 				if err != nil {
 					log.Trace(fmt.Errorf("unable to stat inotify file '%s': %w", path, err))
-					continue
+
+					try_path := strings.TrimSuffix(path, "~")
+					if path == try_path {
+						continue
+					}
+					stat, err = os.Stat(try_path)
+					if err != nil {
+						continue
+					}
+					log.Tracef("using updated path: %s", try_path)
+					path = try_path
 				}
 
 				if stat.IsDir() {
