@@ -25,7 +25,8 @@ func (f *inotifyProcess) handleEvents(ctx context.Context, watcher dirWatcher) e
 	}
 
 	var last time.Time
-	count := 0
+	list := make(map[string]bool)
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -34,15 +35,21 @@ func (f *inotifyProcess) handleEvents(ctx context.Context, watcher dirWatcher) e
 		case ev := <-mod:
 			now := time.Now()
 
+			log.Tracef("handing: %s", ev.path)
 			// rate limit, handle at most 10 events every 500 ms
 			if now.Sub(last) < time.Millisecond*500 {
-				count++
-				if count > 10 {
+				if list[ev.path] == true {
+					log.Tracef("ignoring dupe: %s", ev.path)
+					continue
+				}
+				list[ev.path] = true
+				if len(list) > 10 {
+					log.Tracef("rate limited: %s", ev.path)
 					continue
 				}
 			} else {
 				last = now
-				count = 0 // >500ms, reset counter
+				list = make(map[string]bool) // >500ms, reset counter
 			}
 
 			log.Infof("refreshing mtime for %s ", ev.path)
