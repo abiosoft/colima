@@ -14,7 +14,10 @@ type dirWatcher interface {
 	// Watch watches directories recursively for changes and sends message via c on
 	// modifications to files within the watched directories.
 	//
-	// Watch blocks and only terminates when the context is done or a fatal error occurs.
+	// Watch returns immediately and runs the watcher in the background.
+	// An error is returned when the watcher can not be started in background.
+	//
+	// The watcher terminates on fatal error or when ctx is done.
 	Watch(ctx context.Context, dirs []string, c chan<- modEvent) error
 }
 
@@ -44,8 +47,9 @@ func (d *defaultWatcher) Watch(ctx context.Context, dirs []string, mod chan<- mo
 
 			case <-ctx.Done():
 				notify.Stop(c)
+				log.Trace("stopping watcher")
 				if err := ctx.Err(); err != nil {
-					log.Error(err)
+					log.Trace(fmt.Errorf("error found in ctx: %w", err))
 					return
 				}
 

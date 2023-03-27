@@ -83,7 +83,6 @@ func (f *inotifyProcess) handleEvents(ctx context.Context, watcher dirWatcher) e
 				if _, ok := cache[ev.path]; ok {
 					continue // handled, ignore
 				}
-				cache[ev.path] = struct{}{}
 				if len(cache) > 50 {
 					continue
 				}
@@ -92,15 +91,18 @@ func (f *inotifyProcess) handleEvents(ctx context.Context, watcher dirWatcher) e
 				cache = map[string]struct{}{} // >500ms, reset unique cache
 			}
 
+			// cache current event
+			cache[ev.path] = struct{}{}
+
 			// validate that file exists
 			if err := f.guest.RunQuiet("stat", ev.path); err != nil {
-				log.Trace(err)
+				log.Trace(fmt.Errorf("cannot stat '%s': %w", ev.path, err))
 				continue
 			}
 
-			log.Infof("refreshing mtime for %s ", ev.path)
-			if err := f.guest.RunQuiet("/bin/chmod", ev.Mode(), ev.path); err != nil {
-				log.Error(err)
+			log.Infof("syncing inotify event for %s ", ev.path)
+			if err := f.guest.RunQuiet("sudo", "/bin/chmod", ev.Mode(), ev.path); err != nil {
+				log.Trace(fmt.Errorf("error syncing inotify event: %w", err))
 			}
 		}
 	}
