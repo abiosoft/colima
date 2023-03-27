@@ -29,17 +29,17 @@ func (f *inotifyProcess) handleEvents(ctx context.Context, watcher dirWatcher) e
 
 	volsChanged := func(vols []string) bool {
 		if len(currentVols) != len(vols) {
-			return false
+			return true
 		}
 		for i := range vols {
 			if vols[i] != currentVols[i] {
-				return false
+				return true
 			}
 		}
-		return true
+		return false
 	}
 
-	count := 0
+	cache := map[string]struct{}{}
 
 	for {
 		select {
@@ -54,6 +54,8 @@ func (f *inotifyProcess) handleEvents(ctx context.Context, watcher dirWatcher) e
 			if !volsChanged(vols) {
 				continue
 			}
+			log.Tracef("volumes changed from: %+v, to: %+v", currentVols, vols)
+
 			currentVols = vols
 
 			if cancel := cancelWatch; cancel != nil {
@@ -74,19 +76,28 @@ func (f *inotifyProcess) handleEvents(ctx context.Context, watcher dirWatcher) e
 		case ev := <-mod:
 			now := time.Now()
 
-			// rate limit, handle at most 50 events every 500 ms
+			// rate limit, handle at most 50 unique items every 500 ms
 			if now.Sub(last) < time.Millisecond*500 {
-				count++
-				if count > 50 {
+				if _, ok := cache[ev.path]; ok {
+					continue // handled, ignore
+				}
+				cache[ev.path] = struct{}{}
+				if len(cache) > 50 {
 					continue
 				}
 			} else {
 				last = now
-				count = 0 // >500ms, reset counter
+				cache = map[string]struct{}{} // >500ms, reset unique cache
+			}
+
+			// validate that file exists
+			if err := f.guest.RunQuiet("stat", ev.path); err != nil {
+				log.Trace(err)
+				continue
 			}
 
 			log.Infof("refreshing mtime for %s ", ev.path)
-			if err := f.guest.Run("/bin/chmod", ev.Mode(), ev.path); err != nil {
+			if err := f.guest.RunQuiet("/bin/chmod", ev.Mode(), ev.path); err != nil {
 				log.Error(err)
 			}
 		}
