@@ -94,13 +94,13 @@ func (f *inotifyProcess) handleEvents(ctx context.Context, watcher dirWatcher) e
 
 			// validate that file exists
 			if err := f.guest.RunQuiet("stat", ev.path); err != nil {
-				log.Trace(err)
+				log.Trace(fmt.Errorf("cannot stat '%s': %w", ev.path, err))
 				continue
 			}
 
-			log.Infof("refreshing mtime for %s ", ev.path)
-			if err := f.guest.RunQuiet("/bin/chmod", ev.Mode(), ev.path); err != nil {
-				log.Error(err)
+			log.Infof("syncing inotify event for %s ", ev.path)
+			if err := f.guest.RunQuiet("sudo", "/bin/chmod", ev.Mode(), ev.path); err != nil {
+				log.Trace(fmt.Errorf("error syncing inotify event: %w", err))
 			}
 		}
 	}
