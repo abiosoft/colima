@@ -134,7 +134,7 @@ jobs:
         run: docker build integration
 
       - name: Validate Layer
-        run: colima ssh --layer -- cat /etc/os-release
+        run: colima ssh -- cat /etc/os-release
 
       - name: Stop
         run: colima stop
@@ -182,7 +182,7 @@ jobs:
         run: colima ssh --layer=false -- nslookup host.docker.internal
 
       - name: Validate Layer
-        run: colima ssh --layer -- cat /etc/os-release
+        run: colima ssh -- cat /etc/os-release
 
       - name: Stop
         run: colima stop
@@ -230,7 +230,7 @@ jobs:
         run: colima nerdctl -- build integration
 
       - name: Validate Layer
-        run: colima ssh --layer -- cat /etc/os-release
+        run: colima ssh -- cat /etc/os-release
 
       - name: Stop
         run: colima stop
@@ -278,7 +278,7 @@ jobs:
         run: sleep 10
 
       - name: Validate Layer
-        run: colima ssh --layer -- cat /etc/os-release
+        run: colima ssh -- cat /etc/os-release
 
       - name: Stop
         run: colima stop
