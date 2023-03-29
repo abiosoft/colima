@@ -125,13 +125,16 @@ func ShowSSH(profileID string, layer bool, format string) (resp struct {
 	return resp, nil
 }
 
-func replaceSSHCmd(cmd string, name string, ip string, port int) string {
+func replaceSSHCmd(cmd string, profileID string, ip string, port int) string {
+	profileID = config.Profile(profileID).ID
+	name := config.Profile(profileID).ShortName
 	var out []string
 
 	for _, s := range util.ShellSplit(cmd) {
 		if port > 0 {
 			if strings.HasPrefix(s, "ControlPath=") {
-				s = "ControlPath=" + strconv.Quote(filepath.Join(config.Dir(), "ssh.sock"))
+				configDir := filepath.Join(filepath.Dir(config.Dir()), name)
+				s = "ControlPath=" + strconv.Quote(filepath.Join(configDir, "ssh.sock"))
 			}
 			if strings.HasPrefix(s, "Port=") {
 				s = "Port=" + strconv.Itoa(port)
@@ -144,13 +147,16 @@ func replaceSSHCmd(cmd string, name string, ip string, port int) string {
 		out = append(out, s)
 	}
 
-	if out[len(out)-1] == "lima-"+name {
+	if out[len(out)-1] == "lima-"+profileID {
 		out[len(out)-1] = ip
 	}
 
 	return strings.Join(out, " ")
 }
-func replaceSSHConfig(conf string, name string, ip string, port int) string {
+func replaceSSHConfig(conf string, profileID string, ip string, port int) string {
+	profileID = config.Profile(profileID).ID
+	name := config.Profile(profileID).ShortName
+
 	var out bytes.Buffer
 	scanner := bufio.NewScanner(strings.NewReader(conf))
 
@@ -165,12 +171,13 @@ func replaceSSHConfig(conf string, name string, ip string, port int) string {
 		line := scanner.Text()
 
 		if strings.HasPrefix(line, "Host ") {
-			line = "Host " + name
+			line = "Host " + profileID
 		}
 
 		if port > 0 {
 			if pad, ok := hasPrefix(line, "ControlPath "); ok {
-				line = pad + "ControlPath " + strconv.Quote(filepath.Join(config.Dir(), "ssh.sock"))
+				configDir := filepath.Join(filepath.Dir(config.Dir()), name)
+				line = pad + "ControlPath " + strconv.Quote(filepath.Join(configDir, "ssh.sock"))
 			}
 
 			if pad, ok := hasPrefix(line, "Hostname "); ok {
