@@ -6,6 +6,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/abiosoft/colima/cmd/root"
+	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/docker/go-units"
 	"github.com/sirupsen/logrus"
@@ -26,7 +27,12 @@ var listCmd = &cobra.Command{
 A new instance can be created during 'colima start' by specifying the '--profile' flag.`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		instances, err := limautil.Instances()
+		profile := []string{}
+		if cmd.Flag("profile").Changed {
+			profile = append(profile, config.CurrentProfile().ID)
+		}
+
+		instances, err := limautil.Instances(profile...)
 		if err != nil {
 			return err
 		}
