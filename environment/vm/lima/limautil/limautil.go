@@ -221,9 +221,15 @@ func getInstance(profileID string) (InstanceInfo, error) {
 }
 
 // Instances returns Lima instances created by colima.
-func Instances() ([]InstanceInfo, error) {
+func Instances(ids ...string) ([]InstanceInfo, error) {
+	limaIDs := make([]string, len(ids))
+	for i := range ids {
+		limaIDs = append(limaIDs, config.Profile(ids[i]).ID)
+	}
+	args := append([]string{"list", "--json"}, limaIDs...)
+
 	var buf bytes.Buffer
-	cmd := cli.Command("limactl", "list", "--json")
+	cmd := cli.Command("limactl", args...)
 	cmd.Stderr = nil
 	cmd.Stdout = &buf
 
