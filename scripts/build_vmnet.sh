@@ -26,7 +26,7 @@ build_x86_64() (
     cd "$DIR_VMNET"
 
     # pinning to a commit for consistency
-    git checkout c630eb8eeb900de58cd4a487302bd318d0da8abd
+    git checkout 3ce6e3f6e3493bd877e10292d3b68b1e0f87210b
     make ARCH=x86_64
 
     move_to_embed_dir x86_64
@@ -39,7 +39,7 @@ build_arm64() (
     cd "$DIR_VMNET"
 
     # pinning to a commit for consistency
-    git checkout c630eb8eeb900de58cd4a487302bd318d0da8abd
+    git checkout 3ce6e3f6e3493bd877e10292d3b68b1e0f87210b
     make ARCH=arm64
     move_to_embed_dir arm64
 
