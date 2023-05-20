@@ -3,6 +3,7 @@ package lima
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -93,6 +94,25 @@ func Test_config_Mounts(t *testing.T) {
 					return
 				}()
 				t.Errorf("got: %+v, want: %v", foundLocations, expectedLocations)
+			}
+		})
+	}
+}
+
+func Test_ingressDisabled(t *testing.T) {
+	tests := []struct {
+		args []string
+		want bool
+	}{
+		{args: []string{"--flag=f", "--another", "flag"}, want: false},
+		{args: []string{"--disable=traefik", "--version=3"}, want: true},
+		{args: []string{}, want: false},
+		{args: []string{"--disable", "traefik", "--one=two"}, want: true},
+	}
+	for i, tt := range tests {
+		t.Run(strconv.Itoa(i+1), func(t *testing.T) {
+			if got := ingressDisabled(tt.args); got != tt.want {
+				t.Errorf("ingressDisabled() = %v, want %v", got, tt.want)
 			}
 		})
 	}

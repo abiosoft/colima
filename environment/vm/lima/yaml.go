@@ -157,7 +157,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 
 			// disable ports 80 and 443 when k8s is enabled and there is a reachable IP address
 			// to prevent ingress (traefik) from occupying relevant host ports.
-			if reachableIPAddress && conf.Kubernetes.Enabled && !disableHas(conf.Kubernetes.Disable, "ingress") {
+			if reachableIPAddress && conf.Kubernetes.Enabled && !ingressDisabled(conf.Kubernetes.K3sArgs) {
 				l.PortForwards = append(l.PortForwards,
 					PortForward{
 						GuestIP:           net.ParseIP("0.0.0.0"),
@@ -523,9 +523,23 @@ func checkOverlappingMounts(mounts []config.Mount) error {
 }
 
 // disableHas checks if the provided feature is indeed found in the disable configuration slice.
-func disableHas(disable []string, feature string) bool {
-	for _, f := range disable {
-		if f == feature {
+func ingressDisabled(disableFlags []string) bool {
+	disabled := func(s string) bool { return s == "traefik" || s == "ingress" }
+	for i, f := range disableFlags {
+		if f == "--disable" {
+			if len(disableFlags)-1 <= i {
+				return false
+			}
+			if disabled(disableFlags[i+1]) {
+				return true
+			}
+			continue
+		}
+		str := strings.SplitN(f, "=", 2)
+		if len(str) < 2 || str[0] != "--disable" {
+			continue
+		}
+		if disabled(str[1]) {
 			return true
 		}
 	}

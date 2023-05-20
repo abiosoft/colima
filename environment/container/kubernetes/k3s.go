@@ -81,7 +81,7 @@ func installK3sCache(
 	case containerd.Name:
 		a.Stage("loading oci images")
 		a.Add(func() error {
-			if err := guest.Run("sudo", "ctr", "-n", "k8s.io", "images", "import", "--all-platforms", downloadPathTar); err != nil {
+			if err := guest.Run("sudo", "nerdctl", "-n", "k8s.io", "load", "-i", downloadPathTar, "--all-platforms"); err != nil {
 				log.Warnln(fmt.Errorf("error loading oci images: %w", err))
 				log.Warnln("startup may delay a bit as images will be pulled from oci registry")
 			}
@@ -105,7 +105,7 @@ func installK3sCluster(
 	a *cli.ActiveCommandChain,
 	containerRuntime string,
 	k3sVersion string,
-	disable []string,
+	k3sArgs []string,
 ) {
 	// install k3s last to ensure it is the last step
 	downloadPath := "/tmp/k3s-install.sh"
@@ -117,14 +117,10 @@ func installK3sCluster(
 		return guest.Run("sudo", "install", downloadPath, "/usr/local/bin/k3s-install.sh")
 	})
 
-	args := []string{
+	args := append([]string{
 		"--write-kubeconfig-mode", "644",
 		"--resolv-conf", "/etc/resolv.conf",
-	}
-
-	for _, d := range disable {
-		args = append(args, "--disable", d)
-	}
+	}, k3sArgs...)
 
 	// replace ip address if networking is enabled
 	ipAddress := limautil.IPAddress(config.CurrentProfile().ID)
