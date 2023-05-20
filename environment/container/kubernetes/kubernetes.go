@@ -18,7 +18,7 @@ import (
 
 const (
 	Name           = "kubernetes"
-	DefaultVersion = "v1.25.4+k3s1"
+	DefaultVersion = "v1.27.1+k3s1"
 
 	ConfigKey = "kubernetes_config"
 )
@@ -111,7 +111,7 @@ func (c *kubernetesRuntime) Provision(ctx context.Context) error {
 			installK3sCache(c.host, c.guest, a, log, runtime, conf.Version)
 		}
 		// other settings may have changed e.g. ingress
-		installK3sCluster(c.host, c.guest, a, runtime, conf.Version, conf.Disable)
+		installK3sCluster(c.host, c.guest, a, runtime, conf.Version, conf.K3sArgs)
 	} else {
 		if c.isInstalled() {
 			a.Stagef("version changed to %s, downloading and installing", conf.Version)
@@ -122,7 +122,7 @@ func (c *kubernetesRuntime) Provision(ctx context.Context) error {
 				a.Stage("installing")
 			}
 		}
-		installK3s(c.host, c.guest, a, log, runtime, conf.Version, conf.Disable)
+		installK3s(c.host, c.guest, a, log, runtime, conf.Version, conf.K3sArgs)
 	}
 
 	// this needs to happen on each startup

@@ -113,18 +113,19 @@ const (
 	defaultMountTypeVZ   = "virtiofs"
 )
 
-var defaultKubernetesDisable = []string{"traefik"}
+var defaultK3sArgs = []string{"--disable=traefik"}
 
 var startCmdArgs struct {
 	config.Config
 
 	Flags struct {
-		Mounts           []string
-		LegacyKubernetes bool // for backward compatibility
-		Edit             bool
-		Editor           string
-		ActivateRuntime  bool
-		DNSHosts         []string
+		Mounts                  []string
+		LegacyKubernetes        bool // for backward compatibility
+		LegacyKubernetesDisable []string
+		Edit                    bool
+		Editor                  string
+		ActivateRuntime         bool
+		DNSHosts                []string
 	}
 }
 
@@ -176,8 +177,10 @@ func init() {
 	startCmd.Flags().BoolVarP(&startCmdArgs.Kubernetes.Enabled, "kubernetes", "k", false, "start with Kubernetes")
 	startCmd.Flags().BoolVar(&startCmdArgs.Flags.LegacyKubernetes, "with-kubernetes", false, "start with Kubernetes")
 	startCmd.Flags().StringVar(&startCmdArgs.Kubernetes.Version, "kubernetes-version", defaultKubernetesVersion, "must match a k3s version https://github.com/k3s-io/k3s/releases")
-	startCmd.Flags().StringSliceVar(&startCmdArgs.Kubernetes.Disable, "kubernetes-disable", defaultKubernetesDisable, "components to disable for k3s e.g. traefik,servicelb")
+	startCmd.Flags().StringSliceVar(&startCmdArgs.Flags.LegacyKubernetesDisable, "kubernetes-disable", nil, "components to disable for k3s e.g. traefik,servicelb")
+	startCmd.Flags().StringSliceVar(&startCmdArgs.Kubernetes.K3sArgs, "k3s-arg", defaultK3sArgs, "additional args to pass to k3s")
 	startCmd.Flag("with-kubernetes").Hidden = true
+	startCmd.Flag("kubernetes-disable").Hidden = true
 
 	// layer
 	startCmd.Flags().BoolVarP(&startCmdArgs.Layer, "layer", "l", false, "enable Ubuntu container layer")
@@ -303,6 +306,11 @@ func prepareConfig(cmd *cobra.Command) {
 	startCmdArgs.Network.DNSHosts = dnsHostsFromFlag(startCmdArgs.Flags.DNSHosts)
 	startCmdArgs.ActivateRuntime = &startCmdArgs.Flags.ActivateRuntime
 
+	// handle legacy kubernetes-disable
+	for _, disable := range startCmdArgs.Flags.LegacyKubernetesDisable {
+		startCmdArgs.Kubernetes.K3sArgs = append(startCmdArgs.Kubernetes.K3sArgs, "--disable="+disable)
+	}
+
 	// set relevant missing default values
 	setDefaults(cmd)
 
@@ -339,8 +347,8 @@ func prepareConfig(cmd *cobra.Command) {
 	if !cmd.Flag("kubernetes-version").Changed {
 		startCmdArgs.Kubernetes.Version = current.Kubernetes.Version
 	}
-	if !cmd.Flag("kubernetes-disable").Changed {
-		startCmdArgs.Kubernetes.Disable = current.Kubernetes.Disable
+	if !cmd.Flag("k3s-arg").Changed {
+		startCmdArgs.Kubernetes.K3sArgs = current.Kubernetes.K3sArgs
 	}
 	if !cmd.Flag("runtime").Changed {
 		startCmdArgs.Runtime = current.Runtime

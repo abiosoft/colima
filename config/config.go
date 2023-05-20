@@ -112,7 +112,7 @@ type Config struct {
 type Kubernetes struct {
 	Enabled bool     `yaml:"enabled"`
 	Version string   `yaml:"version"`
-	Disable []string `yaml:"disable"`
+	K3sArgs []string `yaml:"k3sArgs"`
 }
 
 // Network is VM network configuration

@@ -13,7 +13,7 @@ func Test_encode_Docker(t *testing.T) {
 	conf := config.Config{
 		Docker:     map[string]any{"insecure-registries": []any{"127.0.0.1"}},
 		Network:    config.Network{DNSResolvers: []net.IP{net.ParseIP("1.1.1.1")}},
-		Kubernetes: config.Kubernetes{Disable: []string{"treafik"}},
+		Kubernetes: config.Kubernetes{K3sArgs: []string{"--disable=traefik"}},
 	}
 
 	tests := []struct {

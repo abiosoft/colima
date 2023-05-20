@@ -53,8 +53,8 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	}
 
 	l.Images = append(l.Images,
-		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.5.0-2/alpine-lima-clm-3.16.2-aarch64.iso", Digest: "sha512:06abfa8c9fd954f8bfe4ce226bf282dd06e9dfbcd09f57566bf6c20809beb5a3367415b515e0a65d6a1638ecfd3a3bb3fb6d654dee3d72164bd0279370448507"},
-		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.5.0-2/alpine-lima-clm-3.16.2-x86_64.iso", Digest: "sha512:e9e118498f3a0745574ffc3686105d2c9777f7142164fe50ee47909dabd504c80ac29aeb76f9582706173310d1488d3b6f0ee9018e2a6aadc28eefb7767b63ec"},
+		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.5.5/alpine-lima-clm-3.18.0-aarch64.iso", Digest: "sha512:84c93e8aaa09446618bf87daa993e260da69b50e95670aed5df6671b2cff9464810752cbf70f6ee5ddf9d3e1c91d98104b3c573cc024c5f0687ad3f4d2e93ebc"},
+		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.5.5/alpine-lima-clm-3.18.0-x86_64.iso", Digest: "sha512:f761b807fe9ba345968df72c07f8c5abcae0c4a44976fe5595c0ff748ef693841221a70e663986c700b027cea32b7cac24d5490d4c721593c39f2b8840c362a2"},
 	)
 
 	if conf.CPU > 0 {
@@ -157,7 +157,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 
 			// disable ports 80 and 443 when k8s is enabled and there is a reachable IP address
 			// to prevent ingress (traefik) from occupying relevant host ports.
-			if reachableIPAddress && conf.Kubernetes.Enabled && !disableHas(conf.Kubernetes.Disable, "ingress") {
+			if reachableIPAddress && conf.Kubernetes.Enabled && !ingressDisabled(conf.Kubernetes.K3sArgs) {
 				l.PortForwards = append(l.PortForwards,
 					PortForward{
 						GuestIP:           net.ParseIP("0.0.0.0"),
@@ -523,9 +523,23 @@ func checkOverlappingMounts(mounts []config.Mount) error {
 }
 
 // disableHas checks if the provided feature is indeed found in the disable configuration slice.
-func disableHas(disable []string, feature string) bool {
-	for _, f := range disable {
-		if f == feature {
+func ingressDisabled(disableFlags []string) bool {
+	disabled := func(s string) bool { return s == "traefik" || s == "ingress" }
+	for i, f := range disableFlags {
+		if f == "--disable" {
+			if len(disableFlags)-1 <= i {
+				return false
+			}
+			if disabled(disableFlags[i+1]) {
+				return true
+			}
+			continue
+		}
+		str := strings.SplitN(f, "=", 2)
+		if len(str) < 2 || str[0] != "--disable" {
+			continue
+		}
+		if disabled(str[1]) {
 			return true
 		}
 	}
