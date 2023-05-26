@@ -40,9 +40,24 @@ func (r *requiredDir) Dir() string {
 }
 
 var (
+	configBaseDir = requiredDir{
+		dir: func() (string, error) {
+			dir := os.Getenv("XDG_CONFIG_HOME")
+			if dir != "" {
+				return filepath.Join(dir, "colima"), nil
+			}
+			// else
+			dir, err := os.UserConfigDir()
+			if err != nil {
+				return "", err
+			}
+			return filepath.Join(dir, "colima"), nil
+		},
+	}
+
 	configDir = requiredDir{
 		dir: func() (string, error) {
-			dir, err := os.UserHomeDir()
+			dir, err := configBaseDir.dir()
 			if err != nil {
 				return "", err
 			}
@@ -52,6 +67,11 @@ var (
 
 	cacheDir = requiredDir{
 		dir: func() (string, error) {
+			dir := os.Getenv("XDG_CACHE_HOME")
+			if dir != "" {
+				return filepath.Join(dir, "colima"), nil
+			}
+			// else
 			dir, err := os.UserCacheDir()
 			if err != nil {
 				return "", err
@@ -62,23 +82,23 @@ var (
 
 	templatesDir = requiredDir{
 		dir: func() (string, error) {
-			dir, err := os.UserHomeDir()
+			dir, err := configBaseDir.dir()
 			if err != nil {
 				return "", err
 			}
-			return filepath.Join(dir, ".colima", "_templates"), nil
+			return filepath.Join(dir, "colima", "_templates"), nil
 		},
 	}
 
 	wrapperDir = requiredDir{
 		dir: func() (string, error) {
-			dir, err := os.UserHomeDir()
+			dir, err := configBaseDir.dir()
 			if err != nil {
 				return "", err
 			}
 			// generate unique directory for the current binary
 			uniqueDir := shautil.SHA1(osutil.Executable())
-			return filepath.Join(dir, ".colima", "_wrapper", uniqueDir.String()), nil
+			return filepath.Join(dir, "colima", "_wrapper", uniqueDir.String()), nil
 		},
 	}
 )
