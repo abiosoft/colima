@@ -61,7 +61,7 @@ var (
 			if err != nil {
 				return "", err
 			}
-			return filepath.Join(dir, ".colima", profile.ShortName), nil
+			return filepath.Join(dir, profile.ShortName), nil
 		},
 	}
 
@@ -86,7 +86,7 @@ var (
 			if err != nil {
 				return "", err
 			}
-			return filepath.Join(dir, "colima", "_templates"), nil
+			return filepath.Join(dir, "_templates"), nil
 		},
 	}
 
@@ -98,7 +98,7 @@ var (
 			}
 			// generate unique directory for the current binary
 			uniqueDir := shautil.SHA1(osutil.Executable())
-			return filepath.Join(dir, "colima", "_wrapper", uniqueDir.String()), nil
+			return filepath.Join(dir, "_wrapper", uniqueDir.String()), nil
 		},
 	}
 )
