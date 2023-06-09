@@ -42,12 +42,19 @@ func (r *requiredDir) Dir() string {
 var (
 	configBaseDir = requiredDir{
 		dir: func() (string, error) {
-			dir := os.Getenv("XDG_CONFIG_HOME")
+			dir, err := os.UserHomeDir()
+			dir = filepath.Join(dir, ".colima")
+			_, err = os.Stat(dir)
+			if err == nil {
+				return dir, nil
+			}
+			// else
+			dir = os.Getenv("XDG_CONFIG_HOME")
 			if dir != "" {
 				return filepath.Join(dir, "colima"), nil
 			}
 			// else
-			dir, err := os.UserConfigDir()
+			dir, err = os.UserConfigDir()
 			if err != nil {
 				return "", err
 			}
