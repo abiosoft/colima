@@ -163,10 +163,19 @@ This can be fixed by any of the following approaches. Ensure the Docker socket p
 
 ### Docker plugins are missing (buildx, scan)
 
-Both buildx and scan can be installed as Docker plugins
+Both `buildx` and `scan` can be installed as Docker plugins
 
 #### Installing Buildx
 
+Using homebrew
+```sh
+brew install docker-buildx
+# Follow the caveats mentioned in the install instructions:
+# mkdir -p ~/.docker/cli-plugins
+# ln -sfn $(which docker-buildx) ~/.docker/cli-plugins/docker-buildx
+docker buildx version # verify installation
+```
+Alternatively
 ```sh
 ARCH=amd64 # change to 'arm64' for m1
 VERSION=v0.8.2
