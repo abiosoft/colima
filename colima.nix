@@ -7,7 +7,7 @@ buildGo119Module {
   pname = "colima";
   src = ./.;
   nativeBuildInputs = [ installShellFiles makeWrapper git ];
-  vendorSha256 = "sha256-bEgC7j8WvCgrJ2Ahye4mfWVEmo6Y/OO64mDIJXvtaiE=";
+  vendorSha256 = "sha256-lsTvzGFoC3Brnr1Q0Hl0ZqEDfcTeQ8vWGe+xylTyvts=";
   CGO_ENABLED = 1;
 
   subPackages = [ "cmd/colima" ];
