@@ -43,6 +43,9 @@ var (
 	configBaseDir = requiredDir{
 		dir: func() (string, error) {
 			dir, err := os.UserHomeDir()
+			if err != nil {
+				return "", err
+			}
 			dir = filepath.Join(dir, ".colima")
 			_, err = os.Stat(dir)
 			if err == nil {
