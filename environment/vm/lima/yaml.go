@@ -380,7 +380,7 @@ type Config struct {
 	Disk         string            `yaml:"disk,omitempty"`
 	Mounts       []Mount           `yaml:"mounts,omitempty"`
 	MountType    MountType         `yaml:"mountType,omitempty" json:"mountType,omitempty"`
-	SSH          SSH               `yaml:"ssh,omitempty"`
+	SSH          SSH               `yaml:"ssh"`
 	Containerd   Containerd        `yaml:"containerd"`
 	Env          map[string]string `yaml:"env,omitempty"`
 	DNS          []net.IP          `yaml:"dns"`
@@ -407,7 +407,7 @@ type Mount struct {
 }
 
 type SSH struct {
-	LocalPort         int  `yaml:"localPort"`
+	LocalPort         int  `yaml:"localPort,omitempty"`
 	LoadDotSSHPubKeys bool `yaml:"loadDotSSHPubKeys"`
 	ForwardAgent      bool `yaml:"forwardAgent"` // default: false
 }
