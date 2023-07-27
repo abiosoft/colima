@@ -43,7 +43,7 @@ build:
 
 .PHONY: test
 test:
-	go test -v -ldflags="$(LD_FLAGS)" ./cmd/...
+	go test -v -ldflags="$(LD_FLAGS)" ./...
 
 .PHONY: vmnet
 vmnet:

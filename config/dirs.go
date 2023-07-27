@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/fsutil"
 	"github.com/abiosoft/colima/util/osutil"
 	"github.com/abiosoft/colima/util/shautil"
@@ -43,9 +44,13 @@ var (
 	configBaseDir = requiredDir{
 		dir: func() (string, error) {
 			dir, err := os.UserHomeDir()
+			if err != nil {
+				return "", err
+			}
 			dir = filepath.Join(dir, ".colima")
 			_, err = os.Stat(dir)
-			if err == nil {
+			// TODO: remove macOS when QEMU_SYSTEM_ARCH is handled properly upstream.
+			if err == nil || util.MacOS() {
 				return dir, nil
 			}
 			// else
