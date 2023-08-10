@@ -187,7 +187,7 @@ docker buildx version # verify installation
 ```
 #### Installing Docker Scan
 
-Install Synk CLI
+Install Snyk CLI
 
 ```sh
 brew install snyk/tap/snyk
