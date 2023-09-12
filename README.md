@@ -148,9 +148,17 @@ Since Lima is aka Linux on Mac. By transitivity, Colima can also mean Containers
 
 Check [here](docs/FAQ.md) for Frequently Asked Questions.
 
+## Community
+- [GitHub Discussions](https://github.com/abiosoft/colima/discussions)
+- [GitHub Issues](https://github.com/abiosoft/colima/issues)
+- `#colima` channel in the CNCF Slack
+  - New account: <https://slack.cncf.io/>
+  - Login: <https://cloud-native.slack.com/>
+
 ## Help Wanted
 
 - Documentation (wiki pages)
+- Project Logo
 
 ## License
 
