@@ -3,6 +3,7 @@
 - [FAQs](#faqs)
   - [How does Colima compare to Lima?](#how-does-colima-compare-to-lima)
   - [Are M1 macs supported?](#are-m1-macs-supported)
+  - [Does Colima support autostart](#does-colima-support-autostart)
   - [Can config file be used instead of cli flags?](#can-config-file-be-used-instead-of-cli-flags)
     - [Editing the config](#editing-the-config)
     - [Setting the default config](#setting-the-default-config)
@@ -47,6 +48,16 @@ Colima is basically a higher level usage of Lima and utilises Lima to provide Do
 Colima supports and works on both Intel and M1 macs.
 
 Feedbacks would be appreciated.
+
+## Does Colima support autostart?
+
+Since v0.5.6 Colima supports foreground mode. It allows to create OS dependent services.
+
+If Colima has been installed using brew, the easiest way to autostart Colima is to use brew services.
+
+```sh
+brew services start colima
+```
 
 ## Can config file be used instead of cli flags?
 

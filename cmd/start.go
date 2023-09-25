@@ -3,10 +3,13 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
+	"github.com/abiosoft/colima/app"
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
@@ -32,6 +35,7 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 `,
 	Example: "  colima start\n" +
 		"  colima start --edit\n" +
+		"  colima start --foreground\n" +
 		"  colima start --runtime containerd\n" +
 		"  colima start --kubernetes\n" +
 		"  colima start --runtime containerd --kubernetes\n" +
@@ -50,7 +54,7 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 				log.Warnln("already running, ignoring")
 				return nil
 			}
-			return app.Start(conf)
+			return start(app, conf)
 		}
 
 		// edit flag is specified
@@ -80,7 +84,7 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 			time.Sleep(time.Second * 3)
 		}
 
-		return app.Start(conf)
+		return start(app, conf)
 	},
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		// combine args and current config file(if any)
@@ -126,6 +130,7 @@ var startCmdArgs struct {
 		Editor                  string
 		ActivateRuntime         bool
 		DNSHosts                []string
+		Foreground              bool
 	}
 }
 
@@ -145,6 +150,7 @@ func init() {
 	startCmd.Flags().IntVarP(&startCmdArgs.Memory, "memory", "m", defaultMemory, "memory in GiB")
 	startCmd.Flags().IntVarP(&startCmdArgs.Disk, "disk", "d", defaultDisk, "disk size in GiB")
 	startCmd.Flags().StringVarP(&startCmdArgs.Arch, "arch", "a", defaultArch, "architecture (aarch64, x86_64)")
+	startCmd.Flags().BoolVarP(&startCmdArgs.Flags.Foreground, "foreground", "f", false, "Keep colima in the foreground")
 
 	// network
 	if util.MacOS() {
@@ -442,4 +448,27 @@ func editConfigFile() error {
 		_ = os.Remove(tmpFile)
 	}()
 	return configmanager.SaveFromFile(tmpFile)
+}
+
+func start(app app.App, conf config.Config) error {
+	if err := app.Start(conf); err != nil {
+		return err
+	}
+	if startCmdArgs.Flags.Foreground {
+		return awaitForInterruption(app)
+	}
+	return nil
+}
+
+func awaitForInterruption(app app.App) error {
+	signalChannel := make(chan os.Signal, 1)
+	signal.Notify(signalChannel, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	log.Println("keeping Colima in the foreground, press ctrl+c to exit...")
+	sig := <-signalChannel
+	log.Infof("interrupted by: %v", sig)
+	if err := app.Stop(false); err != nil {
+		log.Errorf("error stopping: %v", err)
+		return err
+	}
+	return nil
 }
