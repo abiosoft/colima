@@ -145,12 +145,12 @@ layer: false
 # Custom provision scripts for the virtual machine.
 # Provisioning scripts are executed on startup and therefore needs to be idempotent.
 #
-# EXAMPLE - script exected as root
+# EXAMPLE - script executed as root
 # provision:
 #   - mode: system
 #     script: apk add htop vim
 #
-# EXAMPLE - script exected as user
+# EXAMPLE - script executed as user
 # provision:
 #   - mode: user
 #     script: |
