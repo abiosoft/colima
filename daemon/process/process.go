@@ -75,7 +75,7 @@ func (p processDeps) Install(host environment.HostActions) error {
 		for _, d := range deps {
 			if !d.Installed() {
 				if err := d.Install(host); err != nil {
-					return fmt.Errorf("error occured installing dependencies for '%s': %w", process.Name(), err)
+					return fmt.Errorf("error occurred installing dependencies for '%s': %w", process.Name(), err)
 				}
 			}
 		}
