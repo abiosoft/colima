@@ -92,7 +92,7 @@ func (f *inotifyProcess) monitorContainerVolumes(ctx context.Context, c chan<- [
 		for {
 			select {
 			case <-ctx.Done():
-				log.Trace("stop signal recieved")
+				log.Trace("stop signal received")
 				err := ctx.Err()
 				if err != nil {
 					log.Trace(fmt.Errorf("error during stop: %w", err))
@@ -120,7 +120,7 @@ func omitChildrenDirectories(dirs []string) []string {
 
 	omitted := map[int]struct{}{}
 	for i := 0; i < len(dirs); i++ {
-		// if the index is ommitted, skip
+		// if the index is omitted, skip
 		if _, ok := omitted[i]; ok {
 			continue
 		}

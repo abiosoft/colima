@@ -260,7 +260,7 @@ func (c colimaApp) SSH(layer bool, args ...string) error {
 		return fmt.Errorf("not a mounted directory: %s", workDir)
 	}(); err != nil {
 		// the errors returned here is not critical and thereby silenced.
-		// the goal is to prevent unecessary warning message from Lima.
+		// the goal is to prevent unnecessary warning message from Lima.
 		log.Trace(fmt.Errorf("error checking if PWD is mounted: %w", err))
 
 		// fallback to the user's homedir

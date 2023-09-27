@@ -210,7 +210,7 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 	// check if inotify is running
 	if conf.MountINotify {
 		if inotifyEnabled, _ := ctx.Value(ctxKeyInotify).(bool); !inotifyEnabled {
-			log.Warnln("error occured enabling inotify daemon")
+			log.Warnln("error occurred enabling inotify daemon")
 		}
 	}
 
