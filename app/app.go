@@ -282,7 +282,7 @@ func (c colimaApp) SSH(layer bool, args ...string) error {
 		return c.guest.SSH(workDir, args...)
 	}
 
-	resp, err := limautil.ShowSSH(config.CurrentProfile().ID, layer, "args")
+	resp, err := limautil.ShowSSH(config.CurrentProfile().ID, layer)
 	if err != nil {
 		return fmt.Errorf("error getting ssh config: %w", err)
 	}
@@ -293,9 +293,9 @@ func (c colimaApp) SSH(layer bool, args ...string) error {
 	cmdArgs := resp.Output
 
 	if len(args) > 0 {
-		args = append([]string{"-q", "-t", resp.IPAddress, "--"}, args...)
+		args = append([]string{"-q", "-t", "-F", resp.File, "--"}, args...)
 	} else if workDir != "" {
-		args = []string{"-q", "-t", resp.IPAddress, "--", "cd " + workDir + " 2> /dev/null; \"$SHELL\" --login"}
+		args = []string{"-q", "-t", "-F", resp.File, resp.IPAddress, "--", "cd " + workDir + " 2> /dev/null; \"$SHELL\" --login"}
 	}
 
 	args = append(util.ShellSplit(cmdArgs), args...)
@@ -489,7 +489,7 @@ func generateSSHConfig(modifySSHConfig bool) error {
 			continue
 		}
 
-		resp, err := limautil.ShowSSH(profile.ID, conf.Layer, "config")
+		resp, err := limautil.ShowSSH(profile.ID, conf.Layer)
 		if err != nil {
 			log.Trace(fmt.Errorf("error retrieving SSH config for '%s': %w", i.Name, err))
 			continue

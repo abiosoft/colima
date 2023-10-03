@@ -16,7 +16,7 @@ var sshConfigCmd = &cobra.Command{
 	Long:  `Show configuration of the SSH connection to the VM.`,
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		resp, err := limautil.ShowSSH(config.CurrentProfile().ID, sshConfigCmdArgs.layer, sshConfigCmdArgs.format)
+		resp, err := limautil.ShowSSH(config.CurrentProfile().ID, sshConfigCmdArgs.layer)
 		if err == nil {
 			fmt.Println(resp.Output)
 		}
@@ -25,13 +25,11 @@ var sshConfigCmd = &cobra.Command{
 }
 
 var sshConfigCmdArgs struct {
-	format string
-	layer  bool
+	layer bool
 }
 
 func init() {
 	root.Cmd().AddCommand(sshConfigCmd)
 
-	sshConfigCmd.Flags().StringVarP(&sshConfigCmdArgs.format, "format", "f", "config", "format (config, cmd)")
 	sshConfigCmd.Flags().BoolVarP(&sshConfigCmdArgs.layer, "layer", "l", true, "config for the Ubuntu layer (if enabled)")
 }
