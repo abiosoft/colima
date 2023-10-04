@@ -119,6 +119,12 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 			Script: `grep -q "^rc_env_allow" /etc/rc.conf || echo 'rc_env_allow="*"' >> /etc/rc.conf`,
 		})
 
+		// set cgroups to unified
+		l.Provision = append(l.Provision, Provision{
+			Mode:   ProvisionModeSystem,
+			Script: `grep -q "^rc_cgroup_mode" /etc/rc.conf || (echo 'rc_cgroup_mode="unified"' >> /etc/rc.conf && service cgroups restart)`,
+		})
+
 	}
 
 	// network setup
