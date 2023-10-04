@@ -87,7 +87,10 @@ func ShowSSH(profileID string, layer bool) (resp struct {
 	Output    string
 	IPAddress string
 	Layer     bool
-	File      string
+	File      struct {
+		Lima   string
+		Colima string
+	}
 }, err error) {
 	ssh := sshConfig(profileID)
 	sshConf, err := ssh.Contents()
@@ -110,7 +113,8 @@ func ShowSSH(profileID string, layer bool) (resp struct {
 	resp.Output = replaceSSHConfig(sshConf, profileID, ip, port)
 	resp.IPAddress = ip
 	resp.Layer = port > 0
-	resp.File = ssh.File()
+	resp.File.Lima = ssh.File()
+	resp.File.Colima = config.SSHConfigFile()
 	return resp, nil
 }
 

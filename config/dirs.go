@@ -133,3 +133,6 @@ func WrapperDir() string { return wrapperDir.Dir() }
 const ConfigFileName = "colima.yaml"
 
 func configFile() string { return filepath.Join(configDir.Dir(), ConfigFileName) }
+
+// SSHConfigFile returns the path to generated ssh config.
+func SSHConfigFile() string { return filepath.Join(filepath.Dir(configDir.Dir()), "ssh_config") }
