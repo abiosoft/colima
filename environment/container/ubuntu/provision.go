@@ -152,6 +152,7 @@ func (u ubuntuRuntime) createContainer(conf config.Config) error {
 
 		// systemd
 		"--mount", "type=tmpfs,destination=/var/lib/journal",
+		"--mount", "type=bind,source=/sys/fs/cgroup/unified,target=/sys/fs/cgroup/unified",
 		"--mount", "type=tmpfs,destination=/sys/fs/cgroup/systemd",
 		"--mount", "type=bind,source=/sys/fs/fuse,target=/sys/fs/fuse",
 		"--mount", "type=bind,source=/tmp/ubuntu,destination=/tmp",

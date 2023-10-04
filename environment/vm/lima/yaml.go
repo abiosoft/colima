@@ -53,8 +53,8 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	}
 
 	l.Images = append(l.Images,
-		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.5.6/alpine-lima-clm-3.18.3-aarch64.iso", Digest: "sha512:48910dfc3d65f0ce0931190f0b9942140fd4b147e00701c60437d473da1f9f3fea06a5568b127373d406c94ac32771cac634b2c44020c9cabd9934834bf4701f"},
-		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.5.6/alpine-lima-clm-3.18.3-x86_64.iso", Digest: "sha512:e51a184b4d55a194d33545a0ee527b8848763b65cb4a20f1bb6da1ba31702677aa7c98565924672a16e6ad8f0553d9862a0f4a7f29ec8aa97b3595398df181e6"},
+		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.5.6/alpine-lima-clm-3.18.3-aarch64.iso", Digest: "sha512:376cc8cb777380757dbcdb87825f076c25e97283dfef8d51f025fae8bad6953462d095187643a5f7a9be35b86687e0f5b654758fc55ded67aa390f657e0b59b3"},
+		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.5.6/alpine-lima-clm-3.18.3-x86_64.iso", Digest: "sha512:48bf6c7468fc8acc05d14b3b138958cf4417fa26e478d864c8458a0c7aa8e9742c19058f792debc7585614e0a4ba6ad9608c2e6ff695a2d7ae8daafb8ad64db2"},
 	)
 
 	if conf.CPU > 0 {
@@ -117,12 +117,6 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		l.Provision = append(l.Provision, Provision{
 			Mode:   ProvisionModeSystem,
 			Script: `grep -q "^rc_env_allow" /etc/rc.conf || echo 'rc_env_allow="*"' >> /etc/rc.conf`,
-		})
-
-		// set cgroups to unified
-		l.Provision = append(l.Provision, Provision{
-			Mode:   ProvisionModeSystem,
-			Script: `grep -q "^rc_cgroup_mode" /etc/rc.conf || (echo 'rc_cgroup_mode="unified"' >> /etc/rc.conf && service cgroups restart)`,
 		})
 
 	}
