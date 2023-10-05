@@ -197,6 +197,9 @@ func init() {
 	// dns
 	startCmd.Flags().IPSliceVarP(&startCmdArgs.Network.DNSResolvers, "dns", "n", nil, "DNS resolvers for the VM")
 	startCmd.Flags().StringSliceVar(&startCmdArgs.Flags.DNSHosts, "dns-host", nil, "custom DNS names to provide to resolver")
+
+	// cgroups v2 workaround
+	startCmd.Flags().BoolVar(&startCmdArgs.TempCgroupsV2, "cgroups-v2", false, "cgroups v2 workaround for docker-compose")
 }
 
 func dnsHostsFromFlag(hosts []string) map[string]string {
@@ -399,6 +402,10 @@ func prepareConfig(cmd *cobra.Command) {
 		if current.ActivateRuntime != nil { // backward compatibility for `activate`
 			startCmdArgs.ActivateRuntime = current.ActivateRuntime
 		}
+	}
+	// cgroups v2 temp workaround
+	if !cmd.Flag("cgroups-v2").Changed {
+		startCmdArgs.TempCgroupsV2 = current.TempCgroupsV2
 	}
 	if util.MacOS() {
 		if !cmd.Flag("network-driver").Changed {

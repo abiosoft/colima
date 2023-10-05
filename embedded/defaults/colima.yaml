@@ -190,3 +190,8 @@ mounts: []
 #
 # Default: {}
 env: {}
+
+# Enable cgroups v2 as a temporary workaround for https://github.com/abiosoft/colima/issues/764.
+# NOTE: this is incompatible with Kubernetes and Ubuntu Layer.
+# NOTE: this config will be removed in future versions.
+cgroupsV2: false
