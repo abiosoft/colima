@@ -3,7 +3,7 @@
 - [FAQs](#faqs)
   - [How does Colima compare to Lima?](#how-does-colima-compare-to-lima)
   - [Are M1 macs supported?](#are-m1-macs-supported)
-  - [Does Colima support autostart](#does-colima-support-autostart)
+  - [Does Colima support autostart?](#does-colima-support-autostart)
   - [Can config file be used instead of cli flags?](#can-config-file-be-used-instead-of-cli-flags)
     - [Editing the config](#editing-the-config)
     - [Setting the default config](#setting-the-default-config)
@@ -38,6 +38,7 @@
       - [FATA\[0000\] error starting vm: error at 'starting': exit status 1](#fata0000-error-starting-vm-error-at-starting-exit-status-1)
     - [Issues after an upgrade](#issues-after-an-upgrade)
     - [Colima cannot access the internet.](#colima-cannot-access-the-internet)
+    - [Docker Compose and Buildx showing runc error](#docker-compose-and-buildx-showing-runc-error)
 
 ## How does Colima compare to Lima?
 
@@ -51,7 +52,7 @@ Feedbacks would be appreciated.
 
 ## Does Colima support autostart?
 
-Since v0.5.6 Colima supports foreground mode. It allows to create OS dependent services.
+Since v0.5.6 Colima supports foreground mode via the `--foreground` flag. i.e. `colima start --foreground`.
 
 If Colima has been installed using brew, the easiest way to autostart Colima is to use brew services.
 
@@ -377,3 +378,13 @@ PING google.com (216.58.223.238): 56 data bytes
 4 packets transmitted, 4 packets received, 0% packet loss
 round-trip min/avg/max = 0.082/0.390/0.557 ms
 ```
+
+### Docker Compose and Buildx showing runc error
+
+Recent versions of Buildkit may show the following error.
+
+```console
+runc run failed: unable to start container process: error during container init: error mounting "cgroup" to rootfs at "/sys/fs/cgroup": mount cgroup:/sys/fs/cgroup/openrc (via /proc/self/fd/6), flags: 0xf, data: openrc: invalid argument
+```
+
+From v0.5.6, start Colima with `--cgroups-v2` flag as a workaround.
