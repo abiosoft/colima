@@ -83,17 +83,18 @@ func (i InstanceInfo) Config() (config.Config, error) {
 
 // ShowSSH runs the show-ssh command in Lima.
 // returns the ssh output, if in layer, and an error if any
-func ShowSSH(profileID string, layer bool, format string) (resp struct {
+func ShowSSH(profileID string, layer bool) (resp struct {
 	Output    string
 	IPAddress string
 	Layer     bool
+	File      struct {
+		Lima   string
+		Colima string
+	}
 }, err error) {
-	var buf bytes.Buffer
-	cmd := cli.Command("limactl", "show-ssh", "--format", format, profileID)
-	cmd.Stdout = &buf
-	cmd.Stderr = os.Stderr
-
-	if err := cmd.Run(); err != nil {
+	ssh := sshConfig(profileID)
+	sshConf, err := ssh.Contents()
+	if err != nil {
 		return resp, fmt.Errorf("error retrieving ssh config: %w", err)
 	}
 
@@ -109,50 +110,14 @@ func ShowSSH(profileID string, layer bool, format string) (resp struct {
 		ip = "127.0.0.1"
 	}
 
-	out := buf.String()
-	switch format {
-	case "config":
-		out = replaceSSHConfig(out, profileID, ip, port)
-	case "cmd", "args":
-		out = replaceSSHCmd(out, profileID, ip, port)
-	default:
-		return resp, fmt.Errorf("unsupported format '%v'", format)
-	}
-
-	resp.Output = out
+	resp.Output = replaceSSHConfig(sshConf, profileID, ip, port)
 	resp.IPAddress = ip
 	resp.Layer = port > 0
+	resp.File.Lima = ssh.File()
+	resp.File.Colima = config.SSHConfigFile()
 	return resp, nil
 }
 
-func replaceSSHCmd(cmd string, profileID string, ip string, port int) string {
-	profileID = config.Profile(profileID).ID
-	name := config.Profile(profileID).ShortName
-	var out []string
-
-	for _, s := range util.ShellSplit(cmd) {
-		if port > 0 {
-			if strings.HasPrefix(s, "ControlPath=") {
-				configDir := filepath.Join(filepath.Dir(config.Dir()), name)
-				s = "ControlPath=" + strconv.Quote(filepath.Join(configDir, "ssh.sock"))
-			}
-			if strings.HasPrefix(s, "Port=") {
-				s = "Port=" + strconv.Itoa(port)
-			}
-			if strings.HasPrefix(s, "Hostname=") {
-				s = "Hostname=" + ip
-			}
-		}
-
-		out = append(out, s)
-	}
-
-	if out[len(out)-1] == "lima-"+profileID {
-		out[len(out)-1] = ip
-	}
-
-	return strings.Join(out, " ")
-}
 func replaceSSHConfig(conf string, profileID string, ip string, port int) string {
 	profileID = config.Profile(profileID).ID
 	name := config.Profile(profileID).ShortName
@@ -369,4 +334,25 @@ const colimaDiffDisk = "diffdisk"
 // ColimaDiffDisk returns path to the diffdisk for the colima VM.
 func ColimaDiffDisk(profileID string) string {
 	return filepath.Join(LimaHome(), config.Profile(profileID).ID, colimaDiffDisk)
+}
+
+const sshConfigFile = "ssh.config"
+
+// sshConfig is the ssh configuration file for a Colima profile.
+type sshConfig string
+
+// Contents returns the content of the SSH config file.
+func (s sshConfig) Contents() (string, error) {
+	profile := config.Profile(string(s))
+	b, err := os.ReadFile(s.File())
+	if err != nil {
+		return "", fmt.Errorf("error retrieving Lima SSH config file for profile '%s': %w", strings.TrimPrefix(profile.DisplayName, "lima"), err)
+	}
+	return string(b), nil
+}
+
+// File returns the path to the SSH config file.
+func (s sshConfig) File() string {
+	profile := config.Profile(string(s))
+	return filepath.Join(LimaHome(), profile.ID, sshConfigFile)
 }
