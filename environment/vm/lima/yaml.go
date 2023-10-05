@@ -119,6 +119,33 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 			Script: `grep -q "^rc_env_allow" /etc/rc.conf || echo 'rc_env_allow="*"' >> /etc/rc.conf`,
 		})
 
+		// cgroups v2 workaround
+		{
+			// delete setting if present
+			l.Provision = append(l.Provision, Provision{
+				Mode:   ProvisionModeSystem,
+				Script: `(grep -q "^rc_cgroup_mode" /etc/rc.conf && sed -i '/^rc_cgroup_mode/d' /etc/rc.conf && service cgroups restart) || echo 'cgroup v2 config not found'`,
+			})
+
+			// validate workaround is supported
+			if conf.TempCgroupsV2 {
+				if conf.Kubernetes.Enabled {
+					logrus.Warnln("cgroups v2 workaround not compatible with Kubernetes, ignoring...")
+					conf.TempCgroupsV2 = false
+				}
+				if conf.Layer {
+					logrus.Warnln("cgroups v2 workaround not compatible with Ubuntu layer, ignoring...")
+					conf.TempCgroupsV2 = false
+				}
+			}
+
+			if conf.TempCgroupsV2 {
+				l.Provision = append(l.Provision, Provision{
+					Mode:   ProvisionModeSystem,
+					Script: `echo 'rc_cgroup_mode="unified"' >> /etc/rc.conf && service cgroups restart`,
+				})
+			}
+		}
 	}
 
 	// network setup

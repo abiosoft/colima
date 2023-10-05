@@ -106,6 +106,9 @@ type Config struct {
 
 	// SSH config generation
 	SSHConfig bool `yaml:"sshConfig,omitempty"`
+
+	// Temporary workaround for cgroups v2.
+	TempCgroupsV2 bool `yaml:"cgroupsV2,omitempty"`
 }
 
 // Kubernetes is kubernetes configuration
