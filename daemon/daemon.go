@@ -109,10 +109,8 @@ func (l processManager) Start(ctx context.Context, conf config.Config) error {
 	}
 	if conf.Network.Driver == gvproxy.Name {
 		args = append(args, "--gvproxy")
-		if len(conf.Network.DNSHosts) > 0 {
-			for host, ip := range conf.Network.DNSHosts {
-				args = append(args, "--gvproxy-hosts", host+"="+ip)
-			}
+		for host, ip := range conf.Network.DNSHosts {
+			args = append(args, "--gvproxy-hosts", host+"="+ip)
 		}
 	}
 
