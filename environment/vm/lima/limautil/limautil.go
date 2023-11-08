@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/abiosoft/colima/cli"
@@ -83,11 +82,9 @@ func (i InstanceInfo) Config() (config.Config, error) {
 
 // ShowSSH runs the show-ssh command in Lima.
 // returns the ssh output, if in layer, and an error if any
-func ShowSSH(profileID string, layer bool) (resp struct {
-	Output    string
-	IPAddress string
-	Layer     bool
-	File      struct {
+func ShowSSH(profileID string) (resp struct {
+	Output string
+	File   struct {
 		Lima   string
 		Colima string
 	}
@@ -98,60 +95,23 @@ func ShowSSH(profileID string, layer bool) (resp struct {
 		return resp, fmt.Errorf("error retrieving ssh config: %w", err)
 	}
 
-	ip := IPAddress(profileID)
-	var port int
-	if layer {
-		port, _ = ubuntuSSHPort(profileID)
-		// if layer is active and public IP is available, use the fixed port
-		if port > 0 && ip != "127.0.0.1" {
-			port = 23
-		}
-	} else {
-		ip = "127.0.0.1"
-	}
-
-	resp.Output = replaceSSHConfig(sshConf, profileID, ip, port)
-	resp.IPAddress = ip
-	resp.Layer = port > 0
+	resp.Output = replaceSSHConfig(sshConf, profileID)
 	resp.File.Lima = ssh.File()
 	resp.File.Colima = config.SSHConfigFile()
 	return resp, nil
 }
 
-func replaceSSHConfig(conf string, profileID string, ip string, port int) string {
+func replaceSSHConfig(conf string, profileID string) string {
 	profileID = config.Profile(profileID).ID
-	name := config.Profile(profileID).ShortName
 
 	var out bytes.Buffer
 	scanner := bufio.NewScanner(strings.NewReader(conf))
-
-	hasPrefix := func(line, s string) (pad string, ok bool) {
-		if s != "" && strings.HasPrefix(strings.TrimSpace(line), s) {
-			return line[:strings.Index(line, s[:1])], true
-		}
-		return "", false
-	}
 
 	for scanner.Scan() {
 		line := scanner.Text()
 
 		if strings.HasPrefix(line, "Host ") {
 			line = "Host " + profileID
-		}
-
-		if port > 0 {
-			if pad, ok := hasPrefix(line, "ControlPath "); ok {
-				configDir := filepath.Join(filepath.Dir(config.Dir()), name)
-				line = pad + "ControlPath " + strconv.Quote(filepath.Join(configDir, "ssh.sock"))
-			}
-
-			if pad, ok := hasPrefix(line, "Hostname "); ok {
-				line = pad + "Hostname " + ip
-			}
-
-			if pad, ok := hasPrefix(line, "Port"); ok {
-				line = pad + "Port " + strconv.Itoa(port)
-			}
 		}
 
 		_, _ = fmt.Fprintln(&out, line)
@@ -245,24 +205,6 @@ func getIPAddress(profileID, interfaceName string) string {
 
 	_ = cmd.Run()
 	return strings.TrimSpace(buf.String())
-}
-
-func ubuntuSSHPort(profileID string) (int, error) {
-	var buf bytes.Buffer
-	cmd := cli.Command("limactl", "shell", profileID, "--", "sh", "-c", "echo $"+LayerEnvVar)
-	cmd.Stdout = &buf
-	cmd.Stderr = nil
-
-	if err := cmd.Run(); err != nil {
-		return 0, fmt.Errorf("cannot retrieve ubuntu layer SSH port: %w", err)
-	}
-
-	port, err := strconv.Atoi(strings.TrimSpace(buf.String()))
-	if err != nil {
-		return 0, fmt.Errorf("invalid ubuntu layer SSH port '%d': %w", port, err)
-	}
-
-	return port, nil
 }
 
 func getRuntime(conf config.Config) string {

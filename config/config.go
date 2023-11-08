@@ -98,17 +98,11 @@ type Config struct {
 	// Docker configuration
 	Docker map[string]any `yaml:"docker,omitempty"`
 
-	// layer
-	Layer bool `yaml:"layer,omitempty"`
-
 	// provision scripts
 	Provision []Provision `yaml:"provision,omitempty"`
 
 	// SSH config generation
 	SSHConfig bool `yaml:"sshConfig,omitempty"`
-
-	// Temporary workaround for cgroups v2.
-	TempCgroupsV2 bool `yaml:"cgroupsV2,omitempty"`
 }
 
 // Kubernetes is kubernetes configuration

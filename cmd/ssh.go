@@ -21,7 +21,7 @@ e.g. 'colima ssh -- htop' will run htop.
 
 It is recommended to specify '--' to differentiate from colima flags.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return newApp().SSH(sshCmdArgs.layer, args...)
+		return newApp().SSH(args...)
 	},
 }
 
