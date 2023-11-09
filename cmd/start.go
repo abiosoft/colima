@@ -138,6 +138,7 @@ func init() {
 	runtimes := strings.Join(environment.ContainerRuntimes(), ", ")
 	networkDrivers := strings.Join([]string{gvproxy.Name, "slirp"}, ", ")
 	defaultArch := string(environment.HostArch())
+	defaultHostname := config.CurrentProfile().ID
 
 	mounts := strings.Join([]string{defaultMountTypeQEMU, "9p", "virtiofs"}, ", ")
 	types := strings.Join([]string{defaultVMType, "vz"}, ", ")
@@ -151,6 +152,7 @@ func init() {
 	startCmd.Flags().IntVarP(&startCmdArgs.Disk, "disk", "d", defaultDisk, "disk size in GiB")
 	startCmd.Flags().StringVarP(&startCmdArgs.Arch, "arch", "a", defaultArch, "architecture (aarch64, x86_64)")
 	startCmd.Flags().BoolVarP(&startCmdArgs.Flags.Foreground, "foreground", "f", false, "Keep colima in the foreground")
+	startCmd.Flags().StringVar(&startCmdArgs.Hostname, "hostname", defaultHostname, "custom hostname for the virtual machine")
 
 	// network
 	if util.MacOS() {
@@ -288,6 +290,10 @@ func setConfigDefaults(conf *config.Config) {
 	if conf.Network.Driver == "" {
 		conf.Network.Driver = defaultNetworkDriver
 	}
+
+	if conf.Hostname == "" {
+		conf.Hostname = config.CurrentProfile().ID
+	}
 }
 
 func prepareConfig(cmd *cobra.Command) {
@@ -388,6 +394,9 @@ func prepareConfig(cmd *cobra.Command) {
 	}
 	if !cmd.Flag("env").Changed {
 		startCmdArgs.Env = current.Env
+	}
+	if !cmd.Flag("hostname").Changed {
+		startCmdArgs.Hostname = current.Hostname
 	}
 	if !cmd.Flag("activate").Changed {
 		if current.ActivateRuntime != nil { // backward compatibility for `activate`

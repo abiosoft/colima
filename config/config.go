@@ -78,6 +78,7 @@ type Config struct {
 	ForwardAgent bool              `yaml:"forwardAgent,omitempty"`
 	Network      Network           `yaml:"network,omitempty"`
 	Env          map[string]string `yaml:"env,omitempty"` // environment variables
+	Hostname     string            `yaml:"hostname"`
 
 	// VM
 	VMType    string `yaml:"vmType,omitempty"`

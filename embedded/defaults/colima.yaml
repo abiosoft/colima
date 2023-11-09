@@ -19,6 +19,11 @@ arch: host
 # Default: docker
 runtime: docker
 
+# Set custom hostname for the virtual machine.
+# Default: colima
+#          colima-profile_name for other profiles
+hostname: null
+
 # Kubernetes configuration for the virtual machine.
 kubernetes:
   # Enable kubernetes.

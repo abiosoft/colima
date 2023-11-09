@@ -120,9 +120,13 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		})
 
 		// set hostname
+		hostname := "$LIMA_CIDATA_NAME"
+		if conf.Hostname != "" {
+			hostname = conf.Hostname
+		}
 		l.Provision = append(l.Provision, Provision{
 			Mode:   ProvisionModeSystem,
-			Script: "hostnamectl set-hostname $LIMA_CIDATA_NAME",
+			Script: "hostnamectl set-hostname " + hostname,
 		})
 
 	}
