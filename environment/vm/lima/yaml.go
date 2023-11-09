@@ -51,8 +51,16 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	}
 
 	l.Images = append(l.Images,
-		File{Arch: environment.AARCH64, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.5.6/alpine-lima-clm-3.18.3-aarch64.iso", Digest: "sha512:376cc8cb777380757dbcdb87825f076c25e97283dfef8d51f025fae8bad6953462d095187643a5f7a9be35b86687e0f5b654758fc55ded67aa390f657e0b59b3"},
-		File{Arch: environment.X8664, Location: "https://github.com/abiosoft/alpine-lima/releases/download/colima-v0.5.6/alpine-lima-clm-3.18.3-x86_64.iso", Digest: "sha512:48bf6c7468fc8acc05d14b3b138958cf4417fa26e478d864c8458a0c7aa8e9742c19058f792debc7585614e0a4ba6ad9608c2e6ff695a2d7ae8daafb8ad64db2"},
+		File{
+			Arch:     environment.AARCH64,
+			Location: "https://github.com/abiosoft/colima-ubuntu/releases/download/v0.6.0/ubuntu-23.10-minimal-cloudimg-arm64.img",
+			Digest:   "sha512:a45cbba1e3ce8968aa103a8a1ff276905a5013c3b6e25050426f66d2b7c6b30067dfccc900bbadb132d867bb17cf395cb5e89119e1614d3feea24021f6718921",
+		},
+		File{
+			Arch:     environment.X8664,
+			Location: "https://github.com/abiosoft/colima-ubuntu/releases/download/v0.6.0/ubuntu-23.10-minimal-cloudimg-amd64.img",
+			Digest:   "sha512:ff16319abfd9b5e81395b0d0e7058a61b4bbd057fbab40fe654fb38cac1ed53b53a6a6d4c8ad10802f800daf5e069597e89ec2b2d360dbbc1dc44d0c2b1372fa",
+		},
 	)
 
 	if conf.CPU > 0 {
@@ -283,6 +291,15 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		}
 	}
 
+	// Ubuntu minimal cloud image does not bundle sshfs
+	// if sshfs is used, add as a dependency
+	if l.MountType == REVSSHFS {
+		l.Provision = append(l.Provision, Provision{
+			Mode:   ProvisionModeDependency,
+			Script: `which sshfs || apt install -y sshfs`,
+		})
+	}
+
 	l.Provision = append(l.Provision, Provision{
 		Mode:   ProvisionModeSystem,
 		Script: "mkmntdirs && mount -a",
@@ -464,8 +481,10 @@ type Network struct {
 type ProvisionMode = string
 
 const (
-	ProvisionModeSystem ProvisionMode = "system"
-	ProvisionModeUser   ProvisionMode = "user"
+	ProvisionModeSystem     ProvisionMode = "system"
+	ProvisionModeUser       ProvisionMode = "user"
+	ProvisionModeBoot       ProvisionMode = "boot"
+	ProvisionModeDependency ProvisionMode = "dependency"
 )
 
 type Provision struct {
