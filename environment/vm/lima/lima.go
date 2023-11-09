@@ -24,6 +24,7 @@ import (
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/qemu"
 	"github.com/abiosoft/colima/util"
+	"github.com/abiosoft/colima/util/fsutil"
 	"github.com/abiosoft/colima/util/osutil"
 	"github.com/abiosoft/colima/util/yamlutil"
 	"github.com/sirupsen/logrus"
@@ -615,6 +616,11 @@ func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Conf
 		})
 	}
 
+	// dependencies
+	a.Add(func() error {
+		return l.installDependencies(a.Logger())
+	})
+
 	// registry certs
 	a.Add(l.copyCerts)
 
@@ -647,4 +653,58 @@ func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Conf
 		}
 		return nil
 	})
+}
+
+// cacheDependencies downloads the ubuntu deb files to a path on the host.
+// The return value is the directory of the downloaded deb files.
+func (l *limaVM) cacheDependencies() (string, error) {
+	codename, err := l.RunOutput("sh", "-c", `grep "^UBUNTU_CODENAME" /etc/os-release | cut -d= -f2`)
+	if err != nil {
+		return "", fmt.Errorf("error retrieving OS version from vm: %w", err)
+	}
+
+	dir := filepath.Join(config.CacheDir(), "packages", codename)
+	if err := fsutil.MkdirAll(dir, 0755); err != nil {
+		return "", fmt.Errorf("error creating cache directory for OS packages: %w", err)
+	}
+
+	doneFile := filepath.Join(dir, ".downloaded")
+	if _, err := os.Stat(doneFile); err == nil {
+		// already downloaded
+		return dir, nil
+	}
+
+	packages, err := l.RunOutput("sh", "-c", `sudo apt-get install --reinstall --print-uris -qq docker.io | cut -d"'" -f2`)
+	if err != nil {
+		return "", fmt.Errorf("error fetching dependencies list: %w", err)
+	}
+
+	packagesFile := filepath.Join(dir, "packages.txt")
+	if err := l.host.Write(packagesFile, []byte(packages)); err != nil {
+		return "", fmt.Errorf("error writing packages file: %w", err)
+	}
+
+	if err := l.host.Run(
+		"sh", "-c",
+		strings.NewReplacer(
+			"{dir}", dir,
+			"{packages_file}", packagesFile,
+		).Replace(`cd {dir} && cat {packages_file} | xargs -n 1 curl -LO "-#"`),
+	); err != nil {
+		return "", fmt.Errorf("error downloading dependencies: %w", err)
+	}
+
+	// write a file to signify it is done
+	return dir, l.host.RunQuiet("touch", doneFile)
+}
+
+func (l *limaVM) installDependencies(log *logrus.Entry) error {
+	dir, err := l.cacheDependencies()
+	if err != nil {
+		log.Warnln("error caching dependencies: %w", err)
+		log.Warnln("falling back to normal package install", err)
+		return l.Run("sudo apt install -y docker.io")
+	}
+
+	return l.Run("sh", "-c", "sudo apt install -y "+dir+"/*.deb")
 }

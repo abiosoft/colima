@@ -116,13 +116,13 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		// "sudo", "usermod", "-aG", "docker", user
 		l.Provision = append(l.Provision, Provision{
 			Mode:   ProvisionModeUser,
-			Script: "sudo usermod -aG docker $USER",
+			Script: "sudo groupadd -f docker && sudo usermod -aG docker $USER",
 		})
 
-		// allow env vars propagation for services
+		// set hostname
 		l.Provision = append(l.Provision, Provision{
 			Mode:   ProvisionModeSystem,
-			Script: `grep -q "^rc_env_allow" /etc/rc.conf || echo 'rc_env_allow="*"' >> /etc/rc.conf`,
+			Script: "hostnamectl set-hostname $LIMA_CIDATA_NAME",
 		})
 
 	}
@@ -308,7 +308,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	// trim mounted drive to recover disk space
 	l.Provision = append(l.Provision, Provision{
 		Mode:   ProvisionModeSystem,
-		Script: `readlink /sbin/fstrim || fstrim -a`,
+		Script: `readlink /usr/sbin/fstrim || fstrim -a`,
 	})
 
 	// workaround for slow virtiofs https://github.com/drud/ddev/issues/4466#issuecomment-1361261185

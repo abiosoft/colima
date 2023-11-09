@@ -79,6 +79,9 @@ type ActiveCommandChain struct {
 	log       *log.Entry
 }
 
+// Logger returns the logger for the command chain.
+func (a *ActiveCommandChain) Logger() *log.Entry { return a.log }
+
 // Add adds a new function to the runner.
 func (a *ActiveCommandChain) Add(f func() error) {
 	a.funcs = append(a.funcs, cFunc{f: f})
