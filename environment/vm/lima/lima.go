@@ -227,8 +227,16 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 
 		// env var for subprocess to detect gvproxy
 		envs = append(envs, gvproxy.SubProcessEnvVar+"=1")
-		// use qemu wrapper for Lima by specifying wrapper binaries via env var
-		envs = append(envs, qemu.LimaDir().BinsEnvVar()...)
+
+		info := gvproxy.Info()
+
+		args := []string{
+			"-netdev", "stream,id=vlan,addr.type=unix,addr.path=" + info.Socket.File(),
+			"-device", "virtio-net-pci,netdev=vlan,mac=" + info.MacAddress,
+		}
+
+		// use custom qemu args
+		envs = append(envs, qemu.BinsEnvVar(args)...)
 
 		l.host = l.host.WithEnv(envs...)
 	}
@@ -618,7 +626,7 @@ func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Conf
 
 	// dependencies
 	a.Add(func() error {
-		return l.installDependencies(a.Logger())
+		return l.installDependencies(a.Logger(), conf)
 	})
 
 	// registry certs
@@ -638,9 +646,11 @@ func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Conf
 		}
 
 		// disable qemu
-		err = l.Run("sudo", "sh", "-c", `stat /proc/sys/fs/binfmt_misc/qemu-x86_64 && echo 0 > /proc/sys/fs/binfmt_misc/qemu-x86_64`)
-		if err != nil {
-			logrus.Warn(fmt.Errorf("unable to disable qemu x86_84 emulation: %w", err))
+		if err := l.RunQuiet("stat", "/proc/sys/fs/binfmt_misc/qemu-x86_64"); err == nil {
+			err = l.Run("sudo", "sh", "-c", `echo 0 > /proc/sys/fs/binfmt_misc/qemu-x86_64`)
+			if err != nil {
+				logrus.Warn(fmt.Errorf("unable to disable qemu x86_84 emulation: %w", err))
+			}
 		}
 
 		return nil
@@ -655,15 +665,25 @@ func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Conf
 	})
 }
 
+var dependencyPackages = []string{
+	// docker
+	"docker.io",
+	// aarch64/x86_64 emuation
+	// "qemu-user-binfmt", "binfmt-support",
+	// utilities
+	"htop", "vim",
+}
+
 // cacheDependencies downloads the ubuntu deb files to a path on the host.
 // The return value is the directory of the downloaded deb files.
-func (l *limaVM) cacheDependencies() (string, error) {
+func (l *limaVM) cacheDependencies(conf config.Config) (string, error) {
 	codename, err := l.RunOutput("sh", "-c", `grep "^UBUNTU_CODENAME" /etc/os-release | cut -d= -f2`)
 	if err != nil {
 		return "", fmt.Errorf("error retrieving OS version from vm: %w", err)
 	}
 
-	dir := filepath.Join(config.CacheDir(), "packages", codename)
+	arch := environment.Arch(conf.Arch).Value()
+	dir := filepath.Join(config.CacheDir(), "packages", codename, string(arch))
 	if err := fsutil.MkdirAll(dir, 0755); err != nil {
 		return "", fmt.Errorf("error creating cache directory for OS packages: %w", err)
 	}
@@ -674,13 +694,18 @@ func (l *limaVM) cacheDependencies() (string, error) {
 		return dir, nil
 	}
 
-	packages, err := l.RunOutput("sh", "-c", `sudo apt-get install --reinstall --print-uris -qq docker.io | cut -d"'" -f2`)
-	if err != nil {
-		return "", fmt.Errorf("error fetching dependencies list: %w", err)
+	output := ""
+	for _, p := range dependencyPackages {
+		line := fmt.Sprintf(`sudo apt-get install --reinstall --print-uris -qq "%s" | cut -d"'" -f2`, p)
+		out, err := l.RunOutput("sh", "-c", line)
+		if err != nil {
+			return "", fmt.Errorf("error fetching dependencies list: %w", err)
+		}
+		output += out + " "
 	}
 
 	packagesFile := filepath.Join(dir, "packages.txt")
-	if err := l.host.Write(packagesFile, []byte(packages)); err != nil {
+	if err := l.host.Write(packagesFile, []byte(output)); err != nil {
 		return "", fmt.Errorf("error writing packages file: %w", err)
 	}
 
@@ -689,7 +714,7 @@ func (l *limaVM) cacheDependencies() (string, error) {
 		strings.NewReplacer(
 			"{dir}", dir,
 			"{packages_file}", packagesFile,
-		).Replace(`cd {dir} && cat {packages_file} | xargs -n 1 curl -LO "-#"`),
+		).Replace(`cd {dir} && cat {packages_file} | xargs -n 1 curl -LO`),
 	); err != nil {
 		return "", fmt.Errorf("error downloading dependencies: %w", err)
 	}
@@ -698,13 +723,13 @@ func (l *limaVM) cacheDependencies() (string, error) {
 	return dir, l.host.RunQuiet("touch", doneFile)
 }
 
-func (l *limaVM) installDependencies(log *logrus.Entry) error {
-	dir, err := l.cacheDependencies()
+func (l *limaVM) installDependencies(log *logrus.Entry, conf config.Config) error {
+	dir, err := l.cacheDependencies(conf)
 	if err != nil {
 		log.Warnln("error caching dependencies: %w", err)
 		log.Warnln("falling back to normal package install", err)
-		return l.Run("sudo apt install -y docker.io")
+		return l.Run("sudo apt install -y " + strings.Join(dependencyPackages, " "))
 	}
 
-	return l.Run("sh", "-c", "sudo apt install -y "+dir+"/*.deb")
+	return l.Run("sh", "-c", "sudo dpkg -i "+dir+"/*.deb")
 }

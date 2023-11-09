@@ -205,8 +205,5 @@ func searchDomains() []string {
 }
 
 func (gvproxyProcess) Dependencies() (deps []process.Dependency, root bool) {
-	return []process.Dependency{
-		qemuBinsSymlinks{},
-		qemuShareDirSymlink{},
-	}, false
+	return nil, false
 }

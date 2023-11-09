@@ -13,7 +13,6 @@ import (
 	"github.com/abiosoft/colima/daemon/process/vmnet"
 
 	"github.com/abiosoft/colima/config"
-	"github.com/abiosoft/colima/embedded"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/docker"
 	"github.com/abiosoft/colima/util"
@@ -214,27 +213,6 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 				values.GVProxy.MacAddress = strings.ToUpper(gvproxy.MacAddress())
 				values.GVProxy.IPAddress = net.ParseIP(gvproxy.DeviceIP)
 				values.GVProxy.Gateway = net.ParseIP(gvproxy.GatewayIP)
-
-				if err := func() error {
-					tpl, err := embedded.ReadString("network/ifaces.sh")
-					if err != nil {
-						return err
-					}
-
-					script, err := util.ParseTemplate(tpl, values)
-					if err != nil {
-						return fmt.Errorf("error parsing template for network script: %w", err)
-					}
-
-					l.Provision = append(l.Provision, Provision{
-						Mode:   ProvisionModeSystem,
-						Script: string(script),
-					})
-
-					return nil
-				}(); err != nil {
-					logrus.Warn(fmt.Errorf("error setting up gvproxy network: %w", err))
-				}
 			}
 		}
 	}

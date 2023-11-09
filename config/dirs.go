@@ -127,9 +127,6 @@ func CacheDir() string { return cacheDir.Dir() }
 // TemplatesDir returns the templates' directory.
 func TemplatesDir() string { return templatesDir.Dir() }
 
-// WrapperDir returns the qemu wrapper directory.
-func WrapperDir() string { return wrapperDir.Dir() }
-
 const ConfigFileName = "colima.yaml"
 
 func configFile() string { return filepath.Join(configDir.Dir(), ConfigFileName) }
