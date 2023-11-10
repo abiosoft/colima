@@ -113,6 +113,9 @@ func (v *verboseWriter) printScreen() error {
 		line = v.sanitizeLine(line)
 		if len(line) > v.termWidth {
 			v.overflow += len(line) / v.termWidth
+			if len(line)%v.termWidth == 0 {
+				v.overflow -= 1
+			}
 		}
 		line = color.HiBlackString(line)
 		fmt.Println(line)
@@ -120,7 +123,7 @@ func (v *verboseWriter) printScreen() error {
 	return nil
 }
 
-func (v verboseWriter) clearScreen() {
+func (v *verboseWriter) clearScreen() {
 	for i := 0; i < len(v.lines)+v.overflow; i++ {
 		ClearLine()
 	}
