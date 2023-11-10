@@ -26,12 +26,12 @@ func (d dockerRuntime) createDaemonFile(conf map[string]any) error {
 	}
 
 	// get host-gateway ip from the guest
-	ip, err := d.guest.RunOutput("sh", "-c", "host host.lima.internal | awk -F' ' '{print $NF}'")
+	ip, err := d.guest.RunOutput("sh", "-c", "grep 'host.lima.internal' /etc/hosts | awk -F' ' '{print $1}'")
 	if err != nil {
 		return fmt.Errorf("error retrieving host gateway IP address: %w", err)
 	}
 	if net.ParseIP(ip) == nil {
-		return fmt.Errorf("invalid host gateway IP address: %s", ip)
+		return fmt.Errorf("invalid host gateway IP address: '%s'", ip)
 	}
 
 	// set host-gateway ip to loopback interface (if not set by user)
