@@ -692,6 +692,7 @@ func (l *limaVM) cacheDependencies(log *logrus.Entry, conf config.Config) (strin
 }
 
 func (l *limaVM) installDependencies(log *logrus.Entry, conf config.Config) error {
+	// cache dependencies
 	dir, err := l.cacheDependencies(log, conf)
 	if err != nil {
 		log.Warnln("error caching dependencies: %w", err)
@@ -699,5 +700,19 @@ func (l *limaVM) installDependencies(log *logrus.Entry, conf config.Config) erro
 		return l.Run("sudo apt install -y " + strings.Join(dependencyPackages, " "))
 	}
 
+	// validate if packages were previously installed
+	installed := true
+	for _, p := range dependencyPackages {
+		if err := l.RunQuiet("dpkg", "-s", p); err != nil {
+			installed = false
+			break
+		}
+	}
+
+	if installed {
+		return nil
+	}
+
+	// install packages
 	return l.Run("sh", "-c", "sudo dpkg -i "+dir+"/*.deb")
 }
