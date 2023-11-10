@@ -118,7 +118,6 @@ type Network struct {
 	Address      bool              `yaml:"address"`
 	DNSResolvers []net.IP          `yaml:"dns"`
 	DNSHosts     map[string]string `yaml:"dnsHosts"`
-	Driver       string            `yaml:"driver"`
 }
 
 // Mount is volume mount

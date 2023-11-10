@@ -57,13 +57,6 @@ func LoadFrom(file string) (config.Config, error) {
 
 // ValidateConfig validates config before we use it
 func ValidateConfig(c config.Config) error {
-	if util.MacOS() {
-		validnetworkDrivers := map[string]bool{"gvproxy": true, "slirp": true}
-		if _, ok := validnetworkDrivers[c.Network.Driver]; !ok {
-			return fmt.Errorf("invalid networkDriver: '%s'", c.Network.Driver)
-		}
-	}
-
 	validMountTypes := map[string]bool{"9p": true, "sshfs": true}
 	if util.MacOS13OrNewer() {
 		validMountTypes["virtiofs"] = true

@@ -7,7 +7,6 @@ import (
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/daemon/process"
-	"github.com/abiosoft/colima/daemon/process/gvproxy"
 	"github.com/abiosoft/colima/daemon/process/inotify"
 	"github.com/abiosoft/colima/daemon/process/vmnet"
 	"github.com/abiosoft/colima/environment"
@@ -107,12 +106,6 @@ func (l processManager) Start(ctx context.Context, conf config.Config) error {
 			args = append(args, "--inotify-dir", p)
 		}
 	}
-	if conf.Network.Driver == gvproxy.Name {
-		args = append(args, "--gvproxy")
-		for host, ip := range conf.Network.DNSHosts {
-			args = append(args, "--gvproxy-hosts", host+"="+ip)
-		}
-	}
 
 	if cli.Settings.Verbose {
 		args = append(args, "--very-verbose")
@@ -133,9 +126,6 @@ func processesFromConfig(conf config.Config) []process.Process {
 
 	if conf.Network.Address {
 		processes = append(processes, vmnet.New())
-	}
-	if conf.Network.Driver == gvproxy.Name {
-		processes = append(processes, gvproxy.New(conf.Network.DNSHosts))
 	}
 	if conf.MountINotify {
 		processes = append(processes, inotify.New())

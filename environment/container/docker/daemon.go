@@ -3,6 +3,7 @@ package docker
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 )
 
 const daemonFile = "/etc/docker/daemon.json"
@@ -24,9 +25,18 @@ func (d dockerRuntime) createDaemonFile(conf map[string]any) error {
 		conf["exec-opts"] = append(opts, "native.cgroupdriver=cgroupfs")
 	}
 
+	// get host-gateway ip from the guest
+	ip, err := d.guest.RunOutput("sh", "-c", "host host.lima.internal | awk -F' ' '{print $NF}'")
+	if err != nil {
+		return fmt.Errorf("error retrieving host gateway IP address: %w", err)
+	}
+	if net.ParseIP(ip) == nil {
+		return fmt.Errorf("invalid host gateway IP address: %s", ip)
+	}
+
 	// set host-gateway ip to loopback interface (if not set by user)
 	if _, ok := conf["host-gateway"]; !ok {
-		conf["host-gateway-ip"] = "192.168.5.2"
+		conf["host-gateway-ip"] = ip
 	}
 
 	b, err := json.MarshalIndent(conf, "", "  ")

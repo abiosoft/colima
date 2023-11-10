@@ -17,12 +17,10 @@ import (
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/config/configmanager"
 	"github.com/abiosoft/colima/daemon"
-	"github.com/abiosoft/colima/daemon/process/gvproxy"
 	"github.com/abiosoft/colima/daemon/process/inotify"
 	"github.com/abiosoft/colima/daemon/process/vmnet"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
-	"github.com/abiosoft/colima/qemu"
 	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/fsutil"
 	"github.com/abiosoft/colima/util/osutil"
@@ -97,7 +95,6 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 
 	ctxKeyVmnet := daemon.CtxKey(vmnet.Name)
 	ctxKeyInotify := daemon.CtxKey(inotify.Name)
-	ctxKeyGVProxy := daemon.CtxKey(gvproxy.Name)
 
 	// use a nested chain for convenience
 	a := l.Init(ctx)
@@ -121,9 +118,6 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 	if isQEMU {
 		a.Stage("preparing network")
 		a.Add(func() error {
-			if conf.Network.Driver == gvproxy.Name {
-				ctx = context.WithValue(ctx, ctxKeyGVProxy, true)
-			}
 			if conf.Network.Address {
 				ctx = context.WithValue(ctx, ctxKeyVmnet, true)
 			}
@@ -194,7 +188,6 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 					return
 				}
 
-				// revert gvproxy to boolean
 				for _, p := range status.Processes {
 					// TODO: handle inotify separate from network
 					if p.Name == inotify.Name {
@@ -220,26 +213,6 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 	if vmnetEnabled, _ := ctx.Value(ctxKeyVmnet).(bool); vmnetEnabled {
 		// env var for subprocess to detect vmnet
 		l.host = l.host.WithEnv(vmnet.SubProcessEnvVar + "=1")
-	}
-
-	// preserve gvproxy context
-	if gvProxyEnabled, _ := ctx.Value(ctxKeyGVProxy).(bool); gvProxyEnabled {
-		var envs []string
-
-		// env var for subprocess to detect gvproxy
-		envs = append(envs, gvproxy.SubProcessEnvVar+"=1")
-
-		info := gvproxy.Info()
-
-		args := []string{
-			"-netdev", "stream,id=vlan,addr.type=unix,addr.path=" + info.Socket.File(),
-			"-device", "virtio-net-pci,netdev=vlan,mac=" + info.MacAddress,
-		}
-
-		// use custom qemu args
-		envs = append(envs, qemu.BinsEnvVar(args)...)
-
-		l.host = l.host.WithEnv(envs...)
 	}
 
 	return ctx, nil
@@ -613,18 +586,6 @@ func (l *limaVM) syncDiskSize(ctx context.Context, conf config.Config) config.Co
 }
 
 func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Config) {
-	// host file
-	{
-		// add docker host alias
-		a.Add(func() error {
-			return l.addHost("host.docker.internal", net.ParseIP("192.168.5.2"))
-		})
-		// prevent chroot host error for layer
-		a.Add(func() error {
-			return l.addHost(config.CurrentProfile().ID, net.ParseIP("127.0.0.1"))
-		})
-	}
-
 	// dependencies
 	a.Add(func() error {
 		return l.installDependencies(a.Logger(), conf)

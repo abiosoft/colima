@@ -12,6 +12,7 @@ import (
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/config/configmanager"
+	"github.com/abiosoft/colima/daemon/process/vmnet"
 	"github.com/abiosoft/colima/util"
 	"github.com/sirupsen/logrus"
 )
@@ -40,8 +41,6 @@ func InstanceConfig() (config.Config, error) {
 //
 // TODO: unnecessary round-trip is done to get instance details from Lima.
 func IPAddress(profileID string) string {
-	// profile = toUserFriendlyName(profile)
-
 	const fallback = "127.0.0.1"
 	instance, err := getInstance(profileID)
 	if err != nil {
@@ -49,7 +48,11 @@ func IPAddress(profileID string) string {
 	}
 
 	if len(instance.Network) > 0 {
-		return getIPAddress(profileID, instance.Network[0].Interface)
+		for _, n := range instance.Network {
+			if n.Interface == vmnet.NetInterface {
+				return getIPAddress(profileID, n.Interface)
+			}
+		}
 	}
 
 	return fallback
@@ -177,8 +180,10 @@ func Instances(ids ...string) ([]InstanceInfo, error) {
 		}
 
 		if i.Running() {
-			if len(i.Network) > 0 && i.Network[0].Interface != "" {
-				i.IPAddress = getIPAddress(i.Name, i.Network[0].Interface)
+			for _, n := range i.Network {
+				if n.Interface == vmnet.NetInterface {
+					i.IPAddress = getIPAddress(i.Name, i.Network[0].Interface)
+				}
 			}
 			conf, _ := i.Config()
 			i.Runtime = getRuntime(conf)
@@ -199,7 +204,7 @@ func getIPAddress(profileID, interfaceName string) string {
 	var buf bytes.Buffer
 	// TODO: this should be less hacky
 	cmd := cli.Command("limactl", "shell", profileID, "sh", "-c",
-		`ifconfig `+interfaceName+` | grep "inet addr:" | awk -F' ' '{print $2}' | awk -F':' '{print $2}'`)
+		`ip -4 addr show `+interfaceName+` | grep inet | awk -F' ' '{print $2 }' | cut -d/ -f1`)
 	cmd.Stderr = nil
 	cmd.Stdout = &buf
 

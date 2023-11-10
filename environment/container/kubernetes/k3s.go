@@ -6,6 +6,7 @@ import (
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/daemon/process/vmnet"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/environment/container/docker"
@@ -129,7 +130,7 @@ func installK3sCluster(
 	} else {
 		args = append(args, "--bind-address", ipAddress)
 		args = append(args, "--advertise-address", ipAddress)
-		args = append(args, "--flannel-iface", "col0")
+		args = append(args, "--flannel-iface", vmnet.NetInterface)
 	}
 
 	switch containerRuntime {

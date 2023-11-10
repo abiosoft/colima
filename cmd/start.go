@@ -14,7 +14,6 @@ import (
 	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/config/configmanager"
-	"github.com/abiosoft/colima/daemon/process/gvproxy"
 	"github.com/abiosoft/colima/embedded"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/docker"
@@ -110,8 +109,6 @@ const (
 	defaultDisk              = 60
 	defaultKubernetesVersion = kubernetes.DefaultVersion
 
-	defaultNetworkDriver = "gvproxy"
-
 	defaultVMType        = "qemu"
 	defaultMountTypeQEMU = "sshfs"
 	defaultMountTypeVZ   = "virtiofs"
@@ -136,7 +133,6 @@ var startCmdArgs struct {
 
 func init() {
 	runtimes := strings.Join(environment.ContainerRuntimes(), ", ")
-	networkDrivers := strings.Join([]string{gvproxy.Name, "slirp"}, ", ")
 	defaultArch := string(environment.HostArch())
 	defaultHostname := config.CurrentProfile().ID
 
@@ -156,7 +152,6 @@ func init() {
 
 	// network
 	if util.MacOS() {
-		startCmd.Flags().StringVar(&startCmdArgs.Network.Driver, "network-driver", defaultNetworkDriver, "network driver to use ("+networkDrivers+")")
 		startCmd.Flags().BoolVar(&startCmdArgs.Network.Address, "network-address", false, "assign reachable IP address to the VM")
 	}
 	if util.MacOS13OrNewer() {
@@ -243,10 +238,6 @@ func setDefaults(cmd *cobra.Command) {
 		startCmdArgs.VMType = defaultVMType
 	}
 
-	if startCmdArgs.Network.Driver == "" {
-		startCmdArgs.Network.Driver = defaultNetworkDriver
-	}
-
 	if util.MacOS13OrNewer() {
 		// changing to vz implies changing mount type to virtiofs
 		if cmd.Flag("vm-type").Changed && startCmdArgs.VMType == "vz" && !cmd.Flag("mount-type").Changed {
@@ -285,10 +276,6 @@ func setConfigDefaults(conf *config.Config) {
 		if util.MacOS13OrNewer() && conf.VMType == "vz" {
 			conf.MountType = defaultMountTypeVZ
 		}
-	}
-
-	if conf.Network.Driver == "" {
-		conf.Network.Driver = defaultNetworkDriver
 	}
 
 	if conf.Hostname == "" {
@@ -404,9 +391,6 @@ func prepareConfig(cmd *cobra.Command) {
 		}
 	}
 	if util.MacOS() {
-		if !cmd.Flag("network-driver").Changed {
-			startCmdArgs.Network.Driver = current.Network.Driver
-		}
 		if !cmd.Flag("network-address").Changed {
 			startCmdArgs.Network.Address = current.Network.Address
 		}
