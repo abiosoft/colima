@@ -26,6 +26,7 @@ import (
 	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/fsutil"
 	"github.com/abiosoft/colima/util/osutil"
+	"github.com/abiosoft/colima/util/terminal"
 	"github.com/abiosoft/colima/util/yamlutil"
 	"github.com/sirupsen/logrus"
 )
@@ -704,19 +705,23 @@ func (l *limaVM) cacheDependencies(conf config.Config) (string, error) {
 		output += out + " "
 	}
 
-	packagesFile := filepath.Join(dir, "packages.txt")
-	if err := l.host.Write(packagesFile, []byte(output)); err != nil {
-		return "", fmt.Errorf("error writing packages file: %w", err)
-	}
+	debPackages := strings.Fields(output)
+	// TODO: extract this into re-usable progress bar for multi-downloads
+	for i, p := range debPackages {
+		// status feedback
+		logrus.Infof("downloading package %d of %d ...", i, len(debPackages))
 
-	if err := l.host.Run(
-		"sh", "-c",
-		strings.NewReplacer(
-			"{dir}", dir,
-			"{packages_file}", packagesFile,
-		).Replace(`cd {dir} && cat {packages_file} | xargs -n 1 curl -LO`),
-	); err != nil {
-		return "", fmt.Errorf("error downloading dependencies: %w", err)
+		// download
+		if err := l.host.RunInteractive(
+			"sh", "-c",
+			fmt.Sprintf(`cd %s && curl -LO -# %s`, dir, p),
+		); err != nil {
+			return "", fmt.Errorf("error downloading dependency: %w", err)
+		}
+
+		// clear terminal
+		terminal.ClearLine() // for curl output
+		terminal.ClearLine() // for log message
 	}
 
 	// write a file to signify it is done
