@@ -677,7 +677,7 @@ var dependencyPackages = []string{
 
 // cacheDependencies downloads the ubuntu deb files to a path on the host.
 // The return value is the directory of the downloaded deb files.
-func (l *limaVM) cacheDependencies(conf config.Config) (string, error) {
+func (l *limaVM) cacheDependencies(log *logrus.Entry, conf config.Config) (string, error) {
 	codename, err := l.RunOutput("sh", "-c", `grep "^UBUNTU_CODENAME" /etc/os-release | cut -d= -f2`)
 	if err != nil {
 		return "", fmt.Errorf("error retrieving OS version from vm: %w", err)
@@ -706,10 +706,12 @@ func (l *limaVM) cacheDependencies(conf config.Config) (string, error) {
 	}
 
 	debPackages := strings.Fields(output)
+
+	// progress bar for Ubuntu deb packages download.
 	// TODO: extract this into re-usable progress bar for multi-downloads
 	for i, p := range debPackages {
 		// status feedback
-		logrus.Infof("downloading package %d of %d ...", i, len(debPackages))
+		log.Infof("downloading package %d of %d ...", i+1, len(debPackages))
 
 		// download
 		if err := l.host.RunInteractive(
@@ -729,7 +731,7 @@ func (l *limaVM) cacheDependencies(conf config.Config) (string, error) {
 }
 
 func (l *limaVM) installDependencies(log *logrus.Entry, conf config.Config) error {
-	dir, err := l.cacheDependencies(conf)
+	dir, err := l.cacheDependencies(log, conf)
 	if err != nil {
 		log.Warnln("error caching dependencies: %w", err)
 		log.Warnln("falling back to normal package install", err)
