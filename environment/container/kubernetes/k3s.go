@@ -120,7 +120,6 @@ func installK3sCluster(
 
 	args := append([]string{
 		"--write-kubeconfig-mode", "644",
-		"--resolv-conf", "/etc/resolv.conf",
 	}, k3sArgs...)
 
 	// replace ip address if networking is enabled

@@ -9,7 +9,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -510,18 +509,6 @@ func (l limaVM) User() (string, error) {
 func (l limaVM) Arch() environment.Arch {
 	a, _ := l.RunOutput("uname", "-m")
 	return environment.Arch(a)
-}
-
-func (l limaVM) addHost(host string, ip net.IP) error {
-	if hostsFile, err := l.Read("/etc/hosts"); err == nil && includesHost(hostsFile, host, ip) {
-		return nil
-	} else if err != nil {
-		logrus.Warnln(fmt.Errorf("cannot read /etc/hosts in the VM: %w", err))
-	}
-
-	line := fmt.Sprintf("%s\t%s", ip.String(), host)
-	line = fmt.Sprintf("echo -e %s >> /etc/hosts", strconv.Quote(line))
-	return l.Run("sudo", "sh", "-c", line)
 }
 
 func includesHost(hostsFileContent, host string, ip net.IP) bool {
