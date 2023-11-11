@@ -1,12 +1,10 @@
 package lima
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
-	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -513,20 +511,6 @@ func (l limaVM) User() (string, error) {
 func (l limaVM) Arch() environment.Arch {
 	a, _ := l.RunOutput("uname", "-m")
 	return environment.Arch(a)
-}
-
-func includesHost(hostsFileContent, host string, ip net.IP) bool {
-	scanner := bufio.NewScanner(strings.NewReader(hostsFileContent))
-	for scanner.Scan() {
-		str := strings.Fields(scanner.Text())
-		if len(str) == 0 || str[0] != ip.String() {
-			continue
-		}
-		if len(str) > 1 && str[1] == host {
-			return true
-		}
-	}
-	return false
 }
 
 func (l *limaVM) syncDiskSize(ctx context.Context, conf config.Config) config.Config {
