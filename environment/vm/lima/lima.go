@@ -39,9 +39,8 @@ func New(host environment.HostActions) environment.VM {
 	var envs []string
 	envHome := limautil.EnvLimaHome + "=" + limaHome
 	envLimaInstance := envLimaInstance + "=" + config.CurrentProfile().ID
-	envSubprocess := config.SubprocessProfileEnvVar + "=" + config.CurrentProfile().ShortName
 	envBinary := osutil.EnvColimaBinary + "=" + osutil.Executable()
-	envs = append(envs, envHome, envLimaInstance, envSubprocess, envBinary)
+	envs = append(envs, envHome, envLimaInstance, envBinary)
 
 	// consider making this truly flexible to support other VMs
 	return &limaVM{

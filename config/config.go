@@ -9,8 +9,7 @@ import (
 )
 
 const (
-	AppName                 = "colima"
-	SubprocessProfileEnvVar = "COLIMA_PROFILE"
+	AppName = "colima"
 )
 
 var profile = ProfileInfo{ID: AppName, DisplayName: AppName, ShortName: "default"}
