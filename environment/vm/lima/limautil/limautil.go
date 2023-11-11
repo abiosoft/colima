@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -13,9 +14,20 @@ import (
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/config/configmanager"
 	"github.com/abiosoft/colima/daemon/process/vmnet"
-	"github.com/abiosoft/colima/util"
-	"github.com/sirupsen/logrus"
 )
+
+// EnvLimaHome is the environment variable for the Lima directory.
+const EnvLimaHome = "LIMA_HOME"
+
+// Limactl is the limactl command.
+const Limactl = "limactl"
+
+func limactl(args ...string) *exec.Cmd {
+	cmd := cli.Command(Limactl, args...)
+	cmd.Env = append(cmd.Env, os.Environ()...)
+	cmd.Env = append(cmd.Env, EnvLimaHome+"="+LimaHome())
+	return cmd
+}
 
 // Instance returns current instance.
 func Instance() (InstanceInfo, error) {
@@ -126,7 +138,7 @@ const (
 func getInstance(profileID string) (InstanceInfo, error) {
 	var i InstanceInfo
 	var buf bytes.Buffer
-	cmd := cli.Command("limactl", "list", profileID, "--json")
+	cmd := limactl("list", profileID, "--json")
 	cmd.Stderr = nil
 	cmd.Stdout = &buf
 
@@ -153,7 +165,7 @@ func Instances(ids ...string) ([]InstanceInfo, error) {
 	args := append([]string{"list", "--json"}, limaIDs...)
 
 	var buf bytes.Buffer
-	cmd := cli.Command("limactl", args...)
+	cmd := limactl(args...)
 	cmd.Stderr = nil
 	cmd.Stdout = &buf
 
@@ -199,7 +211,7 @@ func Instances(ids ...string) ([]InstanceInfo, error) {
 func getIPAddress(profileID, interfaceName string) string {
 	var buf bytes.Buffer
 	// TODO: this should be less hacky
-	cmd := cli.Command("limactl", "shell", profileID, "sh", "-c",
+	cmd := limactl("shell", profileID, "sh", "-c",
 		`ip -4 addr show `+interfaceName+` | grep inet | awk -F' ' '{print $2 }' | cut -d/ -f1`)
 	cmd.Stderr = nil
 	cmd.Stdout = &buf
@@ -224,45 +236,14 @@ func getRuntime(conf config.Config) string {
 	return runtime
 }
 
-var limaHome string
-
 // LimaHome returns the config directory for Lima.
 func LimaHome() string {
-	if limaHome != "" {
-		return limaHome
+	// if LIMA_HOME env var is set, obey it.
+	if dir := os.Getenv(EnvLimaHome); dir != "" {
+		return dir
 	}
 
-	home, err := func() (string, error) {
-		var buf bytes.Buffer
-		cmd := cli.Command("limactl", "info")
-		cmd.Stdout = &buf
-
-		if err := cmd.Run(); err != nil {
-			return "", fmt.Errorf("error retrieving lima info: %w", err)
-		}
-
-		var resp struct {
-			LimaHome string `json:"limaHome"`
-		}
-		if err := json.NewDecoder(&buf).Decode(&resp); err != nil {
-			return "", fmt.Errorf("error decoding json for lima info: %w", err)
-		}
-		if resp.LimaHome == "" {
-			return "", fmt.Errorf("error retrieving lima info, ensure lima version is >0.7.4")
-		}
-
-		return resp.LimaHome, nil
-	}()
-
-	if err != nil {
-		err = fmt.Errorf("error detecting Lima config directory: %w", err)
-		logrus.Warnln(err)
-		logrus.Warnln("falling back to default '$HOME/.lima'")
-		home = filepath.Join(util.HomeDir(), ".lima")
-	}
-
-	limaHome = home
-	return home
+	return config.LimaDir()
 }
 
 const colimaStateFileName = "colima.yaml"

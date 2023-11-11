@@ -32,18 +32,21 @@ import (
 
 // New creates a new virtual machine.
 func New(host environment.HostActions) environment.VM {
+	// lima config directory
+	limaHome := limautil.LimaHome()
+
 	// environment variables for the subprocesses
 	var envs []string
+	envHome := limautil.EnvLimaHome + "=" + limaHome
 	envLimaInstance := envLimaInstance + "=" + config.CurrentProfile().ID
 	envSubprocess := config.SubprocessProfileEnvVar + "=" + config.CurrentProfile().ShortName
 	envBinary := osutil.EnvColimaBinary + "=" + osutil.Executable()
-	envs = append(envs, envLimaInstance, envSubprocess, envBinary)
+	envs = append(envs, envHome, envLimaInstance, envSubprocess, envBinary)
 
-	home := limautil.LimaHome()
 	// consider making this truly flexible to support other VMs
 	return &limaVM{
 		host:         host.WithEnv(envs...),
-		home:         home,
+		limaHome:     limaHome,
 		CommandChain: cli.New("vm"),
 		daemon:       daemon.NewManager(host),
 	}
@@ -52,11 +55,11 @@ func New(host environment.HostActions) environment.VM {
 const (
 	envLimaInstance = "LIMA_INSTANCE"
 	lima            = "lima"
-	limactl         = "limactl"
+	limactl         = limautil.Limactl
 )
 
 func (l limaVM) limaConfFile() string {
-	return filepath.Join(l.home, config.CurrentProfile().ID, "lima.yaml")
+	return filepath.Join(l.limaHome, config.CurrentProfile().ID, "lima.yaml")
 }
 
 var _ environment.VM = (*limaVM)(nil)
@@ -72,7 +75,7 @@ type limaVM struct {
 	limaConf Config
 
 	// lima config directory
-	home string
+	limaHome string
 
 	// network between host and the vm
 	daemon daemon.Manager

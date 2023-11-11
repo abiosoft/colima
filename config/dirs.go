@@ -8,8 +8,6 @@ import (
 
 	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/fsutil"
-	"github.com/abiosoft/colima/util/osutil"
-	"github.com/abiosoft/colima/util/shautil"
 	"github.com/sirupsen/logrus"
 )
 
@@ -102,15 +100,13 @@ var (
 		},
 	}
 
-	wrapperDir = requiredDir{
+	limaDir = requiredDir{
 		dir: func() (string, error) {
 			dir, err := configBaseDir.dir()
 			if err != nil {
 				return "", err
 			}
-			// generate unique directory for the current binary
-			uniqueDir := shautil.SHA1(osutil.Executable())
-			return filepath.Join(dir, "_wrapper", uniqueDir.String()), nil
+			return filepath.Join(dir, "_lima"), nil
 		},
 	}
 )
@@ -126,6 +122,9 @@ func CacheDir() string { return cacheDir.Dir() }
 
 // TemplatesDir returns the templates' directory.
 func TemplatesDir() string { return templatesDir.Dir() }
+
+// TemplatesDir returns the templates' directory.
+func LimaDir() string { return limaDir.Dir() }
 
 const ConfigFileName = "colima.yaml"
 
