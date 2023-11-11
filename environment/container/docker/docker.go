@@ -60,9 +60,6 @@ func (d dockerRuntime) Provision(ctx context.Context) error {
 
 	// validate docker socket access
 	a.Add(func() error {
-		if err := d.guest.RunQuiet("sh", "-c", `cat /etc/group | grep '^docker:' | grep ":${USER}\$"`); err == nil {
-			return nil
-		}
 		return d.guest.RunQuiet("sh", "-c", "sudo chown ${USER} /var/run/docker.sock")
 	})
 
