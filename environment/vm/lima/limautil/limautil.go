@@ -178,7 +178,7 @@ func Instances(ids ...string) ([]InstanceInfo, error) {
 		if i.Running() {
 			for _, n := range i.Network {
 				if n.Interface == vmnet.NetInterface {
-					i.IPAddress = getIPAddress(i.Name, i.Network[0].Interface)
+					i.IPAddress = getIPAddress(i.Name, vmnet.NetInterface)
 				}
 			}
 			conf, _ := i.Config()
