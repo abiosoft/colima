@@ -20,6 +20,7 @@ import (
 	"github.com/abiosoft/colima/daemon/process/inotify"
 	"github.com/abiosoft/colima/daemon/process/vmnet"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/fsutil"
@@ -574,10 +575,17 @@ func (l *limaVM) syncDiskSize(ctx context.Context, conf config.Config) config.Co
 }
 
 func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Config) {
-	// dependencies
+	// package dependencies
 	a.Add(func() error {
 		return l.installDependencies(a.Logger(), conf)
 	})
+
+	// containerd dependencies
+	if conf.Runtime == containerd.Name {
+		a.Add(func() error {
+			return core.SetupContainerdUtils(l.host, l, environment.Arch(conf.Arch))
+		})
+	}
 
 	// binfmt
 	a.Add(func() error {

@@ -53,7 +53,7 @@ func SetupBinfmt(host hostActions, guest guestActions, arch environment.Arch) er
 		return fmt.Errorf("error extracting binfmt: %w", err)
 	}
 
-	// install QEMU_PRESERVE_ARGV0
+	// install
 	if err := guest.Run("sh", "-c", "sudo QEMU_PRESERVE_ARGV0=1 /usr/bin/binfmt --install "+qemuArch.GoArch()); err != nil {
 		return fmt.Errorf("error installing binfmt: %w", err)
 	}
@@ -61,6 +61,27 @@ func SetupBinfmt(host hostActions, guest guestActions, arch environment.Arch) er
 	return nil
 }
 
-func SetupContainerdUtils(arch environment.Arch) error {
+// SetupContainerdUtils downloads and install containerd utils.
+func SetupContainerdUtils(host hostActions, guest guestActions, arch environment.Arch) error {
+	// download
+	url := baseURL + "containerd-utils-" + arch.Value().GoArch() + ".tar.gz"
+	dest := "/tmp/containerd-utils.tar.gz"
+	if err := downloader.Download(host, guest, downloader.Request{
+		URL:      url,
+		SHA:      downloadSha(url),
+		Filename: dest,
+	}); err != nil {
+		return fmt.Errorf("error downloading containerd-utils: %w", err)
+	}
+
+	// extract
+	if err := guest.Run("sh", "-c",
+		strings.NewReplacer(
+			"{archive}", dest,
+		).Replace(`cd /tmp && sudo tar Cxfz /usr/local {archive} && sudo mkdir -p /opt/cni && sudo mv /usr/local/libexec/cni /opt/cni/bin`),
+	); err != nil {
+		return fmt.Errorf("error extracting containerd utils: %w", err)
+	}
+
 	return nil
 }
