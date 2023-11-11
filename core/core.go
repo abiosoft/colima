@@ -27,6 +27,23 @@ func downloadSha(url string) *downloader.SHA {
 
 // SetupBinfmt downloads and install binfmt
 func SetupBinfmt(host hostActions, guest guestActions, arch environment.Arch) error {
+	qemuArch := environment.AARCH64
+	if arch.Value().GoArch() == "arm64" {
+		qemuArch = environment.X8664
+	}
+
+	install := func() error {
+		if err := guest.Run("sh", "-c", "sudo QEMU_PRESERVE_ARGV0=1 /usr/bin/binfmt --install "+qemuArch.GoArch()); err != nil {
+			return fmt.Errorf("error installing binfmt: %w", err)
+		}
+		return nil
+	}
+
+	// ignore download and extract if previously installed
+	if err := guest.RunQuiet("command", "-v", "binfmt"); err == nil {
+		return install()
+	}
+
 	// download
 	url := baseURL + "binfmt-" + arch.Value().GoArch() + ".tar.gz"
 	dest := "/tmp/binfmt.tar.gz"
@@ -36,11 +53,6 @@ func SetupBinfmt(host hostActions, guest guestActions, arch environment.Arch) er
 		Filename: dest,
 	}); err != nil {
 		return fmt.Errorf("error downloading binfmt: %w", err)
-	}
-
-	qemuArch := environment.AARCH64
-	if arch.Value().GoArch() == "arm64" {
-		qemuArch = environment.X8664
 	}
 
 	// extract
@@ -53,16 +65,16 @@ func SetupBinfmt(host hostActions, guest guestActions, arch environment.Arch) er
 		return fmt.Errorf("error extracting binfmt: %w", err)
 	}
 
-	// install
-	if err := guest.Run("sh", "-c", "sudo QEMU_PRESERVE_ARGV0=1 /usr/bin/binfmt --install "+qemuArch.GoArch()); err != nil {
-		return fmt.Errorf("error installing binfmt: %w", err)
-	}
-
-	return nil
+	return install()
 }
 
 // SetupContainerdUtils downloads and install containerd utils.
 func SetupContainerdUtils(host hostActions, guest guestActions, arch environment.Arch) error {
+	// ignore if already installed
+	if err := guest.RunQuiet("sh", "-c", "command -v nerdctl && stat /opt/cni/bin/flannel"); err == nil {
+		return nil
+	}
+
 	// download
 	url := baseURL + "containerd-utils-" + arch.Value().GoArch() + ".tar.gz"
 	dest := "/tmp/containerd-utils.tar.gz"
