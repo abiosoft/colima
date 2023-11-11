@@ -119,7 +119,7 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
 
       - name: Start Colima
-        run: colima start --runtime docker --layer
+        run: colima start --runtime docker
 
       - name: Delay
         run: sleep 10
@@ -128,13 +128,10 @@ jobs:
         run: docker ps && docker info
 
       - name: Validate DNS
-        run: colima ssh --layer=false -- nslookup host.docker.internal
+        run: colima ssh -- nslookup host.docker.internal
 
       - name: Build Image
         run: docker build integration
-
-      - name: Validate Layer
-        run: colima ssh --layer -- cat /etc/os-release
 
       - name: Stop
         run: colima stop
@@ -167,7 +164,7 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
 
       - name: Start Colima
-        run: colima start --runtime docker --arch aarch64 --layer
+        run: colima start --runtime docker --arch aarch64
 
       - name: Delay
         run: sleep 20
@@ -179,10 +176,7 @@ jobs:
         run: docker build integration
 
       - name: Validate DNS
-        run: colima ssh --layer=false -- nslookup host.docker.internal
-
-      - name: Validate Layer
-        run: colima ssh --layer -- cat /etc/os-release
+        run: colima ssh -- nslookup host.docker.internal
 
       - name: Stop
         run: colima stop
@@ -215,7 +209,7 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
 
       - name: Start Colima
-        run: colima start --runtime containerd --layer
+        run: colima start --runtime containerd
 
       - name: Delay
         run: sleep 10
@@ -224,13 +218,10 @@ jobs:
         run: colima nerdctl ps && colima nerdctl info
 
       - name: Validate DNS
-        run: colima ssh --layer=false -- nslookup host.docker.internal
+        run: colima ssh -- nslookup host.docker.internal
 
       - name: Build Image
         run: colima nerdctl -- build integration
-
-      - name: Validate Layer
-        run: colima ssh --layer -- cat /etc/os-release
 
       - name: Stop
         run: colima stop
@@ -263,22 +254,19 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
 
       - name: Start Colima
-        run: colima start --runtime containerd --arch aarch64 --layer
+        run: colima start --runtime containerd --arch aarch64
 
       - name: Validate Containerd
         run: colima nerdctl ps && colima nerdctl info
 
       - name: Validate DNS
-        run: colima ssh --layer=false -- nslookup host.docker.internal
+        run: colima ssh -- nslookup host.docker.internal
 
       - name: Build Image
         run: colima nerdctl -- build integration
 
       - name: Delay
         run: sleep 10
-
-      - name: Validate Layer
-        run: colima ssh --layer -- cat /etc/os-release
 
       - name: Stop
         run: colima stop
