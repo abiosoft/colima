@@ -14,6 +14,7 @@ import (
 	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/config/configmanager"
+	"github.com/abiosoft/colima/core"
 	"github.com/abiosoft/colima/embedded"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/docker"
@@ -86,6 +87,11 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 		return start(app, conf)
 	},
 	PreRunE: func(cmd *cobra.Command, args []string) error {
+		// validate Lima version
+		if err := core.LimaVersionSupported(); err != nil {
+			return fmt.Errorf("lima compatibility error: %w", err)
+		}
+
 		// combine args and current config file(if any)
 		prepareConfig(cmd)
 

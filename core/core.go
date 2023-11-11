@@ -1,16 +1,21 @@
 package core
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"strings"
 
+	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/util/downloader"
+	"github.com/coreos/go-semver/semver"
 )
 
 const (
-	version = "v0.6.0-2" // version of colima-core to use.
-	baseURL = "https://github.com/abiosoft/colima-core/releases/download/" + version + "/"
+	version     = "v0.6.0-2" // version of colima-core to use.
+	limaVersion = "v0.18.0"  // minimum Lima version supported
+	baseURL     = "https://github.com/abiosoft/colima-core/releases/download/" + version + "/"
 )
 
 type (
@@ -93,6 +98,40 @@ func SetupContainerdUtils(host hostActions, guest guestActions, arch environment
 		).Replace(`cd /tmp && sudo tar Cxfz /usr/local {archive} && sudo mkdir -p /opt/cni && sudo mv /usr/local/libexec/cni /opt/cni/bin`),
 	); err != nil {
 		return fmt.Errorf("error extracting containerd utils: %w", err)
+	}
+
+	return nil
+}
+
+// LimaVersionSupported checks if the currently installed Lima version is supported.
+func LimaVersionSupported() error {
+	var values struct {
+		Version string `json:"version"`
+	}
+	var buf bytes.Buffer
+	cmd := cli.Command("limactl", "info")
+	cmd.Stdout = &buf
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("error checking Lima version: %w", err)
+	}
+
+	if err := json.NewDecoder(&buf).Decode(&values); err != nil {
+		return fmt.Errorf("error decoding 'limactl info' json: %w", err)
+	}
+	// remove pre-release hyphen
+	if str := strings.SplitN(values.Version, "-", 2); len(str) > 0 {
+		values.Version = str[0]
+	}
+
+	min := semver.New(strings.TrimPrefix(limaVersion, "v"))
+	current, err := semver.NewVersion(strings.TrimPrefix(values.Version, "v"))
+	if err != nil {
+		return fmt.Errorf("invalid semver version for Lima: %w", err)
+	}
+
+	if min.Compare(*current) > 0 {
+		return fmt.Errorf("minimum Lima version supported is %s, current version is %s", limaVersion, values.Version)
 	}
 
 	return nil
