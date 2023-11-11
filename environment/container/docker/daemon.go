@@ -8,7 +8,7 @@ import (
 
 const daemonFile = "/etc/docker/daemon.json"
 
-func (d dockerRuntime) createDaemonFile(conf map[string]any) error {
+func (d dockerRuntime) createDaemonFile(conf map[string]any, env map[string]string) error {
 	if conf == nil {
 		conf = map[string]any{}
 	}
@@ -37,6 +37,20 @@ func (d dockerRuntime) createDaemonFile(conf map[string]any) error {
 	// set host-gateway ip to loopback interface (if not set by user)
 	if _, ok := conf["host-gateway"]; !ok {
 		conf["host-gateway-ip"] = ip
+	}
+
+	// add proxy vars if set
+	// according to https://docs.docker.com/config/daemon/systemd/#httphttps-proxy
+	if vars := d.proxyEnvVars(env); !vars.empty() {
+		if vars.http != "" {
+			conf["http-proxy"] = vars.http
+		}
+		if vars.https != "" {
+			conf["https-proxy"] = vars.https
+		}
+		if vars.no != "" {
+			conf["no-proxy"] = vars.https
+		}
 	}
 
 	b, err := json.MarshalIndent(conf, "", "  ")
