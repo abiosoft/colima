@@ -17,10 +17,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	LayerEnvVar = "COLIMA_LAYER_SSH_PORT"
-)
-
 // Instance returns current instance.
 func Instance() (InstanceInfo, error) {
 	return getInstance(config.CurrentProfile().ID)
