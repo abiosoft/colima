@@ -587,18 +587,14 @@ func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Conf
 		})
 	}
 
-	// binfmt
-	a.Add(func() error {
-		return core.SetupBinfmt(l.host, l, environment.Arch(conf.Arch))
-	})
-
 	// registry certs
 	a.Add(l.copyCerts)
 
-	// use rosetta for x86_64 emulation
+	// cross-platform emulation
 	a.Add(func() error {
 		if !l.limaConf.Rosetta.Enabled {
-			return nil
+			// use binfmt when rosetta is disabled
+			return core.SetupBinfmt(l.host, l, environment.Arch(conf.Arch))
 		}
 
 		// enable rosetta
