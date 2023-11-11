@@ -628,7 +628,7 @@ var dependencyPackages = []string{
 	// docker
 	"docker.io",
 	// utilities
-	"htop", "vim",
+	"htop", "vim", "inetutils-ping", "dnsutils",
 }
 
 // cacheDependencies downloads the ubuntu deb files to a path on the host.
