@@ -1,0 +1,66 @@
+package core
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/util/downloader"
+)
+
+const (
+	version = "v0.6.0-2" // version of colima-core to use.
+	baseURL = "https://github.com/abiosoft/colima-core/releases/download/" + version + "/"
+)
+
+type (
+	hostActions  = environment.HostActions
+	guestActions = environment.GuestActions
+)
+
+func downloadSha(url string) *downloader.SHA {
+	return &downloader.SHA{
+		Size: 512,
+		URL:  url + ".sha512sum",
+	}
+}
+
+// SetupBinfmt downloads and install binfmt
+func SetupBinfmt(host hostActions, guest guestActions, arch environment.Arch) error {
+	// download
+	url := baseURL + "binfmt-" + arch.Value().GoArch() + ".tar.gz"
+	dest := "/tmp/binfmt.tar.gz"
+	if err := downloader.Download(host, guest, downloader.Request{
+		URL:      url,
+		SHA:      downloadSha(url),
+		Filename: dest,
+	}); err != nil {
+		return fmt.Errorf("error downloading binfmt: %w", err)
+	}
+
+	qemuArch := environment.AARCH64
+	if arch.Value().GoArch() == "arm64" {
+		qemuArch = environment.X8664
+	}
+
+	// extract
+	if err := guest.Run("sh", "-c",
+		strings.NewReplacer(
+			"{file}", dest,
+			"{qemu_arch}", string(qemuArch),
+		).Replace(`cd /tmp && tar xfz {file} && sudo chown root:root binfmt qemu-{qemu_arch} && sudo mv binfmt qemu-{qemu_arch} /usr/bin`),
+	); err != nil {
+		return fmt.Errorf("error extracting binfmt: %w", err)
+	}
+
+	// install QEMU_PRESERVE_ARGV0
+	if err := guest.Run("sh", "-c", "sudo QEMU_PRESERVE_ARGV0=1 /usr/bin/binfmt --install "+qemuArch.GoArch()); err != nil {
+		return fmt.Errorf("error installing binfmt: %w", err)
+	}
+
+	return nil
+}
+
+func SetupContainerdUtils(arch environment.Arch) error {
+	return nil
+}

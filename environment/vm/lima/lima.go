@@ -15,6 +15,7 @@ import (
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/config/configmanager"
+	"github.com/abiosoft/colima/core"
 	"github.com/abiosoft/colima/daemon"
 	"github.com/abiosoft/colima/daemon/process/inotify"
 	"github.com/abiosoft/colima/daemon/process/vmnet"
@@ -578,6 +579,11 @@ func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Conf
 		return l.installDependencies(a.Logger(), conf)
 	})
 
+	// binfmt
+	a.Add(func() error {
+		return core.SetupBinfmt(l.host, l, environment.Arch(conf.Arch))
+	})
+
 	// registry certs
 	a.Add(l.copyCerts)
 
@@ -617,8 +623,6 @@ func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Conf
 var dependencyPackages = []string{
 	// docker
 	"docker.io",
-	// aarch64/x86_64 emuation
-	// "qemu-user-binfmt", "binfmt-support",
 	// utilities
 	"htop", "vim",
 }

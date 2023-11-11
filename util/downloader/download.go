@@ -38,9 +38,9 @@ func (s SHA) validate(host hostActions, url, cacheFilename string) error {
 		"{url}", s.URL,
 		"{filename}", filename,
 		"{size}", strconv.Itoa(s.Size),
-		"{cacheFilename}", cacheFilename,
+		"{cache_filename}", cacheFilename,
 	).Replace(
-		`cd {dir} && echo "$(curl -sL {url} | grep '  {filename}$' | awk -F' ' '{print $1}')  {cacheFilename}" | shasum -a {size} --check --status`,
+		`cd {dir} && echo "$(curl -sL {url} | grep '  {filename}$' | awk -F' ' '{print $1}')  {cache_filename}" | shasum -a {size} --check --status`,
 	)
 
 	return host.Run("sh", "-c", script)
@@ -62,6 +62,11 @@ func Download(host hostActions, guest guestActions, r Request) error {
 	d := downloader{
 		host:  host,
 		guest: guest,
+	}
+
+	// if file is on the filesystem, no need for download. A copy suffices
+	if strings.HasPrefix(r.URL, "/") {
+		return guest.RunQuiet("cp", r.URL, r.Filename)
 	}
 
 	if !d.hasCache(r.URL) {
