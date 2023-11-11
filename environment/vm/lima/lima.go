@@ -34,7 +34,7 @@ import (
 func New(host environment.HostActions) environment.VM {
 	// environment variables for the subprocesses
 	var envs []string
-	envLimaInstance := limaInstanceEnvVar + "=" + config.CurrentProfile().ID
+	envLimaInstance := envLimaInstance + "=" + config.CurrentProfile().ID
 	envSubprocess := config.SubprocessProfileEnvVar + "=" + config.CurrentProfile().ShortName
 	envBinary := osutil.EnvColimaBinary + "=" + osutil.Executable()
 	envs = append(envs, envLimaInstance, envSubprocess, envBinary)
@@ -50,9 +50,9 @@ func New(host environment.HostActions) environment.VM {
 }
 
 const (
-	limaInstanceEnvVar = "LIMA_INSTANCE"
-	lima               = "lima"
-	limactl            = "limactl"
+	envLimaInstance = "LIMA_INSTANCE"
+	lima            = "lima"
+	limactl         = "limactl"
 )
 
 func (l limaVM) limaConfFile() string {

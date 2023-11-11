@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/config/configmanager"
 	"github.com/abiosoft/colima/environment"
@@ -261,19 +260,8 @@ func (c colimaApp) SSH(args ...string) error {
 		}
 	}
 
-	resp, err := limautil.ShowSSH(config.CurrentProfile().ID)
-	if err != nil {
-		return fmt.Errorf("error getting ssh config: %w", err)
-	}
-
-	if len(args) > 0 {
-		args = append([]string{"-q", "-t", config.CurrentProfile().ID, "--"}, args...)
-	} else if workDir != "" {
-		args = []string{"-q", "-t", config.CurrentProfile().ID, "--", "cd " + workDir + " 2> /dev/null; \"$SHELL\" --login"}
-	}
-
-	args = append([]string{"-F", resp.File.Colima}, args...)
-	return cli.CommandInteractive("ssh", args...).Run()
+	guest := lima.New(host.New())
+	return guest.SSH(workDir, args...)
 }
 
 func (c colimaApp) Status(extended bool) error {
