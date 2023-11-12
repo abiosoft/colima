@@ -42,7 +42,7 @@ brew install --HEAD colima
 
 ### Upgrading
 
-If upgrading from v0.4.6 or lower, it is required to start afresh by deleting existing instance.
+If upgrading from v0.5.6 or lower, it is required to start afresh by deleting existing instance.
 
 ```sh
 colima delete # delete existing instance
@@ -158,7 +158,6 @@ Check [here](docs/FAQ.md) for Frequently Asked Questions.
 ## Help Wanted
 
 - Documentation (wiki pages)
-- Project Logo
 
 ## License
 

@@ -17,15 +17,16 @@
       - [Changing the active Docker context](#changing-the-active-docker-context)
     - [Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?](#cannot-connect-to-the-docker-daemon-at-unixvarrundockersock-is-the-docker-daemon-running)
     - [How to customize Docker config e.g. add insecure registries?](#how-to-customize-docker-config-eg-add-insecure-registries)
-    - [Docker plugins are missing (buildx, scan)](#docker-plugins-are-missing-buildx-scan)
+    - [Docker buildx plugin is missing](#docker-buildx-plugin-is-missing)
       - [Installing Buildx](#installing-buildx)
-      - [Installing Docker Scan](#installing-docker-scan)
   - [How does Colima compare to minikube, Kind, K3d?](#how-does-colima-compare-to-minikube-kind-k3d)
     - [For Kubernetes](#for-kubernetes)
     - [For Docker](#for-docker)
   - [Is another Distro supported?](#is-another-distro-supported)
-    - [Enabling Ubuntu layer](#enabling-ubuntu-layer)
-    - [Accessing the underlying Virtual Machine](#accessing-the-underlying-virtual-machine)
+    - [Version v0.5.6 and lower](#version-v056-and-lower)
+      - [Enabling Ubuntu layer](#enabling-ubuntu-layer)
+      - [Accessing the underlying Virtual Machine](#accessing-the-underlying-virtual-machine)
+    - [Version v0.6.0 and newer](#version-v060-and-newer)
   - [The Virtual Machine's IP is not reachable](#the-virtual-machines-ip-is-not-reachable)
     - [Enable reachable IP address](#enable-reachable-ip-address)
   - [How can disk space be recovered?](#how-can-disk-space-be-recovered)
@@ -39,6 +40,7 @@
     - [Issues after an upgrade](#issues-after-an-upgrade)
     - [Colima cannot access the internet.](#colima-cannot-access-the-internet)
     - [Docker Compose and Buildx showing runc error](#docker-compose-and-buildx-showing-runc-error)
+      - [Version v0.5.6 or lower](#version-v056-or-lower)
 
 ## How does Colima compare to Lima?
 
@@ -173,9 +175,9 @@ This can be fixed by any of the following approaches. Ensure the Docker socket p
   +     - host.docker.internal:5000
   ```
 
-### Docker plugins are missing (buildx, scan)
+### Docker buildx plugin is missing
 
-Both `buildx` and `scan` can be installed as Docker plugins
+`buildx` can be installed as a Docker plugin
 
 #### Installing Buildx
 
@@ -190,33 +192,12 @@ docker buildx version # verify installation
 Alternatively
 ```sh
 ARCH=amd64 # change to 'arm64' for m1
-VERSION=v0.8.2
+VERSION=v0.11.2
 curl -LO https://github.com/docker/buildx/releases/download/${VERSION}/buildx-${VERSION}.darwin-${ARCH}
 mkdir -p ~/.docker/cli-plugins
 mv buildx-${VERSION}.darwin-${ARCH} ~/.docker/cli-plugins/docker-buildx
 chmod +x ~/.docker/cli-plugins/docker-buildx
 docker buildx version # verify installation
-```
-#### Installing Docker Scan
-
-Install Snyk CLI
-
-```sh
-brew install snyk/tap/snyk
-```
-
-Install Docker Scan
-
-```sh
-ARCH=amd64 # change to 'arm64' for m1
-VERSION=v0.21.0
-curl -LO https://github.com/docker/scan-cli-plugin/releases/download/${VERSION}/docker-scan_darwin_${ARCH}
-mkdir -p ~/.docker/cli-plugins
-mv docker-scan_darwin_${ARCH} ~/.docker/cli-plugins/docker-scan
-chmod +x ~/.docker/cli-plugins/docker-scan
-mkdir -p ~/.docker/scan
-echo "{}" > ~/.docker/scan/config.json # config file required by the docker scan plugin
-docker scan --version # verify installation
 ```
 
 ## How does Colima compare to minikube, Kind, K3d?
@@ -240,12 +221,15 @@ Minikube with Docker runtime can expose the cluster's Docker with `minikube dock
 
 ## Is another Distro supported?
 
+### Version v0.5.6 and lower
+
 Colima uses a lightweight Alpine image with bundled dependencies.
 Therefore, user interaction with the Virtual Machine is expected to be minimal (if any).
 
 However, Colima optionally provides Ubuntu container as a layer.
 
-### Enabling Ubuntu layer
+
+#### Enabling Ubuntu layer
 
 * CLI
   ```
@@ -258,15 +242,19 @@ However, Colima optionally provides Ubuntu container as a layer.
   + layer: true
   ```
 
-### Accessing the underlying Virtual Machine
+#### Accessing the underlying Virtual Machine
 
 When the layer is enabled, the underlying Virtual Machine is abstracted and both the `ssh` and `ssh-config` commands routes to the layer.
 
 The underlying Virtual Machine is still accessible by specifying `--layer=false` to the `ssh` and `ssh-config` commands, or by running `colima` in the SSH session.
 
+### Version v0.6.0 and newer
+
+Colima uses Ubuntu as the underlying image. Other distros are not supported.
+
 ## The Virtual Machine's IP is not reachable
 
-Reachable IP address is not enabled by default due to slower startup time.
+Reachable IP address is not enabled by default due to root privilege and slower startup time.
 
 ### Enable reachable IP address
 
@@ -381,6 +369,8 @@ round-trip min/avg/max = 0.082/0.390/0.557 ms
 
 ### Docker Compose and Buildx showing runc error
 
+#### Version v0.5.6 or lower
+
 Recent versions of Buildkit may show the following error.
 
 ```console
@@ -388,3 +378,5 @@ runc run failed: unable to start container process: error during container init:
 ```
 
 From v0.5.6, start Colima with `--cgroups-v2` flag as a workaround.
+
+**This is fixed in v0.6.0.**
