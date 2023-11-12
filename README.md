@@ -144,6 +144,10 @@ Colima means Containers in [Lima](https://github.com/lima-vm/lima).
 
 Since Lima is aka Linux on Mac. By transitivity, Colima can also mean Containers on Linux on Mac.
 
+## And the Logo?
+
+The logo was contributed by [Daniel Hodvogner](dhodvogner). Check [this issue](https://github.com/abiosoft/colima/issues/781) for more.
+
 ## Troubleshooting and FAQs
 
 Check [here](docs/FAQ.md) for Frequently Asked Questions.
