@@ -24,7 +24,7 @@ test_runtime() (
     stage "runtime: $2, arch: $1"
 
     NAME="itest-$2"
-    COLIMA="colima -p $NAME"
+    COLIMA="$COLIMA_BINARY -p $NAME"
 
     COMMAND="docker"
     if [ "$2" == "containerd" ]; then
@@ -54,7 +54,7 @@ test_kubernetes() (
     stage "k8s runtime: $2, arch: $1"
 
     NAME="itest-$2-k8s"
-    COLIMA="colima -p $NAME"
+    COLIMA="$COLIMA_BINARY -p $NAME"
 
     # reset
     $COLIMA delete -f
@@ -80,5 +80,5 @@ test_runtime $OTHER_ARCH docker
 test_runtime $OTHER_ARCH containerd
 
 if [ -n "$DOCKER_CONTEXT" ]; then
-    docker context use "$DOCKER_CONTEXT" || echo
+    docker context use "$DOCKER_CONTEXT" || echo # prevent error
 fi
