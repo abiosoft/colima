@@ -497,9 +497,14 @@ func generateSSHConfig(modifySSHConfig bool) error {
 			continue
 		}
 
-		if words[0] == "Include" && words[1] == sshFileColima {
-			// already present
-			return nil
+		if words[0] == "Include" {
+			sshConfig := words[1]
+			sshConfig = strings.Replace(sshConfig, "~/", "$HOME/", 1)
+			sshConfig = os.ExpandEnv(sshConfig)
+			if sshConfig == sshFileColima {
+				// already present
+				return nil
+			}
 		}
 	}
 
