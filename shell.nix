@@ -3,7 +3,7 @@
 pkgs.mkShell {
   # nativeBuildInputs is usually what you want -- tools you need to run
   nativeBuildInputs = with pkgs.buildPackages; [
-    go_1_19
+    go_1_20
     git
     lima
     qemu

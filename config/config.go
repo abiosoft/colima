@@ -9,8 +9,7 @@ import (
 )
 
 const (
-	AppName                 = "colima"
-	SubprocessProfileEnvVar = "COLIMA_PROFILE"
+	AppName = "colima"
 )
 
 var profile = ProfileInfo{ID: AppName, DisplayName: AppName, ShortName: "default"}
@@ -78,6 +77,7 @@ type Config struct {
 	ForwardAgent bool              `yaml:"forwardAgent,omitempty"`
 	Network      Network           `yaml:"network,omitempty"`
 	Env          map[string]string `yaml:"env,omitempty"` // environment variables
+	Hostname     string            `yaml:"hostname"`
 
 	// VM
 	VMType    string `yaml:"vmType,omitempty"`
@@ -98,17 +98,11 @@ type Config struct {
 	// Docker configuration
 	Docker map[string]any `yaml:"docker,omitempty"`
 
-	// layer
-	Layer bool `yaml:"layer,omitempty"`
-
 	// provision scripts
 	Provision []Provision `yaml:"provision,omitempty"`
 
 	// SSH config generation
 	SSHConfig bool `yaml:"sshConfig,omitempty"`
-
-	// Temporary workaround for cgroups v2.
-	TempCgroupsV2 bool `yaml:"cgroupsV2,omitempty"`
 }
 
 // Kubernetes is kubernetes configuration
@@ -123,7 +117,6 @@ type Network struct {
 	Address      bool              `yaml:"address"`
 	DNSResolvers []net.IP          `yaml:"dns"`
 	DNSHosts     map[string]string `yaml:"dnsHosts"`
-	Driver       string            `yaml:"driver"`
 }
 
 // Mount is volume mount

@@ -69,3 +69,7 @@ nix-derivation-shell:
 	$(eval DERIVATION=$(shell nix-build))
 	echo $(DERIVATION) | grep ^/nix
 	nix-shell -p $(DERIVATION)
+
+.PHONY: integration
+integration: build
+	GOARCH=$(GOARCH) COLIMA_BINARY=$(OUTPUT_DIR)/$(OUTPUT_BIN) scripts/integration.sh

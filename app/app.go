@@ -10,13 +10,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/config/configmanager"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/docker"
 	"github.com/abiosoft/colima/environment/container/kubernetes"
-	"github.com/abiosoft/colima/environment/container/ubuntu"
 	"github.com/abiosoft/colima/environment/host"
 	"github.com/abiosoft/colima/environment/vm/lima"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
@@ -30,7 +28,7 @@ type App interface {
 	Start(config.Config) error
 	Stop(force bool) error
 	Delete() error
-	SSH(layer bool, args ...string) error
+	SSH(args ...string) error
 	Status(extended bool) error
 	Version() error
 	Runtime() (string, error)
@@ -78,14 +76,6 @@ func (c colimaApp) Start(conf config.Config) error {
 	// kubernetes should come after required runtime
 	if conf.Kubernetes.Enabled {
 		env, err := c.containerEnvironment(kubernetes.Name)
-		if err != nil {
-			return err
-		}
-		containers = append(containers, env)
-	}
-	// ubuntu layer should come last
-	if conf.Layer {
-		env, err := c.containerEnvironment(ubuntu.Name)
 		if err != nil {
 			return err
 		}
@@ -222,7 +212,7 @@ func (c colimaApp) Delete() error {
 	return nil
 }
 
-func (c colimaApp) SSH(layer bool, args ...string) error {
+func (c colimaApp) SSH(args ...string) error {
 	ctx := context.Background()
 	if !c.guest.Running(ctx) {
 		return fmt.Errorf("%s not running", config.CurrentProfile().DisplayName)
@@ -270,34 +260,8 @@ func (c colimaApp) SSH(layer bool, args ...string) error {
 		}
 	}
 
-	if !layer {
-		return c.guest.SSH(workDir, args...)
-	}
-
-	conf, err := limautil.InstanceConfig()
-	if err != nil {
-		return err
-	}
-	if !conf.Layer {
-		return c.guest.SSH(workDir, args...)
-	}
-
-	resp, err := limautil.ShowSSH(config.CurrentProfile().ID, layer)
-	if err != nil {
-		return fmt.Errorf("error getting ssh config: %w", err)
-	}
-	if !resp.Layer {
-		return c.guest.RunInteractive(args...)
-	}
-
-	if len(args) > 0 {
-		args = append([]string{"-q", "-t", config.CurrentProfile().ID, "--"}, args...)
-	} else if workDir != "" {
-		args = []string{"-q", "-t", config.CurrentProfile().ID, "--", "cd " + workDir + " 2> /dev/null; \"$SHELL\" --login"}
-	}
-
-	args = append([]string{"-F", resp.File.Colima}, args...)
-	return cli.CommandInteractive("ssh", args...).Run()
+	guest := lima.New(host.New())
+	return guest.SSH(workDir, args...)
 }
 
 func (c colimaApp) Status(extended bool) error {
@@ -341,8 +305,6 @@ func (c colimaApp) Status(extended bool) error {
 
 	// additional details
 	if extended {
-		log.Println("networkDriver:", conf.Network.Driver)
-
 		if inst, err := limautil.Instance(); err == nil {
 			log.Println("cpu:", inst.CPU)
 			log.Println("mem:", units.BytesSize(float64(inst.Memory)))
@@ -369,8 +331,6 @@ func (c colimaApp) Version() error {
 		switch cont.Name() {
 		case kubernetes.Name:
 			kube = cont
-			continue
-		case ubuntu.Name:
 			continue
 		}
 
@@ -436,11 +396,6 @@ func (c colimaApp) currentContainerEnvironments(ctx context.Context) ([]environm
 		containers = append(containers, k)
 	}
 
-	// detect and add ubuntu layer
-	if u, err := c.containerEnvironment(ubuntu.Name); err == nil && u.Running(ctx) {
-		containers = append(containers, u)
-	}
-
 	return containers, nil
 }
 
@@ -481,13 +436,7 @@ func generateSSHConfig(modifySSHConfig bool) error {
 		}
 
 		profile := config.Profile(i.Name)
-		conf, err := i.Config()
-		if err != nil {
-			log.Trace(fmt.Errorf("error retrieving profile config for '%s': %w", i.Name, err))
-			continue
-		}
-
-		resp, err := limautil.ShowSSH(profile.ID, conf.Layer)
+		resp, err := limautil.ShowSSH(profile.ID)
 		if err != nil {
 			log.Trace(fmt.Errorf("error retrieving SSH config for '%s': %w", i.Name, err))
 			continue

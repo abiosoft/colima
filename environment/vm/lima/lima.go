@@ -1,61 +1,62 @@
 package lima
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
-	"net"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/config/configmanager"
+	"github.com/abiosoft/colima/core"
 	"github.com/abiosoft/colima/daemon"
-	"github.com/abiosoft/colima/daemon/process/gvproxy"
 	"github.com/abiosoft/colima/daemon/process/inotify"
 	"github.com/abiosoft/colima/daemon/process/vmnet"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
-	"github.com/abiosoft/colima/qemu"
 	"github.com/abiosoft/colima/util"
+	"github.com/abiosoft/colima/util/fsutil"
 	"github.com/abiosoft/colima/util/osutil"
+	"github.com/abiosoft/colima/util/terminal"
 	"github.com/abiosoft/colima/util/yamlutil"
 	"github.com/sirupsen/logrus"
 )
 
 // New creates a new virtual machine.
 func New(host environment.HostActions) environment.VM {
+	// lima config directory
+	limaHome := limautil.LimaHome()
+
 	// environment variables for the subprocesses
 	var envs []string
-	envLimaInstance := limaInstanceEnvVar + "=" + config.CurrentProfile().ID
-	envSubprocess := config.SubprocessProfileEnvVar + "=" + config.CurrentProfile().ShortName
+	envHome := limautil.EnvLimaHome + "=" + limaHome
+	envLimaInstance := envLimaInstance + "=" + config.CurrentProfile().ID
 	envBinary := osutil.EnvColimaBinary + "=" + osutil.Executable()
-	envs = append(envs, envLimaInstance, envSubprocess, envBinary)
+	envs = append(envs, envHome, envLimaInstance, envBinary)
 
-	home := limautil.LimaHome()
 	// consider making this truly flexible to support other VMs
 	return &limaVM{
 		host:         host.WithEnv(envs...),
-		home:         home,
+		limaHome:     limaHome,
 		CommandChain: cli.New("vm"),
 		daemon:       daemon.NewManager(host),
 	}
 }
 
 const (
-	limaInstanceEnvVar = "LIMA_INSTANCE"
-	lima               = "lima"
-	limactl            = "limactl"
+	envLimaInstance = "LIMA_INSTANCE"
+	lima            = "lima"
+	limactl         = limautil.Limactl
 )
 
 func (l limaVM) limaConfFile() string {
-	return filepath.Join(l.home, config.CurrentProfile().ID, "lima.yaml")
+	return filepath.Join(l.limaHome, config.CurrentProfile().ID, "lima.yaml")
 }
 
 var _ environment.VM = (*limaVM)(nil)
@@ -71,7 +72,7 @@ type limaVM struct {
 	limaConf Config
 
 	// lima config directory
-	home string
+	limaHome string
 
 	// network between host and the vm
 	daemon daemon.Manager
@@ -95,7 +96,6 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 
 	ctxKeyVmnet := daemon.CtxKey(vmnet.Name)
 	ctxKeyInotify := daemon.CtxKey(inotify.Name)
-	ctxKeyGVProxy := daemon.CtxKey(gvproxy.Name)
 
 	// use a nested chain for convenience
 	a := l.Init(ctx)
@@ -119,9 +119,6 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 	if isQEMU {
 		a.Stage("preparing network")
 		a.Add(func() error {
-			if conf.Network.Driver == gvproxy.Name {
-				ctx = context.WithValue(ctx, ctxKeyGVProxy, true)
-			}
 			if conf.Network.Address {
 				ctx = context.WithValue(ctx, ctxKeyVmnet, true)
 			}
@@ -192,7 +189,6 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 					return
 				}
 
-				// revert gvproxy to boolean
 				for _, p := range status.Processes {
 					// TODO: handle inotify separate from network
 					if p.Name == inotify.Name {
@@ -218,18 +214,6 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 	if vmnetEnabled, _ := ctx.Value(ctxKeyVmnet).(bool); vmnetEnabled {
 		// env var for subprocess to detect vmnet
 		l.host = l.host.WithEnv(vmnet.SubProcessEnvVar + "=1")
-	}
-
-	// preserve gvproxy context
-	if gvProxyEnabled, _ := ctx.Value(ctxKeyGVProxy).(bool); gvProxyEnabled {
-		var envs []string
-
-		// env var for subprocess to detect gvproxy
-		envs = append(envs, gvproxy.SubProcessEnvVar+"=1")
-		// use qemu wrapper for Lima by specifying wrapper binaries via env var
-		envs = append(envs, qemu.LimaDir().BinsEnvVar()...)
-
-		l.host = l.host.WithEnv(envs...)
 	}
 
 	return ctx, nil
@@ -529,32 +513,6 @@ func (l limaVM) Arch() environment.Arch {
 	return environment.Arch(a)
 }
 
-func (l limaVM) addHost(host string, ip net.IP) error {
-	if hostsFile, err := l.Read("/etc/hosts"); err == nil && includesHost(hostsFile, host, ip) {
-		return nil
-	} else if err != nil {
-		logrus.Warnln(fmt.Errorf("cannot read /etc/hosts in the VM: %w", err))
-	}
-
-	line := fmt.Sprintf("%s\t%s", ip.String(), host)
-	line = fmt.Sprintf("echo -e %s >> /etc/hosts", strconv.Quote(line))
-	return l.Run("sudo", "sh", "-c", line)
-}
-
-func includesHost(hostsFileContent, host string, ip net.IP) bool {
-	scanner := bufio.NewScanner(strings.NewReader(hostsFileContent))
-	for scanner.Scan() {
-		str := strings.Fields(scanner.Text())
-		if len(str) == 0 || str[0] != ip.String() {
-			continue
-		}
-		if len(str) > 1 && str[1] == host {
-			return true
-		}
-	}
-	return false
-}
-
 func (l *limaVM) syncDiskSize(ctx context.Context, conf config.Config) config.Config {
 	log := l.Logger(ctx)
 	instance, err := limautil.InstanceConfig()
@@ -603,24 +561,30 @@ func (l *limaVM) syncDiskSize(ctx context.Context, conf config.Config) config.Co
 }
 
 func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Config) {
-	// host file
-	{
-		// add docker host alias
+	// package dependencies
+	a.Add(func() error {
+		return l.installDependencies(a.Logger(), conf)
+	})
+
+	// containerd dependencies
+	if conf.Runtime == containerd.Name {
 		a.Add(func() error {
-			return l.addHost("host.docker.internal", net.ParseIP("192.168.5.2"))
-		})
-		// prevent chroot host error for layer
-		a.Add(func() error {
-			return l.addHost(config.CurrentProfile().ID, net.ParseIP("127.0.0.1"))
+			return core.SetupContainerdUtils(l.host, l, environment.Arch(conf.Arch))
 		})
 	}
 
 	// registry certs
 	a.Add(l.copyCerts)
 
-	// use rosetta for x86_64 emulation
+	// cross-platform emulation
 	a.Add(func() error {
 		if !l.limaConf.Rosetta.Enabled {
+			// use binfmt when rosetta is disabled and emulation is disabled i.e. host arch
+			if environment.HostArch() == environment.Arch(conf.Arch).Value() {
+				return core.SetupBinfmt(l.host, l, environment.Arch(conf.Arch))
+			}
+
+			// rosetta is disabled
 			return nil
 		}
 
@@ -632,9 +596,11 @@ func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Conf
 		}
 
 		// disable qemu
-		err = l.Run("sudo", "sh", "-c", `stat /proc/sys/fs/binfmt_misc/qemu-x86_64 && echo 0 > /proc/sys/fs/binfmt_misc/qemu-x86_64`)
-		if err != nil {
-			logrus.Warn(fmt.Errorf("unable to disable qemu x86_84 emulation: %w", err))
+		if err := l.RunQuiet("stat", "/proc/sys/fs/binfmt_misc/qemu-x86_64"); err == nil {
+			err = l.Run("sudo", "sh", "-c", `echo 0 > /proc/sys/fs/binfmt_misc/qemu-x86_64`)
+			if err != nil {
+				logrus.Warn(fmt.Errorf("unable to disable qemu x86_84 emulation: %w", err))
+			}
 		}
 
 		return nil
@@ -647,4 +613,92 @@ func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Conf
 		}
 		return nil
 	})
+}
+
+var dependencyPackages = []string{
+	// docker
+	"docker.io",
+	// utilities
+	"htop", "vim", "inetutils-ping", "dnsutils",
+}
+
+// cacheDependencies downloads the ubuntu deb files to a path on the host.
+// The return value is the directory of the downloaded deb files.
+func (l *limaVM) cacheDependencies(log *logrus.Entry, conf config.Config) (string, error) {
+	codename, err := l.RunOutput("sh", "-c", `grep "^UBUNTU_CODENAME" /etc/os-release | cut -d= -f2`)
+	if err != nil {
+		return "", fmt.Errorf("error retrieving OS version from vm: %w", err)
+	}
+
+	arch := environment.Arch(conf.Arch).Value()
+	dir := filepath.Join(config.CacheDir(), "packages", codename, string(arch))
+	if err := fsutil.MkdirAll(dir, 0755); err != nil {
+		return "", fmt.Errorf("error creating cache directory for OS packages: %w", err)
+	}
+
+	doneFile := filepath.Join(dir, ".downloaded")
+	if _, err := os.Stat(doneFile); err == nil {
+		// already downloaded
+		return dir, nil
+	}
+
+	output := ""
+	for _, p := range dependencyPackages {
+		line := fmt.Sprintf(`sudo apt-get install --reinstall --print-uris -qq "%s" | cut -d"'" -f2`, p)
+		out, err := l.RunOutput("sh", "-c", line)
+		if err != nil {
+			return "", fmt.Errorf("error fetching dependencies list: %w", err)
+		}
+		output += out + " "
+	}
+
+	debPackages := strings.Fields(output)
+
+	// progress bar for Ubuntu deb packages download.
+	// TODO: extract this into re-usable progress bar for multi-downloads
+	for i, p := range debPackages {
+		// status feedback
+		log.Infof("downloading package %d of %d ...", i+1, len(debPackages))
+
+		// download
+		if err := l.host.RunInteractive(
+			"sh", "-c",
+			fmt.Sprintf(`cd %s && curl -LO -# %s`, dir, p),
+		); err != nil {
+			return "", fmt.Errorf("error downloading dependency: %w", err)
+		}
+
+		// clear terminal
+		terminal.ClearLine() // for curl output
+		terminal.ClearLine() // for log message
+	}
+
+	// write a file to signify it is done
+	return dir, l.host.RunQuiet("touch", doneFile)
+}
+
+func (l *limaVM) installDependencies(log *logrus.Entry, conf config.Config) error {
+	// cache dependencies
+	dir, err := l.cacheDependencies(log, conf)
+	if err != nil {
+		log.Warnln("error caching dependencies: %w", err)
+		log.Warnln("falling back to normal package install", err)
+		return l.Run("sudo apt install -y " + strings.Join(dependencyPackages, " "))
+	}
+
+	// validate if packages were previously installed
+	installed := true
+	for _, p := range dependencyPackages {
+		if err := l.RunQuiet("dpkg", "-s", p); err != nil {
+			installed = false
+			break
+		}
+	}
+
+	if installed {
+		return nil
+	}
+
+	// install packages
+	return l.Run("sh", "-c", "sudo dpkg -i "+dir+"/*.deb")
 }

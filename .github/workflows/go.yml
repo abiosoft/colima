@@ -14,6 +14,8 @@ on:
       - "**/*.nix"
       - "**/*.lock"
 
+permissions: write-all
+
 jobs:
   build-linux:
     runs-on: ubuntu-latest
@@ -120,13 +122,12 @@ jobs:
         run: >
           tag="${GITHUB_REF##*/}"
 
-          hub release create
-          -a _output/binaries/colima-Darwin-x86_64
-          -a _output/binaries/colima-Darwin-x86_64.sha256sum
-          -a _output/binaries/colima-Darwin-arm64
-          -a _output/binaries/colima-Darwin-arm64.sha256sum
-          -a _output/binaries/colima-Linux-x86_64
-          -a _output/binaries/colima-Linux-x86_64.sha256sum
-          -a _output/binaries/colima-Linux-aarch64
-          -a _output/binaries/colima-Linux-aarch64.sha256sum
-          -m "${tag}" --draft "${tag}"
+          gh release create "${tag}" --draft --title "${tag}"
+          _output/binaries/colima-Darwin-x86_64
+          _output/binaries/colima-Darwin-x86_64.sha256sum
+          _output/binaries/colima-Darwin-arm64
+          _output/binaries/colima-Darwin-arm64.sha256sum
+          _output/binaries/colima-Linux-x86_64
+          _output/binaries/colima-Linux-x86_64.sha256sum
+          _output/binaries/colima-Linux-aarch64
+          _output/binaries/colima-Linux-aarch64.sha256sum

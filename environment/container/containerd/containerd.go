@@ -62,7 +62,7 @@ func (c containerdRuntime) Start(ctx context.Context) error {
 	})
 
 	a.Add(func() error {
-		return c.guest.Run("sudo", "service", "buildkitd", "restart")
+		return c.guest.Run("sudo", "service", "buildkit", "start")
 	})
 
 	return a.Exec()

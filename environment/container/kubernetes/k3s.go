@@ -6,6 +6,7 @@ import (
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/daemon/process/vmnet"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/environment/container/docker"
@@ -33,14 +34,23 @@ func installK3sBinary(
 	a *cli.ActiveCommandChain,
 	k3sVersion string,
 ) {
-	// install k3s last to ensure it is the last step
 	downloadPath := "/tmp/k3s"
-	url := "https://github.com/k3s-io/k3s/releases/download/" + k3sVersion + "/k3s"
+
+	baseURL := "https://github.com/k3s-io/k3s/releases/download/" + k3sVersion + "/"
+	shaSumTxt := "sha256sum-" + guest.Arch().GoArch() + ".txt"
+
+	url := baseURL + "k3s"
+	shaURL := baseURL + shaSumTxt
 	if guest.Arch().GoArch() == "arm64" {
 		url += "-arm64"
 	}
 	a.Add(func() error {
-		return downloader.Download(host, guest, url, downloadPath)
+		r := downloader.Request{
+			URL:      url,
+			Filename: downloadPath,
+			SHA:      &downloader.SHA{Size: 256, URL: shaURL},
+		}
+		return downloader.Download(host, guest, r)
 	})
 	a.Add(func() error {
 		return guest.Run("sudo", "install", downloadPath, "/usr/local/bin/k3s")
@@ -55,13 +65,21 @@ func installK3sCache(
 	containerRuntime string,
 	k3sVersion string,
 ) {
+	baseURL := "https://github.com/k3s-io/k3s/releases/download/" + k3sVersion + "/"
 	imageTar := "k3s-airgap-images-" + guest.Arch().GoArch() + ".tar"
+	shaSumTxt := "sha256sum-" + guest.Arch().GoArch() + ".txt"
 	imageTarGz := imageTar + ".gz"
 	downloadPathTar := "/tmp/" + imageTar
 	downloadPathTarGz := "/tmp/" + imageTarGz
-	url := "https://github.com/k3s-io/k3s/releases/download/" + k3sVersion + "/" + imageTarGz
+	url := baseURL + imageTarGz
+	shaURL := baseURL + shaSumTxt
 	a.Add(func() error {
-		return downloader.Download(host, guest, url, downloadPathTarGz)
+		r := downloader.Request{
+			URL:      url,
+			Filename: downloadPathTarGz,
+			SHA:      &downloader.SHA{Size: 256, URL: shaURL},
+		}
+		return downloader.Download(host, guest, r)
 	})
 	a.Add(func() error {
 		return guest.Run("gzip", "-f", "-d", downloadPathTarGz)
@@ -111,7 +129,8 @@ func installK3sCluster(
 	downloadPath := "/tmp/k3s-install.sh"
 	url := "https://raw.githubusercontent.com/k3s-io/k3s/" + k3sVersion + "/install.sh"
 	a.Add(func() error {
-		return downloader.Download(host, guest, url, downloadPath)
+		r := downloader.Request{URL: url, Filename: downloadPath}
+		return downloader.Download(host, guest, r)
 	})
 	a.Add(func() error {
 		return guest.Run("sudo", "install", downloadPath, "/usr/local/bin/k3s-install.sh")
@@ -119,7 +138,6 @@ func installK3sCluster(
 
 	args := append([]string{
 		"--write-kubeconfig-mode", "644",
-		"--resolv-conf", "/etc/resolv.conf",
 	}, k3sArgs...)
 
 	// replace ip address if networking is enabled
@@ -129,7 +147,7 @@ func installK3sCluster(
 	} else {
 		args = append(args, "--bind-address", ipAddress)
 		args = append(args, "--advertise-address", ipAddress)
-		args = append(args, "--flannel-iface", "col0")
+		args = append(args, "--flannel-iface", vmnet.NetInterface)
 	}
 
 	switch containerRuntime {
