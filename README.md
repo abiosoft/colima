@@ -146,7 +146,7 @@ Since Lima is aka Linux on Mac. By transitivity, Colima can also mean Containers
 
 ## And the Logo?
 
-The logo was contributed by [Daniel Hodvogner](dhodvogner). Check [this issue](https://github.com/abiosoft/colima/issues/781) for more.
+The logo was contributed by [Daniel Hodvogner](https://github.com/dhodvogner). Check [this issue](https://github.com/abiosoft/colima/issues/781) for more.
 
 ## Troubleshooting and FAQs
 
