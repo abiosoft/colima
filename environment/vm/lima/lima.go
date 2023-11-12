@@ -579,8 +579,13 @@ func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Conf
 	// cross-platform emulation
 	a.Add(func() error {
 		if !l.limaConf.Rosetta.Enabled {
-			// use binfmt when rosetta is disabled
-			return core.SetupBinfmt(l.host, l, environment.Arch(conf.Arch))
+			// use binfmt when rosetta is disabled and emulation is disabled i.e. host arch
+			if environment.HostArch() == environment.Arch(conf.Arch).Value() {
+				return core.SetupBinfmt(l.host, l, environment.Arch(conf.Arch))
+			}
+
+			// rosetta is disabled
+			return nil
 		}
 
 		// enable rosetta
