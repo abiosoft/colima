@@ -140,7 +140,6 @@ var startCmdArgs struct {
 func init() {
 	runtimes := strings.Join(environment.ContainerRuntimes(), ", ")
 	defaultArch := string(environment.HostArch())
-	defaultHostname := config.CurrentProfile().ID
 
 	mounts := strings.Join([]string{defaultMountTypeQEMU, "9p", "virtiofs"}, ", ")
 	types := strings.Join([]string{defaultVMType, "vz"}, ", ")
@@ -154,7 +153,7 @@ func init() {
 	startCmd.Flags().IntVarP(&startCmdArgs.Disk, "disk", "d", defaultDisk, "disk size in GiB")
 	startCmd.Flags().StringVarP(&startCmdArgs.Arch, "arch", "a", defaultArch, "architecture (aarch64, x86_64)")
 	startCmd.Flags().BoolVarP(&startCmdArgs.Flags.Foreground, "foreground", "f", false, "Keep colima in the foreground")
-	startCmd.Flags().StringVar(&startCmdArgs.Hostname, "hostname", defaultHostname, "custom hostname for the virtual machine")
+	startCmd.Flags().StringVar(&startCmdArgs.Hostname, "hostname", "", "custom hostname for the virtual machine")
 
 	// network
 	if util.MacOS() {
