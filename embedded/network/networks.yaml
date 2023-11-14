@@ -1,0 +1,8 @@
+# DO NOT EDIT!
+# This file would be replaced by Colima on startup.
+
+networks:
+  user-v2:
+    mode: user-v2
+    gateway: 192.168.5.2
+    netmask: 255.255.255.0
