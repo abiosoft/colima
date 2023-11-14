@@ -2,12 +2,9 @@ package lima
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/abiosoft/colima/cli"
@@ -15,15 +12,11 @@ import (
 	"github.com/abiosoft/colima/config/configmanager"
 	"github.com/abiosoft/colima/core"
 	"github.com/abiosoft/colima/daemon"
-	"github.com/abiosoft/colima/daemon/process/inotify"
-	"github.com/abiosoft/colima/daemon/process/vmnet"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/util"
-	"github.com/abiosoft/colima/util/fsutil"
 	"github.com/abiosoft/colima/util/osutil"
-	"github.com/abiosoft/colima/util/terminal"
 	"github.com/abiosoft/colima/util/yamlutil"
 	"github.com/sirupsen/logrus"
 )
@@ -84,141 +77,6 @@ func (l limaVM) Dependencies() []string {
 	}
 }
 
-func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.Context, error) {
-	isQEMU := conf.VMType == QEMU
-	isVZ := conf.VMType == VZ
-
-	// limited to macOS (with Qemu driver)
-	// or vz with inotify enabled
-	if !util.MacOS() || (isVZ && !conf.MountINotify) {
-		return ctx, nil
-	}
-
-	ctxKeyVmnet := daemon.CtxKey(vmnet.Name)
-	ctxKeyInotify := daemon.CtxKey(inotify.Name)
-
-	// use a nested chain for convenience
-	a := l.Init(ctx)
-	log := l.Logger(ctx)
-
-	networkInstalledKey := struct{ key string }{key: "network_installed"}
-
-	// add inotify to daemon
-	if conf.MountINotify {
-		a.Add(func() error {
-			ctx = context.WithValue(ctx, ctxKeyInotify, true)
-			deps, _ := l.daemon.Dependencies(ctx, conf)
-			if err := deps.Install(l.host); err != nil {
-				return fmt.Errorf("error setting up inotify dependencies: %w", err)
-			}
-			return nil
-		})
-	}
-
-	// add network processes to daemon
-	if isQEMU {
-		a.Stage("preparing network")
-		a.Add(func() error {
-			if conf.Network.Address {
-				ctx = context.WithValue(ctx, ctxKeyVmnet, true)
-			}
-			deps, root := l.daemon.Dependencies(ctx, conf)
-			if deps.Installed() {
-				ctx = context.WithValue(ctx, networkInstalledKey, true)
-				return nil
-			}
-
-			// if user interaction is not required (i.e. root),
-			// no need for another verbose info.
-			if root {
-				log.Println("dependencies missing for setting up reachable IP address")
-				log.Println("sudo password may be required")
-			}
-
-			// install deps
-			err := deps.Install(l.host)
-			if err != nil {
-				ctx = context.WithValue(ctx, networkInstalledKey, false)
-			}
-			return err
-		})
-	}
-
-	// start daemon
-	a.Add(func() error {
-		return l.daemon.Start(ctx, conf)
-	})
-
-	statusKey := struct{ key string }{key: "daemonStatus"}
-	// delay to ensure that the processes have started
-	if conf.Network.Address || conf.MountINotify {
-		a.Retry("", time.Second*1, 15, func(i int) error {
-			s, err := l.daemon.Running(ctx, conf)
-			ctx = context.WithValue(ctx, statusKey, s)
-			if err != nil {
-				return err
-			}
-			if !s.Running {
-				return fmt.Errorf("daemon is not running")
-			}
-			for _, p := range s.Processes {
-				if !p.Running {
-					return p.Error
-				}
-			}
-			return nil
-		})
-	}
-
-	// network failure is not fatal
-	if err := a.Exec(); err != nil {
-		if isQEMU {
-			func() {
-				installed, _ := ctx.Value(networkInstalledKey).(bool)
-				if !installed {
-					log.Warnln(fmt.Errorf("error setting up network dependencies: %w", err))
-					return
-				}
-
-				status, ok := ctx.Value(statusKey).(daemon.Status)
-				if !ok {
-					return
-				}
-				if !status.Running {
-					log.Warnln(fmt.Errorf("error starting network: %w", err))
-					return
-				}
-
-				for _, p := range status.Processes {
-					// TODO: handle inotify separate from network
-					if p.Name == inotify.Name {
-						continue
-					}
-					if !p.Running {
-						ctx = context.WithValue(ctx, daemon.CtxKey(p.Name), false)
-						log.Warnln(fmt.Errorf("error starting %s: %w", p.Name, err))
-					}
-				}
-			}()
-		}
-	}
-
-	// check if inotify is running
-	if conf.MountINotify {
-		if inotifyEnabled, _ := ctx.Value(ctxKeyInotify).(bool); !inotifyEnabled {
-			log.Warnln("error occurred enabling inotify daemon")
-		}
-	}
-
-	// preserve vmnet context
-	if vmnetEnabled, _ := ctx.Value(ctxKeyVmnet).(bool); vmnetEnabled {
-		// env var for subprocess to detect vmnet
-		l.host = l.host.WithEnv(vmnet.SubProcessEnvVar + "=1")
-	}
-
-	return ctx, nil
-}
-
 func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 	a := l.Init(ctx)
 
@@ -241,6 +99,7 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 		}
 		return yamlutil.WriteYAML(l.limaConf, configFile)
 	})
+	a.Add(l.writeNetworkFile)
 	a.Add(func() error {
 		return l.host.Run(limactl, "start", "--tty=false", configFile)
 	})
@@ -283,6 +142,8 @@ func (l *limaVM) resume(ctx context.Context, conf config.Config) error {
 		}
 		return yamlutil.WriteYAML(l.limaConf, l.limaConfFile())
 	})
+
+	a.Add(l.writeNetworkFile)
 
 	a.Stage("starting")
 	a.Add(func() error {
@@ -370,81 +231,6 @@ func (l limaVM) Restart(ctx context.Context) error {
 	return nil
 }
 
-func (l limaVM) Run(args ...string) error {
-	args = append([]string{lima}, args...)
-
-	a := l.Init(context.Background())
-
-	a.Add(func() error {
-		return l.host.Run(args...)
-	})
-
-	return a.Exec()
-}
-
-func (l limaVM) SSH(workingDir string, args ...string) error {
-	args = append([]string{limactl, "shell", "--workdir", workingDir, config.CurrentProfile().ID}, args...)
-
-	a := l.Init(context.Background())
-
-	a.Add(func() error {
-		return l.host.RunInteractive(args...)
-	})
-
-	return a.Exec()
-}
-
-func (l limaVM) RunInteractive(args ...string) error {
-	args = append([]string{lima}, args...)
-
-	a := l.Init(context.Background())
-
-	a.Add(func() error {
-		return l.host.RunInteractive(args...)
-	})
-
-	return a.Exec()
-}
-
-func (l limaVM) RunWith(stdin io.Reader, stdout io.Writer, args ...string) error {
-	args = append([]string{lima}, args...)
-
-	a := l.Init(context.Background())
-
-	a.Add(func() error {
-		return l.host.RunWith(stdin, stdout, args...)
-	})
-
-	return a.Exec()
-}
-
-func (l limaVM) RunOutput(args ...string) (out string, err error) {
-	args = append([]string{lima}, args...)
-
-	a := l.Init(context.Background())
-
-	a.Add(func() (err error) {
-		out, err = l.host.RunOutput(args...)
-		return
-	})
-
-	err = a.Exec()
-	return
-}
-
-func (l limaVM) RunQuiet(args ...string) (err error) {
-	args = append([]string{lima}, args...)
-
-	a := l.Init(context.Background())
-
-	a.Add(func() (err error) {
-		return l.host.RunQuiet(args...)
-	})
-
-	err = a.Exec()
-	return
-}
-
 func (l limaVM) Host() environment.HostActions {
 	return l.host
 }
@@ -460,48 +246,6 @@ func (l limaVM) Env(s string) (string, error) {
 func (l limaVM) Created() bool {
 	stat, err := os.Stat(l.limaConfFile())
 	return err == nil && !stat.IsDir()
-}
-
-const configFile = "/etc/colima/colima.json"
-
-func (l limaVM) getConf() map[string]string {
-	obj := map[string]string{}
-	b, err := l.Read(configFile)
-	if err != nil {
-		return obj
-	}
-
-	// we do not care if it fails
-	_ = json.Unmarshal([]byte(b), &obj)
-
-	return obj
-}
-func (l limaVM) Get(key string) string {
-	if val, ok := l.getConf()[key]; ok {
-		return val
-	}
-
-	return ""
-}
-
-func (l limaVM) Set(key, value string) error {
-	obj := l.getConf()
-	obj[key] = value
-
-	b, err := json.Marshal(obj)
-	if err != nil {
-		return fmt.Errorf("error marshalling settings to json: %w", err)
-	}
-
-	if err := l.Run("sudo", "mkdir", "-p", filepath.Dir(configFile)); err != nil {
-		return fmt.Errorf("error saving settings: %w", err)
-	}
-
-	if err := l.Write(configFile, b); err != nil {
-		return fmt.Errorf("error saving settings: %w", err)
-	}
-
-	return nil
 }
 
 func (l limaVM) User() (string, error) {
@@ -613,92 +357,4 @@ func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Conf
 		}
 		return nil
 	})
-}
-
-var dependencyPackages = []string{
-	// docker
-	"docker.io",
-	// utilities
-	"htop", "vim", "inetutils-ping", "dnsutils",
-}
-
-// cacheDependencies downloads the ubuntu deb files to a path on the host.
-// The return value is the directory of the downloaded deb files.
-func (l *limaVM) cacheDependencies(log *logrus.Entry, conf config.Config) (string, error) {
-	codename, err := l.RunOutput("sh", "-c", `grep "^UBUNTU_CODENAME" /etc/os-release | cut -d= -f2`)
-	if err != nil {
-		return "", fmt.Errorf("error retrieving OS version from vm: %w", err)
-	}
-
-	arch := environment.Arch(conf.Arch).Value()
-	dir := filepath.Join(config.CacheDir(), "packages", codename, string(arch))
-	if err := fsutil.MkdirAll(dir, 0755); err != nil {
-		return "", fmt.Errorf("error creating cache directory for OS packages: %w", err)
-	}
-
-	doneFile := filepath.Join(dir, ".downloaded")
-	if _, err := os.Stat(doneFile); err == nil {
-		// already downloaded
-		return dir, nil
-	}
-
-	output := ""
-	for _, p := range dependencyPackages {
-		line := fmt.Sprintf(`sudo apt-get install --reinstall --print-uris -qq "%s" | cut -d"'" -f2`, p)
-		out, err := l.RunOutput("sh", "-c", line)
-		if err != nil {
-			return "", fmt.Errorf("error fetching dependencies list: %w", err)
-		}
-		output += out + " "
-	}
-
-	debPackages := strings.Fields(output)
-
-	// progress bar for Ubuntu deb packages download.
-	// TODO: extract this into re-usable progress bar for multi-downloads
-	for i, p := range debPackages {
-		// status feedback
-		log.Infof("downloading package %d of %d ...", i+1, len(debPackages))
-
-		// download
-		if err := l.host.RunInteractive(
-			"sh", "-c",
-			fmt.Sprintf(`cd %s && curl -LO -# %s`, dir, p),
-		); err != nil {
-			return "", fmt.Errorf("error downloading dependency: %w", err)
-		}
-
-		// clear terminal
-		terminal.ClearLine() // for curl output
-		terminal.ClearLine() // for log message
-	}
-
-	// write a file to signify it is done
-	return dir, l.host.RunQuiet("touch", doneFile)
-}
-
-func (l *limaVM) installDependencies(log *logrus.Entry, conf config.Config) error {
-	// cache dependencies
-	dir, err := l.cacheDependencies(log, conf)
-	if err != nil {
-		log.Warnln("error caching dependencies: %w", err)
-		log.Warnln("falling back to normal package install", err)
-		return l.Run("sudo apt install -y " + strings.Join(dependencyPackages, " "))
-	}
-
-	// validate if packages were previously installed
-	installed := true
-	for _, p := range dependencyPackages {
-		if err := l.RunQuiet("dpkg", "-s", p); err != nil {
-			installed = false
-			break
-		}
-	}
-
-	if installed {
-		return nil
-	}
-
-	// install packages
-	return l.Run("sh", "-c", "sudo dpkg -i "+dir+"/*.deb")
 }
