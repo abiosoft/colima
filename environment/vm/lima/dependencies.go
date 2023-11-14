@@ -79,9 +79,9 @@ func (l *limaVM) installDependencies(log *logrus.Entry, conf config.Config) erro
 	// cache dependencies
 	dir, err := l.cacheDependencies(log, conf)
 	if err != nil {
-		log.Warnln("error caching dependencies: %w", err)
-		log.Warnln("falling back to normal package install", err)
-		return l.Run("sudo apt install -y " + strings.Join(dependencyPackages, " "))
+		log.Warnln(fmt.Errorf("error caching dependencies: %w", err))
+		log.Warnln("falling back to normal package install")
+		return l.Run("sh", "-c", "sudo apt install -y "+strings.Join(dependencyPackages, " "))
 	}
 
 	// validate if packages were previously installed
