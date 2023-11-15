@@ -127,11 +127,7 @@ func LimaVersionSupported() error {
 	}
 
 	if parts[0] == "HEAD" {
-		version := parts[0]
-		if len(parts) > 1 {
-			version = parts[1]
-		}
-		logrus.Warnf("to avoid compatibility issues, ensure lima development version (%s) in use is not lower than %s", version, limaVersion)
+		logrus.Warnf("to avoid compatibility issues, ensure lima development version (%s) in use is not lower than %s", values.Version, limaVersion)
 		return nil
 	}
 
