@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"strings"
 
 	"github.com/abiosoft/colima/cli"
@@ -120,8 +121,14 @@ func LimaVersionSupported() error {
 		return fmt.Errorf("error decoding 'limactl info' json: %w", err)
 	}
 	// remove pre-release hyphen
-	if str := strings.SplitN(values.Version, "-", 2); len(str) > 0 {
-		values.Version = str[0]
+	parts := strings.SplitN(values.Version, "-", 2)
+	if len(parts) > 0 {
+		values.Version = parts[0]
+	}
+
+	if parts[0] == "HEAD" {
+		logrus.Warnf("to avoid compatibility issues, ensure lima development version (%s) in use is not lower than %s", values.Version, limaVersion)
+		return nil
 	}
 
 	min := semver.New(strings.TrimPrefix(limaVersion, "v"))
