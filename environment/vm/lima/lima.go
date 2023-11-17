@@ -45,7 +45,7 @@ func New(host environment.HostActions) environment.VM {
 const (
 	envLimaInstance = "LIMA_INSTANCE"
 	lima            = "lima"
-	limactl         = limautil.Limactl
+	limactl         = limautil.LimactlCommand
 )
 
 func (l limaVM) limaConfFile() string {
