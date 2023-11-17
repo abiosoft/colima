@@ -244,7 +244,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 
 	l.Provision = append(l.Provision, Provision{
 		Mode:   ProvisionModeSystem,
-		Script: "mkmntdirs && mount -a",
+		Script: "mount -a",
 	})
 
 	// trim mounted drive to recover disk space
