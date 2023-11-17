@@ -18,11 +18,12 @@ import (
 // EnvLimaHome is the environment variable for the Lima directory.
 const EnvLimaHome = "LIMA_HOME"
 
-// Limactl is the limactl command.
-const Limactl = "limactl"
+// LimactlCommand is the limactl command.
+const LimactlCommand = "limactl"
 
-func limactl(args ...string) *exec.Cmd {
-	cmd := cli.Command(Limactl, args...)
+// Limactl prepares a limactl command.
+func Limactl(args ...string) *exec.Cmd {
+	cmd := cli.Command(LimactlCommand, args...)
 	cmd.Env = append(cmd.Env, os.Environ()...)
 	cmd.Env = append(cmd.Env, EnvLimaHome+"="+LimaHome())
 	return cmd
@@ -98,7 +99,7 @@ const (
 func getInstance(profileID string) (InstanceInfo, error) {
 	var i InstanceInfo
 	var buf bytes.Buffer
-	cmd := limactl("list", profileID, "--json")
+	cmd := Limactl("list", profileID, "--json")
 	cmd.Stderr = nil
 	cmd.Stdout = &buf
 
@@ -125,7 +126,7 @@ func Instances(ids ...string) ([]InstanceInfo, error) {
 	args := append([]string{"list", "--json"}, limaIDs...)
 
 	var buf bytes.Buffer
-	cmd := limactl(args...)
+	cmd := Limactl(args...)
 	cmd.Stderr = nil
 	cmd.Stdout = &buf
 
@@ -171,7 +172,7 @@ func Instances(ids ...string) ([]InstanceInfo, error) {
 func getIPAddress(profileID, interfaceName string) string {
 	var buf bytes.Buffer
 	// TODO: this should be less hacky
-	cmd := limactl("shell", profileID, "sh", "-c",
+	cmd := Limactl("shell", profileID, "sh", "-c",
 		`ip -4 addr show `+interfaceName+` | grep inet | awk -F' ' '{print $2 }' | cut -d/ -f1`)
 	cmd.Stderr = nil
 	cmd.Stdout = &buf

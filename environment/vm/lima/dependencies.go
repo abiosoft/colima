@@ -14,8 +14,8 @@ import (
 )
 
 var dependencyPackages = []string{
-	// docker
-	"docker.io",
+	// docker and k8s
+	"docker.io", "socat",
 	// utilities
 	"htop", "vim", "inetutils-ping", "dnsutils",
 }
