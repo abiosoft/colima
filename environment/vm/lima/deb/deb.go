@@ -16,7 +16,7 @@ type URISource interface {
 	// Packages is the list of package names.
 	Packages() []string
 	// URIs return the list of URIs to download the deb files.
-	URIs() ([]string, error)
+	URIs(arch environment.Arch) ([]string, error)
 	// Install installs the packages directly using the internet.
 	Install() error
 }

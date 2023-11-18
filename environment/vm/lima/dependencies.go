@@ -34,7 +34,7 @@ func (l *limaVM) cacheDependencies(src deb.URISource, log *logrus.Entry, conf co
 	}
 
 	var debPackages []string
-	packages, err := src.URIs()
+	packages, err := src.URIs(arch)
 	if err != nil {
 		return "", fmt.Errorf("error fetching package URIs using %s: %w", src.Name(), err)
 	}
@@ -66,6 +66,7 @@ func (l *limaVM) cacheDependencies(src deb.URISource, log *logrus.Entry, conf co
 func (l *limaVM) installDependencies(log *logrus.Entry, conf config.Config) error {
 	srcs := []deb.URISource{
 		&deb.Mantic{Guest: l},
+		&deb.Docker{Host: l.host, Guest: l},
 	}
 
 	for _, src := range srcs {
@@ -74,9 +75,11 @@ func (l *limaVM) installDependencies(log *logrus.Entry, conf config.Config) erro
 		if err != nil {
 			log.Warnln(fmt.Errorf("error caching dependencies for %s: %w", src.Name(), err))
 			log.Warnln("falling back to normal package install")
+
 			if err := src.Install(); err != nil {
 				return fmt.Errorf("error installing packages using %s: %w", src.Name(), err)
 			}
+
 			// installed
 			continue
 		}
@@ -96,8 +99,14 @@ func (l *limaVM) installDependencies(log *logrus.Entry, conf config.Config) erro
 
 		// install packages
 		if err := l.Run("sh", "-c", "sudo dpkg -i "+dir+"/*.deb"); err != nil {
-			return fmt.Errorf("error installing packages using %s: %w", src.Name(), err)
+			log.Warn(fmt.Errorf("error installing packages using %s: %w", src.Name(), err))
+			log.Warnln("falling back to normal package install")
+
+			if err := src.Install(); err != nil {
+				return fmt.Errorf("error installing packages using %s: %w", src.Name(), err)
+			}
 		}
+
 	}
 
 	return nil

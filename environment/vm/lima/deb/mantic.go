@@ -3,11 +3,15 @@ package deb
 import (
 	"fmt"
 	"strings"
+
+	"github.com/abiosoft/colima/environment"
 )
 
 var manticPackages = []string{
-	// docker and k8s
-	"docker.io", "socat",
+	// docker
+	"iptables",
+	// k8s
+	"socat",
 	// utilities
 	"htop", "vim", "inetutils-ping", "dnsutils",
 }
@@ -28,7 +32,7 @@ func (*Mantic) Name() string {
 }
 
 // URIs implements URISource.
-func (m *Mantic) URIs() ([]string, error) {
+func (m *Mantic) URIs(_ environment.Arch) ([]string, error) {
 	output := ""
 	for _, p := range manticPackages {
 		line := fmt.Sprintf(`sudo apt-get install --reinstall --print-uris -qq "%s" | cut -d"'" -f2`, p)
