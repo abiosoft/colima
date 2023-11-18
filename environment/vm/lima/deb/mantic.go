@@ -40,6 +40,8 @@ func (*Mantic) Name() string {
 
 // URIs implements URISource.
 func (m *Mantic) URIs(_ environment.Arch) ([]string, error) {
+	_ = m.Guest.RunQuiet("sudo apt update -y")
+
 	output := ""
 	for _, p := range manticPackages {
 		line := fmt.Sprintf(`sudo apt-get install --reinstall --print-uris -qq "%s" | cut -d"'" -f2`, p)
