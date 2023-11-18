@@ -58,7 +58,7 @@ func (c containerdRuntime) Start(ctx context.Context) error {
 	a := c.Init(ctx)
 
 	a.Add(func() error {
-		return c.guest.Run("sudo", "service", "containerd", "start")
+		return c.guest.Run("sudo", "service", "containerd", "restart")
 	})
 
 	// service startup takes few seconds, retry at most 10 times before giving up.
