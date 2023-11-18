@@ -58,11 +58,6 @@ func (d dockerRuntime) Provision(ctx context.Context) error {
 		a.Add(d.useContext)
 	}
 
-	// validate docker socket access
-	a.Add(func() error {
-		return d.guest.RunQuiet("sh", "-c", "sudo chown ${USER} /var/run/docker.sock")
-	})
-
 	return a.Exec()
 }
 
