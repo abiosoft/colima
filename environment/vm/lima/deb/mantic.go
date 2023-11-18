@@ -16,9 +16,16 @@ var manticPackages = []string{
 	"htop", "vim", "inetutils-ping", "dnsutils",
 }
 
+var _ URISource = (*Mantic)(nil)
+
 // Mantic is the URISource for Ubuntu Mantic packages.
 type Mantic struct {
 	Guest guestActions
+}
+
+// PreInstall implements URISource.
+func (*Mantic) PreInstall() error {
+	return nil
 }
 
 // Packages implements URISource.
@@ -48,7 +55,5 @@ func (m *Mantic) URIs(_ environment.Arch) ([]string, error) {
 
 // Install implements URISource.
 func (m *Mantic) Install() error {
-	return m.Guest.Run("sh", "-c", "sudo apt install -y "+strings.Join(manticPackages, " "))
+	return m.Guest.Run("sh", "-c", "sudo apt update && sudo apt install -f -y "+strings.Join(manticPackages, " "))
 }
-
-var _ URISource = (*Mantic)(nil)

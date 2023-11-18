@@ -70,6 +70,10 @@ func (l *limaVM) installDependencies(log *logrus.Entry, conf config.Config) erro
 	}
 
 	for _, src := range srcs {
+		if err := src.PreInstall(); err != nil {
+			log.Warn(fmt.Errorf("preinstall check failed for %s: %w", src.Name(), err))
+		}
+
 		// cache dependencies
 		dir, err := l.cacheDependencies(src, log, conf)
 		if err != nil {

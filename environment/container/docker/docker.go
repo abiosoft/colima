@@ -69,8 +69,10 @@ func (d dockerRuntime) Provision(ctx context.Context) error {
 func (d dockerRuntime) Start(ctx context.Context) error {
 	a := d.Init(ctx)
 
-	a.Add(func() error {
-		return d.guest.Run("sudo", "service", "docker", "start")
+	// TODO: interval is high due to 0.6.3->0.6.4 docker-ce package transition
+	//       to ensure startup is successful
+	a.Retry("", time.Second*5, 24, func(int) error {
+		return d.guest.RunQuiet("sudo", "service", "docker", "start")
 	})
 
 	// service startup takes few seconds, retry at most 5 times before giving up.

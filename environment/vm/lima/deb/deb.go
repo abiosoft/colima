@@ -17,6 +17,8 @@ type URISource interface {
 	Packages() []string
 	// URIs return the list of URIs to download the deb files.
 	URIs(arch environment.Arch) ([]string, error)
+	// PreInstall is done before the deb package are installed.
+	PreInstall() error
 	// Install installs the packages directly using the internet.
 	Install() error
 }
