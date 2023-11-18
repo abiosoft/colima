@@ -46,6 +46,11 @@ func (c containerdRuntime) Name() string {
 }
 
 func (c containerdRuntime) Provision(context.Context) error {
+	if err := c.guest.RunQuiet("sh", "-c",
+		`sudo sed -i '/disabled_plugins =/c\disabled_plugins = []' /etc/containerd/config.toml`,
+	); err != nil {
+		return err
+	}
 	return c.guest.Write(buildKitConfFile, buildKitConf)
 }
 
@@ -53,7 +58,7 @@ func (c containerdRuntime) Start(ctx context.Context) error {
 	a := c.Init(ctx)
 
 	a.Add(func() error {
-		return c.guest.Run("sudo", "service", "containerd", "start")
+		return c.guest.Run("sudo", "service", "containerd", "restart")
 	})
 
 	// service startup takes few seconds, retry at most 10 times before giving up.
