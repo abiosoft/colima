@@ -25,7 +25,7 @@ type Docker struct {
 
 // PreInstall implements URISource.
 func (d *Docker) PreInstall() error {
-	return d.Guest.RunQuiet("sh", "-c", "sudo apt remove -y docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc")
+	return d.Guest.RunQuiet("sh", "-c", "sudo apt purge -y docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc")
 }
 
 // Install implements URISource.
