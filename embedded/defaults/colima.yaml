@@ -139,7 +139,7 @@ cpuType: host
 # EXAMPLE - script executed as root
 # provision:
 #   - mode: system
-#     script: apk add htop vim
+#     script: apt-get install htop vim
 #
 # EXAMPLE - script executed as user
 # provision:
