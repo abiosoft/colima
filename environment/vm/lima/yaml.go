@@ -100,8 +100,9 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		// add user to docker group
 		// "sudo", "usermod", "-aG", "docker", user
 		l.Provision = append(l.Provision, Provision{
-			Mode:   ProvisionModeDependency,
-			Script: "groupadd -f docker && usermod -aG docker $LIMA_CIDATA_USER",
+			Mode:           ProvisionModeDependency,
+			Script:         "groupadd -f docker && usermod -aG docker $LIMA_CIDATA_USER",
+			SkipResolution: true,
 		})
 
 		// set hostname
@@ -430,8 +431,9 @@ const (
 )
 
 type Provision struct {
-	Mode   ProvisionMode `yaml:"mode" json:"mode"` // default: "system"
-	Script string        `yaml:"script" json:"script"`
+	Mode           ProvisionMode `yaml:"mode" json:"mode"` // default: "system"
+	Script         string        `yaml:"script" json:"script"`
+	SkipResolution bool          `yaml:"skipDefaultDependencyResolution,omitempty" json:"skipDefaultDependencyResolution,omitempty"`
 }
 
 type NineP struct {

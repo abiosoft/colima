@@ -14,6 +14,7 @@ import (
 	"github.com/abiosoft/colima/daemon"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/containerd"
+	"github.com/abiosoft/colima/environment/container/docker"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/osutil"
@@ -107,13 +108,21 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 		return os.Remove(configFile)
 	})
 
-	l.addPostStartActions(a, conf)
-
 	// adding it to command chain to execute only after successful startup.
 	a.Add(func() error {
 		l.conf = conf
 		return nil
 	})
+
+	// restart needed for docker user
+	if conf.Runtime == docker.Name {
+		a.Add(func() error {
+			ctx := context.WithValue(ctx, cli.CtxKeyQuiet, true)
+			return l.Restart(ctx)
+		})
+	}
+
+	l.addPostStartActions(a, conf)
 
 	return a.Exec()
 }
