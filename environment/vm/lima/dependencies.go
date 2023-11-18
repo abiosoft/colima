@@ -4,32 +4,25 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/environment/vm/lima/deb"
 	"github.com/abiosoft/colima/util/fsutil"
 	"github.com/abiosoft/colima/util/terminal"
 	"github.com/sirupsen/logrus"
 )
 
-var dependencyPackages = []string{
-	// docker and k8s
-	"docker.io", "socat",
-	// utilities
-	"htop", "vim", "inetutils-ping", "dnsutils",
-}
-
 // cacheDependencies downloads the ubuntu deb files to a path on the host.
 // The return value is the directory of the downloaded deb files.
-func (l *limaVM) cacheDependencies(log *logrus.Entry, conf config.Config) (string, error) {
+func (l *limaVM) cacheDependencies(src deb.URISource, log *logrus.Entry, conf config.Config) (string, error) {
 	codename, err := l.RunOutput("sh", "-c", `grep "^UBUNTU_CODENAME" /etc/os-release | cut -d= -f2`)
 	if err != nil {
 		return "", fmt.Errorf("error retrieving OS version from vm: %w", err)
 	}
 
 	arch := environment.Arch(conf.Arch).Value()
-	dir := filepath.Join(config.CacheDir(), "packages", codename, string(arch))
+	dir := filepath.Join(config.CacheDir(), "packages", codename, string(arch), src.Name())
 	if err := fsutil.MkdirAll(dir, 0755); err != nil {
 		return "", fmt.Errorf("error creating cache directory for OS packages: %w", err)
 	}
@@ -40,17 +33,12 @@ func (l *limaVM) cacheDependencies(log *logrus.Entry, conf config.Config) (strin
 		return dir, nil
 	}
 
-	output := ""
-	for _, p := range dependencyPackages {
-		line := fmt.Sprintf(`sudo apt-get install --reinstall --print-uris -qq "%s" | cut -d"'" -f2`, p)
-		out, err := l.RunOutput("sh", "-c", line)
-		if err != nil {
-			return "", fmt.Errorf("error fetching dependencies list: %w", err)
-		}
-		output += out + " "
+	var debPackages []string
+	packages, err := src.URIs()
+	if err != nil {
+		return "", fmt.Errorf("error fetching package URIs using %s: %w", src.Name(), err)
 	}
-
-	debPackages := strings.Fields(output)
+	debPackages = append(debPackages, packages...)
 
 	// progress bar for Ubuntu deb packages download.
 	// TODO: extract this into re-usable progress bar for multi-downloads
@@ -76,27 +64,41 @@ func (l *limaVM) cacheDependencies(log *logrus.Entry, conf config.Config) (strin
 }
 
 func (l *limaVM) installDependencies(log *logrus.Entry, conf config.Config) error {
-	// cache dependencies
-	dir, err := l.cacheDependencies(log, conf)
-	if err != nil {
-		log.Warnln(fmt.Errorf("error caching dependencies: %w", err))
-		log.Warnln("falling back to normal package install")
-		return l.Run("sh", "-c", "sudo apt install -y "+strings.Join(dependencyPackages, " "))
+	srcs := []deb.URISource{
+		&deb.Mantic{Guest: l},
 	}
 
-	// validate if packages were previously installed
-	installed := true
-	for _, p := range dependencyPackages {
-		if err := l.RunQuiet("dpkg", "-s", p); err != nil {
-			installed = false
-			break
+	for _, src := range srcs {
+		// cache dependencies
+		dir, err := l.cacheDependencies(src, log, conf)
+		if err != nil {
+			log.Warnln(fmt.Errorf("error caching dependencies for %s: %w", src.Name(), err))
+			log.Warnln("falling back to normal package install")
+			if err := src.Install(); err != nil {
+				return fmt.Errorf("error installing packages using %s: %w", src.Name(), err)
+			}
+			// installed
+			continue
+		}
+
+		// validate if packages were previously installed
+		installed := true
+		for _, p := range src.Packages() {
+			if err := l.RunQuiet("dpkg", "-s", p); err != nil {
+				installed = false
+				break
+			}
+		}
+
+		if installed {
+			continue
+		}
+
+		// install packages
+		if err := l.Run("sh", "-c", "sudo dpkg -i "+dir+"/*.deb"); err != nil {
+			return fmt.Errorf("error installing packages using %s: %w", src.Name(), err)
 		}
 	}
 
-	if installed {
-		return nil
-	}
-
-	// install packages
-	return l.Run("sh", "-c", "sudo dpkg -i "+dir+"/*.deb")
+	return nil
 }
