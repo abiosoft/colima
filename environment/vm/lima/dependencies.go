@@ -44,7 +44,7 @@ func (l *limaVM) cacheDependencies(src deb.URISource, log *logrus.Entry, conf co
 	// TODO: extract this into re-usable progress bar for multi-downloads
 	for i, p := range debPackages {
 		// status feedback
-		log.Infof("downloading package %d of %d ...", i+1, len(debPackages))
+		logrus.Infof("downloading package %d of %d ...", i+1, len(debPackages))
 
 		// download
 		if err := l.host.RunInteractive(

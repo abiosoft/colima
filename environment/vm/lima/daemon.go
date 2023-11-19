@@ -45,9 +45,9 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 
 	// add network processes to daemon
 	if isQEMU {
-		a.Stage("preparing network")
 		a.Add(func() error {
 			if conf.Network.Address {
+				a.Stage("preparing network")
 				ctx = context.WithValue(ctx, ctxKeyVmnet, true)
 			}
 			deps, root := l.daemon.Dependencies(ctx, conf)

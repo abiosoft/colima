@@ -183,4 +183,3 @@ jobs:
 
       - name: Teardown
         run: colima delete -f
-
