@@ -2,6 +2,7 @@ package deb
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/abiosoft/colima/environment"
@@ -30,8 +31,12 @@ func (d *Docker) PreInstall() error {
 
 // Install implements URISource.
 func (d *Docker) Install() error {
+	args := []string{"--channel", dockerChannel()}
+	if v := os.Getenv("DOCKER_INSTALL_VERSION"); v != "" {
+		args = append(args, "--version", v)
+	}
 	return d.Guest.Run("sh", "-c",
-		`curl -fsSL https://get.docker.com -o /tmp/get-docker.sh && sudo sh /tmp/get-docker.sh`,
+		`curl -fsSL https://get.docker.com -o /tmp/get-docker.sh && sudo sh /tmp/get-docker.sh `+strings.Join(args, " "),
 	)
 }
 
@@ -63,7 +68,7 @@ func (d *Docker) URIs(arch environment.Arch) ([]string, error) {
 }
 
 func (d Docker) pkgFiles(arch environment.Arch) ([]string, error) {
-	script := fmt.Sprintf(`curl -sL https://download.docker.com/linux/ubuntu/dists/mantic/stable/binary-%s/Packages | grep '^Filename: ' | awk -F'/' '{print $NF}'`, arch.Value().GoArch())
+	script := fmt.Sprintf(`curl -sL https://download.docker.com/linux/ubuntu/dists/mantic/%s/binary-%s/Packages | grep '^Filename: ' | awk -F'/' '{print $NF}'`, dockerChannel(), arch.Value().GoArch())
 	filenames, err := d.Host.RunOutput("sh", "-c", script)
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving deb package filenames: %w", err)
@@ -74,4 +79,11 @@ func (d Docker) pkgFiles(arch environment.Arch) ([]string, error) {
 
 func (d Docker) debPackageBaseURI(arch environment.Arch) string {
 	return fmt.Sprintf("https://download.docker.com/linux/ubuntu/dists/mantic/pool/stable/%s/", arch.GoArch())
+}
+
+func dockerChannel() string {
+	if v := os.Getenv("DOCKER_INSTALL_CHANNEL"); v != "" {
+		return v
+	}
+	return "stable"
 }
