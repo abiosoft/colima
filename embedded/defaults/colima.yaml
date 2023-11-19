@@ -172,6 +172,16 @@ sshConfig: true
 # Default: []
 mounts: []
 
+# Configure additional disks
+#
+# EXAMPLE
+# additionalDisks:
+#   - size: 10
+#     path: /tmp/colima/disk1.img
+#   - size: 20
+#     path: /tmp/colima/disk2.img
+additionalDisks: []
+
 # Environment variables for the virtual machine.
 #
 # EXAMPLE

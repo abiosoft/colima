@@ -111,7 +111,7 @@ type Config struct {
 type Disk struct {
 	Name   string `yaml:"name"`
 	Size   string `yaml:"size"`
-	Format string `yaml:"format"`
+	Format string `yaml:"format,omitempty"`
 }
 
 // Kubernetes is kubernetes configuration

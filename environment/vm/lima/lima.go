@@ -163,6 +163,15 @@ func (l *limaVM) resume(ctx context.Context, conf config.Config) error {
 
 	a.Add(l.writeNetworkFile)
 
+	if len(conf.Disks) > 0 {
+		for _, d := range conf.Disks {
+			log.Println("creating disk", d.Name)
+			a.Add(func() error {
+				return l.host.Run(limactl, "disk", "create", d.Name, "--size", d.Size, "--format", d.Format)
+			})
+		}
+	}
+
 	a.Stage("starting")
 	a.Add(func() error {
 		return l.host.Run(limactl, "start", config.CurrentProfile().ID)
@@ -226,6 +235,16 @@ func (l limaVM) Teardown(ctx context.Context) error {
 	a.Add(func() error {
 		return l.host.Run(limactl, "delete", "--force", config.CurrentProfile().ID)
 	})
+
+	conf, _ := limautil.InstanceConfig()
+
+	if len(conf.Disks) > 0 {
+		for _, d := range conf.Disks {
+			a.Add(func() error {
+				return l.host.Run(limactl, "disk", "delete", d.Name)
+			})
+		}
+	}
 
 	return a.Exec()
 }
