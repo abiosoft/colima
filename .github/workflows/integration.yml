@@ -123,12 +123,12 @@ jobs:
 
       - name: Delay
         run: sleep 10
-      
+
       - name: Validate Docker
         run: docker ps && docker info
 
       - name: Validate DNS
-        run: colima ssh -- nslookup host.docker.internal
+        run: colima ssh -- sh -c "sudo apt-get update -y -qq && sudo apt-get install -qq dnsutils && nslookup host.docker.internal"
 
       - name: Build Image
         run: docker build integration
@@ -173,7 +173,7 @@ jobs:
         run: colima nerdctl ps && colima nerdctl info
 
       - name: Validate DNS
-        run: colima ssh -- nslookup host.docker.internal
+        run: colima ssh -- sh -c "sudo apt-get update -y -qq && sudo apt-get install -qq dnsutils && nslookup host.docker.internal"
 
       - name: Build Image
         run: colima nerdctl -- build integration

@@ -12,8 +12,6 @@ var manticPackages = []string{
 	"iptables",
 	// k8s
 	"socat",
-	// utilities
-	"htop", "vim", "inetutils-ping", "dnsutils",
 }
 
 var _ URISource = (*Mantic)(nil)
