@@ -101,6 +101,15 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 		return yamlutil.WriteYAML(l.limaConf, configFile)
 	})
 	a.Add(l.writeNetworkFile)
+
+	if len(conf.Disks) > 0 {
+		for _, d := range conf.Disks {
+			a.Add(func() error {
+				return l.host.Run(limactl, "disk", "create", d.Name, "--size", d.Size, "--format", d.Format)
+			})
+		}
+	}
+
 	a.Add(func() error {
 		return l.host.Run(limactl, "start", "--tty=false", configFile)
 	})

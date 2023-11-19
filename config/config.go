@@ -83,6 +83,9 @@ type Config struct {
 	VMType    string `yaml:"vmType,omitempty"`
 	VZRosetta bool   `yaml:"rosetta,omitempty"`
 
+	// disks
+	Disks []Disk `yaml:"disks,omitempty"`
+
 	// volume mounts
 	Mounts       []Mount `yaml:"mounts,omitempty"`
 	MountType    string  `yaml:"mountType,omitempty"`
@@ -103,6 +106,12 @@ type Config struct {
 
 	// SSH config generation
 	SSHConfig bool `yaml:"sshConfig,omitempty"`
+}
+
+type Disk struct {
+	Name   string `yaml:"name"`
+	Size   string `yaml:"size"`
+	Format string `yaml:"format"`
 }
 
 // Kubernetes is kubernetes configuration
