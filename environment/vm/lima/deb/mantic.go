@@ -44,7 +44,7 @@ func (m *Mantic) URIs(_ environment.Arch) ([]string, error) {
 
 	output := ""
 	for _, p := range manticPackages {
-		line := fmt.Sprintf(`sudo apt-get install --reinstall --print-uris -qq "%s" | cut -d"'" -f2`, p)
+		line := fmt.Sprintf(`sudo apt-get install --reinstall --no-install-recommends --print-uris -qq "%s" | cut -d"'" -f2`, p)
 		out, err := m.Guest.RunOutput("sh", "-c", line)
 		if err != nil {
 			return nil, fmt.Errorf("error fetching dependencies list: %w", err)
