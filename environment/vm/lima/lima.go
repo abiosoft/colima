@@ -117,18 +117,8 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 	// restart needed for docker user
 	if conf.Runtime == docker.Name {
 		a.Add(func() error {
-			if err := l.Stop(context.WithValue(ctx, cli.CtxKeyQuiet, true), false); err != nil {
-				return err
-			}
-
-			// minor delay to prevent possible race condition.
-			time.Sleep(time.Second * 2)
-
-			if err := l.Start(ctx, l.conf); err != nil {
-				return err
-			}
-
-			return nil
+			ctx := context.WithValue(ctx, cli.CtxKeyQuiet, true)
+			return l.Restart(ctx)
 		})
 	}
 
