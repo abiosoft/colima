@@ -100,9 +100,8 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		// add user to docker group
 		// "sudo", "usermod", "-aG", "docker", user
 		l.Provision = append(l.Provision, Provision{
-			Mode:           ProvisionModeDependency,
-			Script:         "groupadd -f docker && usermod -aG docker $LIMA_CIDATA_USER",
-			SkipResolution: true,
+			Mode:   ProvisionModeDependency,
+			Script: "groupadd -f docker && usermod -aG docker $LIMA_CIDATA_USER",
 		})
 
 		// set hostname
