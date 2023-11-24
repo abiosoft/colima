@@ -29,15 +29,6 @@ func (d dockerRuntime) createDaemonFile(conf map[string]any, env map[string]stri
 	// to avoid clash with systemd configuration
 	delete(conf, hostGatewayIPKey)
 
-	// get host-gateway ip from the guest
-	ip, err := d.guest.RunOutput("sh", "-c", "grep 'host.lima.internal' /etc/hosts | awk -F' ' '{print $1}'")
-	if err != nil {
-		return fmt.Errorf("error retrieving host gateway IP address: %w", err)
-	}
-	if net.ParseIP(ip) == nil {
-		return fmt.Errorf("invalid host gateway IP address: '%s'", ip)
-	}
-
 	// add proxy vars if set
 	// according to https://docs.docker.com/config/daemon/systemd/#httphttps-proxy
 	if vars := d.proxyEnvVars(env); !vars.empty() {
