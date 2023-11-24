@@ -45,8 +45,11 @@ func (d dockerRuntime) Provision(ctx context.Context) error {
 
 	// daemon.json
 	a.Add(func() error {
-		// not a fatal error
+		// these are not fatal errors
 		if err := d.createDaemonFile(conf.Docker, conf.Env); err != nil {
+			log.Warnln(err)
+		}
+		if err := d.addHostGateway(conf.Docker); err != nil {
 			log.Warnln(err)
 		}
 		return nil
