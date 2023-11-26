@@ -87,3 +87,8 @@ func dockerChannel() string {
 	}
 	return "stable"
 }
+
+// Installed implements URISource.
+func (d Docker) Installed() bool {
+	return d.Guest.RunQuiet("sh", "-c", `command -v dockerd && systemctl show -p FragmentPath docker | grep docker.service`) == nil
+}
