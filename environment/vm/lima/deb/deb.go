@@ -21,4 +21,6 @@ type URISource interface {
 	PreInstall() error
 	// Install installs the packages directly using the internet.
 	Install() error
+	// Installed returns if the deb packages are already installed
+	Installed() bool
 }

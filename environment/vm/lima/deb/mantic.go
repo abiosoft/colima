@@ -57,3 +57,9 @@ func (m *Mantic) URIs(_ environment.Arch) ([]string, error) {
 func (m *Mantic) Install() error {
 	return m.Guest.Run("sh", "-c", "sudo apt update && sudo apt install -f -y "+strings.Join(manticPackages, " "))
 }
+
+// Installed implements URISource.
+func (m *Mantic) Installed() bool {
+	args := append([]string{"dpkg", "-s"}, manticPackages...)
+	return m.Guest.RunQuiet(args...) == nil
+}
