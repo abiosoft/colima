@@ -79,6 +79,15 @@ func (l *limaVM) installDependencies(log *logrus.Entry, conf config.Config) erro
 			log.Warn(fmt.Errorf("preinstall check failed for %s: %w", src.Name(), err))
 		}
 
+		if os.Getenv("COLIMA_SKIP_CACHE_DEPS") != "" {
+			log.Info("skipping cache dependencies")
+			if err := src.Install(); err != nil {
+				return fmt.Errorf("error installing packages using %s: %w", src.Name(), err)
+			}
+			// installed
+			continue
+		}
+
 		// cache dependencies
 		dir, err := l.cacheDependencies(src, log, conf)
 		if err != nil {
