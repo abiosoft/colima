@@ -56,7 +56,6 @@ func IPAddress(profileID string) string {
 		logrus.Trace(fmt.Errorf("error getting instance: %s", err))
 		return fallback
 	}
-	logrus.Trace(fmt.Errorf("instance: %s", instance))
 	if len(instance.Network) > 0 {
 		for _, n := range instance.Network {
 			if n.Interface == vmnet.NetInterface {
