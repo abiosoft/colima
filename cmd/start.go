@@ -175,6 +175,9 @@ func init() {
 	startCmd.Flags().StringVar(&startCmdArgs.MountType, "mount-type", defaultMountTypeQEMU, "volume driver for the mount ("+mounts+")")
 	startCmd.Flags().BoolVar(&startCmdArgs.MountINotify, "mount-inotify", true, "propagate inotify file events to the VM")
 
+	// lima disks
+	startCmd.Flags().StringSliceVarP(&startCmdArgs.Flags.Mounts, "lima-disk", "D", nil, "map of disk name and size e.g. --lima-disk=my-disk,10G")
+
 	// ssh agent
 	startCmd.Flags().BoolVarP(&startCmdArgs.ForwardAgent, "ssh-agent", "s", false, "forward SSH agent to the VM")
 
@@ -371,6 +374,9 @@ func prepareConfig(cmd *cobra.Command) {
 	}
 	if !cmd.Flag("mount-inotify").Changed {
 		startCmdArgs.MountINotify = current.MountINotify
+	}
+	if !cmd.Flag("lima-disk").Changed {
+		startCmdArgs.LimaDisks = current.LimaDisks
 	}
 	if !cmd.Flag("ssh-agent").Changed {
 		startCmdArgs.ForwardAgent = current.ForwardAgent

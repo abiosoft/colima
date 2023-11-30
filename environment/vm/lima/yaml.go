@@ -100,8 +100,9 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		// add user to docker group
 		// "sudo", "usermod", "-aG", "docker", user
 		l.Provision = append(l.Provision, Provision{
-			Mode:   ProvisionModeDependency,
-			Script: "groupadd -f docker && usermod -aG docker $LIMA_CIDATA_USER",
+			Mode:           ProvisionModeDependency,
+			Script:         "groupadd -f docker && usermod -aG docker $LIMA_CIDATA_USER",
+			SkipResolution: true,
 		})
 
 		// set hostname
@@ -253,6 +254,15 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		Script: `readlink /usr/sbin/fstrim || fstrim -a`,
 	})
 
+	// workaround for slow virtiofs https://github.com/drud/ddev/issues/4466#issuecomment-1361261185
+	// TODO: remove when fixed upstream
+	if l.MountType == VIRTIOFS {
+		l.Provision = append(l.Provision, Provision{
+			Mode:   ProvisionModeSystem,
+			Script: `stat /sys/class/block/vda/queue/write_cache && echo 'write through' > /sys/class/block/vda/queue/write_cache`,
+		})
+	}
+
 	if len(conf.Mounts) == 0 {
 		l.Mounts = append(l.Mounts,
 			Mount{Location: "~", Writable: true},
@@ -291,10 +301,14 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		}
 	}
 
-	if len(conf.Disks) > 0 {
-		for _, d := range conf.Disks {
-			l.AdditionalDisks = append(l.AdditionalDisks, d.Name)
-		}
+	for _, d := range conf.LimaDisks {
+		diskName := config.CurrentProfile().ID + "-" + d.Name
+		logrus.Traceln(fmt.Errorf("using additional disk %s", diskName))
+		l.AdditionalDisks = append(l.AdditionalDisks, AdditionalDisk{
+			Name:   diskName,
+			Format: true,
+			FsType: "ext4",
+		})
 	}
 
 	// provision scripts
@@ -310,7 +324,11 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 
 type Arch = environment.Arch
 
-type Disk = string
+type AdditionalDisk struct {
+	Name   string `yaml:"name"`
+	Format bool   `yaml:"format,omitempty"`
+	FsType string `yaml:"fsType,omitempty"`
+}
 
 // Config is lima config. Code copied from lima and modified.
 type Config struct {
@@ -320,7 +338,7 @@ type Config struct {
 	CPUs            *int              `yaml:"cpus,omitempty"`
 	Memory          string            `yaml:"memory,omitempty"`
 	Disk            string            `yaml:"disk,omitempty"`
-	AdditionalDisks []Disk            `yaml:"additionalDisks,omitempty" json:"additionalDisks,omitempty"`
+	AdditionalDisks []AdditionalDisk  `yaml:"additionalDisks,omitempty" json:"additionalDisks,omitempty"`
 	Mounts          []Mount           `yaml:"mounts,omitempty"`
 	MountType       MountType         `yaml:"mountType,omitempty" json:"mountType,omitempty"`
 	SSH             SSH               `yaml:"ssh"`
@@ -423,9 +441,9 @@ type Network struct {
 type ProvisionMode = string
 
 const (
-	ProvisionModeSystem     ProvisionMode = "system"
-	ProvisionModeUser       ProvisionMode = "user"
-	ProvisionModeBoot       ProvisionMode = "boot"
+	ProvisionModeSystem ProvisionMode = "system"
+	// ProvisionModeUser       ProvisionMode = "user"
+	// ProvisionModeBoot       ProvisionMode = "boot"
 	ProvisionModeDependency ProvisionMode = "dependency"
 )
 

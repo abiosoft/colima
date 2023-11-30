@@ -175,12 +175,13 @@ mounts: []
 # Configure additional disks
 #
 # EXAMPLE
-# additionalDisks:
-#   - size: 10
-#     path: /tmp/colima/disk1.img
-#   - size: 20
-#     path: /tmp/colima/disk2.img
-additionalDisks: []
+# disks:
+#   - name: mydisk
+#     size: 20G
+#     format: raw (optional). qcow2 is not supported in current limactl. raw is default.
+#   - name: otherdisk
+#     size: 1M
+limaDisks: []
 
 # Environment variables for the virtual machine.
 #

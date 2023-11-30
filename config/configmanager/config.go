@@ -71,7 +71,6 @@ func ValidateConfig(c config.Config) error {
 	if _, ok := validVMTypes[c.VMType]; !ok {
 		return fmt.Errorf("invalid vmType: '%s'", c.VMType)
 	}
-
 	return nil
 }
 
@@ -85,6 +84,7 @@ func Load() (config.Config, error) {
 
 		// config file does not exist, check older version for backward compatibility
 		if _, err := os.Stat(oldCFile); err != nil {
+			logrus.Warn(fmt.Errorf("error loading config: %w, proceeding with defaults", err))
 			return config.Config{}, nil
 		}
 

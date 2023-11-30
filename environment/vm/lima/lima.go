@@ -78,6 +78,14 @@ func (l limaVM) Dependencies() []string {
 	}
 }
 
+type Disk struct {
+	Name       string `json:"name"`
+	Size       int64  `json:"size"`
+	Dir        string `json:"dir"`
+	Instance   string `json:"instance"`
+	MountPoint string `json:"mountPoint"`
+}
+
 func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 	a := l.Init(ctx)
 
@@ -90,8 +98,13 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 		return err
 	})
 
-	a.Stage("creating and starting")
 	configFile := filepath.Join(os.TempDir(), config.CurrentProfile().ID+".yaml")
+
+	var disksToDelete []Disk
+	disksToDelete, err := l.updateLimaDisks(conf)
+	if err != nil {
+		return err
+	}
 
 	a.Add(func() (err error) {
 		l.limaConf, err = newConf(ctx, conf)
@@ -102,14 +115,6 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 	})
 	a.Add(l.writeNetworkFile)
 
-	if len(conf.Disks) > 0 {
-		for _, d := range conf.Disks {
-			a.Add(func() error {
-				return l.host.Run(limactl, "disk", "create", d.Name, "--size", d.Size, "--format", d.Format)
-			})
-		}
-	}
-
 	a.Add(func() error {
 		return l.host.Run(limactl, "start", "--tty=false", configFile)
 	})
@@ -117,13 +122,13 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 		return os.Remove(configFile)
 	})
 
-	// adding it to command chain to execute only after successful startup.
+	logrus.Trace("adding it to command chain to execute only after successful startup.")
 	a.Add(func() error {
 		l.conf = conf
 		return nil
 	})
 
-	// restart needed for docker user
+	logrus.Trace("restart needed for docker user")
 	if conf.Runtime == docker.Name {
 		a.Add(func() error {
 			ctx := context.WithValue(ctx, cli.CtxKeyQuiet, true)
@@ -131,7 +136,7 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 		})
 	}
 
-	l.addPostStartActions(a, conf)
+	l.addPostStartActions(a, conf, disksToDelete)
 
 	return a.Exec()
 }
@@ -143,6 +148,12 @@ func (l *limaVM) resume(ctx context.Context, conf config.Config) error {
 	if l.Running(ctx) {
 		log.Println("already running")
 		return nil
+	}
+
+	var disksToDelete []Disk
+	disksToDelete, err := l.updateLimaDisks(conf)
+	if err != nil {
+		return err
 	}
 
 	a.Add(func() (err error) {
@@ -163,21 +174,12 @@ func (l *limaVM) resume(ctx context.Context, conf config.Config) error {
 
 	a.Add(l.writeNetworkFile)
 
-	if len(conf.Disks) > 0 {
-		for _, d := range conf.Disks {
-			log.Println("creating disk", d.Name)
-			a.Add(func() error {
-				return l.host.Run(limactl, "disk", "create", d.Name, "--size", d.Size, "--format", d.Format)
-			})
-		}
-	}
-
 	a.Stage("starting")
 	a.Add(func() error {
 		return l.host.Run(limactl, "start", config.CurrentProfile().ID)
 	})
 
-	l.addPostStartActions(a, conf)
+	l.addPostStartActions(a, conf, disksToDelete)
 
 	return a.Exec()
 }
@@ -224,27 +226,31 @@ func (l limaVM) Stop(ctx context.Context, force bool) error {
 
 func (l limaVM) Teardown(ctx context.Context) error {
 	a := l.Init(ctx)
+	conf, _ := limautil.InstanceConfig()
 
 	if util.MacOS() {
-		conf, _ := limautil.InstanceConfig()
 		a.Retry("", time.Second*1, 10, func(retryCount int) error {
 			return l.daemon.Stop(ctx, conf)
 		})
 	}
 
+	a.Stage("stopping")
+	a.Add(func() error {
+		return l.Stop(ctx, false)
+	})
+
+	a.Add(func() error {
+		for _, d := range conf.LimaDisks {
+			diskName := config.CurrentProfile().ID + "-" + d.Name
+			logrus.Trace(fmt.Errorf("deleting disk %s", diskName))
+			return l.host.Run(limactl, "disk", "delete", diskName)
+		}
+		return nil
+	})
+
 	a.Add(func() error {
 		return l.host.Run(limactl, "delete", "--force", config.CurrentProfile().ID)
 	})
-
-	conf, _ := limautil.InstanceConfig()
-
-	if len(conf.Disks) > 0 {
-		for _, d := range conf.Disks {
-			a.Add(func() error {
-				return l.host.Run(limactl, "disk", "delete", d.Name)
-			})
-		}
-	}
 
 	return a.Exec()
 }
@@ -341,7 +347,19 @@ func (l *limaVM) syncDiskSize(ctx context.Context, conf config.Config) config.Co
 	return conf
 }
 
-func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Config) {
+func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Config, disksToDelete []Disk) {
+	// delete unused disk mount directories
+	a.Add(func() error {
+		for _, disk := range disksToDelete {
+			err := l.Run("sh", "-c", "sudo rm -rf /mnt/lima-"+disk.Name)
+			if err != nil {
+				logrus.Trace(fmt.Errorf("error deleting disk mount directory: %s", err))
+				return err
+			}
+		}
+		return nil
+	})
+
 	// package dependencies
 	a.Add(func() error {
 		return l.installDependencies(a.Logger(), conf)

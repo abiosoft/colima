@@ -84,7 +84,7 @@ type Config struct {
 	VZRosetta bool   `yaml:"rosetta,omitempty"`
 
 	// disks
-	Disks []Disk `yaml:"disks,omitempty"`
+	LimaDisks []Disk `yaml:"limaDisks,omitempty"`
 
 	// volume mounts
 	Mounts       []Mount `yaml:"mounts,omitempty"`
@@ -109,9 +109,8 @@ type Config struct {
 }
 
 type Disk struct {
-	Name   string `yaml:"name"`
-	Size   string `yaml:"size"`
-	Format string `yaml:"format,omitempty"`
+	Name string `yaml:"name"`
+	Size string `yaml:"size"`
 }
 
 // Kubernetes is kubernetes configuration
