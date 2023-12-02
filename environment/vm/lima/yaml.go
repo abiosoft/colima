@@ -306,8 +306,9 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		logrus.Traceln(fmt.Errorf("using additional disk %s", diskName))
 		l.AdditionalDisks = append(l.AdditionalDisks, AdditionalDisk{
 			Name:   diskName,
-			Format: true,
-			FsType: "ext4",
+			Format: d.Format,
+			FSType: d.FSType,
+			FSArgs: d.FSArgs,
 		})
 	}
 
@@ -325,9 +326,10 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 type Arch = environment.Arch
 
 type AdditionalDisk struct {
-	Name   string `yaml:"name"`
-	Format bool   `yaml:"format,omitempty"`
-	FsType string `yaml:"fsType,omitempty"`
+	Name   string   `yaml:"name"`
+	Format bool     `yaml:"format" json:"format"`
+	FSType string   `yaml:"fsType,omitempty" json:"fsType,omitempty"`
+	FSArgs []string `yaml:"fsArgs,omitempty" json:"fsArgs,omitempty"`
 }
 
 // Config is lima config. Code copied from lima and modified.

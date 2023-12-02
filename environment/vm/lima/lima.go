@@ -78,7 +78,7 @@ func (l limaVM) Dependencies() []string {
 	}
 }
 
-type Disk struct {
+type DiskListOutput struct {
 	Name       string `json:"name"`
 	Size       int64  `json:"size"`
 	Dir        string `json:"dir"`
@@ -100,7 +100,7 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 
 	configFile := filepath.Join(os.TempDir(), config.CurrentProfile().ID+".yaml")
 
-	var disksToDelete []Disk
+	var disksToDelete []DiskListOutput
 	disksToDelete, err := l.updateLimaDisks(conf)
 	if err != nil {
 		return err
@@ -150,7 +150,7 @@ func (l *limaVM) resume(ctx context.Context, conf config.Config) error {
 		return nil
 	}
 
-	var disksToDelete []Disk
+	var disksToDelete []DiskListOutput
 	disksToDelete, err := l.updateLimaDisks(conf)
 	if err != nil {
 		return err
@@ -242,8 +242,7 @@ func (l limaVM) Teardown(ctx context.Context) error {
 	a.Add(func() error {
 		for _, d := range conf.LimaDisks {
 			diskName := config.CurrentProfile().ID + "-" + d.Name
-			logrus.Trace(fmt.Errorf("deleting disk %s", diskName))
-			return l.host.Run(limactl, "disk", "delete", diskName)
+			l.deleteLimaDisk(diskName)
 		}
 		return nil
 	})
@@ -347,7 +346,7 @@ func (l *limaVM) syncDiskSize(ctx context.Context, conf config.Config) config.Co
 	return conf
 }
 
-func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Config, disksToDelete []Disk) {
+func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Config, disksToDelete []DiskListOutput) {
 	// delete unused disk mount directories
 	a.Add(func() error {
 		for _, disk := range disksToDelete {
