@@ -1,6 +1,7 @@
 package shautil
 
 import (
+	"crypto/sha1"
 	"crypto/sha256"
 	"fmt"
 )
@@ -27,6 +28,6 @@ func SHA256(s string) SHA {
 }
 
 // SHA1 computes a sha256sum of a string.
-//func SHA1(s string) SHA {
-//	return s1(sha1.Sum([]byte(s)))
-//}
+func SHA1(s string) SHA {
+	return s1(sha1.Sum([]byte(s)))
+}

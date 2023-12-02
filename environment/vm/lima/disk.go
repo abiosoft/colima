@@ -119,5 +119,4 @@ func (l *limaVM) deleteLimaDisk(diskName string) {
 		return
 	}
 	logrus.Trace(fmt.Errorf("disk delete output: %s", out))
-	return
 }
