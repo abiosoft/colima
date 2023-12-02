@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"context"
+	"errors"
 	"os"
 	"os/exec"
 	"testing"
@@ -103,7 +104,7 @@ func TestRunProcesses(t *testing.T) {
 
 	select {
 	case <-ctx.Done():
-		if err := ctx.Err(); err != context.Canceled {
+		if err := ctx.Err(); !errors.Is(err, context.Canceled) {
 			t.Error(err)
 		}
 	case err := <-done:

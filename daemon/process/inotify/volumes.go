@@ -60,7 +60,7 @@ func (f *inotifyProcess) monitorContainerVolumes(ctx context.Context, c chan<- [
 		}
 
 		// process and discard redundant volumes
-		vols := []string{}
+		var vols []string
 		{
 			shouldMount := func(child string) bool {
 				// ignore all invalid directories.

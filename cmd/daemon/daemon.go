@@ -156,7 +156,7 @@ func Info() struct {
 	}
 }
 
-// Run runs the daemon with background processes.
+// RunProcesses Run runs the daemon with background processes.
 // NOTE: this must be called from the program entrypoint with minimal intermediary logic
 // due to the creation of the daemon.
 func RunProcesses(ctx context.Context, processes ...process.Process) error {

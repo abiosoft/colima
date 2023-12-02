@@ -23,7 +23,7 @@ var (
 	noProxy    proxyVarKey = "no_proxy"
 )
 
-// keys return both the lower case and upper case env var keys.
+// Keys return both the lower case and upper case env var keys.
 // e.g. http_proxy and HTTP_PROXY
 func (p proxyVarKey) Keys() []string {
 	return []string{string(p), strings.ToUpper(string(p))}

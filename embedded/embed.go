@@ -8,7 +8,7 @@ import (
 var fs embed.FS
 
 // FS returns the underlying embed.FS
-func FS() embed.FS { return fs }
+// func FS() embed.FS { return fs }
 
 func read(file string) ([]byte, error) { return fs.ReadFile(file) }
 

@@ -443,9 +443,9 @@ type Network struct {
 type ProvisionMode = string
 
 const (
-	ProvisionModeSystem     ProvisionMode = "system"
-	ProvisionModeUser       ProvisionMode = "user"
-	ProvisionModeBoot       ProvisionMode = "boot"
+	ProvisionModeSystem ProvisionMode = "system"
+	// ProvisionModeDependency ProvisionModeUser       ProvisionMode = "user"
+	// ProvisionModeBoot       ProvisionMode = "boot"
 	ProvisionModeDependency ProvisionMode = "dependency"
 )
 
