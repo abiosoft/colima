@@ -11,7 +11,7 @@ import (
 )
 
 func (l *limaVM) updateLimaDisks(conf config.Config) ([]DiskListOutput, error) {
-	logrus.Trace(fmt.Errorf("updating lima disks: %s", conf.LimaDisks))
+	logrus.Trace(fmt.Errorf("updating lima disks"))
 	out, err := l.host.RunOutput(limactl, "disk", "list", "--json")
 	if err != nil {
 		logrus.Trace(fmt.Errorf("error listing disks: %s, %s", out, err))
