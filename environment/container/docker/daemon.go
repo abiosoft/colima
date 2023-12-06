@@ -32,15 +32,17 @@ func (d dockerRuntime) createDaemonFile(conf map[string]any, env map[string]stri
 	// add proxy vars if set
 	// according to https://docs.docker.com/config/daemon/systemd/#httphttps-proxy
 	if vars := d.proxyEnvVars(env); !vars.empty() {
+		proxyConf := map[string]any{}
 		if vars.http != "" {
-			conf["http-proxy"] = vars.http
+			proxyConf["http-proxy"] = vars.http
 		}
 		if vars.https != "" {
-			conf["https-proxy"] = vars.https
+			proxyConf["https-proxy"] = vars.https
 		}
 		if vars.no != "" {
-			conf["no-proxy"] = vars.https
+			proxyConf["no-proxy"] = vars.no
 		}
+		conf["proxies"] = proxyConf
 	}
 
 	b, err := json.MarshalIndent(conf, "", "  ")
