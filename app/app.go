@@ -442,7 +442,10 @@ func generateSSHConfig(modifySSHConfig bool) error {
 			continue
 		}
 
-		fmt.Fprintln(&buf, resp.Output)
+		_, err = fmt.Fprintln(&buf, resp.Output)
+		if err != nil {
+			return err
+		}
 	}
 
 	sshFileColima := config.SSHConfigFile()

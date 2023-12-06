@@ -2,7 +2,6 @@ package util
 
 import (
 	"fmt"
-	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -11,7 +10,6 @@ import (
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/coreos/go-semver/semver"
-	"github.com/google/shlex"
 	"github.com/sirupsen/logrus"
 )
 
@@ -30,7 +28,7 @@ func MacOS() bool {
 	return runtime.GOOS == "darwin"
 }
 
-// MacOS13OrNewer returns if the current OS is macOS 13 or newer.
+// MacOS13OrNewerOnM1 returns if the current OS is macOS 13 or newer.
 func MacOS13OrNewerOnM1() bool {
 	return runtime.GOARCH == "arm64" && MacOS13OrNewer()
 }
@@ -90,30 +88,30 @@ func RemoveFromPath(path, dir string) string {
 }
 
 // RandomAvailablePort returns an available port on the host machine.
-func RandomAvailablePort() int {
-	listener, err := net.Listen("tcp", ":0")
-	if err != nil {
-		logrus.Fatal(fmt.Errorf("error picking an available port: %w", err))
-	}
-
-	if err := listener.Close(); err != nil {
-		logrus.Fatal(fmt.Errorf("error closing temporary port listener: %w", err))
-	}
-
-	return listener.Addr().(*net.TCPAddr).Port
-}
-
-// ShellSplit splits cmd into arguments using.
-func ShellSplit(cmd string) []string {
-	split, err := shlex.Split(cmd)
-	if err != nil {
-		logrus.Warnln("error splitting into args: %w", err)
-		logrus.Warnln("falling back to whitespace split", err)
-		split = strings.Fields(cmd)
-	}
-
-	return split
-}
+//func RandomAvailablePort() int {
+//	listener, err := net.Listen("tcp", ":0")
+//	if err != nil {
+//		logrus.Fatal(fmt.Errorf("error picking an available port: %w", err))
+//	}
+//
+//	if err := listener.Close(); err != nil {
+//		logrus.Fatal(fmt.Errorf("error closing temporary port listener: %w", err))
+//	}
+//
+//	return listener.Addr().(*net.TCPAddr).Port
+//}
+//
+//// ShellSplit splits cmd into arguments using.
+//func ShellSplit(cmd string) []string {
+//	split, err := shlex.Split(cmd)
+//	if err != nil {
+//		logrus.Warnln("error splitting into args: %w", err)
+//		logrus.Warnln("falling back to whitespace split", err)
+//		split = strings.Fields(cmd)
+//	}
+//
+//	return split
+//}
 
 // CleanPath returns the absolute path to the mount location.
 // If location is an empty string, nothing is done.

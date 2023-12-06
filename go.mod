@@ -5,7 +5,6 @@ go 1.20
 require (
 	github.com/coreos/go-semver v0.3.1
 	github.com/fatih/color v1.16.0
-	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/rjeczalik/notify v0.9.3
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.0

@@ -22,12 +22,12 @@ type s256 [32]byte
 func (s s256) String() string { return fmt.Sprintf("%x", s[:]) }
 func (s s256) Bytes() []byte  { return s[:] }
 
-// SHA256Hash computes a sha256sum of a string.
+// SHA256 computes a sha256sum of a string.
 func SHA256(s string) SHA {
 	return s256(sha256.Sum256([]byte(s)))
 }
 
-// SHA256Hash computes a sha256sum of a string.
+// SHA1 computes a sha256sum of a string.
 func SHA1(s string) SHA {
 	return s1(sha1.Sum([]byte(s)))
 }

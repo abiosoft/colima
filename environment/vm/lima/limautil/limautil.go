@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
 	"strings"
@@ -52,17 +53,18 @@ func IPAddress(profileID string) string {
 	const fallback = "127.0.0.1"
 	instance, err := getInstance(profileID)
 	if err != nil {
+		logrus.Trace(fmt.Errorf("error getting instance: %s", err))
 		return fallback
 	}
-
 	if len(instance.Network) > 0 {
 		for _, n := range instance.Network {
 			if n.Interface == vmnet.NetInterface {
-				return getIPAddress(profileID, n.Interface)
+				result := getIPAddress(profileID, n.Interface)
+				logrus.Trace(fmt.Errorf("ip address: %s", result))
+				return result
 			}
 		}
 	}
-
 	return fallback
 }
 
@@ -171,14 +173,16 @@ func Instances(ids ...string) ([]InstanceInfo, error) {
 }
 func getIPAddress(profileID, interfaceName string) string {
 	var buf bytes.Buffer
+	logrus.Trace(fmt.Errorf("getting ip address for %s", interfaceName))
 	// TODO: this should be less hacky
-	cmd := Limactl("shell", profileID, "sh", "-c",
-		`ip -4 addr show `+interfaceName+` | grep inet | awk -F' ' '{print $2 }' | cut -d/ -f1`)
+	cmd := Limactl("shell", profileID, "sh", "-c", `ip -4 -o addr show `+interfaceName+` | grep inet | cut -d ' ' -f7 | cut -d/ -f1`)
 	cmd.Stderr = nil
 	cmd.Stdout = &buf
 
 	_ = cmd.Run()
-	return strings.TrimSpace(buf.String())
+	result := strings.TrimSpace(buf.String())
+	logrus.Trace(fmt.Errorf("ip address: %s", result))
+	return result
 }
 
 func getRuntime(conf config.Config) string {

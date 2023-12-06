@@ -27,7 +27,7 @@ var listCmd = &cobra.Command{
 A new instance can be created during 'colima start' by specifying the '--profile' flag.`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		profile := []string{}
+		var profile []string
 		if cmd.Flag("profile").Changed {
 			profile = append(profile, config.CurrentProfile().ID)
 		}

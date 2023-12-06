@@ -123,12 +123,12 @@ func CacheDir() string { return cacheDir.Dir() }
 // TemplatesDir returns the templates' directory.
 func TemplatesDir() string { return templatesDir.Dir() }
 
-// TemplatesDir returns the templates' directory.
+// LimaDir returns the lima directory.
 func LimaDir() string { return limaDir.Dir() }
 
-const ConfigFileName = "colima.yaml"
+const FileName = "colima.yaml"
 
-func configFile() string { return filepath.Join(configDir.Dir(), ConfigFileName) }
+func configFile() string { return filepath.Join(configDir.Dir(), FileName) }
 
 // SSHConfigFile returns the path to generated ssh config.
 func SSHConfigFile() string { return filepath.Join(filepath.Dir(configDir.Dir()), "ssh_config") }

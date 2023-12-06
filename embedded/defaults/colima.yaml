@@ -172,6 +172,20 @@ sshConfig: true
 # Default: []
 mounts: []
 
+# Configure additional disks
+#
+# EXAMPLE
+# disks:
+#   - name: mydisk
+#     size: 20G
+#     imageFormat: raw   (optional) qemu-img image format
+#     format: false     (optional) whether to format the disk
+#     fsType: ext4      (optional) filesystem type
+#     fsArgs: []        (optional) qemu-img arguments
+#   - name: otherdisk
+#     size: 1M
+limaDisks: []
+
 # Environment variables for the virtual machine.
 #
 # EXAMPLE

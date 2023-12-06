@@ -131,13 +131,13 @@ func LimaVersionSupported() error {
 		return nil
 	}
 
-	min := semver.New(strings.TrimPrefix(limaVersion, "v"))
+	minimum := semver.New(strings.TrimPrefix(limaVersion, "v"))
 	current, err := semver.NewVersion(strings.TrimPrefix(values.Version, "v"))
 	if err != nil {
 		return fmt.Errorf("invalid semver version for Lima: %w", err)
 	}
 
-	if min.Compare(*current) > 0 {
+	if minimum.Compare(*current) > 0 {
 		return fmt.Errorf("minimum Lima version supported is %s, current version is %s", limaVersion, values.Version)
 	}
 

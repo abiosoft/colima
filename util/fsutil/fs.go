@@ -13,9 +13,9 @@ var FS FileSystem = DefaultFS{}
 func MkdirAll(path string, perm os.FileMode) error { return FS.MkdirAll(path, perm) }
 
 // Open calls FS.Open
-func Open(name string) (fs.File, error) { return FS.Open(name) }
+// func Open(name string) (fs.File, error) { return FS.Open(name) }
 
-// FS is abstraction for filesystem.
+// FileSystem is abstraction for filesystem.
 type FileSystem interface {
 	MkdirAll(path string, perm os.FileMode) error
 	fs.FS
@@ -34,7 +34,8 @@ func (DefaultFS) Open(name string) (fs.File, error) { return os.Open(name) }
 func (DefaultFS) MkdirAll(path string, perm fs.FileMode) error { return os.MkdirAll(path, perm) }
 
 // FakeFS is a mock FS. The following can be done in a test before usage.
-//  osutil.FS = osutil.FakeFS
+//
+//	osutil.FS = osutil.FakeFS
 var FakeFS FileSystem = fakeFS{}
 
 type fakeFS struct{}

@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -118,7 +119,8 @@ func (a ActiveCommandChain) Exec() error {
 		}
 
 		// warning
-		if _, ok := err.(errNonFatal); ok {
+		var errNonFatal errNonFatal
+		if errors.As(err, &errNonFatal) {
 			if a.lastStage == "" {
 				a.log.Warnln(err)
 			} else {

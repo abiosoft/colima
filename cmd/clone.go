@@ -29,7 +29,7 @@ var cloneCmd = &cobra.Command{
 		}
 
 		configFile := func(p config.ProfileInfo) string {
-			return filepath.Join(filepath.Dir(config.Dir()), p.ShortName, config.ConfigFileName)
+			return filepath.Join(filepath.Dir(config.Dir()), p.ShortName, config.FileName)
 		}
 
 		logrus.Infof("preparing to clone %s...", from.DisplayName)
