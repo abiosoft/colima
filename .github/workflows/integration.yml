@@ -33,6 +33,8 @@ jobs:
           go-version: "1.21"
 
       - name: Install CLI deps
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
         run: |
           brew install kubectl docker coreutils lima
 
@@ -69,6 +71,8 @@ jobs:
           go-version: "1.21"
 
       - name: Install CLI deps
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
         run: |
           brew install kubectl docker coreutils lima
 
@@ -105,6 +109,8 @@ jobs:
           go-version: "1.21"
 
       - name: Install CLI deps
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
         run: |
           brew install kubectl docker coreutils lima
 
@@ -150,6 +156,8 @@ jobs:
           go-version: "1.21"
 
       - name: Install CLI deps
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
         run: |
           brew install kubectl docker coreutils lima
 
