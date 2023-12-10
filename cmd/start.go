@@ -243,6 +243,12 @@ func setDefaults(cmd *cobra.Command) {
 		startCmdArgs.VMType = defaultVMType
 	}
 
+	// m3 devices cannot use qemu
+	if util.M3() {
+		startCmdArgs.VMType = "vz"
+		cmd.Flag("vm-type").Changed = true
+	}
+
 	if util.MacOS13OrNewer() {
 		// changing to vz implies changing mount type to virtiofs
 		if cmd.Flag("vm-type").Changed && startCmdArgs.VMType == "vz" && !cmd.Flag("mount-type").Changed {
@@ -274,6 +280,10 @@ func setConfigDefaults(conf *config.Config) {
 	// handle macOS virtualization.framework transition
 	if conf.VMType == "" {
 		conf.VMType = defaultVMType
+	}
+	// m3 devices cannot use qemu
+	if util.M3() {
+		conf.VMType = "vz"
 	}
 
 	if conf.MountType == "" {
