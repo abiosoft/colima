@@ -51,13 +51,13 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	l.Images = append(l.Images,
 		File{
 			Arch:     environment.AARCH64,
-			Location: "https://github.com/abiosoft/colima-core/releases/download/v0.6.7/ubuntu-23.10-minimal-cloudimg-arm64.qcow2",
-			Digest:   "sha512:bbfd97c7aa9dc0f240cbe09f75f98eb19812ce5da1536e4bca2044c0528fd409b3c8f2c3ba85e54707544e3c6619d585504b3eca7ba8b3f3fbaba141cec0181c",
+			Location: "https://github.com/abiosoft/colima-core/releases/download/v0.6.8/ubuntu-23.10-minimal-cloudimg-arm64.qcow2",
+			Digest:   "sha512:da5a362c8ab2cb314395415b418808c96484fed0258dfe1794b33beb8cf72937afa6a8c1ac686c0ca0b86fe88b407a096ffee820b287c4b10b2580ab1d6ebb00",
 		},
 		File{
 			Arch:     environment.X8664,
-			Location: "https://github.com/abiosoft/colima-core/releases/download/v0.6.7/ubuntu-23.10-minimal-cloudimg-amd64.qcow2",
-			Digest:   "sha512:9980ac00edc0a0b75e9c924f25f3403e76ef8fd680ee1847082de543a8ff851413992a18b065c53092edf298d11de50b0b129ece1ec17217bd8a6e9266b22345",
+			Location: "https://github.com/abiosoft/colima-core/releases/download/v0.6.8/ubuntu-23.10-minimal-cloudimg-amd64.qcow2",
+			Digest:   "sha512:3de11bb0ca7920bf08635dcd6ba447597ad2c36f4f5eb2f2d14d6bbf6f8a42b14b53173d9f7ec194713e81b1889908206eb9f2955389096310c4234f729d784d",
 		},
 	)
 
