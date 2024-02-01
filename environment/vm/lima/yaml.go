@@ -101,11 +101,11 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		// "sudo", "usermod", "-aG", "docker", user
 		l.Provision = append(l.Provision, Provision{
 			Mode:   ProvisionModeDependency,
-			Script: "groupadd -f docker && usermod -aG docker $LIMA_CIDATA_USER",
+			Script: "groupadd -f docker && usermod -aG docker {{ .User }}",
 		})
 
 		// set hostname
-		hostname := "$LIMA_CIDATA_NAME"
+		hostname := config.CurrentProfile().ID
 		if conf.Hostname != "" {
 			hostname = conf.Hostname
 		}
