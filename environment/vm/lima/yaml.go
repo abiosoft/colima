@@ -51,13 +51,13 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	l.Images = append(l.Images,
 		File{
 			Arch:     environment.AARCH64,
-			Location: "https://github.com/abiosoft/colima-core/releases/download/v0.6.7/ubuntu-23.10-minimal-cloudimg-arm64.qcow2",
-			Digest:   "sha512:bbfd97c7aa9dc0f240cbe09f75f98eb19812ce5da1536e4bca2044c0528fd409b3c8f2c3ba85e54707544e3c6619d585504b3eca7ba8b3f3fbaba141cec0181c",
+			Location: "https://github.com/abiosoft/colima-core/releases/download/v0.6.8-2/ubuntu-23.10-minimal-cloudimg-arm64.qcow2",
+			Digest:   "sha512:00e3339bdebd98c3e003570ffb3ad4b01630fe4fcecd15061d5d58e14c07b211c718ed20fa3e4cce227d3b1c59fd98241eaa3e9e2cdfa04acfe32b4bc385428c",
 		},
 		File{
 			Arch:     environment.X8664,
-			Location: "https://github.com/abiosoft/colima-core/releases/download/v0.6.7/ubuntu-23.10-minimal-cloudimg-amd64.qcow2",
-			Digest:   "sha512:9980ac00edc0a0b75e9c924f25f3403e76ef8fd680ee1847082de543a8ff851413992a18b065c53092edf298d11de50b0b129ece1ec17217bd8a6e9266b22345",
+			Location: "https://github.com/abiosoft/colima-core/releases/download/v0.6.8-2/ubuntu-23.10-minimal-cloudimg-amd64.qcow2",
+			Digest:   "sha512:97a6df4d4f4d13267fc7989933da537071513b3175a5785728992a8a198e0ceaaa0eaa2a9a4b01beaf6b998cc20b5995dc701e5c6d9ba2f4308e4208a84215df",
 		},
 	)
 
@@ -101,11 +101,11 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 		// "sudo", "usermod", "-aG", "docker", user
 		l.Provision = append(l.Provision, Provision{
 			Mode:   ProvisionModeDependency,
-			Script: "groupadd -f docker && usermod -aG docker $LIMA_CIDATA_USER",
+			Script: "groupadd -f docker && usermod -aG docker {{ .User }}",
 		})
 
 		// set hostname
-		hostname := "$LIMA_CIDATA_NAME"
+		hostname := config.CurrentProfile().ID
 		if conf.Hostname != "" {
 			hostname = conf.Hostname
 		}
