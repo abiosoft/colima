@@ -37,7 +37,7 @@ jobs:
           HOMEBREW_NO_AUTO_UPDATE: "1"
           HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: "1"
         run: |
-          brew unlink /usr/local/bin/2to3
+          mv /usr/local/bin/2to3 /usr/local/bin/2to3.sys
           brew install kubectl docker coreutils lima
 
       - name: Build and Install
@@ -77,7 +77,7 @@ jobs:
           HOMEBREW_NO_AUTO_UPDATE: "1"
           HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: "1"
         run: |
-          brew unlink /usr/local/bin/2to3
+          mv /usr/local/bin/2to3 /usr/local/bin/2to3.sys
           brew install kubectl docker coreutils lima
 
       - name: Build and Install
@@ -117,7 +117,7 @@ jobs:
           HOMEBREW_NO_AUTO_UPDATE: "1"
           HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: "1"
         run: |
-          brew unlink /usr/local/bin/2to3
+          mv /usr/local/bin/2to3 /usr/local/bin/2to3.sys
           brew install kubectl docker coreutils lima
 
       - name: Build and Install
@@ -166,7 +166,7 @@ jobs:
           HOMEBREW_NO_AUTO_UPDATE: "1"
           HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: "1"
         run: |
-          brew unlink /usr/local/bin/2to3
+          mv /usr/local/bin/2to3 /usr/local/bin/2to3.sys
           brew install kubectl docker coreutils lima
 
       - name: Build and Install
