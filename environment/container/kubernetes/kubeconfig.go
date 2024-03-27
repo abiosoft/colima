@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -42,6 +43,10 @@ func (c kubernetesRuntime) provisionKubeconfig(ctx context.Context) error {
 	})
 
 	kubeconfFile := filepath.Join(hostKubeDir, "config")
+	envKubeConfFile := c.host.Env("KUBECONFIG")
+	if envKubeConfFile != "" {
+		kubeconfFile = strings.Split(envKubeConfFile, os.PathListSeparator)[0]
+	}
 	tmpkubeconfFile := filepath.Join(hostKubeDir, "."+profile, "colima-temp")
 
 	// manipulate in VM and save to host
