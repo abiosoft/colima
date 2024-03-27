@@ -80,6 +80,7 @@ func (d dockerRuntime) addHostGateway(conf map[string]any) error {
 const systemdUnitFilename = "/etc/systemd/system/docker.service.d/docker.conf"
 const systemdUnitFileContent string = `
 [Service]
+LimitNOFILE=infinity
 ExecStart=
 ExecStart=/usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock --host-gateway-ip=%s
 `
