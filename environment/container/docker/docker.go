@@ -24,7 +24,7 @@ type dockerRuntime struct {
 	cli.CommandChain
 }
 
-// NewContainer creates a new docker runtime.
+// newRuntime creates a new docker runtime.
 func newRuntime(host environment.HostActions, guest environment.GuestActions) environment.Container {
 	return &dockerRuntime{
 		host:         host,
