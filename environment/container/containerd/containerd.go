@@ -14,6 +14,7 @@ import (
 // Name is container runtime name
 const Name = "containerd"
 
+// HostSocketFile returns the path to the containerd socket on host.
 func HostSocketFile() string { return filepath.Join(config.Dir(), "containerd.sock") }
 
 // This is written with assumption that Lima is the VM,
