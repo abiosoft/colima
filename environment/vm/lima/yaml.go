@@ -13,6 +13,7 @@ import (
 
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/environment/container/docker"
 	"github.com/abiosoft/colima/util"
 	"github.com/sirupsen/logrus"
@@ -196,6 +197,16 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 						Proto:       TCP,
 					})
 			}
+		}
+
+		// containerd socket
+		if conf.Runtime == containerd.Name {
+			l.PortForwards = append(l.PortForwards,
+				PortForward{
+					GuestSocket: "/var/run/containerd.sock",
+					HostSocket:  containerd.HostSocketFile(),
+					Proto:       TCP,
+				})
 		}
 
 		// handle port forwarding to allow listening on 0.0.0.0

@@ -3,14 +3,19 @@ package containerd
 import (
 	"context"
 	_ "embed"
+	"path/filepath"
 	"time"
 
 	"github.com/abiosoft/colima/cli"
+	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
 )
 
 // Name is container runtime name
 const Name = "containerd"
+
+// HostSocketFile returns the path to the containerd socket on host.
+func HostSocketFile() string { return filepath.Join(config.Dir(), "containerd.sock") }
 
 // This is written with assumption that Lima is the VM,
 // which provides nerdctl/containerd support out of the box.
