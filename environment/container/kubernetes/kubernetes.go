@@ -18,7 +18,7 @@ import (
 
 const (
 	Name           = "kubernetes"
-	DefaultVersion = "v1.28.3+k3s2"
+	DefaultVersion = "v1.30.0+k3s1"
 
 	ConfigKey = "kubernetes_config"
 )
