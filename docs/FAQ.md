@@ -32,6 +32,7 @@
   - [How can disk space be recovered?](#how-can-disk-space-be-recovered)
     - [Automatic](#automatic)
     - [Manual](#manual)
+  - [How can disk size be increased?](#how-can-disk-size-be-increased)
   - [Are Lima overrides supported?](#are-lima-overrides-supported)
   - [Troubleshooting](#troubleshooting)
     - [Colima not starting](#colima-not-starting)
@@ -289,6 +290,18 @@ For Colima v0.5.0 and above, user can manually recover the disk space by running
 # '-v' may be added for verbose output
 colima ssh -- sudo fstrim -a
 ```
+
+## How can disk size be increased?
+
+Disk size is automatically increased on start up based on configuration in `colima.yaml`
+
+```diff
+- disk: 150
++ disk: 250
+```
+
+__Note:__ This feature is available from Version 0.5.3.
+
 
 ## Are Lima overrides supported?
 
