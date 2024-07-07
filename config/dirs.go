@@ -46,7 +46,7 @@ var (
 				return dir, nil
 			}
 
-			dir, err = os.UserHomeDir()
+			dir, err := os.UserHomeDir()
 			if err != nil {
 				return "", err
 			}
