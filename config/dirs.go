@@ -42,8 +42,7 @@ var (
 	configBaseDir = requiredDir{
 		dir: func() (string, error) {
 			dir := os.Getenv("COLIMA_HOME")
-			_, err := os.Stat(dir)
-			if err == nil {
+			if _, err := os.Stat(dir); err == nil {
 				return dir, nil
 			}
 
