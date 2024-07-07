@@ -41,6 +41,11 @@ func (r *requiredDir) Dir() string {
 var (
 	configBaseDir = requiredDir{
 		dir: func() (string, error) {
+			dir := os.Getenv("COLIMA_HOME")
+			if _, err := os.Stat(dir); err == nil {
+				return dir, nil
+			}
+
 			dir, err := os.UserHomeDir()
 			if err != nil {
 				return "", err

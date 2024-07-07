@@ -153,7 +153,7 @@ cpuType: host
 provision: []
 
 # Modify ~/.ssh/config automatically to include a SSH config for the virtual machine.
-# SSH config will still be generated in ~/.colima/ssh_config regardless.
+# SSH config will still be generated in $COLIMA_HOME/ssh_config regardless.
 # Default: true
 sshConfig: true
 
