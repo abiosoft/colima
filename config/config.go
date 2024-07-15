@@ -69,15 +69,19 @@ var (
 
 // Config is the application config.
 type Config struct {
-	CPU          int               `yaml:"cpu,omitempty"`
-	Disk         int               `yaml:"disk,omitempty"`
-	Memory       int               `yaml:"memory,omitempty"`
-	Arch         string            `yaml:"arch,omitempty"`
-	CPUType      string            `yaml:"cpuType,omitempty"`
-	ForwardAgent bool              `yaml:"forwardAgent,omitempty"`
-	Network      Network           `yaml:"network,omitempty"`
-	Env          map[string]string `yaml:"env,omitempty"` // environment variables
-	Hostname     string            `yaml:"hostname"`
+	CPU      int               `yaml:"cpu,omitempty"`
+	Disk     int               `yaml:"disk,omitempty"`
+	Memory   int               `yaml:"memory,omitempty"`
+	Arch     string            `yaml:"arch,omitempty"`
+	CPUType  string            `yaml:"cpuType,omitempty"`
+	Network  Network           `yaml:"network,omitempty"`
+	Env      map[string]string `yaml:"env,omitempty"` // environment variables
+	Hostname string            `yaml:"hostname"`
+
+	// SSH
+	SSHPort      int  `yaml:"sshPort,omitempty"`
+	ForwardAgent bool `yaml:"forwardAgent,omitempty"`
+	SSHConfig    bool `yaml:"sshConfig,omitempty"` // config generation
 
 	// VM
 	VMType    string `yaml:"vmType,omitempty"`
@@ -100,9 +104,6 @@ type Config struct {
 
 	// provision scripts
 	Provision []Provision `yaml:"provision,omitempty"`
-
-	// SSH config generation
-	SSHConfig bool `yaml:"sshConfig,omitempty"`
 }
 
 // Kubernetes is kubernetes configuration

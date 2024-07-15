@@ -71,7 +71,7 @@ func newConf(ctx context.Context, conf config.Config) (l Config, err error) {
 	if conf.Disk > 0 {
 		l.Disk = fmt.Sprintf("%dGiB", conf.Disk)
 	}
-	l.SSH = SSH{LocalPort: 0, LoadDotSSHPubKeys: false, ForwardAgent: conf.ForwardAgent}
+	l.SSH = SSH{LocalPort: conf.SSHPort, LoadDotSSHPubKeys: false, ForwardAgent: conf.ForwardAgent}
 	l.Containerd = Containerd{System: false, User: false}
 
 	l.DNS = conf.Network.DNSResolvers
