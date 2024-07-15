@@ -175,11 +175,10 @@ func init() {
 	startCmd.Flags().StringVar(&startCmdArgs.MountType, "mount-type", defaultMountTypeQEMU, "volume driver for the mount ("+mounts+")")
 	startCmd.Flags().BoolVar(&startCmdArgs.MountINotify, "mount-inotify", true, "propagate inotify file events to the VM")
 
-	// ssh agent
+	// ssh
 	startCmd.Flags().BoolVarP(&startCmdArgs.ForwardAgent, "ssh-agent", "s", false, "forward SSH agent to the VM")
-
-	// ssh config generation
 	startCmd.Flags().BoolVar(&startCmdArgs.SSHConfig, "ssh-config", true, "generate SSH config in ~/.ssh/config")
+	startCmd.Flags().IntVar(&startCmdArgs.SSHPort, "ssh-port", 0, "SSH server port")
 
 	// k8s
 	startCmd.Flags().BoolVarP(&startCmdArgs.Kubernetes.Enabled, "kubernetes", "k", false, "start with Kubernetes")
@@ -241,7 +240,7 @@ func mountsFromFlag(mounts []string) []config.Mount {
 func setDefaults(cmd *cobra.Command) {
 	if startCmdArgs.VMType == "" {
 		startCmdArgs.VMType = defaultVMType
-	} 
+	}
 
 	if util.MacOS13OrNewer() {
 		// changing to vz implies changing mount type to virtiofs
@@ -377,6 +376,9 @@ func prepareConfig(cmd *cobra.Command) {
 	}
 	if !cmd.Flag("ssh-config").Changed {
 		startCmdArgs.SSHConfig = current.SSHConfig
+	}
+	if !cmd.Flag("ssh-port").Changed {
+		startCmdArgs.SSHPort = current.SSHPort
 	}
 	if !cmd.Flag("dns").Changed {
 		startCmdArgs.Network.DNSResolvers = current.Network.DNSResolvers

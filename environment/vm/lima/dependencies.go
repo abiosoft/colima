@@ -15,7 +15,7 @@ import (
 
 // cacheDependencies downloads the ubuntu deb files to a path on the host.
 // The return value is the directory of the downloaded deb files.
-func (l *limaVM) cacheDependencies(src deb.URISource, log *logrus.Entry, conf config.Config) (string, error) {
+func (l *limaVM) cacheDependencies(src deb.URISource, conf config.Config) (string, error) {
 	codename, err := l.RunOutput("sh", "-c", `grep "^UBUNTU_CODENAME" /etc/os-release | cut -d= -f2`)
 	if err != nil {
 		return "", fmt.Errorf("error retrieving OS version from vm: %w", err)
@@ -80,7 +80,7 @@ func (l *limaVM) installDependencies(log *logrus.Entry, conf config.Config) erro
 		}
 
 		// cache dependencies
-		dir, err := l.cacheDependencies(src, log, conf)
+		dir, err := l.cacheDependencies(src, conf)
 		if err != nil {
 			log.Warnln(fmt.Errorf("error caching dependencies for %s: %w", src.Name(), err))
 			log.Warnln("falling back to normal package install")
