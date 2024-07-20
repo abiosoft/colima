@@ -121,7 +121,7 @@ func getInstance(profileID string) (InstanceInfo, error) {
 func Instances(ids ...string) ([]InstanceInfo, error) {
 	limaIDs := make([]string, len(ids))
 	for i := range ids {
-		limaIDs = append(limaIDs, config.Profile(ids[i]).ID)
+		limaIDs[i] = config.Profile(ids[i]).ID
 	}
 	args := append([]string{"list", "--json"}, limaIDs...)
 
