@@ -19,9 +19,7 @@ import (
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/docker"
 	"github.com/abiosoft/colima/environment/container/kubernetes"
-	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/util"
-	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -290,14 +288,14 @@ func setConfigDefaults(conf *config.Config) {
 }
 
 func setFixedConfigs(conf *config.Config) {
-	fixedConf, err := configmanager.LoadFrom(limautil.ColimaStateFile(config.CurrentProfile().ID))
+	fixedConf, err := configmanager.LoadFrom(config.CurrentProfile().StateFile())
 	if err != nil {
 		return
 	}
 
 	warnIfNotEqual := func(name, newVal, fixedVal string) {
 		if newVal != fixedVal {
-			logrus.Warnln(fmt.Errorf("'%s' cannot be updated after initial setup, discarded", name))
+			log.Warnln(fmt.Errorf("'%s' cannot be updated after initial setup, discarded", name))
 		}
 	}
 
