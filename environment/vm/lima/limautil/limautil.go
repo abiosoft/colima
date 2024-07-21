@@ -25,7 +25,7 @@ const LimactlCommand = "limactl"
 func Limactl(args ...string) *exec.Cmd {
 	cmd := cli.Command(LimactlCommand, args...)
 	cmd.Env = append(cmd.Env, os.Environ()...)
-	cmd.Env = append(cmd.Env, EnvLimaHome+"="+LimaHome())
+	cmd.Env = append(cmd.Env, EnvLimaHome+"="+config.LimaDir())
 	return cmd
 }
 
@@ -88,7 +88,7 @@ func (i InstanceInfo) Running() bool { return i.Status == limaStatusRunning }
 
 // Config returns the current Colima config
 func (i InstanceInfo) Config() (config.Config, error) {
-	return configmanager.LoadFrom(ColimaStateFile(i.Name))
+	return configmanager.LoadFrom(config.ProfileFromName(i.Name).StateFile())
 }
 
 // Lima statuses
@@ -195,14 +195,4 @@ func getRuntime(conf config.Config) string {
 		runtime += "+k3s"
 	}
 	return runtime
-}
-
-// LimaHome returns the config directory for Lima.
-func LimaHome() string {
-	// if LIMA_HOME env var is set, obey it.
-	if dir := os.Getenv(EnvLimaHome); dir != "" {
-		return dir
-	}
-
-	return config.LimaDir()
 }

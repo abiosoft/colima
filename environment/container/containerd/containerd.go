@@ -53,11 +53,6 @@ func (c containerdRuntime) Name() string {
 }
 
 func (c containerdRuntime) Provision(context.Context) error {
-	if err := c.guest.RunQuiet("sh", "-c",
-		`sudo sed -i '/disabled_plugins =/c\disabled_plugins = []' /etc/containerd/config.toml`,
-	); err != nil {
-		return err
-	}
 	return c.guest.Write(buildKitConfFile, buildKitConf)
 }
 

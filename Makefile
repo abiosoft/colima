@@ -73,3 +73,7 @@ nix-derivation-shell:
 .PHONY: integration
 integration: build
 	GOARCH=$(GOARCH) COLIMA_BINARY=$(OUTPUT_DIR)/$(OUTPUT_BIN) scripts/integration.sh
+
+.PHONY: images-sha
+images-sha:
+	bash embedded/images/images_sha.sh

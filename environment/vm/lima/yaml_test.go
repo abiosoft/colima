@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/environment/vm/lima/limaconfig"
 	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/fsutil"
 )
@@ -77,7 +78,7 @@ func Test_config_Mounts(t *testing.T) {
 				expectedLocations = append([]string{config.CacheDir()}, tt.mounts...)
 			}
 
-			sameMounts := func(expectedLocations []string, mounts []Mount) bool {
+			sameMounts := func(expectedLocations []string, mounts []limaconfig.Mount) bool {
 				sanitize := func(s string) string { return strings.TrimSuffix(s, "/") + "/" }
 				for i, m := range mounts {
 					if sanitize(m.Location) != sanitize(expectedLocations[i]) {

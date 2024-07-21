@@ -1,0 +1,4 @@
+arm64 none /Users/administrator/projects/colima-core/dist/img/ubuntu-24.04-minimal-cloudimg-arm64-none.qcow2
+arm64 docker /Users/administrator/projects/colima-core/dist/img/ubuntu-24.04-minimal-cloudimg-arm64-docker.qcow2
+arm64 containerd /Users/administrator/projects/colima-core/dist/img/ubuntu-24.04-minimal-cloudimg-arm64-containerd.qcow2
+arm64 incus /Users/administrator/projects/colima-core/dist/img/ubuntu-24.04-minimal-cloudimg-arm64-incus.qcow2

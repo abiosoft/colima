@@ -9,12 +9,13 @@ import (
 	"github.com/abiosoft/colima/daemon"
 	"github.com/abiosoft/colima/daemon/process/inotify"
 	"github.com/abiosoft/colima/daemon/process/vmnet"
+	"github.com/abiosoft/colima/environment/vm/lima/limaconfig"
 	"github.com/abiosoft/colima/util"
 )
 
 func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.Context, error) {
-	isQEMU := conf.VMType == QEMU
-	isVZ := conf.VMType == VZ
+	isQEMU := conf.VMType == limaconfig.QEMU
+	isVZ := conf.VMType == limaconfig.VZ
 
 	// limited to macOS (with Qemu driver)
 	// or vz with inotify enabled
