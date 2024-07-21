@@ -9,9 +9,9 @@
 
 ## Features
 
-- Intel and M1 Macs support
+  Support for Intel and Apple Silicion Macs
 - Simple CLI interface
-- Docker and Containerd support
+- Support for multiple runtimes including Docker and Containerd
 - Port Forwarding
 - Volume mounts
 - Kubernetes
