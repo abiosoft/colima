@@ -13,7 +13,6 @@ import (
 	"github.com/abiosoft/colima/core"
 	"github.com/abiosoft/colima/daemon"
 	"github.com/abiosoft/colima/environment"
-	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/environment/vm/lima/limaconfig"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/util"
@@ -306,13 +305,6 @@ func (l *limaVM) syncDiskSize(ctx context.Context, conf config.Config) config.Co
 }
 
 func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Config) {
-	// containerd dependencies
-	if conf.Runtime == containerd.Name {
-		a.Add(func() error {
-			return core.SetupContainerdUtils(l.host, l, environment.Arch(conf.Arch))
-		})
-	}
-
 	// registry certs
 	a.Add(l.copyCerts)
 
