@@ -14,6 +14,7 @@ import (
 	"github.com/abiosoft/colima/daemon"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/containerd"
+	"github.com/abiosoft/colima/environment/vm/lima/limaconfig"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/osutil"
@@ -24,7 +25,7 @@ import (
 // New creates a new virtual machine.
 func New(host environment.HostActions) environment.VM {
 	// lima config directory
-	limaHome := limautil.LimaHome()
+	limaHome := config.LimaDir()
 
 	// environment variables for the subprocesses
 	var envs []string
@@ -62,7 +63,7 @@ type limaVM struct {
 	conf config.Config
 
 	// lima config
-	limaConf Config
+	limaConf limaconfig.Config
 
 	// lima config directory
 	limaHome string
@@ -271,7 +272,7 @@ func (l *limaVM) syncDiskSize(ctx context.Context, conf config.Config) config.Co
 			return false
 		}
 
-		if conf.VMType == VZ {
+		if conf.VMType == limaconfig.VZ {
 			log.Warnln("dynamic disk resize not supported for VZ driver, ignoring...")
 			return false
 		}
@@ -305,11 +306,6 @@ func (l *limaVM) syncDiskSize(ctx context.Context, conf config.Config) config.Co
 }
 
 func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Config) {
-	// package dependencies
-	a.Add(func() error {
-		return l.installDependencies(a.Logger(), conf)
-	})
-
 	// containerd dependencies
 	if conf.Runtime == containerd.Name {
 		a.Add(func() error {
@@ -354,7 +350,7 @@ func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Conf
 
 	// preserve state
 	a.Add(func() error {
-		if err := configmanager.SaveToFile(conf, limautil.ColimaStateFile(config.CurrentProfile().ID)); err != nil {
+		if err := configmanager.SaveToFile(conf, config.CurrentProfile().StateFile()); err != nil {
 			logrus.Warnln(fmt.Errorf("error persisting Colima state: %w", err))
 		}
 		return nil

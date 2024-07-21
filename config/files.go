@@ -105,6 +105,11 @@ var (
 
 	limaDir = requiredDir{
 		dir: func() (string, error) {
+			// if LIMA_HOME env var is set, obey it.
+			if dir := os.Getenv("LIMA_HOME"); dir != "" {
+				return dir, nil
+			}
+
 			dir, err := configBaseDir.dir()
 			if err != nil {
 				return "", err

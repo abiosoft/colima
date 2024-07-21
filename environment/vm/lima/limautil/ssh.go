@@ -68,5 +68,5 @@ func (s sshConfig) Contents() (string, error) {
 // File returns the path to the SSH config file.
 func (s sshConfig) File() string {
 	profile := config.ProfileFromName(string(s))
-	return filepath.Join(LimaHome(), profile.ID, sshConfigFile)
+	return filepath.Join(profile.LimaInstanceDir(), sshConfigFile)
 }
