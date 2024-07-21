@@ -6,6 +6,9 @@ import (
 	"log"
 )
 
+// IsNoneRuntime returns if runtime is none.
+func IsNoneRuntime(runtime string) bool { return runtime == "none" }
+
 // Container is container environment.
 type Container interface {
 	// Name is the name of the container runtime. e.g. docker, containerd

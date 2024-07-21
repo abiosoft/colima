@@ -2,8 +2,11 @@ package incus
 
 import (
 	"context"
+	_ "embed"
+	"path/filepath"
 
 	"github.com/abiosoft/colima/cli"
+	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
 )
 
@@ -14,6 +17,11 @@ func newRuntime(host environment.HostActions, guest environment.GuestActions) en
 		CommandChain: cli.New(Name),
 	}
 }
+
+var configDir = func() string { return config.CurrentProfile().ConfigDir() }
+
+// HostSocketFile returns the path to the containerd socket on host.
+func HostSocketFile() string { return filepath.Join(configDir(), "incus.sock") }
 
 const Name = "incus"
 
@@ -55,3 +63,10 @@ func (c *containerdRuntime) Version(ctx context.Context) string { return "v1" }
 func (c containerdRuntime) Name() string {
 	return Name
 }
+
+//go:embed config.yaml
+var configYaml string
+
+// cat incus.yaml | incus admin init --preseed
+// detect with storage list
+// add docker remote
