@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/environment"
@@ -72,36 +73,6 @@ func SetupBinfmt(host hostActions, guest guestActions, arch environment.Arch) er
 	}
 
 	return install()
-}
-
-// SetupContainerdUtils downloads and install containerd utils.
-func SetupContainerdUtils(host hostActions, guest guestActions, arch environment.Arch) error {
-	// ignore if already installed
-	if err := guest.RunQuiet("sh", "-c", "command -v nerdctl && stat /opt/cni/bin/flannel"); err == nil {
-		return nil
-	}
-
-	// download
-	url := baseURL + "containerd-utils-" + arch.Value().GoArch() + ".tar.gz"
-	dest := "/tmp/containerd-utils.tar.gz"
-	if err := downloader.Download(host, guest, downloader.Request{
-		URL:      url,
-		SHA:      downloadSha(url),
-		Filename: dest,
-	}); err != nil {
-		return fmt.Errorf("error downloading containerd-utils: %w", err)
-	}
-
-	// extract
-	if err := guest.Run("sh", "-c",
-		strings.NewReplacer(
-			"{archive}", dest,
-		).Replace(`cd /tmp && sudo tar Cxfz /usr/local {archive} && sudo mkdir -p /opt/cni && sudo mv /usr/local/libexec/cni /opt/cni/bin`),
-	); err != nil {
-		return fmt.Errorf("error extracting containerd utils: %w", err)
-	}
-
-	return nil
 }
 
 // LimaVersionSupported checks if the currently installed Lima version is supported.
