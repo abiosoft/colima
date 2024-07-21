@@ -3,7 +3,9 @@
 cpu: 2
 
 # Size of the disk in GiB to be allocated to the virtual machine.
-# NOTE: changing this has no effect after the virtual machine has been created.
+# NOTE: value can only be increased after virtual machine has been created.
+#       Increasing the disk size requires `vmType: qemu`
+#
 # Default: 60
 disk: 60
 
@@ -12,10 +14,14 @@ disk: 60
 memory: 2
 
 # Architecture of the virtual machine (x86_64, aarch64, host).
+#
+# NOTE: value cannot be changed after virtual machine is created.
 # Default: host
 arch: host
 
 # Container runtime to be used (docker, containerd).
+#
+# NOTE: value cannot be changed after virtual machine is created.
 # Default: docker
 runtime: docker
 
@@ -104,6 +110,7 @@ docker: {}
 #
 # vz is macOS virtualization framework and requires macOS 13
 #
+# NOTE: value cannot be changed after virtual machine is created.
 # Default: qemu
 vmType: qemu
 
@@ -120,6 +127,7 @@ rosetta: false
 # sshfs is faster than 9p but the least reliable of the options (when there are lots
 # of concurrent reads or writes).
 #
+# NOTE: value cannot be changed after virtual machine is created.
 # Default: virtiofs (for vz), sshfs (for qemu)
 mountType: sshfs
 

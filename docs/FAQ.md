@@ -2,9 +2,10 @@
 
 - [FAQs](#faqs)
   - [How does Colima compare to Lima?](#how-does-colima-compare-to-lima)
-  - [Are M1 macs supported?](#are-m1-macs-supported)
+  - [Are Apple Silicon Macs supported?](#are-apple-silicon-macs-supported)
   - [Does Colima support autostart?](#does-colima-support-autostart)
   - [Can config file be used instead of cli flags?](#can-config-file-be-used-instead-of-cli-flags)
+    - [Specifying the config location](#specifying-the-config-location)
     - [Editing the config](#editing-the-config)
     - [Setting the default config](#setting-the-default-config)
     - [Specifying the config editor](#specifying-the-config-editor)
@@ -48,9 +49,9 @@
 
 Colima is basically a higher level usage of Lima and utilises Lima to provide Docker, Containerd and/or Kubernetes.
 
-## Are M1 macs supported?
+## Are Apple Silicon Macs supported?
 
-Colima supports and works on both Intel and M1 macs.
+Colima supports and works on both Intel and Apple Silicon Macs.
 
 Feedbacks would be appreciated.
 

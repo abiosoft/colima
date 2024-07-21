@@ -28,7 +28,7 @@ type Process interface {
 }
 
 // Dir is the directory for daemon files.
-func Dir() string { return filepath.Join(config.Dir(), "daemon") }
+func Dir() string { return filepath.Join(config.CurrentProfile().ConfigDir(), "daemon") }
 
 // Dependency is a requirement to be fulfilled before a process can be started.
 type Dependency interface {

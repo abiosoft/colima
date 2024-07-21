@@ -15,7 +15,7 @@ import (
 
 // Save saves the config.
 func Save(c config.Config) error {
-	return yamlutil.Save(c, config.File())
+	return yamlutil.Save(c, config.CurrentProfile().File())
 }
 
 // SaveFromFile loads configuration from file and save as config.
@@ -35,7 +35,7 @@ func SaveToFile(c config.Config, file string) error {
 // oldConfigFile returns the path to config file of versions <0.4.0.
 // TODO: remove later, only for backward compatibility
 func oldConfigFile() string {
-	_, configFileName := filepath.Split(config.File())
+	_, configFileName := filepath.Split(config.CurrentProfile().File())
 	return filepath.Join(os.Getenv("HOME"), "."+config.CurrentProfile().ID, configFileName)
 }
 
@@ -79,7 +79,7 @@ func ValidateConfig(c config.Config) error {
 // Error is only returned if the config file exists but could not be loaded.
 // No error is returned if the config file does not exist.
 func Load() (config.Config, error) {
-	cFile := config.File()
+	cFile := config.CurrentProfile().File()
 	if _, err := os.Stat(cFile); err != nil {
 		oldCFile := oldConfigFile()
 
@@ -101,8 +101,9 @@ func Load() (config.Config, error) {
 
 // Teardown deletes the config.
 func Teardown() error {
-	if _, err := os.Stat(config.Dir()); err == nil {
-		return os.RemoveAll(config.Dir())
+	dir := config.CurrentProfile().ConfigDir()
+	if _, err := os.Stat(dir); err == nil {
+		return os.RemoveAll(dir)
 	}
 	return nil
 }

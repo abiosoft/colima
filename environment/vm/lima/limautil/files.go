@@ -10,14 +10,14 @@ const colimaStateFile = "colima.yaml"
 
 // ColimaStateFile returns path to the colima state yaml file.
 func ColimaStateFile(profileID string) string {
-	return filepath.Join(LimaHome(), config.Profile(profileID).ID, colimaStateFile)
+	return filepath.Join(LimaHome(), config.ProfileFromName(profileID).ID, colimaStateFile)
 }
 
 const colimaDiffDiskFile = "diffdisk"
 
 // ColimaDiffDisk returns path to the diffdisk for the colima VM.
 func ColimaDiffDisk(profileID string) string {
-	return filepath.Join(LimaHome(), config.Profile(profileID).ID, colimaDiffDiskFile)
+	return filepath.Join(LimaHome(), config.ProfileFromName(profileID).ID, colimaDiffDiskFile)
 }
 
 const networkFile = "networks.yaml"

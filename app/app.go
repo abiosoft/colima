@@ -435,7 +435,7 @@ func generateSSHConfig(modifySSHConfig bool) error {
 			continue
 		}
 
-		profile := config.Profile(i.Name)
+		profile := config.ProfileFromName(i.Name)
 		resp, err := limautil.ShowSSH(profile.ID)
 		if err != nil {
 			log.Trace(fmt.Errorf("error retrieving SSH config for '%s': %w", i.Name, err))

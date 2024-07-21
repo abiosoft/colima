@@ -33,7 +33,7 @@ func ShowSSH(profileID string) (resp struct {
 }
 
 func replaceSSHConfig(conf string, profileID string) string {
-	profileID = config.Profile(profileID).ID
+	profileID = config.ProfileFromName(profileID).ID
 
 	var out bytes.Buffer
 	scanner := bufio.NewScanner(strings.NewReader(conf))
@@ -57,7 +57,7 @@ type sshConfig string
 
 // Contents returns the content of the SSH config file.
 func (s sshConfig) Contents() (string, error) {
-	profile := config.Profile(string(s))
+	profile := config.ProfileFromName(string(s))
 	b, err := os.ReadFile(s.File())
 	if err != nil {
 		return "", fmt.Errorf("error retrieving Lima SSH config file for profile '%s': %w", strings.TrimPrefix(profile.DisplayName, "lima"), err)
@@ -67,6 +67,6 @@ func (s sshConfig) Contents() (string, error) {
 
 // File returns the path to the SSH config file.
 func (s sshConfig) File() string {
-	profile := config.Profile(string(s))
+	profile := config.ProfileFromName(string(s))
 	return filepath.Join(LimaHome(), profile.ID, sshConfigFile)
 }
