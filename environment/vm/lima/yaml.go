@@ -15,6 +15,7 @@ import (
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/environment/container/docker"
+	"github.com/abiosoft/colima/environment/container/incus"
 	"github.com/abiosoft/colima/environment/vm/lima/limaconfig"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/util"
@@ -96,10 +97,21 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 
 		// add user to docker group
 		// "sudo", "usermod", "-aG", "docker", user
-		l.Provision = append(l.Provision, limaconfig.Provision{
-			Mode:   limaconfig.ProvisionModeDependency,
-			Script: "groupadd -f docker && usermod -aG docker {{ .User }}",
-		})
+		if conf.Runtime == docker.Name {
+			l.Provision = append(l.Provision, limaconfig.Provision{
+				Mode:   limaconfig.ProvisionModeDependency,
+				Script: "groupadd -f docker && usermod -aG docker {{ .User }}",
+			})
+		}
+
+		// add user to incus-admin group
+		// "sudo", "usermod", "-aG", "incus-admin", user
+		if conf.Runtime == incus.Name {
+			l.Provision = append(l.Provision, limaconfig.Provision{
+				Mode:   limaconfig.ProvisionModeDependency,
+				Script: "groupadd -f incus-admin && usermod -aG incus-admin {{ .User }}",
+			})
+		}
 
 		// set hostname
 		hostname := config.CurrentProfile().ID
@@ -201,6 +213,15 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 				limaconfig.PortForward{
 					GuestSocket: "/var/run/containerd.sock",
 					HostSocket:  containerd.HostSocketFile(),
+					Proto:       limaconfig.TCP,
+				})
+		}
+
+		if conf.Runtime == incus.Name {
+			l.PortForwards = append(l.PortForwards,
+				limaconfig.PortForward{
+					GuestSocket: "/var/lib/incus/unix.socket",
+					HostSocket:  incus.HostSocketFile(),
 					Proto:       limaconfig.TCP,
 				})
 		}

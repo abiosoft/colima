@@ -53,33 +53,50 @@ type colimaApp struct {
 	guest environment.VM
 }
 
-func (c colimaApp) Start(conf config.Config) error {
-	ctx := context.WithValue(context.Background(), config.CtxKey(), conf)
+func (c colimaApp) startWithRuntime(conf config.Config) ([]environment.Container, error) {
+	var containers []environment.Container
 
 	{
 		runtime := conf.Runtime
 		if conf.Kubernetes.Enabled {
 			runtime += "+k3s"
 		}
-		log.Println("starting", config.CurrentProfile().DisplayName)
 		log.Println("runtime:", runtime)
 	}
-	var containers []environment.Container
+
 	// runtime
 	{
 		env, err := c.containerEnvironment(conf.Runtime)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		containers = append(containers, env)
 	}
+
 	// kubernetes should come after required runtime
 	if conf.Kubernetes.Enabled {
 		env, err := c.containerEnvironment(kubernetes.Name)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		containers = append(containers, env)
+	}
+
+	return containers, nil
+}
+
+func (c colimaApp) Start(conf config.Config) error {
+	ctx := context.WithValue(context.Background(), config.CtxKey(), conf)
+
+	log.Println("starting", config.CurrentProfile().DisplayName)
+
+	var containers []environment.Container
+	if !environment.IsNoneRuntime(conf.Runtime) {
+		cs, err := c.startWithRuntime(conf)
+		if err != nil {
+			return err
+		}
+		containers = cs
 	}
 
 	// the order for start is:
@@ -377,13 +394,17 @@ func (c colimaApp) setKubernetes(conf config.Kubernetes) error {
 
 func (c colimaApp) currentContainerEnvironments(ctx context.Context) ([]environment.Container, error) {
 	var containers []environment.Container
-
 	// runtime
 	{
 		runtime, err := c.currentRuntime(ctx)
 		if err != nil {
 			return nil, err
 		}
+
+		if environment.IsNoneRuntime(runtime) {
+			return nil, nil
+		}
+
 		env, err := c.containerEnvironment(runtime)
 		if err != nil {
 			return nil, err
