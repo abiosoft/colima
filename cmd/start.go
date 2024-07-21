@@ -19,7 +19,9 @@ import (
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/docker"
 	"github.com/abiosoft/colima/environment/container/kubernetes"
+	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/util"
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -237,7 +239,7 @@ func mountsFromFlag(mounts []string) []config.Mount {
 	return mnts
 }
 
-func setDefaults(cmd *cobra.Command) {
+func setFlagDefaults(cmd *cobra.Command) {
 	if startCmdArgs.VMType == "" {
 		startCmdArgs.VMType = defaultVMType
 	}
@@ -287,6 +289,38 @@ func setConfigDefaults(conf *config.Config) {
 	}
 }
 
+func setFixedConfigs(conf *config.Config) {
+	fixedConf, err := configmanager.LoadFrom(limautil.ColimaStateFile(config.CurrentProfile().ID))
+	if err != nil {
+		return
+	}
+
+	warnIfNotEqual := func(name, newVal, fixedVal string) {
+		if newVal != fixedVal {
+			logrus.Warnln(fmt.Errorf("'%s' cannot be updated after initial setup, discarded", name))
+		}
+	}
+
+	// override the fixed configs
+	// arch, vmType, mountType, runtime are fixed and cannot be changed
+	if fixedConf.Arch != "" {
+		warnIfNotEqual("architecture", conf.Arch, fixedConf.Arch)
+		conf.Arch = fixedConf.Arch
+	}
+	if fixedConf.VMType != "" {
+		warnIfNotEqual("virtual machine type", conf.VMType, fixedConf.VMType)
+		conf.VMType = fixedConf.VMType
+	}
+	if fixedConf.Runtime != "" {
+		warnIfNotEqual("runtime", conf.Runtime, fixedConf.Runtime)
+		conf.Runtime = fixedConf.Runtime
+	}
+	if fixedConf.MountType != "" {
+		warnIfNotEqual("volume mount type", conf.MountType, fixedConf.MountType)
+		conf.MountType = fixedConf.MountType
+	}
+}
+
 func prepareConfig(cmd *cobra.Command) {
 	current, err := configmanager.Load()
 	if err != nil {
@@ -312,7 +346,7 @@ func prepareConfig(cmd *cobra.Command) {
 	}
 
 	// set relevant missing default values
-	setDefaults(cmd)
+	setFlagDefaults(cmd)
 
 	// if there is no existing settings
 	if current.Empty() {
@@ -412,12 +446,14 @@ func prepareConfig(cmd *cobra.Command) {
 			}
 		}
 	}
+
+	setFixedConfigs(&startCmdArgs.Config)
 }
 
 // editConfigFile launches an editor to edit the config file.
 func editConfigFile() error {
 	// preserve the current file in case the user terminates
-	currentFile, err := os.ReadFile(config.File())
+	currentFile, err := os.ReadFile(config.CurrentProfile().File())
 	if err != nil {
 		return fmt.Errorf("error reading config file: %w", err)
 	}

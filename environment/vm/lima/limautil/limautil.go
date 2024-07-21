@@ -108,7 +108,7 @@ func getInstance(profileID string) (InstanceInfo, error) {
 	}
 
 	if buf.Len() == 0 {
-		return i, fmt.Errorf("instance '%s' does not exist", config.Profile(profileID).DisplayName)
+		return i, fmt.Errorf("instance '%s' does not exist", config.ProfileFromName(profileID).DisplayName)
 	}
 
 	if err := json.Unmarshal(buf.Bytes(), &i); err != nil {
@@ -121,7 +121,7 @@ func getInstance(profileID string) (InstanceInfo, error) {
 func Instances(ids ...string) ([]InstanceInfo, error) {
 	limaIDs := make([]string, len(ids))
 	for i := range ids {
-		limaIDs[i] = config.Profile(ids[i]).ID
+		limaIDs[i] = config.ProfileFromName(ids[i]).ID
 	}
 	args := append([]string{"list", "--json"}, limaIDs...)
 
@@ -159,7 +159,7 @@ func Instances(ids ...string) ([]InstanceInfo, error) {
 		}
 
 		// rename to local friendly names
-		i.Name = config.Profile(i.Name).ShortName
+		i.Name = config.ProfileFromName(i.Name).ShortName
 
 		// network is low level, remove
 		i.Network = nil

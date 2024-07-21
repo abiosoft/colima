@@ -3,7 +3,6 @@ package config
 import (
 	"net"
 	"path/filepath"
-	"strings"
 
 	"github.com/abiosoft/colima/util"
 )
@@ -11,48 +10,6 @@ import (
 const (
 	AppName = "colima"
 )
-
-var profile = ProfileInfo{ID: AppName, DisplayName: AppName, ShortName: "default"}
-
-// SetProfile sets the profile name for the application.
-// This is an avenue to test Colima without breaking an existing stable setup.
-// Not perfect, but good enough for testing.
-func SetProfile(profileName string) {
-	profile = Profile(profileName)
-}
-
-// Profile converts string to profile info.
-func Profile(name string) ProfileInfo {
-	var i ProfileInfo
-
-	switch name {
-	case "", AppName, "default":
-		i.ID = AppName
-		i.DisplayName = AppName
-		i.ShortName = "default"
-		return i
-	}
-
-	// sanitize
-	name = strings.TrimPrefix(name, "colima-")
-
-	// if custom profile is specified,
-	// use a prefix to prevent possible name clashes
-	i.ID = "colima-" + name
-	i.DisplayName = "colima [profile=" + name + "]"
-	i.ShortName = name
-	return i
-}
-
-// CurrentProfile returns the current application profile.
-func CurrentProfile() ProfileInfo { return profile }
-
-// ProfileInfo is information about the colima profile.
-type ProfileInfo struct {
-	ID          string
-	DisplayName string
-	ShortName   string
-}
 
 // VersionInfo is the application version info.
 type VersionInfo struct {

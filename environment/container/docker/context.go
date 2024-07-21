@@ -6,10 +6,12 @@ import (
 	"github.com/abiosoft/colima/config"
 )
 
+var configDir = func() string { return config.CurrentProfile().ConfigDir() }
+
 // HostSocketFile returns the path to the docker socket on host.
-func HostSocketFile() string { return filepath.Join(config.Dir(), "docker.sock") }
+func HostSocketFile() string { return filepath.Join(configDir(), "docker.sock") }
 func LegacyDefaultHostSocketFile() string {
-	return filepath.Join(filepath.Dir(config.Dir()), "docker.sock")
+	return filepath.Join(filepath.Dir(configDir()), "docker.sock")
 }
 
 func (d dockerRuntime) contextCreated() bool {
