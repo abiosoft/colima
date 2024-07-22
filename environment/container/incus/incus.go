@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
@@ -60,7 +62,7 @@ func (c *incusRuntime) Provision(ctx context.Context) error {
 		Disk      int
 		Interface string
 	}
-	value.Disk = conf.Disk - 5 // use all disk except 5GiB
+	value.Disk = conf.Disk - 5 // use all disk except 5GiB. TODO: revisit.
 	value.Interface = incusBridgeInterface
 
 	buf, err := util.ParseTemplate(configYaml, value)
@@ -69,7 +71,7 @@ func (c *incusRuntime) Provision(ctx context.Context) error {
 	}
 
 	stdin := bytes.NewReader(buf)
-	if err := c.guest.RunWith(stdin, nil, "incus", "admin", "init", "--preseed"); err != nil {
+	if err := c.guest.RunWith(stdin, nil, "sudo", "incus", "admin", "init", "--preseed"); err != nil {
 		return fmt.Errorf("error setting up incus: %w", err)
 	}
 
@@ -93,6 +95,13 @@ func (c *incusRuntime) Start(ctx context.Context) error {
 
 	a.Add(func() error {
 		return c.setRemote(conf.AutoActivate())
+	})
+
+	a.Add(func() error {
+		if err := c.addDockerRemote(); err != nil {
+			return cli.ErrNonFatal(err)
+		}
+		return nil
 	})
 
 	return a.Exec()
@@ -125,16 +134,18 @@ func (c incusRuntime) Name() string {
 }
 
 func (c incusRuntime) setRemote(activate bool) error {
+	name := config.CurrentProfile().ID
+
 	// add remote
-	if !c.hasRemote() {
-		if err := c.host.RunQuiet("incus", "remote", "add", config.CurrentProfile().ID, "unix://"+HostSocketFile()); err != nil {
+	if !c.hasRemote(name) {
+		if err := c.host.RunQuiet("incus", "remote", "add", name, "unix://"+HostSocketFile()); err != nil {
 			return err
 		}
 	}
 
 	// if activate, set default to new remote
 	if activate {
-		return c.host.RunQuiet("incus", "remote", "switch", config.CurrentProfile().ID)
+		return c.host.RunQuiet("incus", "remote", "switch", name)
 	}
 
 	return nil
@@ -149,15 +160,35 @@ func (c incusRuntime) unsetRemote() error {
 	}
 
 	// if has remote, remove remote
-	if c.hasRemote() {
+	if c.hasRemote(config.CurrentProfile().ID) {
 		return c.host.RunQuiet("incus", "remote", "remove", config.CurrentProfile().ID)
 	}
 
 	return nil
 }
 
-func (c incusRuntime) hasRemote() bool {
-	return c.host.RunQuiet("sh", "-c", "incus remote list | grep "+HostSocketFile()) == nil
+func (c incusRuntime) hasRemote(name string) bool {
+	remotes, err := c.fetchRemotes()
+	if err != nil {
+		return false
+	}
+
+	_, ok := remotes[name]
+	return ok
+}
+
+func (c incusRuntime) fetchRemotes() (remoteInfo, error) {
+	b, err := c.host.RunOutput("incus", "remote", "list", "--format", "json")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching remotes: %w", err)
+	}
+
+	var remotes remoteInfo
+	if err := json.NewDecoder(strings.NewReader(b)).Decode(&remotes); err != nil {
+		return nil, fmt.Errorf("error decoding remotes response: %w", err)
+	}
+
+	return remotes, nil
 }
 
 func (c incusRuntime) isDefaultRemote() bool {
@@ -165,10 +196,21 @@ func (c incusRuntime) isDefaultRemote() bool {
 	return remote == config.CurrentProfile().ID
 }
 
+func (c incusRuntime) addDockerRemote() error {
+	if c.hasRemote("docker") {
+		// already added
+		return nil
+	}
+
+	return c.host.RunQuiet("incus", "remote", "add", "docker", "https://docker.io", "--protocol=oci")
+}
+
 //go:embed config.yaml
 var configYaml string
 
-// cat incus.yaml | incus admin init --preseed
-// detect with netword bridge 'ip addr show incusbr0'
+// use --format json to list remotes
 // add docker remote
-// disable kubernetes for incus
+
+type remoteInfo map[string]struct {
+	Addr string `json:"Addr"`
+}
