@@ -5,7 +5,7 @@ networks:
     ipv4.address: auto
     ipv6.address: auto
   description: ""
-  name: incusbr0
+  name: {{.Interface}}
   type: ""
   project: default
 storage_pools:
@@ -20,7 +20,7 @@ profiles:
   devices:
     eth0:
       name: eth0
-      network: incusbr0
+      network: {{.Interface}}
       type: nic
     root:
       path: /
