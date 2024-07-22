@@ -13,6 +13,7 @@ import (
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/config/configmanager"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/environment/container/docker"
 	"github.com/abiosoft/colima/environment/container/kubernetes"
 	"github.com/abiosoft/colima/environment/host"
@@ -54,11 +55,20 @@ type colimaApp struct {
 }
 
 func (c colimaApp) startWithRuntime(conf config.Config) ([]environment.Container, error) {
+	kubernetesEnabled := conf.Kubernetes.Enabled
+
+	// Kubernetes can only be enabled for docker and containerd
+	switch conf.Runtime {
+	case docker.Name, containerd.Name:
+	default:
+		kubernetesEnabled = false
+	}
+
 	var containers []environment.Container
 
 	{
 		runtime := conf.Runtime
-		if conf.Kubernetes.Enabled {
+		if kubernetesEnabled {
 			runtime += "+k3s"
 		}
 		log.Println("runtime:", runtime)
@@ -74,7 +84,7 @@ func (c colimaApp) startWithRuntime(conf config.Config) ([]environment.Container
 	}
 
 	// kubernetes should come after required runtime
-	if conf.Kubernetes.Enabled {
+	if kubernetesEnabled {
 		env, err := c.containerEnvironment(kubernetes.Name)
 		if err != nil {
 			return nil, err
