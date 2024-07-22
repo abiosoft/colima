@@ -208,9 +208,6 @@ func (c incusRuntime) addDockerRemote() error {
 //go:embed config.yaml
 var configYaml string
 
-// use --format json to list remotes
-// add docker remote
-
 type remoteInfo map[string]struct {
 	Addr string `json:"Addr"`
 }
