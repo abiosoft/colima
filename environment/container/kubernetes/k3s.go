@@ -46,11 +46,10 @@ func installK3sBinary(
 	}
 	a.Add(func() error {
 		r := downloader.Request{
-			URL:      url,
-			Filename: downloadPath,
-			SHA:      &downloader.SHA{Size: 256, URL: shaURL},
+			URL: url,
+			SHA: &downloader.SHA{Size: 256, URL: shaURL},
 		}
-		return downloader.Download(host, guest, r)
+		return downloader.DownloadToGuest(host, guest, r, downloadPath)
 	})
 	a.Add(func() error {
 		return guest.Run("sudo", "install", downloadPath, "/usr/local/bin/k3s")
@@ -75,11 +74,10 @@ func installK3sCache(
 	shaURL := baseURL + shaSumTxt
 	a.Add(func() error {
 		r := downloader.Request{
-			URL:      url,
-			Filename: downloadPathTarGz,
-			SHA:      &downloader.SHA{Size: 256, URL: shaURL},
+			URL: url,
+			SHA: &downloader.SHA{Size: 256, URL: shaURL},
 		}
-		return downloader.Download(host, guest, r)
+		return downloader.DownloadToGuest(host, guest, r, downloadPathTarGz)
 	})
 	a.Add(func() error {
 		return guest.Run("gzip", "-f", "-d", downloadPathTarGz)
@@ -129,8 +127,8 @@ func installK3sCluster(
 	downloadPath := "/tmp/k3s-install.sh"
 	url := "https://raw.githubusercontent.com/k3s-io/k3s/" + k3sVersion + "/install.sh"
 	a.Add(func() error {
-		r := downloader.Request{URL: url, Filename: downloadPath}
-		return downloader.Download(host, guest, r)
+		r := downloader.Request{URL: url}
+		return downloader.DownloadToGuest(host, guest, r, downloadPath)
 	})
 	a.Add(func() error {
 		return guest.Run("sudo", "install", downloadPath, "/usr/local/bin/k3s-install.sh")

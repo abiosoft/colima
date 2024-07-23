@@ -54,11 +54,10 @@ func SetupBinfmt(host hostActions, guest guestActions, arch environment.Arch) er
 	// download
 	url := baseURL + "binfmt-" + arch.Value().GoArch() + ".tar.gz"
 	dest := "/tmp/binfmt.tar.gz"
-	if err := downloader.Download(host, guest, downloader.Request{
+	if err := downloader.DownloadToGuest(host, guest, downloader.Request{
 		URL:      url,
 		SHA:      downloadSha(url),
-		Filename: dest,
-	}); err != nil {
+	}, dest); err != nil {
 		return fmt.Errorf("error downloading binfmt: %w", err)
 	}
 

@@ -3,6 +3,7 @@ package downloader
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -19,11 +20,20 @@ type (
 )
 
 type SHA struct {
-	URL  string // url to download the shasum file
-	Size int    // one of 256 or 512
+	URL    string // url to download the shasum file (if Digest is empty)
+	Size   int    // one of 256 or 512
+	Digest string // shasum
 }
 
 func (s SHA) validate(host hostActions, url, cacheFilename string) error {
+	if s.URL == "" && s.Digest == "" {
+		return fmt.Errorf("error validating SHA: one of Digest or URL must be set")
+	}
+
+	if s.Digest != "" {
+		s.Digest = strings.TrimPrefix(s.Digest, fmt.Sprintf("sha%d:", s.Size))
+	}
+
 	filename := func() string {
 		if url == "" {
 			return ""
@@ -33,54 +43,75 @@ func (s SHA) validate(host hostActions, url, cacheFilename string) error {
 	}()
 	dir, cacheFilename := filepath.Split(cacheFilename)
 
-	script := strings.NewReplacer(
-		"{dir}", dir,
-		"{url}", s.URL,
-		"{filename}", filename,
-		"{size}", strconv.Itoa(s.Size),
-		"{cache_filename}", cacheFilename,
-	).Replace(
-		`cd {dir} && echo "$(curl -sL {url} | grep '  {filename}$' | awk -F' ' '{print $1}')  {cache_filename}" | shasum -a {size} --check --status`,
-	)
+	var script string
+
+	if s.Digest == "" {
+		script = strings.NewReplacer(
+			"{dir}", dir,
+			"{url}", s.URL,
+			"{filename}", filename,
+			"{size}", strconv.Itoa(s.Size),
+			"{cache_filename}", cacheFilename,
+		).Replace(
+			`cd {dir} && echo "$(curl -sL {url} | grep '  {filename}$' | awk -F' ' '{print $1}')  {cache_filename}" | shasum -a {size} --check --status`,
+		)
+	} else {
+		script = strings.NewReplacer(
+			"{dir}", dir,
+			"{digest}", s.Digest,
+			"{filename}", filename,
+			"{size}", strconv.Itoa(s.Size),
+			"{cache_filename}", cacheFilename,
+		).Replace(
+			`cd {dir} && echo "{digest}  {cache_filename}" | shasum -a {size} --check --status`,
+		)
+	}
 
 	return host.Run("sh", "-c", script)
 }
 
 // Request is download request
 type Request struct {
-	URL      string // request URL
-	SHA      *SHA   // shasum url
-	Filename string // destination file name (absolute path)
+	URL string // request URL
+	SHA *SHA   // shasum url
 }
 
-// Download downloads file at url and saves it in the destination.
+// DownloadToGuest downloads file at url and saves it in the destination.
 //
 // In the implementation, the file is downloaded (and cached) on the host, but copied to the desired
 // destination for the guest.
-// Request.Filename must be a directory on the guest that does not require root access.
-func Download(host hostActions, guest guestActions, r Request) error {
-	d := downloader{
-		host:  host,
-		guest: guest,
-	}
-
+// filename must be an absolute path and a directory on the guest that does not require root access.
+func DownloadToGuest(host hostActions, guest guestActions, r Request, filename string) error {
 	// if file is on the filesystem, no need for download. A copy suffices
 	if strings.HasPrefix(r.URL, "/") {
-		return guest.RunQuiet("cp", r.URL, r.Filename)
+		return guest.RunQuiet("cp", r.URL, filename)
+	}
+
+	cacheFile, err := Download(host, r)
+	if err != nil {
+		return err
+	}
+
+	return guest.RunQuiet("cp", cacheFile, filename)
+}
+
+// Download downloads file at url and returns the location of the downloaded file.
+func Download(host hostActions, r Request) (string, error) {
+	d := downloader{
+		host: host,
 	}
 
 	if !d.hasCache(r.URL) {
 		if err := d.downloadFile(r); err != nil {
-			return fmt.Errorf("error downloading '%s': %w", r.URL, err)
+			return "", fmt.Errorf("error downloading '%s': %w", r.URL, err)
 		}
 	}
 
-	return guest.RunQuiet("cp", d.cacheFilename(r.URL), r.Filename)
+	return d.cacheFilename(r.URL), nil
 }
 
 type downloader struct {
-	host  hostActions
-	guest guestActions
+	host hostActions
 }
 
 func (d downloader) cacheFilename(url string) string {
@@ -120,7 +151,7 @@ func (d downloader) downloadFile(r Request) (err error) {
 			// error discarded, would not be actioned anyways
 			_ = d.host.RunQuiet("mv", cacheDownloadingFilename, cacheDownloadingFilename+".invalid")
 
-			return fmt.Errorf("error validating SHA sum for '%s': %w", filepath.Base(r.Filename), err)
+			return fmt.Errorf("error validating SHA sum for '%s': %w", path.Base(r.URL), err)
 		}
 	}
 

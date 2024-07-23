@@ -90,21 +90,28 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 	})
 
 	a.Stage("creating and starting")
-	configFile := filepath.Join(os.TempDir(), config.CurrentProfile().ID+".yaml")
+	confFile := filepath.Join(os.TempDir(), config.CurrentProfile().ID+".yaml")
 
 	a.Add(func() (err error) {
 		l.limaConf, err = newConf(ctx, conf)
-		if err != nil {
-			return err
-		}
-		return yamlutil.WriteYAML(l.limaConf, configFile)
+		return err
 	})
+
+	a.Stage("downloading disk image")
+	a.Add(func() error {
+		return l.downloadDiskImage(conf)
+	})
+
+	a.Add(func() error {
+		return yamlutil.WriteYAML(l.limaConf, confFile)
+	})
+
 	a.Add(l.writeNetworkFile)
 	a.Add(func() error {
-		return l.host.Run(limactl, "start", "--tty=false", configFile)
+		return l.host.Run(limactl, "start", "--tty=false", confFile)
 	})
 	a.Add(func() error {
-		return os.Remove(configFile)
+		return os.Remove(confFile)
 	})
 
 	// adding it to command chain to execute only after successful startup.
@@ -137,10 +144,16 @@ func (l *limaVM) resume(ctx context.Context, conf config.Config) error {
 		conf = l.syncDiskSize(ctx, conf)
 
 		l.limaConf, err = newConf(ctx, conf)
-		if err != nil {
-			return err
-		}
-		return yamlutil.WriteYAML(l.limaConf, l.limaConfFile())
+		return err
+	})
+
+	a.Add(func() error {
+		return l.downloadDiskImage(conf)
+	})
+
+	a.Add(func() error {
+		err := yamlutil.WriteYAML(l.limaConf, l.limaConfFile())
+		return err
 	})
 
 	a.Add(l.writeNetworkFile)
@@ -255,6 +268,16 @@ func (l limaVM) User() (string, error) {
 func (l limaVM) Arch() environment.Arch {
 	a, _ := l.RunOutput("uname", "-m")
 	return environment.Arch(a)
+}
+
+func (l *limaVM) downloadDiskImage(conf config.Config) error {
+	image, err := limautil.Image(l.limaConf.Arch, conf.Runtime)
+	if err != nil {
+		return fmt.Errorf("error getting qcow image: %w", err)
+	}
+
+	l.limaConf.Images = append(l.limaConf.Images, image)
+	return nil
 }
 
 func (l *limaVM) syncDiskSize(ctx context.Context, conf config.Config) config.Config {
