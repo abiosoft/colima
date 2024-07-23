@@ -19,6 +19,7 @@ import (
 	"github.com/abiosoft/colima/util/osutil"
 	"github.com/abiosoft/colima/util/yamlutil"
 	"github.com/sirupsen/logrus"
+	yaml "gopkg.in/yaml.v3"
 )
 
 // New creates a new virtual machine.
@@ -47,10 +48,6 @@ const (
 	lima            = "lima"
 	limactl         = limautil.LimactlCommand
 )
-
-func (l limaVM) limaConfFile() string {
-	return filepath.Join(l.limaHome, config.CurrentProfile().ID, "lima.yaml")
-}
 
 var _ environment.VM = (*limaVM)(nil)
 
@@ -147,12 +144,10 @@ func (l *limaVM) resume(ctx context.Context, conf config.Config) error {
 		return err
 	})
 
-	a.Add(func() error {
-		return l.downloadDiskImage(conf)
-	})
+	a.Add(l.setDiskImage)
 
 	a.Add(func() error {
-		err := yamlutil.WriteYAML(l.limaConf, l.limaConfFile())
+		err := yamlutil.WriteYAML(l.limaConf, config.CurrentProfile().LimaFile())
 		return err
 	})
 
@@ -257,7 +252,7 @@ func (l limaVM) Env(s string) (string, error) {
 }
 
 func (l limaVM) Created() bool {
-	stat, err := os.Stat(l.limaConfFile())
+	stat, err := os.Stat(config.CurrentProfile().LimaFile())
 	return err == nil && !stat.IsDir()
 }
 
@@ -277,6 +272,20 @@ func (l *limaVM) downloadDiskImage(conf config.Config) error {
 	}
 
 	l.limaConf.Images = append(l.limaConf.Images, image)
+	return nil
+}
+
+func (l *limaVM) setDiskImage() error {
+	var c limaconfig.Config
+	b, err := os.ReadFile(config.CurrentProfile().LimaFile())
+	if err != nil {
+		return err
+	}
+	if err := yaml.Unmarshal(b, &c); err != nil {
+		return err
+	}
+
+	l.limaConf.Images = c.Images
 	return nil
 }
 
