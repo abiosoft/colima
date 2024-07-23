@@ -94,9 +94,8 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 		return err
 	})
 
-	a.Stage("downloading disk image")
 	a.Add(func() error {
-		return l.downloadDiskImage(conf)
+		return l.downloadDiskImage(ctx, conf)
 	})
 
 	a.Add(func() error {
@@ -265,13 +264,21 @@ func (l limaVM) Arch() environment.Arch {
 	return environment.Arch(a)
 }
 
-func (l *limaVM) downloadDiskImage(conf config.Config) error {
-	image, err := limautil.Image(l.limaConf.Arch, conf.Runtime)
+func (l *limaVM) downloadDiskImage(ctx context.Context, conf config.Config) error {
+	log := l.Logger(ctx)
+
+	if image, ok := limautil.ImageCached(l.limaConf.Arch, conf.Runtime); ok {
+		l.limaConf.Images = []limaconfig.File{image}
+		return nil
+	}
+
+	log.Infoln("downloading disk image ...")
+	image, err := limautil.DownloadImage(l.limaConf.Arch, conf.Runtime)
 	if err != nil {
 		return fmt.Errorf("error getting qcow image: %w", err)
 	}
 
-	l.limaConf.Images = append(l.limaConf.Images, image)
+	l.limaConf.Images = []limaconfig.File{image}
 	return nil
 }
 

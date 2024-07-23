@@ -107,19 +107,20 @@ func Download(host hostActions, r Request) (string, error) {
 		}
 	}
 
-	return d.cacheFilename(r.URL), nil
+	return CacheFilename(r.URL), nil
 }
 
 type downloader struct {
 	host hostActions
 }
 
-func (d downloader) cacheFilename(url string) string {
+// CacheFilename returns the computed filename for the url.
+func CacheFilename(url string) string {
 	return filepath.Join(config.CacheDir(), "caches", shautil.SHA256(url).String())
 }
 
 func (d downloader) cacheDownloadingFileName(url string) string {
-	return d.cacheFilename(url) + ".downloading"
+	return CacheFilename(url) + ".downloading"
 }
 
 func (d downloader) downloadFile(r Request) (err error) {
@@ -155,10 +156,10 @@ func (d downloader) downloadFile(r Request) (err error) {
 		}
 	}
 
-	return d.host.RunQuiet("mv", cacheDownloadingFilename, d.cacheFilename(r.URL))
+	return d.host.RunQuiet("mv", cacheDownloadingFilename, CacheFilename(r.URL))
 }
 
 func (d downloader) hasCache(url string) bool {
-	_, err := os.Stat(d.cacheFilename(url))
+	_, err := os.Stat(CacheFilename(url))
 	return err == nil
 }

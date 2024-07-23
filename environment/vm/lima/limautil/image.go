@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/abiosoft/colima/embedded"
 	"github.com/abiosoft/colima/environment"
@@ -21,7 +22,23 @@ func init() {
 	}
 }
 
-func Image(arch environment.Arch, runtime string) (f limaconfig.File, err error) {
+// ImageCached returns if the image for architecture and runtime
+// has been previously downloaded and cached.
+func ImageCached(arch environment.Arch, runtime string) (limaconfig.File, bool) {
+	img, err := findImage(arch, runtime)
+	if err != nil {
+		return img, false
+	}
+
+	image := diskImageFile(downloader.CacheFilename(img.Location))
+
+	img.Location = image.Raw()
+	img.Digest = ""
+
+	return img, image.Generated()
+}
+
+func findImage(arch environment.Arch, runtime string) (f limaconfig.File, err error) {
 	err = fmt.Errorf("cannot find %s image for %s runtime", arch, runtime)
 
 	imgFile, ok := diskImageMap[runtime]
@@ -32,6 +49,15 @@ func Image(arch environment.Arch, runtime string) (f limaconfig.File, err error)
 	if !ok {
 		return
 	}
+	return img, nil
+}
+
+// DownloadImage downloads the image for arch and runtime.
+func DownloadImage(arch environment.Arch, runtime string) (f limaconfig.File, err error) {
+	img, err := findImage(arch, runtime)
+	if err != nil {
+		return img, err
+	}
 
 	host := host.New()
 	// download image
@@ -40,7 +66,7 @@ func Image(arch environment.Arch, runtime string) (f limaconfig.File, err error)
 		return f, err
 	}
 	// convert from qcow2 to raw
-	raw, err := qcow2ToRaw(host, qcow2)
+	raw, err := qcow2ToRaw(host, diskImageFile(qcow2))
 	if err != nil {
 		return f, err
 	}
@@ -113,25 +139,27 @@ func downloadImage(host environment.HostActions, file limaconfig.File) (string, 
 
 // qcow2ToRaw uses qemu-img to conver the image from qcow to raw.
 // Returns the filename of the raw file and an error (if any).
-func qcow2ToRaw(host environment.Host, image string) (string, error) {
-	f := diskImageFile(image)
-
-	if _, err := os.Stat(f.Raw()); err == nil {
+func qcow2ToRaw(host environment.Host, image diskImageFile) (string, error) {
+	if _, err := os.Stat(image.Raw()); err == nil {
 		// already exists, return
-		return f.Raw(), nil
+		return image.Raw(), nil
 	}
 
-	err := host.Run("qemu-img", "convert", "-f", "qcow2", "-O", "raw", f.String(), f.Raw())
+	err := host.Run("qemu-img", "convert", "-f", "qcow2", "-O", "raw", image.String(), image.Raw())
 	if err != nil {
 		// remove the incomplete raw file
-		_ = host.RunQuiet("rm", "-f", f.Raw())
+		_ = host.RunQuiet("rm", "-f", image.Raw())
 		return "", err
 	}
 
-	return f.Raw(), err
+	return image.Raw(), err
 }
 
 type diskImageFile string
 
-func (d diskImageFile) String() string { return string(d) }
-func (d diskImageFile) Raw() string    { return string(d) + ".raw" }
+func (d diskImageFile) String() string { return strings.TrimSuffix(string(d), ".raw") }
+func (d diskImageFile) Raw() string    { return d.String() + ".raw" }
+func (d diskImageFile) Generated() bool {
+	stat, err := os.Stat(d.Raw())
+	return err == nil && !stat.IsDir()
+}
