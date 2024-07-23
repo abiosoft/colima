@@ -17,7 +17,6 @@ import (
 	"github.com/abiosoft/colima/environment/container/docker"
 	"github.com/abiosoft/colima/environment/container/incus"
 	"github.com/abiosoft/colima/environment/vm/lima/limaconfig"
-	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/util"
 	"github.com/sirupsen/logrus"
 )
@@ -51,13 +50,6 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 			l.Arch: conf.CPUType,
 		}
 	}
-
-	image, err := limautil.Image(l.Arch, conf.Runtime)
-	if err != nil {
-		return l, fmt.Errorf("error getting qcow image: %w", err)
-	}
-
-	l.Images = append(l.Images, image)
 
 	if conf.CPU > 0 {
 		l.CPUs = &conf.CPU
