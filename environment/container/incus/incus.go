@@ -94,6 +94,18 @@ func (c *incusRuntime) Start(ctx context.Context) error {
 	})
 
 	a.Add(func() error {
+		// attempt to set remote
+		if err := c.setRemote(conf.AutoActivate()); err == nil {
+			return nil
+		}
+
+		// workaround missing user in incus-admin by restarting
+		ctx := context.WithValue(ctx, cli.CtxKeyQuiet, true)
+		if err := c.guest.Restart(ctx); err != nil {
+			return err
+		}
+
+		// attempt once again to set remote
 		return c.setRemote(conf.AutoActivate())
 	})
 
