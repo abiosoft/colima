@@ -71,6 +71,11 @@ func (p *Profile) File() string {
 	return filepath.Join(p.ConfigDir(), configFileName)
 }
 
+// LimaFile implements ProfileInfo.
+func (p *Profile) LimaFile() string {
+	return filepath.Join(p.LimaInstanceDir(), "lima.yaml")
+}
+
 // StateFile implements ProfileInfo.
 func (p *Profile) StateFile() string {
 	return filepath.Join(p.LimaInstanceDir(), configFileName)
@@ -88,6 +93,9 @@ type ProfileInfo interface {
 
 	// File returns the path to the config file.
 	File() string
+
+	// LimaFile returns the path to the lima config file.
+	LimaFile() string
 
 	// File returns the path to the state file.
 	StateFile() string
