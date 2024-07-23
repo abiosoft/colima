@@ -121,7 +121,13 @@ func (c *incusRuntime) Stop(ctx context.Context) error {
 }
 
 // Teardown implements environment.Container.
-func (c *incusRuntime) Teardown(ctx context.Context) error { return nil }
+func (c *incusRuntime) Teardown(ctx context.Context) error {
+	a := c.Init(ctx)
+
+	a.Add(c.unsetRemote)
+
+	return a.Exec()
+}
 
 // Version implements environment.Container.
 func (c *incusRuntime) Version(ctx context.Context) string {
