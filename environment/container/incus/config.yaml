@@ -13,7 +13,7 @@ storage_pools:
     size: {{.Disk}}GiB
   description: ""
   name: default
-  driver: zfs
+  driver: btrfs
 profiles:
 - config: {}
   description: ""
