@@ -2,7 +2,8 @@ config:
   core.https_address: '[::]:8443'
 networks:
 - config:
-    ipv4.address: auto
+    ipv4.address: 10.0.0.1/8
+    ipv4.nat: "true"
     ipv6.address: auto
   description: ""
   name: {{.Interface}}
