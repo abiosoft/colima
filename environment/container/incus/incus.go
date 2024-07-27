@@ -124,7 +124,7 @@ func (c *incusRuntime) Stop(ctx context.Context) error {
 	a := c.Init(ctx)
 
 	a.Add(func() error {
-		return c.guest.RunQuiet("sudo", "service", "incus", "stop")
+		return c.guest.RunQuiet("sudo", "incus", "admin", "shutdown")
 	})
 
 	a.Add(c.unsetRemote)
