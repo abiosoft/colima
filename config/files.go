@@ -49,31 +49,51 @@ func (r *requiredDir) Dir() string {
 var (
 	configBaseDir = requiredDir{
 		dir: func() (string, error) {
+			// colima home explicit config
 			dir := os.Getenv("COLIMA_HOME")
 			if _, err := os.Stat(dir); err == nil {
 				return dir, nil
 			}
 
-			dir, err := os.UserHomeDir()
+			// user home directory
+			homeDir, err := os.UserHomeDir()
 			if err != nil {
 				return "", err
 			}
-			dir = filepath.Join(dir, ".colima")
+			// colima's config directory based on home directory
+			dir = filepath.Join(homeDir, ".colima")
+			// validate existence of colima's config directory
 			_, err = os.Stat(dir)
-			// TODO: remove macOS when QEMU_SYSTEM_ARCH is handled properly upstream.
-			if err == nil || util.MacOS() {
+
+			// extra xdg config directory
+			xdgDir, xdg := os.LookupEnv("XDG_CONFIG_HOME")
+
+			if err == nil {
+				// ~/.colima is found but xdg dir is set
+				if xdg {
+					logrus.Warnln("found ~/.colima, ignoring $XDG_CONFIG_HOME...")
+					logrus.Warnln("delete ~/.colima to use $XDG_CONFIG_HOME as config directory")
+					logrus.Warnf("or run `mv ~/.colima \"%s\"`", filepath.Join(xdgDir, "colima"))
+				}
+				return dir, nil
+			} else {
+				// ~/.colima is missing and xdg dir is set
+				if xdg {
+					return filepath.Join(xdgDir, "colima"), nil
+				}
+			}
+
+			// macOS users are accustomed to ~/.colima
+			if util.MacOS() {
 				return dir, nil
 			}
-			// else
-			dir = os.Getenv("XDG_CONFIG_HOME")
-			if dir != "" {
-				return filepath.Join(dir, "colima"), nil
-			}
-			// else
+
+			// other environments fall back to user config directory
 			dir, err = os.UserConfigDir()
 			if err != nil {
 				return "", err
 			}
+
 			return filepath.Join(dir, "colima"), nil
 		},
 	}
