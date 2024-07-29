@@ -143,7 +143,7 @@ func installK3sCluster(
 	if ipAddress == "127.0.0.1" {
 		args = append(args, "--flannel-iface", "eth0")
 	} else {
-		args = append(args, "--bind-address", ipAddress)
+		args = append(args, "--bind-address", "0.0.0.0")
 		args = append(args, "--advertise-address", ipAddress)
 		args = append(args, "--flannel-iface", vmnet.NetInterface)
 	}
