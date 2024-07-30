@@ -310,11 +310,6 @@ func (l *limaVM) syncDiskSize(ctx context.Context, conf config.Config) config.Co
 			return false
 		}
 
-		if conf.VMType == limaconfig.VZ {
-			log.Warnln("dynamic disk resize not supported for VZ driver, ignoring...")
-			return false
-		}
-
 		size := conf.Disk - instance.Disk
 		if size < 0 {
 			log.Warnln("disk size cannot be reduced, ignoring...")

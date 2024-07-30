@@ -4,7 +4,6 @@ cpu: 2
 
 # Size of the disk in GiB to be allocated to the virtual machine.
 # NOTE: value can only be increased after virtual machine has been created.
-#       Increasing the disk size requires `vmType: qemu`
 #
 # Default: 60
 disk: 60
