@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/abiosoft/colima/cli"
@@ -11,9 +12,12 @@ import (
 	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/environment/container/docker"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
+	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/downloader"
 	"github.com/sirupsen/logrus"
 )
+
+const listenPortKey = "k3s_listen_port"
 
 func installK3s(host environment.HostActions,
 	guest environment.GuestActions,
@@ -143,7 +147,6 @@ func installK3sCluster(
 	if ipAddress == "127.0.0.1" {
 		args = append(args, "--flannel-iface", "eth0")
 	} else {
-		args = append(args, "--bind-address", "0.0.0.0")
 		args = append(args, "--advertise-address", ipAddress)
 		args = append(args, "--flannel-iface", vmnet.NetInterface)
 	}
@@ -154,7 +157,32 @@ func installK3sCluster(
 	case containerd.Name:
 		args = append(args, "--container-runtime-endpoint", "unix:///run/containerd/containerd.sock")
 	}
+
+	a.Add(func() error {
+		port, err := getPortNumber(guest)
+		if err != nil {
+			return err
+		}
+		args = append(args, "--https-listen-port", strconv.Itoa(port))
+		return nil
+	})
+
 	a.Add(func() error {
 		return guest.Run("sh", "-c", "INSTALL_K3S_SKIP_DOWNLOAD=true INSTALL_K3S_SKIP_ENABLE=true k3s-install.sh "+strings.Join(args, " "))
 	})
+}
+
+// getPortNumber retrieves the previously set port number.
+// If missing, an available random port is set and return.
+func getPortNumber(guest environment.GuestActions) (int, error) {
+	if port, err := strconv.Atoi(guest.Get(listenPortKey)); err == nil && port > 0 {
+		return port, nil
+	}
+
+	port := util.RandomAvailablePort()
+	if err := guest.Set(listenPortKey, strconv.Itoa(port)); err != nil {
+		return 0, err
+	}
+
+	return port, nil
 }

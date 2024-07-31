@@ -53,6 +53,11 @@ func (c kubernetesRuntime) provisionKubeconfig(ctx context.Context) error {
 		// replace name
 		kubeconfig = strings.ReplaceAll(kubeconfig, ": default", ": "+profile)
 
+		// replace IP
+		if ip != "" && ip != "127.0.0.1" {
+			kubeconfig = strings.ReplaceAll(kubeconfig, "https://127.0.0.1:", "https://"+ip+":")
+		}
+
 		// save on the host
 		return c.host.Write(tmpkubeconfFile, []byte(kubeconfig))
 	})
