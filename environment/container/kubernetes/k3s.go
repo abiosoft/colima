@@ -175,10 +175,18 @@ func installK3sCluster(
 // getPortNumber retrieves the previously set port number.
 // If missing, an available random port is set and return.
 func getPortNumber(guest environment.GuestActions) (int, error) {
+	// port previously set, reuse it
 	if port, err := strconv.Atoi(guest.Get(listenPortKey)); err == nil && port > 0 {
 		return port, nil
 	}
 
+	// for backward compatibility
+	// if the instance already exists, assume default port 6443
+	if m := guest.Get(masterAddressKey); m != "" {
+		return 6443, nil
+	}
+
+	// new instance, assign random port
 	port := util.RandomAvailablePort()
 	if err := guest.Set(listenPortKey, strconv.Itoa(port)); err != nil {
 		return 0, err
