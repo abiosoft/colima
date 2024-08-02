@@ -35,6 +35,25 @@ func RandomAvailablePort() int {
 	return listener.Addr().(*net.TCPAddr).Port
 }
 
+// HostIPAddresses returns all IPv4 addresses on the host.
+func HostIPAddresses() []net.IP {
+	var addresses []net.IP
+	ints, err := net.InterfaceAddrs()
+	if err != nil {
+		return nil
+	}
+	for i := range ints {
+		split := strings.Split(ints[i].String(), "/")
+		addr := net.ParseIP(split[0]).To4()
+		// ignore default loopback
+		if addr != nil && addr.String() != "127.0.0.1" {
+			addresses = append(addresses, addr)
+		}
+	}
+
+	return addresses
+}
+
 // ShellSplit splits cmd into arguments using.
 func ShellSplit(cmd string) []string {
 	split, err := shlex.Split(cmd)

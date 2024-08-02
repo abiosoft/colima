@@ -240,6 +240,19 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 				Proto:          limaconfig.TCP,
 			},
 		)
+
+		// bind all host addresses
+		for _, ip := range util.HostIPAddresses() {
+			l.PortForwards = append(l.PortForwards,
+				limaconfig.PortForward{
+					GuestIP:        ip,
+					GuestPortRange: [2]int{1, 65535},
+					HostIP:         ip,
+					HostPortRange:  [2]int{1, 65535},
+					Proto:          limaconfig.TCP,
+				},
+			)
+		}
 	}
 
 	switch strings.ToLower(conf.MountType) {

@@ -374,6 +374,14 @@ func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Conf
 		return nil
 	})
 
+	// replicate addresses
+	a.Add(func() error {
+		if err := l.replicateHostAddresses(); err != nil {
+			logrus.Warnln(fmt.Errorf("unable to assign host IP addresses to the VM: %w", err))
+		}
+		return nil
+	})
+
 	// preserve state
 	a.Add(func() error {
 		if err := configmanager.SaveToFile(conf, config.CurrentProfile().StateFile()); err != nil {
