@@ -7,6 +7,7 @@ import (
 
 	"github.com/abiosoft/colima/embedded"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
+	"github.com/abiosoft/colima/util"
 )
 
 func (l *limaVM) writeNetworkFile() error {
@@ -21,6 +22,15 @@ func (l *limaVM) writeNetworkFile() error {
 	}
 	if err := os.WriteFile(networkFile, embeddedFile, 0755); err != nil {
 		return fmt.Errorf("error writing Lima network config file: %w", err)
+	}
+	return nil
+}
+
+func (l *limaVM) replicateHostAddresses() error {
+	for _, ip := range util.HostIPAddresses() {
+		if err := l.RunQuiet("sudo", "ip", "address", "add", ip.String()+"/24", "dev", "lo"); err != nil {
+			return err
+		}
 	}
 	return nil
 }
