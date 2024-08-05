@@ -41,8 +41,9 @@ type Config struct {
 	SSHConfig    bool `yaml:"sshConfig,omitempty"` // config generation
 
 	// VM
-	VMType    string `yaml:"vmType,omitempty"`
-	VZRosetta bool   `yaml:"rosetta,omitempty"`
+	VMType               string `yaml:"vmType,omitempty"`
+	VZRosetta            bool   `yaml:"rosetta,omitempty"`
+	NestedVirtualization bool   `yaml:"nestedVirtualization,omitempty"`
 
 	// volume mounts
 	Mounts       []Mount `yaml:"mounts,omitempty"`

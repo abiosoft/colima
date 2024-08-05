@@ -10,25 +10,26 @@ type Arch = environment.Arch
 
 // Config is lima config. Code copied from lima and modified.
 type Config struct {
-	VMType       VMType            `yaml:"vmType,omitempty" json:"vmType,omitempty"`
-	Arch         Arch              `yaml:"arch,omitempty"`
-	Images       []File            `yaml:"images"`
-	CPUs         *int              `yaml:"cpus,omitempty"`
-	Memory       string            `yaml:"memory,omitempty"`
-	Disk         string            `yaml:"disk,omitempty"`
-	Mounts       []Mount           `yaml:"mounts,omitempty"`
-	MountType    MountType         `yaml:"mountType,omitempty" json:"mountType,omitempty"`
-	SSH          SSH               `yaml:"ssh"`
-	Containerd   Containerd        `yaml:"containerd"`
-	Env          map[string]string `yaml:"env,omitempty"`
-	DNS          []net.IP          `yaml:"dns"`
-	Firmware     Firmware          `yaml:"firmware"`
-	HostResolver HostResolver      `yaml:"hostResolver"`
-	PortForwards []PortForward     `yaml:"portForwards,omitempty"`
-	Networks     []Network         `yaml:"networks,omitempty"`
-	Provision    []Provision       `yaml:"provision,omitempty" json:"provision,omitempty"`
-	CPUType      map[Arch]string   `yaml:"cpuType,omitempty" json:"cpuType,omitempty"`
-	Rosetta      Rosetta           `yaml:"rosetta,omitempty" json:"rosetta,omitempty"`
+	VMType               VMType            `yaml:"vmType,omitempty" json:"vmType,omitempty"`
+	Arch                 Arch              `yaml:"arch,omitempty"`
+	Images               []File            `yaml:"images"`
+	CPUs                 *int              `yaml:"cpus,omitempty"`
+	Memory               string            `yaml:"memory,omitempty"`
+	Disk                 string            `yaml:"disk,omitempty"`
+	Mounts               []Mount           `yaml:"mounts,omitempty"`
+	MountType            MountType         `yaml:"mountType,omitempty" json:"mountType,omitempty"`
+	SSH                  SSH               `yaml:"ssh"`
+	Containerd           Containerd        `yaml:"containerd"`
+	Env                  map[string]string `yaml:"env,omitempty"`
+	DNS                  []net.IP          `yaml:"dns"`
+	Firmware             Firmware          `yaml:"firmware"`
+	HostResolver         HostResolver      `yaml:"hostResolver"`
+	PortForwards         []PortForward     `yaml:"portForwards,omitempty"`
+	Networks             []Network         `yaml:"networks,omitempty"`
+	Provision            []Provision       `yaml:"provision,omitempty" json:"provision,omitempty"`
+	CPUType              map[Arch]string   `yaml:"cpuType,omitempty" json:"cpuType,omitempty"`
+	Rosetta              Rosetta           `yaml:"rosetta,omitempty" json:"rosetta,omitempty"`
+	NestedVirtualization bool              `yaml:"nestedVirtualization,omitempty" json:"nestedVirtualization,omitempty"`
 }
 
 type File struct {

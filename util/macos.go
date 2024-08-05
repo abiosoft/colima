@@ -19,12 +19,17 @@ func MacOS() bool {
 }
 
 // MacOS13OrNewer returns if the current OS is macOS 13 or newer.
-func MacOS13OrNewerOnM1() bool {
+func MacOS13OrNewerOnArm() bool {
 	return runtime.GOARCH == "arm64" && MacOS13OrNewer()
 }
 
 // MacOS13OrNewer returns if the current OS is macOS 13 or newer.
-func MacOS13OrNewer() bool {
+func MacOS13OrNewer() bool { return minMacOSVersion("13.0.0") }
+
+// MacOS15OrNewer returns if the current OS is macOS 15 or newer.
+func MacOS15OrNewer() bool { return minMacOSVersion("15.0.0") }
+
+func minMacOSVersion(version string) bool {
 	if !MacOS() {
 		return false
 	}
@@ -34,7 +39,7 @@ func MacOS13OrNewer() bool {
 		return false
 	}
 
-	cver, err := semver.NewVersion("13.0.0")
+	cver, err := semver.NewVersion(version)
 	if err != nil {
 		logrus.Warnln(fmt.Errorf("error parsing version: %w", err))
 		return false
