@@ -34,7 +34,7 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 		l.VMType = limaconfig.VZ
 
 		// Rosetta is only available on M1
-		if conf.VZRosetta && util.MacOS13OrNewerOnM1() {
+		if conf.VZRosetta && util.MacOS13OrNewerOnArm() {
 			if util.RosettaRunning() {
 				l.Rosetta.Enabled = true
 				l.Rosetta.BinFmt = true
@@ -42,6 +42,10 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 				logrus.Warnln("Unable to enable Rosetta: Rosetta2 is not installed")
 				logrus.Warnln("Run 'softwareupdate --install-rosetta' to install Rosetta2")
 			}
+		}
+
+		if util.MacOS15OrNewer() {
+			l.NestedVirtualization = conf.NestedVirtualization
 		}
 	}
 

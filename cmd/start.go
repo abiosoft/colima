@@ -155,14 +155,21 @@ func init() {
 	startCmd.Flags().BoolVarP(&startCmdArgs.Flags.Foreground, "foreground", "f", false, "Keep colima in the foreground")
 	startCmd.Flags().StringVar(&startCmdArgs.Hostname, "hostname", "", "custom hostname for the virtual machine")
 
-	// network
 	if util.MacOS() {
+		// network
 		startCmd.Flags().BoolVar(&startCmdArgs.Network.Address, "network-address", false, "assign reachable IP address to the VM")
-	}
-	if util.MacOS13OrNewer() {
-		startCmd.Flags().StringVarP(&startCmdArgs.VMType, "vm-type", "t", defaultVMType, "virtual machine type ("+types+")")
-		if util.MacOS13OrNewerOnM1() {
-			startCmd.Flags().BoolVar(&startCmdArgs.VZRosetta, "vz-rosetta", false, "enable Rosetta for amd64 emulation")
+
+		// vm type
+		if util.MacOS13OrNewer() {
+			startCmd.Flags().StringVarP(&startCmdArgs.VMType, "vm-type", "t", defaultVMType, "virtual machine type ("+types+")")
+			if util.MacOS13OrNewerOnArm() {
+				startCmd.Flags().BoolVar(&startCmdArgs.VZRosetta, "vz-rosetta", false, "enable Rosetta for amd64 emulation")
+			}
+		}
+
+		// nested virtualization
+		if util.M3() && util.MacOS15OrNewer() {
+			startCmd.Flags().BoolVarP(&startCmdArgs.NestedVirtualization, "nested-virtualization", "z", false, "enable nested virtualization")
 		}
 	}
 
@@ -438,9 +445,14 @@ func prepareConfig(cmd *cobra.Command) {
 				startCmdArgs.VMType = current.VMType
 			}
 		}
-		if util.MacOS13OrNewerOnM1() {
+		if util.MacOS13OrNewerOnArm() {
 			if !cmd.Flag("vz-rosetta").Changed {
 				startCmdArgs.VZRosetta = current.VZRosetta
+			}
+		}
+		if util.MacOS15OrNewer() {
+			if !cmd.Flag("nested-virtualization").Changed {
+				startCmdArgs.NestedVirtualization = current.NestedVirtualization
 			}
 		}
 	}
