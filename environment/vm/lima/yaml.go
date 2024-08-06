@@ -270,25 +270,18 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 		}
 	}
 
-	// Ubuntu minimal cloud image does not bundle sshfs
-	// if sshfs is used, add as a dependency
-	if l.MountType == limaconfig.REVSSHFS {
-		l.Provision = append(l.Provision, limaconfig.Provision{
-			Mode:   limaconfig.ProvisionModeDependency,
-			Script: `which sshfs || apt install -y sshfs`,
-		})
-	}
-
 	l.Provision = append(l.Provision, limaconfig.Provision{
 		Mode:   limaconfig.ProvisionModeSystem,
 		Script: "mount -a",
 	})
 
 	// trim mounted drive to recover disk space
-	l.Provision = append(l.Provision, limaconfig.Provision{
-		Mode:   limaconfig.ProvisionModeSystem,
-		Script: `readlink /usr/sbin/fstrim || fstrim -a`,
-	})
+	if conf.Runtime != incus.Name {
+		l.Provision = append(l.Provision, limaconfig.Provision{
+			Mode:   limaconfig.ProvisionModeSystem,
+			Script: `readlink /usr/sbin/fstrim || fstrim -a`,
+		})
+	}
 
 	if len(conf.Mounts) == 0 {
 		l.Mounts = append(l.Mounts,
