@@ -77,6 +77,16 @@ func (d dockerRuntime) addHostGateway(conf map[string]any) error {
 	return nil
 }
 
+func (d dockerRuntime) reloadAndRestartSystemdService() error {
+	if err := d.guest.Run("sudo", "systemctl", "daemon-reload"); err != nil {
+		return fmt.Errorf("error reloading systemd daemon: %w", err)
+	}
+	if err := d.guest.Run("sudo", "systemctl", "restart", "docker"); err != nil {
+		return fmt.Errorf("error restarting docker: %w", err)
+	}
+	return nil
+}
+
 const systemdUnitFilename = "/etc/systemd/system/docker.service.d/docker.conf"
 const systemdUnitFileContent string = `
 [Service]
