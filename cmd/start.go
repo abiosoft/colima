@@ -170,6 +170,7 @@ func init() {
 		// nested virtualization
 		if util.M3() && util.MacOS15OrNewer() {
 			startCmd.Flags().BoolVarP(&startCmdArgs.NestedVirtualization, "nested-virtualization", "z", false, "enable nested virtualization")
+			startCmd.Flag("nested-virtualization").Hidden = true
 		}
 	}
 
