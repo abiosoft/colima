@@ -17,6 +17,9 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 	isQEMU := conf.VMType == limaconfig.QEMU
 	isVZ := conf.VMType == limaconfig.VZ
 
+	// network daemon is only needed for qemu
+	conf.Network.Address = conf.Network.Address && isQEMU
+
 	// limited to macOS (with Qemu driver)
 	// or vz with inotify enabled
 	if !util.MacOS() || (isVZ && !conf.MountINotify) {
@@ -28,7 +31,7 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 
 	// use a nested chain for convenience
 	a := l.Init(ctx)
-	log := l.Logger(ctx)
+	log := a.Logger()
 
 	networkInstalledKey := struct{ key string }{key: "network_installed"}
 

@@ -34,3 +34,12 @@ func (l *limaVM) replicateHostAddresses() error {
 	}
 	return nil
 }
+
+func (l *limaVM) removeHostAddresses() {
+	conf, _ := limautil.InstanceConfig()
+	if !conf.Network.Address {
+		for _, ip := range util.HostIPAddresses() {
+			_ = l.Run("sudo", "ip", "address", "del", ip.String()+"/24", "dev", "lo")
+		}
+	}
+}

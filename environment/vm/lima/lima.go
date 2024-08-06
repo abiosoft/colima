@@ -192,6 +192,8 @@ func (l limaVM) Stop(ctx context.Context, force bool) error {
 		})
 	}
 
+	a.Add(func() error { l.removeHostAddresses(); return nil })
+
 	a.Add(func() error {
 		if force {
 			return l.host.Run(limactl, "stop", "--force", config.CurrentProfile().ID)
@@ -374,10 +376,12 @@ func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Conf
 		return nil
 	})
 
-	// replicate addresses
+	// replicate addresses when network address is disabled
 	a.Add(func() error {
-		if err := l.replicateHostAddresses(); err != nil {
-			logrus.Warnln(fmt.Errorf("unable to assign host IP addresses to the VM: %w", err))
+		if !conf.Network.Address {
+			if err := l.replicateHostAddresses(); err != nil {
+				logrus.Warnln(fmt.Errorf("unable to assign host IP addresses to the VM: %w", err))
+			}
 		}
 		return nil
 	})
