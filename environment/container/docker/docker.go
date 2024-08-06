@@ -52,6 +52,9 @@ func (d dockerRuntime) Provision(ctx context.Context) error {
 		if err := d.addHostGateway(conf.Docker); err != nil {
 			log.Warnln(err)
 		}
+		if err := d.reloadAndRestartSystemdService(); err != nil {
+			log.Warnln(err)
+		}
 		return nil
 	})
 
