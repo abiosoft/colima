@@ -148,6 +148,7 @@ func init() {
 	startCmd.Flags().StringVarP(&startCmdArgs.Runtime, "runtime", "r", docker.Name, "container runtime ("+runtimes+")")
 	startCmd.Flags().BoolVar(&startCmdArgs.Flags.ActivateRuntime, "activate", true, "set as active Docker/Kubernetes context on startup")
 	startCmd.Flags().IntVarP(&startCmdArgs.CPU, "cpu", "c", defaultCPU, "number of CPUs")
+	startCmd.Flags().IntVarP(&startCmdArgs.CPUs, "cpus", "", defaultCPU, "number of CPUs (alias of --cpu)")
 	startCmd.Flags().StringVar(&startCmdArgs.CPUType, "cpu-type", "", "the CPU type, options can be checked with 'qemu-system-"+defaultArch+" -cpu help'")
 	startCmd.Flags().IntVarP(&startCmdArgs.Memory, "memory", "m", defaultMemory, "memory in GiB")
 	startCmd.Flags().IntVarP(&startCmdArgs.Disk, "disk", "d", defaultDisk, "disk size in GiB")
