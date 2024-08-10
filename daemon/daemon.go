@@ -87,7 +87,7 @@ func (l processManager) Start(ctx context.Context, conf config.Config) error {
 	_ = l.Stop(ctx, conf) // this is safe, nothing is done when not running
 
 	if err := l.init(); err != nil {
-		return fmt.Errorf("error preparing network directory: %w", err)
+		return fmt.Errorf("error preparing daemon directory: %w", err)
 	}
 
 	args := []string{osutil.Executable(), "daemon", "start", config.CurrentProfile().ShortName}
