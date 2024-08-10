@@ -1,32 +1,32 @@
 config:
   core.https_address: '[::]:8443'
 networks:
-- config:
-    ipv4.address: 10.0.0.1/8
-    ipv4.nat: "true"
-    ipv6.address: auto
-  description: ""
-  name: {{.Interface}}
-  type: ""
-  project: default
+  - config:
+      ipv4.address: 10.0.0.1/8
+      ipv4.nat: "true"
+      ipv6.address: auto
+    description: ""
+    name: {{.Interface}}
+    type: ""
+    project: default
 storage_pools:
-- config:
-    size: {{.Disk}}GiB
-  description: ""
-  name: default
-  driver: btrfs
+  - config:
+      size: {{.Disk}}GiB
+    description: ""
+    name: default
+    driver: zfs
 profiles:
-- config: {}
-  description: ""
-  devices:
-    eth0:
-      name: eth0
-      network: {{.Interface}}
-      type: nic
-    root:
-      path: /
-      pool: default
-      type: disk
-  name: default
+  - config: {}
+    description: ""
+    devices:
+      eth0:
+        name: eth0
+        network: {{.Interface}}
+        type: nic
+      root:
+        path: /
+        pool: default
+        type: disk
+    name: default
 projects: []
 cluster: null
