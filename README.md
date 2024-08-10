@@ -17,7 +17,7 @@
 - Support for multiple container runtimes
   - [Docker](https://docker.com) (with optional Kubernetes)
   - [Containerd](https://containerd.io) (with optional Kubernetes)
-  - [Incus](https://linuxcontainers.org/incus) (containers only)
+  - [Incus](https://linuxcontainers.org/incus) (containers and virtual machines <sup>[soon](https://github.com/lima-vm/lima/pull/2530)</sup> )
 
 ## Getting Started
 
