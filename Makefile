@@ -37,7 +37,7 @@ fmt:
 	goimports -w .
 
 .PHONY: build
-build: clean
+build:
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags="$(LDFLAGS)" -o $(OUTPUT_DIR)/$(OUTPUT_BIN) ./cmd/colima
 	cd $(OUTPUT_DIR) && openssl sha256 -r -out $(OUTPUT_BIN).sha256sum $(OUTPUT_BIN)
 ifeq ($(GOOS),darwin)
