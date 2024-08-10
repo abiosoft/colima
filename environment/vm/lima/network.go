@@ -39,7 +39,7 @@ func (l *limaVM) removeHostAddresses() {
 	conf, _ := limautil.InstanceConfig()
 	if !conf.Network.Address {
 		for _, ip := range util.HostIPAddresses() {
-			_ = l.Run("sudo", "ip", "address", "del", ip.String()+"/24", "dev", "lo")
+			_ = l.RunQuiet("sudo", "ip", "address", "del", ip.String()+"/24", "dev", "lo")
 		}
 	}
 }

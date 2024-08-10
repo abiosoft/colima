@@ -85,7 +85,7 @@ var _ ProfileInfo = (*Profile)(nil)
 
 // ProfileInfo is the information about a profile.
 type ProfileInfo interface {
-	// Dir returns the configuration directory.
+	// ConfigDir returns the configuration directory.
 	ConfigDir() string
 
 	// LimaInstanceDir returns the directory for the Lima instance.
@@ -97,6 +97,6 @@ type ProfileInfo interface {
 	// LimaFile returns the path to the lima config file.
 	LimaFile() string
 
-	// File returns the path to the state file.
+	// StateFile returns the path to the state file.
 	StateFile() string
 }

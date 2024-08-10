@@ -5,10 +5,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var sshCmdArgs struct {
-	layer bool
-}
-
 // sshCmd represents the ssh command
 var sshCmd = &cobra.Command{
 	Use:     "ssh",
@@ -27,5 +23,4 @@ It is recommended to specify '--' to differentiate from colima flags.`,
 
 func init() {
 	root.Cmd().AddCommand(sshCmd)
-	sshCmd.Flags().BoolVarP(&sshCmdArgs.layer, "layer", "l", true, "SSH into the Ubuntu layer (if enabled)")
 }
