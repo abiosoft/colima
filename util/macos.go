@@ -29,6 +29,11 @@ func MacOS13OrNewer() bool { return minMacOSVersion("13.0.0") }
 // MacOS15OrNewer returns if the current OS is macOS 15 or newer.
 func MacOS15OrNewer() bool { return minMacOSVersion("15.0.0") }
 
+// MacOSNestedVirtualizationSupported returns if the current device supports nested virtualization.
+func MacOSNestedVirtualizationSupported() bool {
+	return M3() && MacOS15OrNewer()
+}
+
 func minMacOSVersion(version string) bool {
 	if !MacOS() {
 		return false
