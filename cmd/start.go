@@ -171,7 +171,7 @@ func init() {
 		}
 
 		// nested virtualization
-		if util.M3() && util.MacOS15OrNewer() {
+		if util.MacOSNestedVirtualizationSupported() {
 			startCmd.Flags().BoolVarP(&startCmdArgs.NestedVirtualization, "nested-virtualization", "z", false, "enable nested virtualization")
 			startCmd.Flag("nested-virtualization").Hidden = true
 		}
@@ -457,7 +457,7 @@ func prepareConfig(cmd *cobra.Command) {
 				startCmdArgs.VZRosetta = current.VZRosetta
 			}
 		}
-		if util.MacOS15OrNewer() {
+		if util.MacOSNestedVirtualizationSupported() {
 			if !cmd.Flag("nested-virtualization").Changed {
 				startCmdArgs.NestedVirtualization = current.NestedVirtualization
 			}

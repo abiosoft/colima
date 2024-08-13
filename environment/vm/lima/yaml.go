@@ -44,7 +44,7 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 			}
 		}
 
-		if util.MacOS15OrNewer() {
+		if util.MacOSNestedVirtualizationSupported() {
 			l.NestedVirtualization = conf.NestedVirtualization
 		}
 	}
