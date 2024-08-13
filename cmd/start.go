@@ -155,8 +155,11 @@ func init() {
 	startCmd.Flags().BoolVarP(&startCmdArgs.Flags.Foreground, "foreground", "f", false, "Keep colima in the foreground")
 	startCmd.Flags().StringVar(&startCmdArgs.Hostname, "hostname", "", "custom hostname for the virtual machine")
 
+	// host IP addresses
+	startCmd.Flags().BoolVar(&startCmdArgs.Network.HostAddresses, "network-host-addresses", false, "support port forwarding to specific host IP addresses")
+
 	if util.MacOS() {
-		// network
+		// network address
 		startCmd.Flags().BoolVar(&startCmdArgs.Network.Address, "network-address", false, "assign reachable IP address to the VM")
 
 		// vm type
@@ -436,6 +439,9 @@ func prepareConfig(cmd *cobra.Command) {
 		if current.ActivateRuntime != nil { // backward compatibility for `activate`
 			startCmdArgs.ActivateRuntime = current.ActivateRuntime
 		}
+	}
+	if !cmd.Flag("network-host-addresses").Changed {
+		startCmdArgs.Network.HostAddresses = current.Network.HostAddresses
 	}
 	if util.MacOS() {
 		if !cmd.Flag("network-address").Changed {

@@ -378,10 +378,8 @@ func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Conf
 
 	// replicate addresses when network address is disabled
 	a.Add(func() error {
-		if !conf.Network.Address {
-			if err := l.replicateHostAddresses(); err != nil {
-				logrus.Warnln(fmt.Errorf("unable to assign host IP addresses to the VM: %w", err))
-			}
+		if err := l.replicateHostAddresses(conf); err != nil {
+			logrus.Warnln(fmt.Errorf("unable to assign host IP addresses to the VM: %w", err))
 		}
 		return nil
 	})

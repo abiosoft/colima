@@ -77,6 +77,14 @@ network:
   dnsHosts:
     host.docker.internal: host.lima.internal
 
+  # Replicate host IP addresses in the VM. This enables port forwarding to specific
+  # host IP addresses.
+  #   e.g. `docker run --port 10.0.1.2:8080:8080 alpine` would only forward to the
+  #   specified IP address.
+  #
+  # Default: false
+  hostAddresses: false
+
 # ===================================================================== #
 # ADVANCED CONFIGURATION
 # ===================================================================== #
