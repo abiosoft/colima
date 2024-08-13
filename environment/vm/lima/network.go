@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/embedded"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/util"
@@ -26,10 +27,12 @@ func (l *limaVM) writeNetworkFile() error {
 	return nil
 }
 
-func (l *limaVM) replicateHostAddresses() error {
-	for _, ip := range util.HostIPAddresses() {
-		if err := l.RunQuiet("sudo", "ip", "address", "add", ip.String()+"/24", "dev", "lo"); err != nil {
-			return err
+func (l *limaVM) replicateHostAddresses(conf config.Config) error {
+	if !conf.Network.Address && conf.Network.HostAddresses {
+		for _, ip := range util.HostIPAddresses() {
+			if err := l.RunQuiet("sudo", "ip", "address", "add", ip.String()+"/24", "dev", "lo"); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -37,7 +40,7 @@ func (l *limaVM) replicateHostAddresses() error {
 
 func (l *limaVM) removeHostAddresses() {
 	conf, _ := limautil.InstanceConfig()
-	if !conf.Network.Address {
+	if !conf.Network.Address && conf.Network.HostAddresses {
 		for _, ip := range util.HostIPAddresses() {
 			_ = l.RunQuiet("sudo", "ip", "address", "del", ip.String()+"/24", "dev", "lo")
 		}

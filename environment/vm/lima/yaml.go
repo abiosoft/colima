@@ -246,7 +246,7 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 		)
 
 		// bind all host addresses when network address is not enabled
-		if !conf.Network.Address {
+		if !conf.Network.Address && conf.Network.HostAddresses {
 			for _, ip := range util.HostIPAddresses() {
 				l.PortForwards = append(l.PortForwards,
 					limaconfig.PortForward{
