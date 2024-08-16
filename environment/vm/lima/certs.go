@@ -23,6 +23,9 @@ func (l limaVM) copyCerts() error {
 
 		// copy to cache dir
 		dockerCertsCacheDir := filepath.Join(config.CacheDir(), "docker-certs")
+		if err := l.host.RunQuiet("rm", "-r", dockerCertsCacheDir); err != nil {
+			return err
+		}
 		if err := l.host.RunQuiet("mkdir", "-p", dockerCertsCacheDir); err != nil {
 			return err
 		}
