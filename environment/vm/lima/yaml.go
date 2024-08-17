@@ -179,6 +179,27 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 					},
 				)
 			}
+
+			// disable port forwarding for Incus when there is a reachable IP address for consistent behaviour
+			if reachableIPAddress && conf.Runtime == incus.Name {
+				l.PortForwards = append(l.PortForwards,
+					limaconfig.PortForward{
+						GuestIP:           net.ParseIP("0.0.0.0"),
+						GuestIPMustBeZero: true,
+						GuestPortRange:    [2]int{1, 65535},
+						HostPortRange:     [2]int{1, 65535},
+						Ignore:            true,
+						Proto:             limaconfig.TCP,
+					},
+					limaconfig.PortForward{
+						GuestIP:        net.ParseIP("127.0.0.1"),
+						GuestPortRange: [2]int{1, 65535},
+						HostPortRange:  [2]int{1, 65535},
+						Ignore:         true,
+						Proto:          limaconfig.TCP,
+					},
+				)
+			}
 		}
 	}
 
