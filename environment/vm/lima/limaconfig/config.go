@@ -16,6 +16,7 @@ type Config struct {
 	CPUs                 *int              `yaml:"cpus,omitempty"`
 	Memory               string            `yaml:"memory,omitempty"`
 	Disk                 string            `yaml:"disk,omitempty"`
+	AdditionalDisks      []Disk            `yaml:"additionalDisks,omitempty" json:"additionalDisks,omitempty"`
 	Mounts               []Mount           `yaml:"mounts,omitempty"`
 	MountType            MountType         `yaml:"mountType,omitempty" json:"mountType,omitempty"`
 	SSH                  SSH               `yaml:"ssh"`
@@ -43,6 +44,13 @@ type Mount struct {
 	MountPoint string `yaml:"mountPoint,omitempty"`
 	Writable   bool   `yaml:"writable"`
 	NineP      NineP  `yaml:"9p,omitempty" json:"9p,omitempty"`
+}
+
+type Disk struct {
+	Name   string   `yaml:"name" json:"name"` // REQUIRED
+	Format *bool    `yaml:"format,omitempty" json:"format,omitempty"`
+	FSType *string  `yaml:"fsType,omitempty" json:"fsType,omitempty"`
+	FSArgs []string `yaml:"fsArgs,omitempty" json:"fsArgs,omitempty"`
 }
 
 type SSH struct {
