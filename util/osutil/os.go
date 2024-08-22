@@ -40,8 +40,8 @@ func Executable() string {
 
 	if err != nil {
 		// this should never happen, thereby it is safe to do
-		logrus.Warnln(fmt.Errorf("cannot detect current running executable: %w", err))
-		logrus.Warnln("falling back to first CLI argument")
+		logrus.Traceln(fmt.Errorf("cannot detect current running executable: %w", err))
+		logrus.Traceln("falling back to first CLI argument")
 		return os.Args[0]
 	}
 
