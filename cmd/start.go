@@ -508,14 +508,18 @@ func start(app app.App, conf config.Config) error {
 }
 
 func awaitForInterruption(app app.App) error {
-	signalChannel := make(chan os.Signal, 1)
-	signal.Notify(signalChannel, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
 	log.Println("keeping Colima in the foreground, press ctrl+c to exit...")
-	sig := <-signalChannel
+
+	sig := <-c
 	log.Infof("interrupted by: %v", sig)
+
 	if err := app.Stop(false); err != nil {
 		log.Errorf("error stopping: %v", err)
 		return err
 	}
+
 	return nil
 }
