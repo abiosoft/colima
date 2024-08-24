@@ -49,7 +49,7 @@ type Profile struct {
 	configDir *requiredDir
 }
 
-// ConfigDir implements ProfileInfo.
+// ConfigDir returns the configuration directory.
 func (p *Profile) ConfigDir() string {
 	if p.configDir == nil {
 		p.configDir = &requiredDir{
@@ -61,22 +61,22 @@ func (p *Profile) ConfigDir() string {
 	return p.configDir.Dir()
 }
 
-// LimaInstanceDir implements ProfileInfo.
+// LimaInstanceDir returns the directory for the Lima instance.
 func (p *Profile) LimaInstanceDir() string {
 	return filepath.Join(limaDir.Dir(), p.ID)
 }
 
-// File implements ProfileInfo.
+// File returns the path to the config file.
 func (p *Profile) File() string {
 	return filepath.Join(p.ConfigDir(), configFileName)
 }
 
-// LimaFile implements ProfileInfo.
+// LimaFile returns the path to the lima config file.
 func (p *Profile) LimaFile() string {
 	return filepath.Join(p.LimaInstanceDir(), "lima.yaml")
 }
 
-// StateFile implements ProfileInfo.
+// StateFile returns the path to the state file.
 func (p *Profile) StateFile() string {
 	return filepath.Join(p.LimaInstanceDir(), configFileName)
 }
