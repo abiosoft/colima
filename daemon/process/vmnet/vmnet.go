@@ -20,9 +20,8 @@ const Name = "vmnet"
 const (
 	SubProcessEnvVar = "COLIMA_VMNET"
 
-	NetGateway   = "192.168.106.1"
-	NetDHCPEnd   = "192.168.106.254"
-	NetInterface = "col0"
+	NetGateway = "192.168.106.1"
+	NetDHCPEnd = "192.168.106.254"
 )
 
 var _ process.Process = (*vmnetProcess)(nil)

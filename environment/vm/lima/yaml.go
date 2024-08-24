@@ -17,6 +17,7 @@ import (
 	"github.com/abiosoft/colima/environment/container/docker"
 	"github.com/abiosoft/colima/environment/container/incus"
 	"github.com/abiosoft/colima/environment/vm/lima/limaconfig"
+	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/util"
 	"github.com/sirupsen/logrus"
 )
@@ -132,8 +133,17 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 			if l.VMType == limaconfig.VZ {
 				l.Networks = append(l.Networks, limaconfig.Network{
 					VZNAT:     true,
-					Interface: vmnet.NetInterface,
+					Interface: limautil.NetInterface,
 				})
+				// special case for incus runtime
+				if conf.Runtime == incus.Name {
+					for i := 1; i <= 2; i++ {
+						l.Networks = append(l.Networks, limaconfig.Network{
+							VZNAT:     true,
+							Interface: fmt.Sprintf("%s%d", limautil.NetInterfacePrefix, i),
+						})
+					}
+				}
 			} else {
 				reachableIPAddress, _ = ctx.Value(daemon.CtxKey(vmnet.Name)).(bool)
 
@@ -148,7 +158,7 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 
 						l.Networks = append(l.Networks, limaconfig.Network{
 							Socket:    socketFile,
-							Interface: vmnet.NetInterface,
+							Interface: limautil.NetInterface,
 						})
 
 						return nil

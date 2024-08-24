@@ -9,7 +9,12 @@ import (
 
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/config/configmanager"
-	"github.com/abiosoft/colima/daemon/process/vmnet"
+)
+
+// network interfaces for shared network in the virtual machine.
+const (
+	NetInterface       = "col0"
+	NetInterfacePrefix = "col"
 )
 
 // Instance returns current instance.
@@ -40,7 +45,7 @@ func IPAddress(profileID string) string {
 
 	if len(instance.Network) > 0 {
 		for _, n := range instance.Network {
-			if n.Interface == vmnet.NetInterface {
+			if n.Interface == NetInterface {
 				return getIPAddress(profileID, n.Interface)
 			}
 		}
@@ -133,8 +138,8 @@ func Instances(ids ...string) ([]InstanceInfo, error) {
 
 		if i.Running() {
 			for _, n := range i.Network {
-				if n.Interface == vmnet.NetInterface {
-					i.IPAddress = getIPAddress(i.Name, vmnet.NetInterface)
+				if n.Interface == NetInterface {
+					i.IPAddress = getIPAddress(i.Name, NetInterface)
 				}
 			}
 			conf, _ := i.Config()
