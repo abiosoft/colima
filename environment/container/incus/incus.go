@@ -12,6 +12,7 @@ import (
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/util"
 )
 
@@ -111,6 +112,13 @@ func (c *incusRuntime) Start(ctx context.Context) error {
 
 	a.Add(func() error {
 		if err := c.addDockerRemote(); err != nil {
+			return cli.ErrNonFatal(err)
+		}
+		return nil
+	})
+
+	a.Add(func() error {
+		if err := c.registerNetworks(); err != nil {
 			return cli.ErrNonFatal(err)
 		}
 		return nil
@@ -223,9 +231,50 @@ func (c incusRuntime) addDockerRemote() error {
 	return c.host.RunQuiet("incus", "remote", "add", "docker", "https://docker.io", "--protocol=oci")
 }
 
+func (c incusRuntime) registerNetworks() error {
+	b, err := c.guest.RunOutput("sudo", "incus", "network", "list", "--format", "json")
+	if err != nil {
+		return fmt.Errorf("error listing networks: %w", err)
+	}
+
+	networks := map[string]networkInfo{}
+	{ // decode and flatten for easy lookup
+		var resp []networkInfo
+		if err := json.NewDecoder(strings.NewReader(b)).Decode(&resp); err != nil {
+			return fmt.Errorf("error decoding networks into struct: %w", err)
+		}
+		for _, n := range resp {
+			networks[n.Name] = n
+		}
+	}
+
+	for i := 0; i < limautil.VZNetworksMaxNo; i++ {
+		name := limautil.NetInterfaceName(i)
+		network, ok := networks[name]
+
+		// must be an unmanaged physical network
+		if !ok || network.Managed || network.Type != "physical" {
+			continue
+		}
+
+		err := c.guest.RunQuiet("sudo", "incus", "network", "create", name, "--type", "physical", "parent="+name)
+		if err != nil {
+			return fmt.Errorf("error creating managed network '%s': %w", name, err)
+		}
+	}
+
+	return nil
+}
+
 //go:embed config.yaml
 var configYaml string
 
 type remoteInfo map[string]struct {
 	Addr string `json:"Addr"`
+}
+
+type networkInfo struct {
+	Name    string `json:"name"`
+	Managed bool   `json:"managed"`
+	Type    string `json:"type"`
 }
