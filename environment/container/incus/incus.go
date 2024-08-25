@@ -237,30 +237,36 @@ func (c incusRuntime) registerNetworks() error {
 		return fmt.Errorf("error listing networks: %w", err)
 	}
 
-	networks := map[string]networkInfo{}
+	var network networkInfo
+	var found bool
+	name := limautil.NetInterface
 	{ // decode and flatten for easy lookup
 		var resp []networkInfo
 		if err := json.NewDecoder(strings.NewReader(b)).Decode(&resp); err != nil {
 			return fmt.Errorf("error decoding networks into struct: %w", err)
 		}
 		for _, n := range resp {
-			networks[n.Name] = n
+			if n.Name == name {
+				network = n
+				found = true
+			}
 		}
 	}
 
-	for i := 0; i < limautil.VZNetworksMaxNo; i++ {
-		name := limautil.NetInterfaceName(i)
-		network, ok := networks[name]
+	// must be an unmanaged physical network
+	if !found || network.Managed || network.Type != "physical" {
+		return nil
+	}
 
-		// must be an unmanaged physical network
-		if !ok || network.Managed || network.Type != "physical" {
-			continue
-		}
+	err = c.guest.RunQuiet("sudo", "incus", "network", "create", name, "--type", "macvlan", "parent="+name)
+	if err != nil {
+		return fmt.Errorf("error creating managed network '%s': %w", name, err)
+	}
 
-		err := c.guest.RunQuiet("sudo", "incus", "network", "create", name, "--type", "physical", "parent="+name)
-		if err != nil {
-			return fmt.Errorf("error creating managed network '%s': %w", name, err)
-		}
+	// set as default network
+	err = c.guest.RunQuiet("sudo", "incus", "profile", "device", "set", "default", "eth0", "network="+name)
+	if err != nil {
+		return fmt.Errorf("error setting managed network '%s' as default: %w", name, err)
 	}
 
 	return nil

@@ -135,15 +135,6 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 					VZNAT:     true,
 					Interface: limautil.NetInterface,
 				})
-				// special case for incus runtime
-				if conf.Runtime == incus.Name {
-					for i := 1; i < limautil.VZNetworksMaxNo; i++ {
-						l.Networks = append(l.Networks, limaconfig.Network{
-							VZNAT:     true,
-							Interface: limautil.NetInterfaceName(i),
-						})
-					}
-				}
 			} else {
 				reachableIPAddress, _ = ctx.Value(daemon.CtxKey(vmnet.Name)).(bool)
 
@@ -160,16 +151,6 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 							Socket:    socketFile,
 							Interface: limautil.NetInterface,
 						})
-
-						// special case for incus runtime
-						if conf.Runtime == incus.Name {
-							for i := 1; i < limautil.VZNetworksMaxNo; i++ {
-								l.Networks = append(l.Networks, limaconfig.Network{
-									Socket:    socketFile,
-									Interface: limautil.NetInterfaceName(i),
-								})
-							}
-						}
 
 						return nil
 					}(); err != nil {
