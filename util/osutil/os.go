@@ -5,10 +5,31 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/sirupsen/logrus"
 )
+
+// EnvVar is environment variable
+type EnvVar string
+
+// Exists checks if the environment variable has been set.
+func (e EnvVar) Exists() bool {
+	_, ok := os.LookupEnv(string(e))
+	return ok
+}
+
+// Bool returns the environment variable value as boolean.
+func (e EnvVar) Bool() bool {
+	ok, _ := strconv.ParseBool(e.Val())
+	return ok
+}
+
+// Bool returns the environment variable value.
+func (e EnvVar) Val() string {
+	return os.Getenv(string(e))
+}
 
 const EnvColimaBinary = "COLIMA_BINARY"
 
