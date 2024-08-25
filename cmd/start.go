@@ -20,6 +20,7 @@ import (
 	"github.com/abiosoft/colima/environment/container/docker"
 	"github.com/abiosoft/colima/environment/container/kubernetes"
 	"github.com/abiosoft/colima/util"
+	"github.com/abiosoft/colima/util/osutil"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -118,6 +119,7 @@ const (
 )
 
 var defaultK3sArgs = []string{"--disable=traefik"}
+var envSaveConfig = osutil.EnvVar("COLIMA_SAVE_CONFIG")
 
 var startCmdArgs struct {
 	config.Config
@@ -141,6 +143,11 @@ func init() {
 
 	mounts := strings.Join([]string{defaultMountTypeQEMU, "9p", "virtiofs"}, ", ")
 	types := strings.Join([]string{defaultVMType, "vz"}, ", ")
+
+	saveConfigDefault := true
+	if envSaveConfig.Exists() {
+		saveConfigDefault = envSaveConfig.Bool()
+	}
 
 	root.Cmd().AddCommand(startCmd)
 	startCmd.Flags().StringVarP(&startCmdArgs.Runtime, "runtime", "r", docker.Name, "container runtime ("+runtimes+")")
@@ -178,7 +185,7 @@ func init() {
 	// config
 	startCmd.Flags().BoolVarP(&startCmdArgs.Flags.Edit, "edit", "e", false, "edit the configuration file before starting")
 	startCmd.Flags().StringVar(&startCmdArgs.Flags.Editor, "editor", "", `editor to use for edit e.g. vim, nano, code (default "$EDITOR" env var)`)
-	startCmd.Flags().BoolVar(&startCmdArgs.Flags.SaveConfig, "save-config", true, "persist and overwrite config file with (newly) specified flags")
+	startCmd.Flags().BoolVar(&startCmdArgs.Flags.SaveConfig, "save-config", saveConfigDefault, "persist and overwrite config file with (newly) specified flags")
 
 	// mounts
 	startCmd.Flags().StringSliceVarP(&startCmdArgs.Flags.Mounts, "mount", "V", nil, "directories to mount, suffix ':w' for writable")
