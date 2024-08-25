@@ -58,14 +58,9 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 		}
 
 		// edit flag is specified
-		err := editConfigFile()
+		conf, err := editConfigFile()
 		if err != nil {
 			return err
-		}
-
-		conf, err = configmanager.Load()
-		if err != nil {
-			return fmt.Errorf("error opening config file: %w", err)
 		}
 
 		// validate config
@@ -100,9 +95,11 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 			return fmt.Errorf("error in config: %w", err)
 		}
 
-		// persist in preparing of application start
-		if err := configmanager.Save(startCmdArgs.Config); err != nil {
-			return fmt.Errorf("error preparing config file: %w", err)
+		// persist in preparation for application start
+		if startCmdArgs.Flags.SaveConfig {
+			if err := configmanager.Save(startCmdArgs.Config); err != nil {
+				return fmt.Errorf("error preparing config file: %w", err)
+			}
 		}
 
 		return nil
@@ -134,6 +131,7 @@ var startCmdArgs struct {
 		ActivateRuntime         bool
 		DNSHosts                []string
 		Foreground              bool
+		SaveConfig              bool
 	}
 }
 
@@ -180,6 +178,7 @@ func init() {
 	// config
 	startCmd.Flags().BoolVarP(&startCmdArgs.Flags.Edit, "edit", "e", false, "edit the configuration file before starting")
 	startCmd.Flags().StringVar(&startCmdArgs.Flags.Editor, "editor", "", `editor to use for edit e.g. vim, nano, code (default "$EDITOR" env var)`)
+	startCmd.Flags().BoolVar(&startCmdArgs.Flags.SaveConfig, "save-config", true, "persist and overwrite config file with (newly) specified flags")
 
 	// mounts
 	startCmd.Flags().StringSliceVarP(&startCmdArgs.Flags.Mounts, "mount", "V", nil, "directories to mount, suffix ':w' for writable")
@@ -468,11 +467,13 @@ func prepareConfig(cmd *cobra.Command) {
 }
 
 // editConfigFile launches an editor to edit the config file.
-func editConfigFile() error {
+func editConfigFile() (config.Config, error) {
+	var c config.Config
+
 	// preserve the current file in case the user terminates
 	currentFile, err := os.ReadFile(config.CurrentProfile().File())
 	if err != nil {
-		return fmt.Errorf("error reading config file: %w", err)
+		return c, fmt.Errorf("error reading config file: %w", err)
 	}
 
 	// prepend the config file with termination instruction
@@ -483,18 +484,23 @@ func editConfigFile() error {
 
 	tmpFile, err := waitForUserEdit(startCmdArgs.Flags.Editor, []byte(abort+"\n"+string(currentFile)))
 	if err != nil {
-		return fmt.Errorf("error editing config file: %w", err)
+		return c, fmt.Errorf("error editing config file: %w", err)
 	}
 
 	// if file is empty, abort
 	if tmpFile == "" {
-		return fmt.Errorf("empty file, startup aborted")
+		return c, fmt.Errorf("empty file, startup aborted")
 	}
 
 	defer func() {
 		_ = os.Remove(tmpFile)
 	}()
-	return configmanager.SaveFromFile(tmpFile)
+	if startCmdArgs.Flags.SaveConfig {
+		if err := configmanager.SaveFromFile(tmpFile); err != nil {
+			return c, err
+		}
+	}
+	return configmanager.LoadFrom(tmpFile)
 }
 
 func start(app app.App, conf config.Config) error {

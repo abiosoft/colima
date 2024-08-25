@@ -182,7 +182,7 @@ func (l limaVM) Stop(ctx context.Context, force bool) error {
 	a.Stage("stopping")
 
 	if util.MacOS() {
-		conf, _ := limautil.InstanceConfig()
+		conf, _ := configmanager.LoadInstance()
 		a.Retry("", time.Second*1, 10, func(retryCount int) error {
 			err := l.daemon.Stop(ctx, conf)
 			if err != nil {
@@ -208,7 +208,7 @@ func (l limaVM) Teardown(ctx context.Context) error {
 	a := l.Init(ctx)
 
 	if util.MacOS() {
-		conf, _ := limautil.InstanceConfig()
+		conf, _ := configmanager.LoadInstance()
 		a.Retry("", time.Second*1, 10, func(retryCount int) error {
 			return l.daemon.Stop(ctx, conf)
 		})
@@ -300,7 +300,7 @@ func (l *limaVM) setDiskImage() error {
 
 func (l *limaVM) syncDiskSize(ctx context.Context, conf config.Config) config.Config {
 	log := l.Logger(ctx)
-	instance, err := limautil.InstanceConfig()
+	instance, err := configmanager.LoadInstance()
 	if err != nil {
 		// instance config missing, ignore
 		return conf

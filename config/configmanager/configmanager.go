@@ -20,11 +20,11 @@ func Save(c config.Config) error {
 
 // SaveFromFile loads configuration from file and save as config.
 func SaveFromFile(file string) error {
-	cf, err := LoadFrom(file)
+	c, err := LoadFrom(file)
 	if err != nil {
 		return err
 	}
-	return Save(cf)
+	return Save(c)
 }
 
 // SaveToFile saves configuration to file.
@@ -79,24 +79,29 @@ func ValidateConfig(c config.Config) error {
 // Error is only returned if the config file exists but could not be loaded.
 // No error is returned if the config file does not exist.
 func Load() (config.Config, error) {
-	cFile := config.CurrentProfile().File()
-	if _, err := os.Stat(cFile); err != nil {
-		oldCFile := oldConfigFile()
+	f := config.CurrentProfile().File()
+	if _, err := os.Stat(f); err != nil {
+		oldF := oldConfigFile()
 
 		// config file does not exist, check older version for backward compatibility
-		if _, err := os.Stat(oldCFile); err != nil {
+		if _, err := os.Stat(oldF); err != nil {
 			return config.Config{}, nil
 		}
 
 		// older version exists
 		logrus.Infof("settings from older %s version detected and copied", config.AppName)
-		if err := cli.Command("cp", oldCFile, cFile).Run(); err != nil {
+		if err := cli.Command("cp", oldF, f).Run(); err != nil {
 			logrus.Warn(fmt.Errorf("error copying config: %w, proceeding with defaults", err))
 			return config.Config{}, nil
 		}
 	}
 
-	return LoadFrom(cFile)
+	return LoadFrom(f)
+}
+
+// LoadInstance is like Load but returns the config of the currently running instance.
+func LoadInstance() (config.Config, error) {
+	return LoadFrom(config.CurrentProfile().StateFile())
 }
 
 // Teardown deletes the config.

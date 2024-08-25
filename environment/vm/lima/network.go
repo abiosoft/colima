@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/config/configmanager"
 	"github.com/abiosoft/colima/embedded"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/util"
@@ -39,7 +40,7 @@ func (l *limaVM) replicateHostAddresses(conf config.Config) error {
 }
 
 func (l *limaVM) removeHostAddresses() {
-	conf, _ := limautil.InstanceConfig()
+	conf, _ := configmanager.LoadInstance()
 	if !conf.Network.Address && conf.Network.HostAddresses {
 		for _, ip := range util.HostIPAddresses() {
 			_ = l.RunQuiet("sudo", "ip", "address", "del", ip.String()+"/24", "dev", "lo")
