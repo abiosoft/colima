@@ -16,15 +16,6 @@ func Instance() (InstanceInfo, error) {
 	return getInstance(config.CurrentProfile().ID)
 }
 
-// InstanceConfig returns the current instance config.
-func InstanceConfig() (config.Config, error) {
-	i, err := Instance()
-	if err != nil {
-		return config.Config{}, err
-	}
-	return i.Config()
-}
-
 // InstanceInfo is the information about a Lima instance
 type InstanceInfo struct {
 	Name    string `json:"name,omitempty"`

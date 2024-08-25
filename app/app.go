@@ -252,7 +252,7 @@ func (c colimaApp) SSH(args ...string) error {
 	// peek the current directory to see if it is mounted to prevent `cd` errors
 	// with limactl ssh
 	if err := func() error {
-		conf, err := limautil.InstanceConfig()
+		conf, err := configmanager.LoadInstance()
 		if err != nil {
 			return err
 		}
@@ -303,7 +303,7 @@ func (c colimaApp) Status(extended bool) error {
 	}
 
 	driver := "QEMU"
-	conf, _ := limautil.InstanceConfig()
+	conf, _ := configmanager.LoadInstance()
 	if !conf.Empty() {
 		driver = conf.DriverLabel()
 	}
