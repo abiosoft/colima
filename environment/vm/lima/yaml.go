@@ -137,10 +137,10 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 				})
 				// special case for incus runtime
 				if conf.Runtime == incus.Name {
-					for i := 1; i <= 2; i++ {
+					for i := 1; i < limautil.VZNetworksMaxNo; i++ {
 						l.Networks = append(l.Networks, limaconfig.Network{
 							VZNAT:     true,
-							Interface: fmt.Sprintf("%s%d", limautil.NetInterfacePrefix, i),
+							Interface: limautil.NetInterfaceName(i),
 						})
 					}
 				}
@@ -160,6 +160,16 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 							Socket:    socketFile,
 							Interface: limautil.NetInterface,
 						})
+
+						// special case for incus runtime
+						if conf.Runtime == incus.Name {
+							for i := 1; i < limautil.VZNetworksMaxNo; i++ {
+								l.Networks = append(l.Networks, limaconfig.Network{
+									Socket:    socketFile,
+									Interface: limautil.NetInterfaceName(i),
+								})
+							}
+						}
 
 						return nil
 					}(); err != nil {
