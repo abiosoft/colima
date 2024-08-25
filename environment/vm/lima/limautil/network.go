@@ -2,22 +2,11 @@ package limautil
 
 import (
 	"bytes"
-	"fmt"
 	"strings"
 )
 
 // network interfaces for shared network in the virtual machine.
-const (
-	NetInterface       = "col0"
-	netInterfacePrefix = "col"
-
-	VZNetworksMaxNo = 3
-)
-
-// NetInterfaceName returns the name of the network interface for the specified index.
-func NetInterfaceName(index int) string {
-	return fmt.Sprintf("%s%d", netInterfacePrefix, index)
-}
+const NetInterface = "col0"
 
 // IPAddress returns the ip address for profile.
 // It returns the PTP address if networking is enabled or falls back to 127.0.0.1.
