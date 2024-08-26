@@ -334,6 +334,10 @@ func setFixedConfigs(conf *config.Config) {
 		warnIfNotEqual("volume mount type", conf.MountType, fixedConf.MountType)
 		conf.MountType = fixedConf.MountType
 	}
+	if fixedConf.Network.Address && !conf.Network.Address {
+		log.Warnln("network address cannot be disabled once enabled")
+		conf.Network.Address = true
+	}
 }
 
 func prepareConfig(cmd *cobra.Command) {
