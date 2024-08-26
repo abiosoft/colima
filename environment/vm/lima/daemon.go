@@ -9,20 +9,21 @@ import (
 	"github.com/abiosoft/colima/daemon"
 	"github.com/abiosoft/colima/daemon/process/inotify"
 	"github.com/abiosoft/colima/daemon/process/vmnet"
+	"github.com/abiosoft/colima/environment/container/incus"
 	"github.com/abiosoft/colima/environment/vm/lima/limaconfig"
 	"github.com/abiosoft/colima/util"
 )
 
 func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.Context, error) {
-	isQEMU := conf.VMType == limaconfig.QEMU
-	isVZ := conf.VMType == limaconfig.VZ
+	// vmnet is used by QEMU and always used by incus (even with VZ)
+	useVmnet := conf.VMType == limaconfig.QEMU || conf.Runtime == incus.Name
 
-	// network daemon is only needed for qemu
-	conf.Network.Address = conf.Network.Address && isQEMU
+	// network daemon is only needed for vmnet
+	conf.Network.Address = conf.Network.Address && useVmnet
 
-	// limited to macOS (with Qemu driver)
-	// or vz with inotify enabled
-	if !util.MacOS() || (isVZ && !conf.MountINotify) {
+	// limited to macOS (with vmnet required)
+	// or with inotify enabled
+	if !util.MacOS() || (!conf.MountINotify && !conf.Network.Address) {
 		return ctx, nil
 	}
 
@@ -48,7 +49,7 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 	}
 
 	// add network processes to daemon
-	if isQEMU {
+	if useVmnet {
 		a.Add(func() error {
 			if conf.Network.Address {
 				a.Stage("preparing network")
@@ -104,7 +105,7 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 
 	// network failure is not fatal
 	if err := a.Exec(); err != nil {
-		if isQEMU {
+		if useVmnet {
 			func() {
 				installed, _ := ctx.Value(networkInstalledKey).(bool)
 				if !installed {
