@@ -263,12 +263,6 @@ func (c incusRuntime) registerNetworks() error {
 		return fmt.Errorf("error creating managed network '%s': %w", name, err)
 	}
 
-	// set as default network
-	err = c.guest.RunQuiet("sudo", "incus", "profile", "device", "set", "default", "eth0", "network="+name)
-	if err != nil {
-		return fmt.Errorf("error setting managed network '%s' as default: %w", name, err)
-	}
-
 	return nil
 }
 

@@ -130,7 +130,8 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 
 		reachableIPAddress := true
 		if conf.Network.Address {
-			if l.VMType == limaconfig.VZ {
+			// incus always uses vmnet
+			if l.VMType == limaconfig.VZ && conf.Runtime != incus.Name {
 				l.Networks = append(l.Networks, limaconfig.Network{
 					VZNAT:     true,
 					Interface: limautil.NetInterface,
