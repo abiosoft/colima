@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	version     = "v0.6.0-2" // version of colima-core to use.
-	limaVersion = "v0.18.0"  // minimum Lima version supported
+	version     = "v0.7.6"  // version of colima-core to use.
+	limaVersion = "v0.18.0" // minimum Lima version supported
 	baseURL     = "https://github.com/abiosoft/colima-core/releases/download/" + version + "/"
 )
 
@@ -40,7 +40,7 @@ func SetupBinfmt(host hostActions, guest guestActions, arch environment.Arch) er
 	}
 
 	install := func() error {
-		if err := guest.Run("sh", "-c", "sudo QEMU_PRESERVE_ARGV0=1 /usr/bin/binfmt --install "+qemuArch.GoArch()); err != nil {
+		if err := guest.Run("sh", "-c", "sudo QEMU_PRESERVE_ARGV0=1 /usr/bin/binfmt --install 386,"+qemuArch.GoArch()); err != nil {
 			return fmt.Errorf("error installing binfmt: %w", err)
 		}
 		return nil
@@ -55,8 +55,8 @@ func SetupBinfmt(host hostActions, guest guestActions, arch environment.Arch) er
 	url := baseURL + "binfmt-" + arch.Value().GoArch() + ".tar.gz"
 	dest := "/tmp/binfmt.tar.gz"
 	if err := downloader.DownloadToGuest(host, guest, downloader.Request{
-		URL:      url,
-		SHA:      downloadSha(url),
+		URL: url,
+		SHA: downloadSha(url),
 	}, dest); err != nil {
 		return fmt.Errorf("error downloading binfmt: %w", err)
 	}
