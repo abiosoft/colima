@@ -10,27 +10,15 @@ import (
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/environment"
-	"github.com/abiosoft/colima/util/downloader"
 	"github.com/coreos/go-semver/semver"
 )
 
-const (
-	version     = "v0.7.6"  // version of colima-core to use.
-	limaVersion = "v0.18.0" // minimum Lima version supported
-	baseURL     = "https://github.com/abiosoft/colima-core/releases/download/" + version + "/"
-)
+const limaVersion = "v0.18.0" // minimum Lima version supported
 
 type (
 	hostActions  = environment.HostActions
 	guestActions = environment.GuestActions
 )
-
-func downloadSha(url string) *downloader.SHA {
-	return &downloader.SHA{
-		Size: 512,
-		URL:  url + ".sha512sum",
-	}
-}
 
 // SetupBinfmt downloads and install binfmt
 func SetupBinfmt(host hostActions, guest guestActions, arch environment.Arch) error {
@@ -46,29 +34,9 @@ func SetupBinfmt(host hostActions, guest guestActions, arch environment.Arch) er
 		return nil
 	}
 
-	// ignore download and extract if previously installed
-	if err := guest.RunQuiet("command", "-v", "binfmt"); err == nil {
-		return install()
-	}
-
-	// download
-	url := baseURL + "binfmt-" + arch.Value().GoArch() + ".tar.gz"
-	dest := "/tmp/binfmt.tar.gz"
-	if err := downloader.DownloadToGuest(host, guest, downloader.Request{
-		URL: url,
-		SHA: downloadSha(url),
-	}, dest); err != nil {
-		return fmt.Errorf("error downloading binfmt: %w", err)
-	}
-
-	// extract
-	if err := guest.Run("sh", "-c",
-		strings.NewReplacer(
-			"{file}", dest,
-			"{qemu_arch}", string(qemuArch),
-		).Replace(`cd /tmp && tar xfz {file} && sudo chown root:root binfmt qemu-{qemu_arch} && sudo mv binfmt qemu-{qemu_arch} /usr/bin`),
-	); err != nil {
-		return fmt.Errorf("error extracting binfmt: %w", err)
+	// validate binfmt
+	if err := guest.RunQuiet("command", "-v", "binfmt"); err != nil {
+		return fmt.Errorf("binfmt not found: %w", err)
 	}
 
 	return install()
