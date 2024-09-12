@@ -10,7 +10,7 @@
 
 ## Features
 
-  Support for Intel and Apple Silicion Macs, and Linux
+  Support for Intel and Apple Silicon Macs, and Linux
 - Simple CLI interface with sensible defaults
 - Automatic Port Forwarding
 - Volume mounts
