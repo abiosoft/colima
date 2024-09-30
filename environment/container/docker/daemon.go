@@ -4,10 +4,30 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"strings"
 )
 
 const daemonFile = "/etc/docker/daemon.json"
 const hostGatewayIPKey = "host-gateway-ip"
+
+func getHostGatewayIp(d dockerRuntime, conf map[string]any) (string, error) {
+	// get host-gateway ip from the guest
+	ip, err := d.guest.RunOutput("sh", "-c", "grep 'host.lima.internal' /etc/hosts | awk -F' ' '{print $1}'")
+	if err != nil {
+		return "", fmt.Errorf("error retrieving host gateway IP address: %w", err)
+	}
+	// if set by the user, use the user specified value
+	if _, ok := conf[hostGatewayIPKey]; ok {
+		if gip, ok := conf[hostGatewayIPKey].(string); ok {
+			ip = gip
+		}
+	}
+	if net.ParseIP(ip) == nil {
+		return "", fmt.Errorf("invalid host gateway IP address: '%s'", ip)
+	}
+
+	return ip, nil
+}
 
 func (d dockerRuntime) createDaemonFile(conf map[string]any, env map[string]string) error {
 	if conf == nil {
@@ -33,14 +53,18 @@ func (d dockerRuntime) createDaemonFile(conf map[string]any, env map[string]stri
 	// according to https://docs.docker.com/config/daemon/systemd/#httphttps-proxy
 	if vars := d.proxyEnvVars(env); !vars.empty() {
 		proxyConf := map[string]any{}
+		hostGatewayIP, err := getHostGatewayIp(d, conf)
+		if err != nil {
+			return err
+		}
 		if vars.http != "" {
-			proxyConf["http-proxy"] = vars.http
+			proxyConf["http-proxy"] = strings.Replace(vars.http, "127.0.0.1", hostGatewayIP, -1)
 		}
 		if vars.https != "" {
-			proxyConf["https-proxy"] = vars.https
+			proxyConf["https-proxy"] = strings.Replace(vars.https, "127.0.0.1", hostGatewayIP, -1)
 		}
 		if vars.no != "" {
-			proxyConf["no-proxy"] = vars.no
+			proxyConf["no-proxy"] = strings.Replace(vars.no, "127.0.0.1", hostGatewayIP, -1)
 		}
 		conf["proxies"] = proxyConf
 	}
@@ -54,18 +78,9 @@ func (d dockerRuntime) createDaemonFile(conf map[string]any, env map[string]stri
 
 func (d dockerRuntime) addHostGateway(conf map[string]any) error {
 	// get host-gateway ip from the guest
-	ip, err := d.guest.RunOutput("sh", "-c", "grep 'host.lima.internal' /etc/hosts | awk -F' ' '{print $1}'")
+	ip, err := getHostGatewayIp(d, conf)
 	if err != nil {
-		return fmt.Errorf("error retrieving host gateway IP address: %w", err)
-	}
-	// if set by the user, use the user specified value
-	if _, ok := conf[hostGatewayIPKey]; ok {
-		if gip, ok := conf[hostGatewayIPKey].(string); ok {
-			ip = gip
-		}
-	}
-	if net.ParseIP(ip) == nil {
-		return fmt.Errorf("invalid host gateway IP address: '%s'", ip)
+		return err
 	}
 
 	// set host-gateway ip as systemd service file
