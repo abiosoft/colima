@@ -50,7 +50,7 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
 
       - name: Start Colima
-        run: colima start --runtime docker --kubernetes --verbose
+        run: colima start --runtime docker --kubernetes --very-verbose
 
       - name: Delay
         run: sleep 20
@@ -128,7 +128,7 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
 
       - name: Start Colima
-        run: colima start --runtime docker --verbose
+        run: colima start --runtime docker --very-verbose
 
       - name: Delay
         run: sleep 10
