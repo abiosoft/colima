@@ -23,7 +23,7 @@ on:
 
 jobs:
   kubernetes-docker:
-    runs-on: macos-13
+    runs-on: macos-14-large
     steps:
       - uses: actions/checkout@v4
 
@@ -62,7 +62,7 @@ jobs:
         run: colima delete -f
 
   kubernetes-containerd:
-    runs-on: macos-13
+    runs-on: macos-14-large
     steps:
       - uses: actions/checkout@v4
 
@@ -101,7 +101,7 @@ jobs:
         run: colima delete -f
 
   docker:
-    runs-on: macos-13
+    runs-on: macos-14-large
     steps:
       - uses: actions/checkout@v4
 
@@ -149,7 +149,7 @@ jobs:
         run: colima delete -f
 
   containerd:
-    runs-on: macos-13
+    runs-on: macos-14-large
     steps:
       - uses: actions/checkout@v4
 
@@ -197,7 +197,7 @@ jobs:
         run: colima delete -f
 
   incus:
-    runs-on: macos-13
+    runs-on: macos-14-large
     steps:
       - uses: actions/checkout@v4
 
