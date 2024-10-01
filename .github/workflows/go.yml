@@ -34,7 +34,7 @@ jobs:
         run: go test -v ./...
 
   build-macos:
-    runs-on: macos-14-large
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
 
@@ -79,7 +79,7 @@ jobs:
 
   binaries-macos:
     needs: "build-macos"
-    runs-on: macos-14-large
+    runs-on: macos-13
 
     steps:
       - uses: actions/checkout@v4
