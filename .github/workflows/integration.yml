@@ -63,6 +63,7 @@ jobs:
 
   kubernetes-containerd:
     runs-on: macos-13
+    needs: kubernetes-docker
     steps:
       - uses: actions/checkout@v4
 
@@ -102,6 +103,7 @@ jobs:
 
   docker:
     runs-on: macos-13
+    needs: kubernetes-containerd
     steps:
       - uses: actions/checkout@v4
 
@@ -150,6 +152,7 @@ jobs:
 
   containerd:
     runs-on: macos-13
+    needs: docker
     steps:
       - uses: actions/checkout@v4
 
@@ -198,6 +201,7 @@ jobs:
 
   incus:
     runs-on: macos-13
+    needs: containerd
     steps:
       - uses: actions/checkout@v4
 
