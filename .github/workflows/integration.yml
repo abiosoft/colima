@@ -50,7 +50,7 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
 
       - name: Start Colima
-        run: colima start --runtime docker --kubernetes --cpu 1 --vm-type vz
+        run: colima start --runtime docker --kubernetes
 
       - name: Delay
         run: sleep 20
@@ -89,7 +89,7 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
 
       - name: Start
-        run: colima start --runtime containerd --kubernetes --cpu 1 --vm-type vz
+        run: colima start --runtime containerd --kubernetes
 
       - name: Delay
         run: sleep 20
@@ -128,7 +128,7 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
 
       - name: Start Colima
-        run: colima start --runtime docker --cpu 1 --vm-type vz
+        run: colima start --runtime docker
 
       - name: Delay
         run: sleep 10
@@ -176,7 +176,7 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
 
       - name: Start Colima
-        run: colima start --runtime containerd --cpu 1 --vm-type vz
+        run: colima start --runtime containerd
 
       - name: Delay
         run: sleep 10
@@ -224,7 +224,7 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
 
       - name: Start Colima
-        run: colima start --runtime incus --cpu 1 --vm-type vz
+        run: colima start --runtime incus
 
       - name: Delay
         run: sleep 10
