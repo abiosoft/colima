@@ -32,12 +32,24 @@ jobs:
         with:
           go-version: "1.23"
 
+      - name: Fetch homebrew-core commit messages
+        uses: actions/checkout@v4
+        with:
+          # needed by ./hack/brew-install-version.sh
+          repository: homebrew/homebrew-core
+          path: homebrew-core
+          fetch-depth: 0
+          filter: tree:0
+
       - name: Install CLI deps
         env:
           HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_UPGRADE: "1"
           HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: "1"
         run: |
           brew install --overwrite python@3.12 kubectl docker coreutils lima
+          brew uninstall --ignore-dependencies qemu
+          ./.github/hack/brew-install-version.sh qemu 8.2.1
 
       - name: Build and Install
         run: make && sudo make install
@@ -63,7 +75,6 @@ jobs:
 
   kubernetes-containerd:
     runs-on: macos-13
-    needs: kubernetes-docker
     steps:
       - uses: actions/checkout@v4
 
@@ -72,12 +83,24 @@ jobs:
         with:
           go-version: "1.23"
 
+      - name: Fetch homebrew-core commit messages
+        uses: actions/checkout@v4
+        with:
+          # needed by ./hack/brew-install-version.sh
+          repository: homebrew/homebrew-core
+          path: homebrew-core
+          fetch-depth: 0
+          filter: tree:0
+
       - name: Install CLI deps
         env:
           HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_UPGRADE: "1"
           HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: "1"
         run: |
           brew install --overwrite python@3.12 kubectl docker coreutils lima
+          brew uninstall --ignore-dependencies qemu
+          ./.github/hack/brew-install-version.sh qemu 8.2.1
 
       - name: Build and Install
         run: make && sudo make install
@@ -103,7 +126,6 @@ jobs:
 
   docker:
     runs-on: macos-13
-    needs: kubernetes-containerd
     steps:
       - uses: actions/checkout@v4
 
@@ -112,12 +134,24 @@ jobs:
         with:
           go-version: "1.23"
 
+      - name: Fetch homebrew-core commit messages
+        uses: actions/checkout@v4
+        with:
+          # needed by ./hack/brew-install-version.sh
+          repository: homebrew/homebrew-core
+          path: homebrew-core
+          fetch-depth: 0
+          filter: tree:0
+
       - name: Install CLI deps
         env:
           HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_UPGRADE: "1"
           HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: "1"
         run: |
           brew install --overwrite python@3.12 kubectl docker coreutils lima
+          brew uninstall --ignore-dependencies qemu
+          ./.github/hack/brew-install-version.sh qemu 8.2.1
 
       - name: Build and Install
         run: make && sudo make install
@@ -152,7 +186,6 @@ jobs:
 
   containerd:
     runs-on: macos-13
-    needs: docker
     steps:
       - uses: actions/checkout@v4
 
@@ -161,12 +194,24 @@ jobs:
         with:
           go-version: "1.23"
 
+      - name: Fetch homebrew-core commit messages
+        uses: actions/checkout@v4
+        with:
+          # needed by ./hack/brew-install-version.sh
+          repository: homebrew/homebrew-core
+          path: homebrew-core
+          fetch-depth: 0
+          filter: tree:0
+
       - name: Install CLI deps
         env:
           HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_UPGRADE: "1"
           HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: "1"
         run: |
           brew install --overwrite python@3.12 kubectl docker coreutils lima
+          brew uninstall --ignore-dependencies qemu
+          ./.github/hack/brew-install-version.sh qemu 8.2.1
 
       - name: Build and Install
         run: make && sudo make install
@@ -201,7 +246,6 @@ jobs:
 
   incus:
     runs-on: macos-13
-    needs: containerd
     steps:
       - uses: actions/checkout@v4
 
@@ -210,12 +254,24 @@ jobs:
         with:
           go-version: "1.23"
 
+      - name: Fetch homebrew-core commit messages
+        uses: actions/checkout@v4
+        with:
+          # needed by ./hack/brew-install-version.sh
+          repository: homebrew/homebrew-core
+          path: homebrew-core
+          fetch-depth: 0
+          filter: tree:0
+
       - name: Install CLI deps
         env:
           HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_UPGRADE: "1"
           HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: "1"
         run: |
           brew install --overwrite python@3.12 kubectl docker coreutils lima incus
+          brew uninstall --ignore-dependencies qemu
+          ./.github/hack/brew-install-version.sh qemu 8.2.1
 
       - name: Build and Install
         run: make && sudo make install
