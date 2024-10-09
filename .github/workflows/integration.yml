@@ -47,8 +47,9 @@ jobs:
           HOMEBREW_NO_INSTALL_UPGRADE: "1"
           HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: "1"
         run: |
-          ./.github/hack/brew-install-version.sh qemu 8.2.1
           brew install --overwrite python@3.12 kubectl docker coreutils lima
+          brew uninstall qemu
+          ./.github/hack/brew-install-version.sh qemu 8.2.1
 
       - name: Build and Install
         run: make && sudo make install
@@ -97,8 +98,9 @@ jobs:
           HOMEBREW_NO_INSTALL_UPGRADE: "1"
           HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: "1"
         run: |
-          ./.github/hack/brew-install-version.sh qemu 8.2.1
           brew install --overwrite python@3.12 kubectl docker coreutils lima
+          brew uninstall qemu
+          ./.github/hack/brew-install-version.sh qemu 8.2.1
 
       - name: Build and Install
         run: make && sudo make install
@@ -147,8 +149,9 @@ jobs:
           HOMEBREW_NO_INSTALL_UPGRADE: "1"
           HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: "1"
         run: |
-          ./.github/hack/brew-install-version.sh qemu 8.2.1
           brew install --overwrite python@3.12 kubectl docker coreutils lima
+          brew uninstall qemu
+          ./.github/hack/brew-install-version.sh qemu 8.2.1
 
       - name: Build and Install
         run: make && sudo make install
@@ -206,8 +209,9 @@ jobs:
           HOMEBREW_NO_INSTALL_UPGRADE: "1"
           HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: "1"
         run: |
-          ./.github/hack/brew-install-version.sh qemu 8.2.1
           brew install --overwrite python@3.12 kubectl docker coreutils lima
+          brew uninstall qemu
+          ./.github/hack/brew-install-version.sh qemu 8.2.1
 
       - name: Build and Install
         run: make && sudo make install
@@ -265,8 +269,9 @@ jobs:
           HOMEBREW_NO_INSTALL_UPGRADE: "1"
           HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: "1"
         run: |
-          ./.github/hack/brew-install-version.sh qemu 8.2.1
           brew install --overwrite python@3.12 kubectl docker coreutils lima incus
+          brew uninstall qemu
+          ./.github/hack/brew-install-version.sh qemu 8.2.1
 
       - name: Build and Install
         run: make && sudo make install
