@@ -3,6 +3,7 @@ package containerd
 import (
 	"context"
 	_ "embed"
+	"fmt"
 	"path/filepath"
 	"time"
 
@@ -103,5 +104,5 @@ func (c containerdRuntime) Version(ctx context.Context) string {
 }
 
 func (c *containerdRuntime) Update(ctx context.Context) error {
-	return nil
+	return fmt.Errorf("update not supported for the %s runtime", Name)
 }
