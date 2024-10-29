@@ -7,6 +7,7 @@ import (
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/util/debutil"
 )
 
 // Name is container runtime name.
@@ -135,9 +136,11 @@ func (d dockerRuntime) Version(ctx context.Context) string {
 }
 
 func (d *dockerRuntime) Update(ctx context.Context) error {
-	return d.guest.Run(
-		"sh",
-		"-c",
-		"sudo apt-get -qq update -y && sudo apt-get -qq install -y --allow-change-held-packages docker-ce docker-ce-cli containerd.io",
-	)
+	packages := []string{
+		"docker-ce",
+		"docker-ce-cli",
+		"containerd.io",
+	}
+
+	return debutil.UpdateRuntime(ctx, d.guest, d, Name, packages...)
 }

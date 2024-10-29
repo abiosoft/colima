@@ -14,6 +14,7 @@ import (
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/util"
+	"github.com/abiosoft/colima/util/debutil"
 )
 
 const incusBridgeInterface = "incusbr0"
@@ -280,9 +281,13 @@ type networkInfo struct {
 }
 
 func (c *incusRuntime) Update(ctx context.Context) error {
-	return c.guest.Run(
-		"sh",
-		"-c",
-		"sudo apt-get -qq update -y && sudo apt-get -qq install -y --allow-change-held-packages incus incus-base incus-client incus-extra incus-ui-canonical",
-	)
+	packages := []string{
+		"incus",
+		"incus-base",
+		"incus-client",
+		"incus-extra",
+		"incus-ui-canonical",
+	}
+
+	return debutil.UpdateRuntime(ctx, c.guest, c, Name, packages...)
 }
