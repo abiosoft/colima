@@ -22,13 +22,14 @@ var rootCmd = &cobra.Command{
 		switch cmd.Name() {
 
 		// special case handling for commands directly interacting with the VM
-		// start, stop, restart, delete, status, version, ssh-config
+		// start, stop, restart, delete, status, version, update, ssh-config
 		case "start",
 			"stop",
 			"restart",
 			"delete",
 			"status",
 			"version",
+			"update",
 			"ssh-config":
 
 			// if an arg is passed, assume it to be the profile (provided --profile is unset)
