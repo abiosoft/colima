@@ -278,3 +278,11 @@ type networkInfo struct {
 	Managed bool   `json:"managed"`
 	Type    string `json:"type"`
 }
+
+func (c *incusRuntime) Update(ctx context.Context) error {
+	return c.guest.Run(
+		"sh",
+		"-c",
+		"sudo apt-get -qq update -y && sudo apt-get -qq install -y --allow-change-held-packages incus incus-base incus-client incus-extra incus-ui-canonical",
+	)
+}

@@ -263,3 +263,8 @@ func (c kubernetesRuntime) Version(context.Context) string {
 	version, _ := c.host.RunOutput("kubectl", "--context", config.CurrentProfile().ID, "version", "--short")
 	return version
 }
+
+func (c *kubernetesRuntime) Update(ctx context.Context) error {
+	// update not supported
+	return nil
+}

@@ -101,3 +101,7 @@ func (c containerdRuntime) Version(ctx context.Context) string {
 	version, _ := c.guest.RunOutput("sudo", "nerdctl", "version", "--format", `client: {{.Client.Version}}{{printf "\n"}}server: {{(index .Server.Components 0).Version}}`)
 	return version
 }
+
+func (c *containerdRuntime) Update(ctx context.Context) error {
+	return nil
+}

@@ -133,3 +133,11 @@ func (d dockerRuntime) Version(ctx context.Context) string {
 	version, _ := d.host.RunOutput("docker", "version", "--format", `client: v{{.Client.Version}}{{printf "\n"}}server: v{{.Server.Version}}`)
 	return version
 }
+
+func (d *dockerRuntime) Update(ctx context.Context) error {
+	return d.guest.Run(
+		"sh",
+		"-c",
+		"sudo apt-get -qq update -y && sudo apt-get -qq install -y --allow-change-held-packages docker-ce docker-ce-cli containerd.io",
+	)
+}

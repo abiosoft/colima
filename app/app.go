@@ -33,6 +33,7 @@ type App interface {
 	Status(extended bool) error
 	Version() error
 	Runtime() (string, error)
+	Update() error
 	Kubernetes() (environment.Container, error)
 }
 
@@ -452,6 +453,25 @@ func (c colimaApp) Kubernetes() (environment.Container, error) {
 
 func (c colimaApp) Active() bool {
 	return c.guest.Running(context.Background())
+}
+
+func (c *colimaApp) Update() error {
+	ctx := context.Background()
+	if !c.guest.Running(ctx) {
+		return fmt.Errorf("%s is not running", config.CurrentProfile().DisplayName)
+	}
+
+	runtime, err := c.currentRuntime(ctx)
+	if err != nil {
+		return err
+	}
+
+	container, err := c.containerEnvironment(runtime)
+	if err != nil {
+		return err
+	}
+
+	return container.Update(ctx)
 }
 
 func generateSSHConfig(modifySSHConfig bool) error {
