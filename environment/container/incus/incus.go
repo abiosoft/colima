@@ -152,7 +152,7 @@ func (c *incusRuntime) Teardown(ctx context.Context) error {
 
 // Version implements environment.Container.
 func (c *incusRuntime) Version(ctx context.Context) string {
-	version, _ := c.guest.RunOutput("incus", "version")
+	version, _ := c.host.RunOutput("incus", "version", config.CurrentProfile().ID+":")
 	return version
 }
 
