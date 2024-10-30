@@ -131,7 +131,7 @@ func (d dockerRuntime) Dependencies() []string {
 }
 
 func (d dockerRuntime) Version(ctx context.Context) string {
-	version, _ := d.host.RunOutput("docker", "version", "--format", `client: v{{.Client.Version}}{{printf "\n"}}server: v{{.Server.Version}}`)
+	version, _ := d.host.RunOutput("docker", "--context", config.CurrentProfile().ID, "version", "--format", `client: v{{.Client.Version}}{{printf "\n"}}server: v{{.Server.Version}}`)
 	return version
 }
 
