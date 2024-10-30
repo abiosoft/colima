@@ -280,7 +280,7 @@ type networkInfo struct {
 	Type    string `json:"type"`
 }
 
-func (c *incusRuntime) Update(ctx context.Context) error {
+func (c *incusRuntime) Update(ctx context.Context) (bool, error) {
 	packages := []string{
 		"incus",
 		"incus-base",
@@ -289,5 +289,5 @@ func (c *incusRuntime) Update(ctx context.Context) error {
 		"incus-ui-canonical",
 	}
 
-	return debutil.UpdateRuntime(ctx, c.guest, c, Name, packages...)
+	return debutil.UpdateRuntime(ctx, c.guest, c, packages...)
 }

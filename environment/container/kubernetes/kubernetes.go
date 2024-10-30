@@ -264,7 +264,6 @@ func (c kubernetesRuntime) Version(context.Context) string {
 	return version
 }
 
-func (c *kubernetesRuntime) Update(ctx context.Context) error {
-	// update not supported
-	return nil
+func (c *kubernetesRuntime) Update(ctx context.Context) (bool, error) {
+	return false, fmt.Errorf("update not supported for the %s runtime", Name)
 }

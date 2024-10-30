@@ -135,12 +135,12 @@ func (d dockerRuntime) Version(ctx context.Context) string {
 	return version
 }
 
-func (d *dockerRuntime) Update(ctx context.Context) error {
+func (d *dockerRuntime) Update(ctx context.Context) (bool, error) {
 	packages := []string{
 		"docker-ce",
 		"docker-ce-cli",
 		"containerd.io",
 	}
 
-	return debutil.UpdateRuntime(ctx, d.guest, d, Name, packages...)
+	return debutil.UpdateRuntime(ctx, d.guest, d, packages...)
 }

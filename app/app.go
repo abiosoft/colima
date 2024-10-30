@@ -471,7 +471,23 @@ func (c *colimaApp) Update() error {
 		return err
 	}
 
-	return container.Update(ctx)
+	oldVersion := container.Version(ctx)
+
+	updated, err := container.Update(ctx)
+	if err != nil {
+		return err
+	}
+
+	if updated {
+		fmt.Println()
+		fmt.Println("Previous")
+		fmt.Println(oldVersion)
+		fmt.Println()
+		fmt.Println("Current")
+		fmt.Println(container.Version(ctx))
+	}
+
+	return nil
 }
 
 func generateSSHConfig(modifySSHConfig bool) error {
