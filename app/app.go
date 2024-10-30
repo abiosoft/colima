@@ -458,7 +458,7 @@ func (c colimaApp) Active() bool {
 func (c *colimaApp) Update() error {
 	ctx := context.Background()
 	if !c.guest.Running(ctx) {
-		return fmt.Errorf("%s is not running", config.CurrentProfile().DisplayName)
+		return fmt.Errorf("runtime cannot be updated, %s is not running", config.CurrentProfile().DisplayName)
 	}
 
 	runtime, err := c.currentRuntime(ctx)
