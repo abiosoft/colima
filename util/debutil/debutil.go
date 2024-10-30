@@ -32,15 +32,15 @@ func UpdateRuntime(
 	ctx context.Context,
 	guest environment.GuestActions,
 	chain cli.CommandChain,
-	runtime string,
 	packageNames ...string,
-) error {
+) (bool, error) {
 	a := chain.Init(ctx)
 	log := a.Logger()
 
 	packages := packages(packageNames)
 
-	updatesAvailable := false
+	hasUpdates := false
+	updated := false
 
 	a.Stage("refreshing package manager")
 	a.Add(func() error {
@@ -58,13 +58,13 @@ func UpdateRuntime(
 			"-c",
 			packages.Upgradable(),
 		)
-		updatesAvailable = err == nil
+		hasUpdates = err == nil
 		return nil
 	})
 
 	a.Add(func() (err error) {
-		if !updatesAvailable {
-			log.Warnf("no updates available for %s runtime", runtime)
+		if !hasUpdates {
+			log.Warnln("no updates available")
 			return
 		}
 
@@ -75,10 +75,13 @@ func UpdateRuntime(
 			packages.Install(),
 		)
 		if err == nil {
+			updated = true
 			log.Println("done")
 		}
 		return
 	})
 
-	return a.Exec()
+	// it is necessary to execute the chain here to get the correct value for `updated`.
+	err := a.Exec()
+	return updated, err
 }

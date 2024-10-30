@@ -103,6 +103,6 @@ func (c containerdRuntime) Version(ctx context.Context) string {
 	return version
 }
 
-func (c *containerdRuntime) Update(ctx context.Context) error {
-	return fmt.Errorf("update not supported for the %s runtime", Name)
+func (c *containerdRuntime) Update(ctx context.Context) (bool, error) {
+	return false, fmt.Errorf("update not supported for the %s runtime", Name)
 }
