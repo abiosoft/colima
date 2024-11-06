@@ -31,8 +31,9 @@ func New(host environment.HostActions) environment.VM {
 	var envs []string
 	envHome := limautil.EnvLimaHome + "=" + limaHome
 	envLimaInstance := envLimaInstance + "=" + config.CurrentProfile().ID
+	envSSHForward := "LIMA_SSH_PORT_FORWARDER=true"
 	envBinary := osutil.EnvColimaBinary + "=" + osutil.Executable()
-	envs = append(envs, envHome, envLimaInstance, envBinary)
+	envs = append(envs, envHome, envLimaInstance, envSSHForward, envBinary)
 
 	// consider making this truly flexible to support other VMs
 	return &limaVM{
