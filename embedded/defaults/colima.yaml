@@ -5,8 +5,8 @@ cpu: 2
 # Size of the disk in GiB to be allocated to the virtual machine.
 # NOTE: value can only be increased after virtual machine has been created.
 #
-# Default: 60
-disk: 60
+# Default: 100
+disk: 100
 
 # Size of the memory in GiB to be allocated to the virtual machine.
 # Default: 2

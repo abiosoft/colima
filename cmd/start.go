@@ -110,7 +110,7 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 const (
 	defaultCPU               = 2
 	defaultMemory            = 2
-	defaultDisk              = 60
+	defaultDisk              = 100
 	defaultKubernetesVersion = kubernetes.DefaultVersion
 
 	defaultMountTypeQEMU = "sshfs"
