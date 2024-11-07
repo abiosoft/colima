@@ -12,6 +12,7 @@ import (
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/host"
 	"github.com/abiosoft/colima/environment/vm/lima/limaconfig"
+	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/downloader"
 	"github.com/sirupsen/logrus"
 )
@@ -32,7 +33,7 @@ func ImageCached(arch environment.Arch, runtime string) (limaconfig.File, bool) 
 
 	image := diskImageFile(downloader.CacheFilename(img.Location))
 
-	img.Location = image.Raw()
+	img.Location = image.Location()
 	img.Digest = ""
 
 	return img, image.Generated()
@@ -65,8 +66,18 @@ func DownloadImage(arch environment.Arch, runtime string) (f limaconfig.File, er
 	if err != nil {
 		return f, err
 	}
+
+	diskImage := diskImageFile(qcow2)
+
+	// if qemu-img is missing, ignore raw conversion
+	if err := util.AssertQemuImg(); err != nil {
+		img.Location = diskImage.String()
+		img.Digest = "" // remove digest
+		return img, nil
+	}
+
 	// convert from qcow2 to raw
-	raw, err := qcow2ToRaw(host, diskImageFile(qcow2))
+	raw, err := qcow2ToRaw(host, diskImage)
 	if err != nil {
 		return f, err
 	}
@@ -160,6 +171,14 @@ type diskImageFile string
 func (d diskImageFile) String() string { return strings.TrimSuffix(string(d), ".raw") }
 func (d diskImageFile) Raw() string    { return d.String() + ".raw" }
 func (d diskImageFile) Generated() bool {
-	stat, err := os.Stat(d.Raw())
+	stat, err := os.Stat(d.Location())
 	return err == nil && !stat.IsDir()
+}
+
+// Location returns the expected location of the image based on availability of qemu.
+func (d diskImageFile) Location() string {
+	if err := util.AssertQemuImg(); err == nil {
+		return d.Raw()
+	}
+	return d.String()
 }

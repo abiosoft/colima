@@ -95,6 +95,8 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 		return err
 	})
 
+	a.Add(l.assertQemu)
+
 	a.Add(func() error {
 		return l.downloadDiskImage(ctx, conf)
 	})
@@ -143,6 +145,8 @@ func (l *limaVM) resume(ctx context.Context, conf config.Config) error {
 		l.limaConf, err = newConf(ctx, conf)
 		return err
 	})
+
+	a.Add(l.assertQemu)
 
 	a.Add(l.setDiskImage)
 
@@ -319,6 +323,11 @@ func (l *limaVM) syncDiskSize(ctx context.Context, conf config.Config) config.Co
 			return false
 		}
 
+		if err := util.AssertQemuImg(); err != nil {
+			log.Warnln(fmt.Errorf("unable to resize disk: %w", err))
+			return false
+		}
+
 		sizeStr := fmt.Sprintf("%dG", conf.Disk)
 		args := []string{"qemu-img", "resize"}
 		disk := limautil.ColimaDiffDisk(config.CurrentProfile().ID)
@@ -392,4 +401,16 @@ func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Conf
 		}
 		return nil
 	})
+}
+
+func (l *limaVM) assertQemu() error {
+	// assert qemu requirement
+	sameArchitecture := environment.HostArch() == l.limaConf.Arch
+	if err := util.AssertQemuImg(); err != nil && l.limaConf.VMType == limaconfig.QEMU {
+		if !sameArchitecture {
+			return fmt.Errorf("qemu is required to emulate %s: %w", l.limaConf.Arch, err)
+		}
+		return err
+	}
+	return nil
 }
