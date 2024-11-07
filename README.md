@@ -127,7 +127,7 @@ Colima can also be utilised solely as a headless virtual machine manager by spec
 
 ### Customizing the VM
 
-The default VM created by Colima has 2 CPUs, 2GiB memory and 60GiB storage.
+The default VM created by Colima has 2 CPUs, 2GiB memory and 100GiB storage.
 
 The VM can be customized either by passing additional flags to `colima start`.
 e.g. `--cpu`, `--memory`, `--disk`, `--runtime`.
