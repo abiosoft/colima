@@ -71,6 +71,11 @@ func ValidateConfig(c config.Config) error {
 	if _, ok := validVMTypes[c.VMType]; !ok {
 		return fmt.Errorf("invalid vmType: '%s'", c.VMType)
 	}
+	if c.VMType == "qemu" {
+		if err := util.AssertQemuImg(); err != nil {
+			return fmt.Errorf("cannot use vmType: '%s', error: %w", c.VMType, err)
+		}
+	}
 
 	return nil
 }

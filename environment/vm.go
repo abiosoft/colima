@@ -3,6 +3,8 @@ package environment
 import (
 	"context"
 	"runtime"
+
+	"github.com/abiosoft/colima/util"
 )
 
 // VM is virtual machine.
@@ -57,4 +59,14 @@ func (a Arch) Value() Arch {
 	}
 
 	return Arch(runtime.GOARCH).Value()
+}
+
+// DefaultVMType returns the default virtual machine type based on the operation
+// system and availability of Qemu.
+func DefaultVMType() string {
+	if util.AssertQemuImg() != nil && util.MacOS13OrNewer() {
+		return "vz"
+	}
+
+	return "qemu"
 }

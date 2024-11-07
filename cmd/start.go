@@ -113,13 +113,15 @@ const (
 	defaultDisk              = 60
 	defaultKubernetesVersion = kubernetes.DefaultVersion
 
-	defaultVMType        = "qemu"
 	defaultMountTypeQEMU = "sshfs"
 	defaultMountTypeVZ   = "virtiofs"
 )
 
-var defaultK3sArgs = []string{"--disable=traefik"}
-var envSaveConfig = osutil.EnvVar("COLIMA_SAVE_CONFIG")
+var (
+	defaultVMType  = "qemu"
+	defaultK3sArgs = []string{"--disable=traefik"}
+	envSaveConfig  = osutil.EnvVar("COLIMA_SAVE_CONFIG")
+)
 
 var startCmdArgs struct {
 	config.Config
@@ -140,6 +142,7 @@ var startCmdArgs struct {
 func init() {
 	runtimes := strings.Join(environment.ContainerRuntimes(), ", ")
 	defaultArch := string(environment.HostArch())
+	defaultVMType = environment.DefaultVMType()
 
 	mounts := strings.Join([]string{defaultMountTypeQEMU, "9p", "virtiofs"}, ", ")
 	types := strings.Join([]string{defaultVMType, "vz"}, ", ")
@@ -290,6 +293,10 @@ func setConfigDefaults(conf *config.Config) {
 	// handle macOS virtualization.framework transition
 	if conf.VMType == "" {
 		conf.VMType = defaultVMType
+		// if on macOS with no qemu, use vz
+		if err := util.AssertQemuImg(); err != nil && util.MacOS13OrNewer() {
+			conf.VMType = "vz"
+		}
 	}
 
 	if conf.MountType == "" {
