@@ -48,7 +48,6 @@ jobs:
           HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: "1"
         run: |
           brew install --overwrite python@3.12 kubectl docker coreutils lima
-          brew uninstall --ignore-dependencies qemu
           ./.github/hack/brew-install-version.sh qemu 8.2.1
 
       - name: Build and Install
@@ -99,7 +98,6 @@ jobs:
           HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: "1"
         run: |
           brew install --overwrite python@3.12 kubectl docker coreutils lima
-          brew uninstall --ignore-dependencies qemu
           ./.github/hack/brew-install-version.sh qemu 8.2.1
 
       - name: Build and Install
@@ -150,7 +148,6 @@ jobs:
           HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: "1"
         run: |
           brew install --overwrite python@3.12 kubectl docker coreutils lima
-          brew uninstall --ignore-dependencies qemu
           ./.github/hack/brew-install-version.sh qemu 8.2.1
 
       - name: Build and Install
@@ -210,7 +207,6 @@ jobs:
           HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: "1"
         run: |
           brew install --overwrite python@3.12 kubectl docker coreutils lima
-          brew uninstall --ignore-dependencies qemu
           ./.github/hack/brew-install-version.sh qemu 8.2.1
 
       - name: Build and Install
@@ -270,7 +266,6 @@ jobs:
           HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: "1"
         run: |
           brew install --overwrite python@3.12 kubectl docker coreutils lima incus
-          brew uninstall --ignore-dependencies qemu
           ./.github/hack/brew-install-version.sh qemu 8.2.1
 
       - name: Build and Install
