@@ -31,7 +31,7 @@ func MacOS15OrNewer() bool { return minMacOSVersion("15.0.0") }
 
 // MacOSNestedVirtualizationSupported returns if the current device supports nested virtualization.
 func MacOSNestedVirtualizationSupported() bool {
-	return M3() && MacOS15OrNewer()
+	return (IsMx(3) || IsMx(4)) && MacOS15OrNewer()
 }
 
 func minMacOSVersion(version string) bool {
@@ -53,8 +53,9 @@ func minMacOSVersion(version string) bool {
 	return cver.Compare(*ver) <= 0
 }
 
-// M3 returns if the current device is an Apple M3 device.
-func M3() bool {
+// IsMx returns if the current device is an Apple Silicon Mx device
+// where x is the number e.g. x = 1 --> m1, x = 3 --> m3 e.t.c.
+func IsMx(x int) bool {
 	var resp struct {
 		SPHardwareDataType []struct {
 			ChipType string `json:"chip_type"`
@@ -80,7 +81,7 @@ func M3() bool {
 	}
 
 	chipType := strings.ToUpper(resp.SPHardwareDataType[0].ChipType)
-	return strings.Contains(chipType, "M3")
+	return strings.Contains(chipType, fmt.Sprintf("M%d", x))
 }
 
 // RosettaRunning checks if Rosetta process is running.
