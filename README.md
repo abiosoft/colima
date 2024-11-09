@@ -18,7 +18,7 @@
 - Support for multiple container runtimes
   - [Docker](https://docker.com) (with optional Kubernetes)
   - [Containerd](https://containerd.io) (with optional Kubernetes)
-  - [Incus](https://linuxcontainers.org/incus) (containers and virtual machines <sup>[soon](https://github.com/lima-vm/lima/pull/2530)</sup> )
+  - [Incus](https://linuxcontainers.org/incus) (containers and virtual machines)
 
 ## Getting Started
 
@@ -117,6 +117,7 @@ Incus client is required for Incus runtime. Installable with brew `brew install 
 
 You can use the `incus` client on macOS after `colima start` with no additional setup.
 
+**Note:** Running virtual machines on Incus is only supported on m3 or newer Apple Silicon devices.
 
 ### None
 
