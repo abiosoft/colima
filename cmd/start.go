@@ -145,7 +145,7 @@ func init() {
 	defaultVMType = environment.DefaultVMType()
 
 	mounts := strings.Join([]string{defaultMountTypeQEMU, "9p", "virtiofs"}, ", ")
-	types := strings.Join([]string{defaultVMType, "vz"}, ", ")
+	types := strings.Join([]string{"qemu", "vz"}, ", ")
 
 	saveConfigDefault := true
 	if envSaveConfig.Exists() {
