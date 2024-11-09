@@ -18,6 +18,7 @@ import (
 	"github.com/abiosoft/colima/embedded"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/docker"
+	"github.com/abiosoft/colima/environment/container/incus"
 	"github.com/abiosoft/colima/environment/container/kubernetes"
 	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/osutil"
@@ -283,6 +284,15 @@ func setFlagDefaults(cmd *cobra.Command) {
 			startCmdArgs.MountType = "virtiofs"
 			if cmd.Flag("mount-type").Changed {
 				log.Warnf("9p is only available for 'qemu' vmType, using %s", defaultMountTypeVZ)
+			}
+		}
+	}
+
+	// always enable nested virtualization for incus, if supported and not explicitly disabled.
+	if util.MacOSNestedVirtualizationSupported() {
+		if !cmd.Flag("nested-virtualization").Changed {
+			if startCmdArgs.Runtime == incus.Name && startCmdArgs.VMType == "vz" {
+				startCmdArgs.NestedVirtualization = true
 			}
 		}
 	}
