@@ -329,7 +329,7 @@ func (c colimaApp) getStatus() (*status, error) {
 	status.MountType = conf.MountType
 	ipAddress := limautil.IPAddress(config.CurrentProfile().ID)
 	if ipAddress != "127.0.0.1" {
-		status.IPAddress = limautil.IPAddress(config.CurrentProfile().ID)
+		status.IPAddress = ipAddress
 	}
 	if currentRuntime == docker.Name {
 		status.DockerSocket = fmt.Sprintf("unix://%s", docker.HostSocketFile())
