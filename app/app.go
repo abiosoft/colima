@@ -30,7 +30,7 @@ type App interface {
 	Stop(force bool) error
 	Delete() error
 	SSH(args ...string) error
-	Status(extended bool, jsonOutput bool) error
+	Status(extended bool, json bool) error
 	Version() error
 	Runtime() (string, error)
 	Update() error
