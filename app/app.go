@@ -306,15 +306,15 @@ type statusInfo struct {
 	Disk         int64  `json:"disk"`
 }
 
-func (c colimaApp) getStatus() (*status, error) {
+func (c colimaApp) getStatus() (status statusInfo, err error) {
 	ctx := context.Background()
 	if !c.guest.Running(ctx) {
-		return nil, fmt.Errorf("%s is not running", config.CurrentProfile().DisplayName)
+		return status, fmt.Errorf("%s is not running", config.CurrentProfile().DisplayName)
 	}
 
 	currentRuntime, err := c.currentRuntime(ctx)
 	if err != nil {
-		return nil, err
+		return status, err
 	}
 
 	var status statusInfo
@@ -342,7 +342,7 @@ func (c colimaApp) getStatus() (*status, error) {
 		status.Memory = inst.Memory
 		status.Disk = inst.Disk
 	}
-	return &status, nil
+	return status, nil
 }
 
 func (c colimaApp) Status(extended bool, jsonOutput bool) error {
@@ -352,8 +352,9 @@ func (c colimaApp) Status(extended bool, jsonOutput bool) error {
 	}
 
 	if jsonOutput {
-		b, _ := json.Marshal(status)
-		fmt.Println(string(b))
+		if err := json.NewEncoder(os.Stdout).Encode(status); err != nil {
+			return fmt.Errorf("error encoding status as json: %w", err)
+		}
 	} else {
 
 		log.Println(config.CurrentProfile().DisplayName, "is running using", status.Driver)
