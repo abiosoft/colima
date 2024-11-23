@@ -30,7 +30,7 @@ type App interface {
 	Stop(force bool) error
 	Delete() error
 	SSH(args ...string) error
-	Status(extended bool) error
+	Status(extended bool, json bool) error
 	Version() error
 	Runtime() (string, error)
 	Update() error
@@ -292,54 +292,105 @@ func (c colimaApp) SSH(args ...string) error {
 	return guest.SSH(workDir, args...)
 }
 
-func (c colimaApp) Status(extended bool) error {
+type statusInfo struct {
+	DisplayName  string `json:"display_name"`
+	Driver       string `json:"driver"`
+	Arch         string `json:"arch"`
+	Runtime      string `json:"runtime"`
+	MountType    string `json:"mount_type"`
+	IPAddress    string `json:"ip_address"`
+	DockerSocket string `json:"docker_socket"`
+	Kubernetes   bool   `json:"kubernetes"`
+	CPU          int    `json:"cpu"`
+	Memory       int64  `json:"memory"`
+	Disk         int64  `json:"disk"`
+}
+
+func (c colimaApp) getStatus() (status statusInfo, err error) {
 	ctx := context.Background()
 	if !c.guest.Running(ctx) {
-		return fmt.Errorf("%s is not running", config.CurrentProfile().DisplayName)
+		return status, fmt.Errorf("%s is not running", config.CurrentProfile().DisplayName)
 	}
 
 	currentRuntime, err := c.currentRuntime(ctx)
 	if err != nil {
+		return status, err
+	}
+
+	status.DisplayName = config.CurrentProfile().DisplayName
+	status.Driver = "QEMU"
+	conf, _ := configmanager.LoadInstance()
+	if !conf.Empty() {
+		status.Driver = conf.DriverLabel()
+	}
+	status.Arch = string(c.guest.Arch())
+	status.Runtime = currentRuntime
+	status.MountType = conf.MountType
+	ipAddress := limautil.IPAddress(config.CurrentProfile().ID)
+	if ipAddress != "127.0.0.1" {
+		status.IPAddress = ipAddress
+	}
+	if currentRuntime == docker.Name {
+		status.DockerSocket = "unix://" + docker.HostSocketFile()
+	}
+	if k, err := c.Kubernetes(); err == nil && k.Running(ctx) {
+		status.Kubernetes = true
+	}
+	if inst, err := limautil.Instance(); err == nil {
+		status.CPU = inst.CPU
+		status.Memory = inst.Memory
+		status.Disk = inst.Disk
+	}
+	return status, nil
+}
+
+func (c colimaApp) Status(extended bool, jsonOutput bool) error {
+	status, err := c.getStatus()
+	if err != nil {
 		return err
 	}
 
-	driver := "QEMU"
-	conf, _ := configmanager.LoadInstance()
-	if !conf.Empty() {
-		driver = conf.DriverLabel()
-	}
+	if jsonOutput {
+		if err := json.NewEncoder(os.Stdout).Encode(status); err != nil {
+			return fmt.Errorf("error encoding status as json: %w", err)
+		}
+	} else {
 
-	log.Println(config.CurrentProfile().DisplayName, "is running using", driver)
-	log.Println("arch:", c.guest.Arch())
-	log.Println("runtime:", currentRuntime)
-	if conf.MountType != "" {
-		log.Println("mountType:", conf.MountType)
-	}
+		log.Println(config.CurrentProfile().DisplayName, "is running using", status.Driver)
+		log.Println("arch:", status.Arch)
+		log.Println("runtime:", status.Runtime)
+		if status.MountType != "" {
+			log.Println("mountType:", status.MountType)
+		}
 
-	// ip address
-	if ipAddress := limautil.IPAddress(config.CurrentProfile().ID); ipAddress != "127.0.0.1" {
-		log.Println("address:", ipAddress)
-	}
+		// ip address
+		if status.IPAddress != "" {
+			log.Println("address:", status.IPAddress)
+		}
 
-	// docker socket
-	if currentRuntime == docker.Name {
-		log.Println("socket:", "unix://"+docker.HostSocketFile())
-	}
+		// docker socket
+		if status.DockerSocket != "" {
+			log.Println("socket:", status.DockerSocket)
+		}
 
-	// kubernetes
-	if k, err := c.Kubernetes(); err == nil && k.Running(ctx) {
-		log.Println("kubernetes: enabled")
-	}
+		// kubernetes
+		if status.Kubernetes {
+			log.Println("kubernetes: enabled")
+		}
 
-	// additional details
-	if extended {
-		if inst, err := limautil.Instance(); err == nil {
-			log.Println("cpu:", inst.CPU)
-			log.Println("mem:", units.BytesSize(float64(inst.Memory)))
-			log.Println("disk:", units.BytesSize(float64(inst.Disk)))
+		// additional details
+		if extended {
+			if status.CPU > 0 {
+				log.Println("cpu:", status.CPU)
+			}
+			if status.Memory > 0 {
+				log.Println("mem:", units.BytesSize(float64(status.Memory)))
+			}
+			if status.Disk > 0 {
+				log.Println("disk:", units.BytesSize(float64(status.Disk)))
+			}
 		}
 	}
-
 	return nil
 }
 
