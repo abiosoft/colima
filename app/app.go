@@ -317,7 +317,6 @@ func (c colimaApp) getStatus() (status statusInfo, err error) {
 		return status, err
 	}
 
-	var status statusInfo
 	status.DisplayName = config.CurrentProfile().DisplayName
 	status.Driver = "QEMU"
 	conf, _ := configmanager.LoadInstance()
