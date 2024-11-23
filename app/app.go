@@ -292,7 +292,7 @@ func (c colimaApp) SSH(args ...string) error {
 	return guest.SSH(workDir, args...)
 }
 
-type status struct {
+type statusInfo struct {
 	DisplayName  string `json:"display_name"`
 	Driver       string `json:"driver"`
 	Arch         string `json:"arch"`
@@ -317,14 +317,14 @@ func (c colimaApp) getStatus() (*status, error) {
 		return nil, err
 	}
 
-	var status status
+	var status statusInfo
 	status.DisplayName = config.CurrentProfile().DisplayName
 	status.Driver = "QEMU"
 	conf, _ := configmanager.LoadInstance()
 	if !conf.Empty() {
 		status.Driver = conf.DriverLabel()
 	}
-	status.Arch = fmt.Sprintf("%v", c.guest.Arch())
+	status.Arch = string(c.guest.Arch())
 	status.Runtime = currentRuntime
 	status.MountType = conf.MountType
 	ipAddress := limautil.IPAddress(config.CurrentProfile().ID)
@@ -332,7 +332,7 @@ func (c colimaApp) getStatus() (*status, error) {
 		status.IPAddress = ipAddress
 	}
 	if currentRuntime == docker.Name {
-		status.DockerSocket = fmt.Sprintf("unix://%s", docker.HostSocketFile())
+		status.DockerSocket = "unix://" + docker.HostSocketFile()
 	}
 	if k, err := c.Kubernetes(); err == nil && k.Running(ctx) {
 		status.Kubernetes = true
@@ -370,7 +370,7 @@ func (c colimaApp) Status(extended bool, jsonOutput bool) error {
 
 		// docker socket
 		if status.DockerSocket != "" {
-			log.Println("socket:", "unix://"+status.DockerSocket)
+			log.Println("socket:", status.DockerSocket)
 		}
 
 		// kubernetes
