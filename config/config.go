@@ -28,7 +28,7 @@ var (
 type Config struct {
 	CPU      int               `yaml:"cpu,omitempty"`
 	Disk     int               `yaml:"disk,omitempty"`
-	Memory   int               `yaml:"memory,omitempty"`
+	Memory   float32           `yaml:"memory,omitempty"`
 	Arch     string            `yaml:"arch,omitempty"`
 	CPUType  string            `yaml:"cpuType,omitempty"`
 	Network  Network           `yaml:"network,omitempty"`
