@@ -18,13 +18,13 @@ func Instance() (InstanceInfo, error) {
 
 // InstanceInfo is the information about a Lima instance
 type InstanceInfo struct {
-	Name    string `json:"name,omitempty"`
-	Status  string `json:"status,omitempty"`
-	Arch    string `json:"arch,omitempty"`
-	CPU     int    `json:"cpus,omitempty"`
-	Memory  int64  `json:"memory,omitempty"`
-	Disk    int64  `json:"disk,omitempty"`
-	Dir     string `json:"dir,omitempty"`
+	Name    string  `json:"name,omitempty"`
+	Status  string  `json:"status,omitempty"`
+	Arch    string  `json:"arch,omitempty"`
+	CPU     int     `json:"cpus,omitempty"`
+	Memory  float32 `json:"memory,omitempty"`
+	Disk    int64   `json:"disk,omitempty"`
+	Dir     string  `json:"dir,omitempty"`
 	Network []struct {
 		VNL       string `json:"vnl,omitempty"`
 		Interface string `json:"interface,omitempty"`

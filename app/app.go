@@ -293,17 +293,17 @@ func (c colimaApp) SSH(args ...string) error {
 }
 
 type statusInfo struct {
-	DisplayName  string `json:"display_name"`
-	Driver       string `json:"driver"`
-	Arch         string `json:"arch"`
-	Runtime      string `json:"runtime"`
-	MountType    string `json:"mount_type"`
-	IPAddress    string `json:"ip_address"`
-	DockerSocket string `json:"docker_socket"`
-	Kubernetes   bool   `json:"kubernetes"`
-	CPU          int    `json:"cpu"`
-	Memory       int64  `json:"memory"`
-	Disk         int64  `json:"disk"`
+	DisplayName  string  `json:"display_name"`
+	Driver       string  `json:"driver"`
+	Arch         string  `json:"arch"`
+	Runtime      string  `json:"runtime"`
+	MountType    string  `json:"mount_type"`
+	IPAddress    string  `json:"ip_address"`
+	DockerSocket string  `json:"docker_socket"`
+	Kubernetes   bool    `json:"kubernetes"`
+	CPU          int     `json:"cpu"`
+	Memory       float32 `json:"memory"`
+	Disk         int64   `json:"disk"`
 }
 
 func (c colimaApp) getStatus() (status statusInfo, err error) {
