@@ -60,7 +60,7 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 		l.CPUs = &conf.CPU
 	}
 	if conf.Memory > 0 {
-		l.Memory = fmt.Sprintf("%fGiB", conf.Memory)
+		l.Memory = fmt.Sprintf("%dMiB", uint32(conf.Memory*1024)) //memorySize is a multiple of 1 megabyte
 	}
 	if conf.Disk > 0 {
 		l.Disk = fmt.Sprintf("%dGiB", conf.Disk)
