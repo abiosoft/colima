@@ -120,6 +120,23 @@ func Instances(ids ...string) ([]InstanceInfo, error) {
 	return instances, nil
 }
 
+// RunningInstances return Lima instances that are has a running status.
+func RunningInstances() ([]InstanceInfo, error) {
+	allInstances, err := Instances()
+	if err != nil {
+		return nil, err
+	}
+
+	var runningInstances []InstanceInfo
+	for _, instance := range allInstances {
+		if instance.Running() {
+			runningInstances = append(runningInstances, instance)
+		}
+	}
+
+	return runningInstances, nil
+}
+
 func getRuntime(conf config.Config) string {
 	var runtime string
 
