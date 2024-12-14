@@ -19,3 +19,8 @@ const networkFile = "networks.yaml"
 func NetworkFile() string {
 	return filepath.Join(config.LimaDir(), "_config", networkFile)
 }
+
+// NetworkAssetsDirecotry returns the directory for the generated network assets.
+func NetworkAssetsDirectory() string {
+	return filepath.Join(config.LimaDir(), "_networks")
+}

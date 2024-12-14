@@ -10,6 +10,7 @@ import (
 	"github.com/abiosoft/colima/embedded"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/util"
+	"github.com/sirupsen/logrus"
 )
 
 func (l *limaVM) writeNetworkFile() error {
@@ -17,6 +18,13 @@ func (l *limaVM) writeNetworkFile() error {
 	embeddedFile, err := embedded.Read("network/networks.yaml")
 	if err != nil {
 		return fmt.Errorf("error reading embedded network config file: %w", err)
+	}
+
+	// if there are no running instances, clear network directory
+	if instances, err := limautil.RunningInstances(); err == nil && len(instances) == 0 {
+		if err := os.RemoveAll(limautil.NetworkAssetsDirectory()); err != nil {
+			logrus.Warnln(fmt.Errorf("could not clear network assets directory: %w", err))
+		}
 	}
 
 	if err := os.MkdirAll(filepath.Dir(networkFile), 0755); err != nil {
