@@ -274,11 +274,26 @@ func (l limaVM) Arch() environment.Arch {
 func (l *limaVM) downloadDiskImage(ctx context.Context, conf config.Config) error {
 	log := l.Logger(ctx)
 
+	// use a previously cached image
 	if image, ok := limautil.ImageCached(l.limaConf.Arch, conf.Runtime); ok {
 		l.limaConf.Images = []limaconfig.File{image}
 		return nil
 	}
 
+	// use a user specified disk image
+	if conf.DiskImage != "" {
+		log.Infoln("using specified disk image ...")
+		image, err := limautil.Image(l.limaConf.Arch, conf.Runtime)
+		if err != nil {
+			return fmt.Errorf("error getting disk image details: %w", err)
+		}
+		log.Warnf("disk image must be identical to '%s'", image.Location)
+		image.Location = conf.DiskImage
+		l.limaConf.Images = []limaconfig.File{image}
+		return nil
+	}
+
+	// download image
 	log.Infoln("downloading disk image ...")
 	image, err := limautil.DownloadImage(l.limaConf.Arch, conf.Runtime)
 	if err != nil {

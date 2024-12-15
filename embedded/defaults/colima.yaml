@@ -197,6 +197,14 @@ sshPort: 0
 # Default: []
 mounts: []
 
+# Specify a custom disk image for the virtual machine.
+# When not specified, Colima downloads the disk image from Github at
+# https://github.com/abiosoft/colima-core/releases.
+# A custom disk image (local disk path or URL) can be specified to override the behaviour.
+#
+# Default: ""
+diskImage: ""
+
 # Environment variables for the virtual machine.
 #
 # EXAMPLE

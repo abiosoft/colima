@@ -44,6 +44,7 @@ type Config struct {
 	VMType               string `yaml:"vmType,omitempty"`
 	VZRosetta            bool   `yaml:"rosetta,omitempty"`
 	NestedVirtualization bool   `yaml:"nestedVirtualization,omitempty"`
+	DiskImage            string `yaml:"diskImage,omitempty"`
 
 	// volume mounts
 	Mounts       []Mount `yaml:"mounts,omitempty"`
