@@ -5,8 +5,11 @@ import (
 	"strings"
 )
 
-// network interfaces for shared network in the virtual machine.
+// network interface for shared network in the virtual machine.
 const NetInterface = "col0"
+
+// network metric for the route
+const NetMetric = 300
 
 // IPAddress returns the ip address for profile.
 // It returns the PTP address if networking is enabled or falls back to 127.0.0.1.

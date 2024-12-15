@@ -122,6 +122,7 @@ type Network struct {
 	SwitchPortDeprecated uint16 `yaml:"switchPort,omitempty" json:"switchPort,omitempty"` // VDE Switch port, not TCP/UDP port (only used by VDE networking)
 	MACAddress           string `yaml:"macAddress,omitempty" json:"macAddress,omitempty"`
 	Interface            string `yaml:"interface,omitempty" json:"interface,omitempty"`
+	Metric               uint32 `yaml:"metric,omitempty" json:"metric,omitempty"`
 }
 
 type ProvisionMode = string

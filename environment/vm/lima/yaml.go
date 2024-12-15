@@ -135,6 +135,7 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 				l.Networks = append(l.Networks, limaconfig.Network{
 					VZNAT:     true,
 					Interface: limautil.NetInterface,
+					Metric:    limautil.NetMetric,
 				})
 			} else {
 				reachableIPAddress, _ = ctx.Value(daemon.CtxKey(vmnet.Name)).(bool)
@@ -151,6 +152,7 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 						l.Networks = append(l.Networks, limaconfig.Network{
 							Socket:    socketFile,
 							Interface: limautil.NetInterface,
+							Metric:    limautil.NetMetric,
 						})
 
 						return nil
