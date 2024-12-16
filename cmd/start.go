@@ -163,6 +163,7 @@ func init() {
 	startCmd.Flags().StringVarP(&startCmdArgs.Arch, "arch", "a", defaultArch, "architecture (aarch64, x86_64)")
 	startCmd.Flags().BoolVarP(&startCmdArgs.Flags.Foreground, "foreground", "f", false, "Keep colima in the foreground")
 	startCmd.Flags().StringVar(&startCmdArgs.Hostname, "hostname", "", "custom hostname for the virtual machine")
+	startCmd.Flags().StringVarP(&startCmdArgs.DiskImage, "disk-image", "i", "", "file path to a custom disk image")
 
 	// host IP addresses
 	startCmd.Flags().BoolVar(&startCmdArgs.Network.HostAddresses, "network-host-addresses", false, "support port forwarding to specific host IP addresses")

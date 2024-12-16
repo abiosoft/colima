@@ -53,6 +53,11 @@ func findImage(arch environment.Arch, runtime string) (f limaconfig.File, err er
 	return img, nil
 }
 
+// Image returns the details of the disk image to download for the arch and runtime.
+func Image(arch environment.Arch, runtime string) (limaconfig.File, error) {
+	return findImage(arch, runtime)
+}
+
 // DownloadImage downloads the image for arch and runtime.
 func DownloadImage(arch environment.Arch, runtime string) (f limaconfig.File, err error) {
 	img, err := findImage(arch, runtime)

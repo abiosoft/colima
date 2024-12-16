@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
@@ -74,6 +75,12 @@ func ValidateConfig(c config.Config) error {
 	if c.VMType == "qemu" {
 		if err := util.AssertQemuImg(); err != nil {
 			return fmt.Errorf("cannot use vmType: '%s', error: %w", c.VMType, err)
+		}
+	}
+
+	if c.DiskImage != "" {
+		if strings.HasPrefix(c.DiskImage, "http://") || strings.HasPrefix(c.DiskImage, "https://") {
+			return fmt.Errorf("cannot use diskImage: remote URLs not supported, only local files can be specified")
 		}
 	}
 
