@@ -5,7 +5,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/abiosoft/colima/config"
@@ -18,57 +17,6 @@ type (
 	hostActions  = environment.HostActions
 	guestActions = environment.GuestActions
 )
-
-type SHA struct {
-	URL    string // url to download the shasum file (if Digest is empty)
-	Size   int    // one of 256 or 512
-	Digest string // shasum
-}
-
-func (s SHA) validate(host hostActions, url, cacheFilename string) error {
-	if s.URL == "" && s.Digest == "" {
-		return fmt.Errorf("error validating SHA: one of Digest or URL must be set")
-	}
-
-	if s.Digest != "" {
-		s.Digest = strings.TrimPrefix(s.Digest, fmt.Sprintf("sha%d:", s.Size))
-	}
-
-	filename := func() string {
-		if url == "" {
-			return ""
-		}
-		split := strings.Split(url, "/")
-		return split[len(split)-1]
-	}()
-	dir, cacheFilename := filepath.Split(cacheFilename)
-
-	var script string
-
-	if s.Digest == "" {
-		script = strings.NewReplacer(
-			"{dir}", dir,
-			"{url}", s.URL,
-			"{filename}", filename,
-			"{size}", strconv.Itoa(s.Size),
-			"{cache_filename}", cacheFilename,
-		).Replace(
-			`cd {dir} && echo "$(curl -sL {url} | grep '  {filename}$' | awk -F' ' '{print $1}')  {cache_filename}" | shasum -a {size} --check --status`,
-		)
-	} else {
-		script = strings.NewReplacer(
-			"{dir}", dir,
-			"{digest}", s.Digest,
-			"{filename}", filename,
-			"{size}", strconv.Itoa(s.Size),
-			"{cache_filename}", cacheFilename,
-		).Replace(
-			`cd {dir} && echo "{digest}  {cache_filename}" | shasum -a {size} --check --status`,
-		)
-	}
-
-	return host.Run("sh", "-c", script)
-}
 
 // Request is download request
 type Request struct {
@@ -146,7 +94,7 @@ func (d downloader) downloadFile(r Request) (err error) {
 
 	// validate download if sha is present
 	if r.SHA != nil {
-		if err := r.SHA.validate(d.host, r.URL, cacheDownloadingFilename); err != nil {
+		if err := r.SHA.validateDownload(d.host, r.URL, cacheDownloadingFilename); err != nil {
 
 			// move file to allow subsequent re-download
 			// error discarded, would not be actioned anyways
