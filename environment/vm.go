@@ -64,7 +64,7 @@ func (a Arch) Value() Arch {
 // DefaultVMType returns the default virtual machine type based on the operation
 // system and availability of Qemu.
 func DefaultVMType() string {
-	if util.AssertQemuImg() != nil && util.MacOS13OrNewer() {
+	if util.MacOS13OrNewer() {
 		return "vz"
 	}
 
