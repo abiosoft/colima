@@ -16,6 +16,7 @@ import (
 	"github.com/abiosoft/colima/environment/vm/lima/limaconfig"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/util"
+	"github.com/abiosoft/colima/util/downloader"
 	"github.com/abiosoft/colima/util/osutil"
 	"github.com/abiosoft/colima/util/yamlutil"
 	"github.com/sirupsen/logrus"
@@ -274,21 +275,29 @@ func (l limaVM) Arch() environment.Arch {
 func (l *limaVM) downloadDiskImage(ctx context.Context, conf config.Config) error {
 	log := l.Logger(ctx)
 
-	// use a previously cached image
-	if image, ok := limautil.ImageCached(l.limaConf.Arch, conf.Runtime); ok {
-		l.limaConf.Images = []limaconfig.File{image}
-		return nil
-	}
-
 	// use a user specified disk image
 	if conf.DiskImage != "" {
-		log.Infoln("using specified disk image ...")
+		if _, err := os.Stat(conf.DiskImage); err != nil {
+			return fmt.Errorf("invalid disk image: %w", err)
+		}
+
 		image, err := limautil.Image(l.limaConf.Arch, conf.Runtime)
 		if err != nil {
 			return fmt.Errorf("error getting disk image details: %w", err)
 		}
-		log.Warnf("disk image must be identical to '%s'", image.Location)
+
+		sha := downloader.SHA{Size: 512, Digest: image.Digest}
+		if err := sha.ValidateFile(l.host, conf.DiskImage); err != nil {
+			return fmt.Errorf("disk image must be downloaded from '%s', hash failure: %w", image.Location, err)
+		}
+
 		image.Location = conf.DiskImage
+		l.limaConf.Images = []limaconfig.File{image}
+		return nil
+	}
+
+	// use a previously cached image
+	if image, ok := limautil.ImageCached(l.limaConf.Arch, conf.Runtime); ok {
 		l.limaConf.Images = []limaconfig.File{image}
 		return nil
 	}

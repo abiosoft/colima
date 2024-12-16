@@ -17,10 +17,11 @@ type SHA struct {
 // ValidateFile validates the SHA of the file.
 func (s SHA) ValidateFile(host hostActions, file string) error {
 	dir, filename := filepath.Split(file)
+	digest := strings.TrimPrefix(s.Digest, fmt.Sprintf("sha%d:", s.Size))
 
 	script := strings.NewReplacer(
 		"{dir}", dir,
-		"{digest}", s.Digest,
+		"{digest}", digest,
 		"{size}", strconv.Itoa(s.Size),
 		"{filename}", filename,
 	).Replace(
@@ -33,10 +34,6 @@ func (s SHA) ValidateFile(host hostActions, file string) error {
 func (s SHA) validateDownload(host hostActions, url string, filename string) error {
 	if s.URL == "" && s.Digest == "" {
 		return fmt.Errorf("error validating SHA: one of Digest or URL must be set")
-	}
-
-	if s.Digest != "" {
-		s.Digest = strings.TrimPrefix(s.Digest, fmt.Sprintf("sha%d:", s.Size))
 	}
 
 	// fetch digest from URL if empty
