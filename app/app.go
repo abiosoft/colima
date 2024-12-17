@@ -407,8 +407,7 @@ func (c colimaApp) Version() error {
 
 	var kube environment.Container
 	for _, cont := range containerRuntimes {
-		switch cont.Name() {
-		case kubernetes.Name:
+		if cont.Name() == kubernetes.Name {
 			kube = cont
 			continue
 		}

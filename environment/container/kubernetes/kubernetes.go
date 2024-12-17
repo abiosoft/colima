@@ -246,9 +246,7 @@ func (c kubernetesRuntime) Teardown(ctx context.Context) error {
 
 	// k3s is buggy with external containerd for now
 	// cleanup is manual
-	a.Add(func() error {
-		return c.deleteAllContainers()
-	})
+	a.Add(c.deleteAllContainers)
 
 	c.teardownKubeconfig(a)
 
