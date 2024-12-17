@@ -66,7 +66,7 @@ func (v *verboseWriter) refresh() error {
 }
 
 func (v *verboseWriter) addLine() {
-	defer v.buf.Truncate(0)
+	defer v.buf.Reset()
 
 	// if height <=0, do not scroll
 	if v.lineHeight <= 0 {
