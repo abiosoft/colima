@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -46,16 +47,31 @@ func (c kubernetesRuntime) provisionKubeconfig(ctx context.Context) error {
 
 	// manipulate in VM and save to host
 	a.Add(func() error {
-		kubeconfig, err := c.guest.Read("/etc/rancher/k3s/k3s.yaml")
-		if err != nil {
-			return fmt.Errorf("error fetching kubeconfig on guest: %w", err)
-		}
-		// replace name
-		kubeconfig = strings.ReplaceAll(kubeconfig, ": default", ": "+profile)
+		var err error
+		kubeconfig := ""
+		if c.config().UseK0s {
+			kubeconfig, err = c.guest.Read("/var/lib/k0s/pki/admin.conf")
+			if err != nil {
+				return fmt.Errorf("error fetching kubeconfig on guest: %w", err)
+			}
+			kubeconfig = strings.ReplaceAll(kubeconfig, ": Default", ": "+profile)
 
-		// replace IP
-		if ip != "" && ip != "127.0.0.1" {
-			kubeconfig = strings.ReplaceAll(kubeconfig, "https://127.0.0.1:", "https://"+ip+":")
+			if ip != "" && ip != "127.0.0.1" {
+				re := regexp.MustCompile(`https://[^:]+:`)
+				kubeconfig = re.ReplaceAllString(kubeconfig, "https://"+ip+":")
+			}
+		} else {
+			kubeconfig, err = c.guest.Read("/etc/rancher/k3s/k3s.yaml")
+			if err != nil {
+				return fmt.Errorf("error fetching kubeconfig on guest: %w", err)
+			}
+			// replace name
+			kubeconfig = strings.ReplaceAll(kubeconfig, ": default", ": "+profile)
+
+			// replace IP
+			if ip != "" && ip != "127.0.0.1" {
+				kubeconfig = strings.ReplaceAll(kubeconfig, "https://127.0.0.1:", "https://"+ip+":")
+			}
 		}
 
 		// save on the host

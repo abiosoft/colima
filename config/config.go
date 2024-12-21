@@ -70,6 +70,7 @@ type Kubernetes struct {
 	Enabled bool     `yaml:"enabled"`
 	Version string   `yaml:"version"`
 	K3sArgs []string `yaml:"k3sArgs"`
+	UseK0s  bool     `yaml:"usek0s"`
 }
 
 // Network is VM network configuration
