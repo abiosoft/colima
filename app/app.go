@@ -70,7 +70,11 @@ func (c colimaApp) startWithRuntime(conf config.Config) ([]environment.Container
 	{
 		runtime := conf.Runtime
 		if kubernetesEnabled {
-			runtime += "+k3s"
+			if conf.Kubernetes.UseK0s {
+				runtime += "+k0s"
+			} else {
+				runtime += "+k3s"
+			}
 		}
 		log.Println("runtime:", runtime)
 	}

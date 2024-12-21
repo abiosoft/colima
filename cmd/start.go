@@ -45,7 +45,9 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 		"  colima start --arch aarch64\n" +
 		"  colima start --dns 1.1.1.1 --dns 8.8.8.8\n" +
 		"  colima start --dns-host example.com=1.2.3.4\n" +
-		"  colima start --kubernetes --k3s-arg=--disable=coredns,servicelb,traefik,local-storage,metrics-server",
+		"  colima start --kubernetes --k3s-arg=--disable=coredns,servicelb,traefik,local-storage,metrics-server" +
+		"  colima start --kubernetes --k0s" +
+		"  colima start --kubernetes --k0s --kubernetes-version=v1.28.15+k0s.0",
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		app := newApp()
@@ -109,10 +111,11 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 }
 
 const (
-	defaultCPU               = 2
-	defaultMemory            = 2
-	defaultDisk              = 100
-	defaultKubernetesVersion = kubernetes.DefaultVersion
+	defaultCPU        = 2
+	defaultMemory     = 2
+	defaultDisk       = 100
+	defaultK3sVersion = kubernetes.DefaultK3sVersion
+	defaultK0sVersion = kubernetes.DefaultK0sVersion
 
 	defaultMountTypeQEMU = "sshfs"
 	defaultMountTypeVZ   = "virtiofs"
@@ -204,7 +207,8 @@ func init() {
 	// k8s
 	startCmd.Flags().BoolVarP(&startCmdArgs.Kubernetes.Enabled, "kubernetes", "k", false, "start with Kubernetes")
 	startCmd.Flags().BoolVar(&startCmdArgs.Flags.LegacyKubernetes, "with-kubernetes", false, "start with Kubernetes")
-	startCmd.Flags().StringVar(&startCmdArgs.Kubernetes.Version, "kubernetes-version", defaultKubernetesVersion, "must match a k3s version https://github.com/k3s-io/k3s/releases")
+	startCmd.Flags().StringVar(&startCmdArgs.Kubernetes.Version, "kubernetes-version", "", "Kubernetes version to use")
+	startCmd.Flags().BoolVarP(&startCmdArgs.Kubernetes.UseK0s, "k0s", "0", false, "use k0s instead of k3s")
 	startCmd.Flags().StringSliceVar(&startCmdArgs.Flags.LegacyKubernetesDisable, "kubernetes-disable", nil, "components to disable for k3s e.g. traefik,servicelb")
 	startCmd.Flags().StringSliceVar(&startCmdArgs.Kubernetes.K3sArgs, "k3s-arg", defaultK3sArgs, "additional args to pass to k3s")
 	startCmd.Flag("with-kubernetes").Hidden = true
@@ -416,6 +420,9 @@ func prepareConfig(cmd *cobra.Command) {
 	}
 	if !cmd.Flag("kubernetes-version").Changed {
 		startCmdArgs.Kubernetes.Version = current.Kubernetes.Version
+	}
+	if !cmd.Flag("k0s").Changed {
+		startCmdArgs.Kubernetes.UseK0s = current.Kubernetes.UseK0s
 	}
 	if !cmd.Flag("k3s-arg").Changed {
 		startCmdArgs.Kubernetes.K3sArgs = current.Kubernetes.K3sArgs

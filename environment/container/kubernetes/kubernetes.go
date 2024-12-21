@@ -17,10 +17,10 @@ import (
 // Name is container runtime name
 
 const (
-	Name           = "kubernetes"
-	DefaultVersion = "v1.31.2+k3s1"
-
-	ConfigKey = "kubernetes_config"
+	Name              = "kubernetes"
+	DefaultK3sVersion = "v1.31.2+k3s1"
+	DefaultK0sVersion = "v1.31.3+k0s.0"
+	ConfigKey         = "kubernetes_config"
 )
 
 func newRuntime(host environment.HostActions, guest environment.GuestActions) environment.Container {
@@ -47,21 +47,35 @@ func (c kubernetesRuntime) Name() string {
 	return Name
 }
 
-func (c kubernetesRuntime) isInstalled() bool {
+func (c kubernetesRuntime) isInstalled(useK0s bool) bool {
+	if useK0s {
+		return c.guest.RunQuiet("command", "-v", "k0s") == nil
+	}
 	// it is installed if uninstall script is present.
 	return c.guest.RunQuiet("command", "-v", "k3s-uninstall.sh") == nil
 }
 
-func (c kubernetesRuntime) isVersionInstalled(version string) bool {
-	// validate version change via cli flag/config.
-	out, err := c.guest.RunOutput("k3s", "--version")
-	if err != nil {
-		return false
+func (c kubernetesRuntime) isVersionInstalled(version string, useK0s bool) bool {
+	if useK0s {
+		out, err := c.guest.RunOutput("k0s", "version")
+		if err != nil {
+			return false
+		}
+		return strings.Contains(out, version)
+	} else {
+		// validate version change via cli flag/config.
+		out, err := c.guest.RunOutput("k3s", "--version")
+		if err != nil {
+			return false
+		}
+		return strings.Contains(out, version)
 	}
-	return strings.Contains(out, version)
 }
 
 func (c kubernetesRuntime) Running(context.Context) bool {
+	if c.config().UseK0s {
+		return c.guest.RunQuiet("sudo", "service", "k0scontroller", "status") == nil
+	}
 	return c.guest.RunQuiet("sudo", "service", "k3s", "status") == nil
 }
 
@@ -70,10 +84,20 @@ func (c kubernetesRuntime) runtime() string {
 }
 
 func (c kubernetesRuntime) config() config.Kubernetes {
-	conf := config.Kubernetes{Version: DefaultVersion}
+	conf := config.Kubernetes{}
 	if b := c.guest.Get(ConfigKey); b != "" {
 		_ = json.Unmarshal([]byte(b), &conf)
 	}
+
+	// Set default version based on UseK0s flag
+	if conf.Version == "" {
+		if conf.UseK0s {
+			conf.Version = DefaultK0sVersion
+		} else {
+			conf.Version = DefaultK3sVersion
+		}
+	}
+
 	return conf
 }
 
@@ -104,16 +128,17 @@ func (c *kubernetesRuntime) Provision(ctx context.Context) error {
 		conf = c.config()
 	}
 
-	if c.isVersionInstalled(conf.Version) {
+	if c.isVersionInstalled(conf.Version, conf.UseK0s) {
 		// runtime has changed, ensure the required images are in the registry
 		if currentRuntime := c.runtime(); currentRuntime != "" && currentRuntime != runtime {
-			a.Stagef("changing runtime to %s", runtime)
-			installK3sCache(c.host, c.guest, a, log, runtime, conf.Version)
+			if !conf.UseK0s {
+				a.Stagef("changing runtime to %s", runtime)
+				// other settings may have changed e.g. ingress
+				installK3sCache(c.host, c.guest, a, log, runtime, conf.Version)
+			}
 		}
-		// other settings may have changed e.g. ingress
-		installK3sCluster(c.host, c.guest, a, runtime, conf.Version, conf.K3sArgs)
 	} else {
-		if c.isInstalled() {
+		if c.isInstalled(conf.UseK0s) {
 			a.Stagef("version changed to %s, downloading and installing", conf.Version)
 		} else {
 			if ok {
@@ -122,13 +147,19 @@ func (c *kubernetesRuntime) Provision(ctx context.Context) error {
 				a.Stage("installing")
 			}
 		}
-		installK3s(c.host, c.guest, a, log, runtime, conf.Version, conf.K3sArgs)
+		if conf.UseK0s {
+			installK0s(c.guest, a, conf.Version)
+		} else {
+			installK3s(c.host, c.guest, a, log, runtime, conf.Version, conf.K3sArgs)
+		}
 	}
 
 	// this needs to happen on each startup
 	{
-		// cni is used by both cri-dockerd and containerd
-		installCniConfig(c.guest, a)
+		if !conf.UseK0s {
+			// cni is used by both cri-dockerd and containerd
+			installCniConfig(c.guest, a)
+		}
 	}
 
 	// provision successful, now we can persist the version
@@ -145,12 +176,21 @@ func (c kubernetesRuntime) Start(ctx context.Context) error {
 		return nil
 	}
 
-	a.Add(func() error {
-		return c.guest.Run("sudo", "service", "k3s", "start")
-	})
-	a.Retry("", time.Second*2, 10, func(int) error {
-		return c.guest.RunQuiet("kubectl", "cluster-info")
-	})
+	if c.config().UseK0s {
+		a.Add(func() error {
+			return c.guest.Run("sudo", "systemctl", "start", "k0scontroller")
+		})
+		a.Retry("", time.Second*2, 10, func(int) error {
+			return c.guest.RunQuiet("sudo", "k0s", "kubectl", "cluster-info")
+		})
+	} else {
+		a.Add(func() error {
+			return c.guest.Run("sudo", "service", "k3s", "start")
+		})
+		a.Retry("", time.Second*2, 10, func(int) error {
+			return c.guest.RunQuiet("kubectl", "cluster-info")
+		})
+	}
 
 	if err := a.Exec(); err != nil {
 		return err
@@ -238,15 +278,24 @@ func (c kubernetesRuntime) runningContainerIDs() string {
 func (c kubernetesRuntime) Teardown(ctx context.Context) error {
 	a := c.Init(ctx)
 
-	if c.isInstalled() {
+	if c.isInstalled(c.config().UseK0s) {
 		a.Add(func() error {
-			return c.guest.Run("k3s-uninstall.sh")
+			if c.config().UseK0s {
+				if err := c.guest.Run("sudo", "systemctl", "stop", "k0scontroller"); err != nil {
+					return fmt.Errorf("error stopping k0scontroller services: %w", err)
+				}
+				return c.guest.Run("sudo", "k0s", "reset")
+			} else {
+				return c.guest.Run("k3s-uninstall.sh")
+			}
 		})
 	}
 
-	// k3s is buggy with external containerd for now
-	// cleanup is manual
-	a.Add(c.deleteAllContainers)
+	if !c.config().UseK0s {
+		// k3s is buggy with external containerd for now
+		// cleanup is manual
+		a.Add(c.deleteAllContainers)
+	}
 
 	c.teardownKubeconfig(a)
 

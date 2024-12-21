@@ -100,6 +100,14 @@ To enable Kubernetes, start Colima with `--kubernetes` flag.
 colima start --kubernetes
 ```
 
+By default, colima use [k3s](https://github.com/k3s-io/k3s/).
+
+Use [k0s](https://github.com/k0sproject/k0s).
+
+```
+colima start --kubernetes --k0s
+```
+
 #### Interacting with Image Registry
 
 For Docker runtime, images built or pulled with Docker are accessible to Kubernetes.
