@@ -17,7 +17,7 @@
       - [Listing Docker contexts](#listing-docker-contexts)
       - [Changing the active Docker context](#changing-the-active-docker-context)
     - [Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?](#cannot-connect-to-the-docker-daemon-at-unixvarrundockersock-is-the-docker-daemon-running)
-    - [How to customize Docker config e.g. add insecure registries?](#how-to-customize-docker-config-eg-add-insecure-registries)
+    - [How to customize Docker config (e.g., adding insecure registries or registry mirrors)?](#how-to-customize-docker-config-eg-adding-insecure-registries-or-registry-mirrors)
     - [Docker buildx plugin is missing](#docker-buildx-plugin-is-missing)
       - [Installing Buildx](#installing-buildx)
   - [How does Colima compare to minikube, Kind, K3d?](#how-does-colima-compare-to-minikube-kind-k3d)
@@ -158,7 +158,7 @@ This can be fixed by any of the following approaches. Ensure the Docker socket p
    ```
 
 
-### How to customize Docker config e.g. add insecure registries?
+### How to customize Docker config (e.g., adding insecure registries or registry mirrors)?
 
 * v0.3.4 or lower
 
@@ -182,6 +182,40 @@ This can be fixed by any of the following approaches. Ensure the Docker socket p
   +     - myregistry.com:5000
   +     - host.docker.internal:5000
   ```
+**Note:** In order for the Docker client to respect (at least some) configuration value changes, modification of the host ~/.docker/daemon.json file may also be required.
+
+For example, if adding registry mirrors, modifications are needed as follows:
+
+First, colima:
+
+```sh
+colima start --edit
+```
+
+```diff
+- docker: {}
++ docker:
++   registry-mirrors:
++     - https://my.dockerhub.mirror.something
++     - https://my.quayio.mirror.something
+```
+
+As an alternative approach to the **colima start --edit**, make the changes via the **template** command (affecting the configuration for any new instances):
+
+```sh
+colima template
+```
+
+Then, the Docker ~/.docker/daemon.json file (as compared to the default):
+
+```diff
+- "experimental": false,
++ "experimental": false,
++ "registry-mirrors": [
++   "https://my.dockerhub.mirror.something",
++   "https://my.quayio.mirror.something"  
++ ]
+```  
 
 ### Docker buildx plugin is missing
 
