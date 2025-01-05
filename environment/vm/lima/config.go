@@ -1,6 +1,7 @@
 package lima
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"path/filepath"
@@ -9,9 +10,13 @@ import (
 const configFile = "/etc/colima/colima.json"
 
 func (l limaVM) getConf() map[string]string {
+	log := l.Logger(context.Background())
+
 	obj := map[string]string{}
 	b, err := l.Read(configFile)
 	if err != nil {
+		log.Trace(fmt.Errorf("error reading config file: %w", err))
+
 		return obj
 	}
 

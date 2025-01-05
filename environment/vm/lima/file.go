@@ -16,7 +16,7 @@ import (
 func (l limaVM) Read(fileName string) (string, error) {
 	s, err := l.RunOutput("sudo", "cat", fileName)
 	if err != nil {
-		return "", fmt.Errorf("cannot read file: %s", fileName)
+		return "", fmt.Errorf("cannot read file '%s': %w", fileName, err)
 	}
 	return s, err
 }
@@ -45,16 +45,15 @@ type fileInfo struct {
 }
 
 func newFileInfo(guest environment.GuestActions, filename string) (fileInfo, error) {
-	statErr := fmt.Errorf("cannot stat file: %s", filename)
 	info := fileInfo{}
 	// "%s,%a,%Y,%F" -> size, permission, modified time, type
 	stat, err := guest.RunOutput("sudo", "stat", "-c", "%s,%a,%Y,%F", filename)
 	if err != nil {
-		return info, statErr
+		return info, statError(filename, err)
 	}
 	stats := strings.Split(stat, ",")
 	if len(stats) < 4 {
-		return info, statErr
+		return info, statError(filename, err)
 	}
 	info.name = filename
 	info.size, _ = strconv.ParseInt(stats[0], 10, 64)
@@ -69,6 +68,10 @@ func newFileInfo(guest environment.GuestActions, filename string) (fileInfo, err
 	info.isDir = stats[3] == "directory"
 
 	return info, nil
+}
+
+func statError(filename string, err error) error {
+	return fmt.Errorf("cannot stat file '%s': %w", filename, err)
 }
 
 // IsDir implements fs.FileInfo
