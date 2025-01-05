@@ -15,7 +15,7 @@ func (l limaVM) getConf() map[string]string {
 	obj := map[string]string{}
 	b, err := l.Read(configFile)
 	if err != nil {
-		log.Tracef("failed to read config file %v", err)
+		log.Trace(fmt.Errorf("error reading config file: %w", err))
 
 		return obj
 	}
