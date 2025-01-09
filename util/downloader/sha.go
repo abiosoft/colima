@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/abiosoft/colima/util"
 )
 
 // SHA is the shasum of a file.
@@ -18,14 +20,19 @@ type SHA struct {
 func (s SHA) ValidateFile(host hostActions, file string) error {
 	dir, filename := filepath.Split(file)
 	digest := strings.TrimPrefix(s.Digest, fmt.Sprintf("sha%d:", s.Size))
+	shasumBinary := "shasum"
+	if util.MacOS() {
+		shasumBinary = "/usr/bin/shasum"
+	}
 
 	script := strings.NewReplacer(
 		"{dir}", dir,
 		"{digest}", digest,
 		"{size}", strconv.Itoa(s.Size),
 		"{filename}", filename,
+		"{shasum_bin}", shasumBinary,
 	).Replace(
-		`cd {dir} && echo "{digest}  {filename}" | shasum -a {size} --check --status`,
+		`cd {dir} && echo "{digest}  {filename}" | {shasum_bin} -a {size} --check --status`,
 	)
 
 	return host.Run("sh", "-c", script)
