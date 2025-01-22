@@ -34,7 +34,7 @@ brew install colima
 sudo port install colima
 
 # Nix
-nix-env -iA nixpkgs.colima
+nix-env -i colima
 ```
 
 Or stay on the bleeding edge (only Homebrew)
