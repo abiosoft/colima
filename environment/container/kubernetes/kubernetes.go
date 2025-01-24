@@ -104,6 +104,12 @@ func (c *kubernetesRuntime) Provision(ctx context.Context) error {
 		conf = c.config()
 	}
 
+	if conf.Version == "" {
+		// this ensure if `version` tag in `kubernetes` section in yaml is empty,
+		// it should assign with the `DefaultVersion` for the baseURL
+		conf.Version = DefaultVersion
+	}
+
 	if c.isVersionInstalled(conf.Version) {
 		// runtime has changed, ensure the required images are in the registry
 		if currentRuntime := c.runtime(); currentRuntime != "" && currentRuntime != runtime {
