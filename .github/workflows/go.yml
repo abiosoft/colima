@@ -72,7 +72,7 @@ jobs:
           OS=Linux ARCH=aarch64 make
 
       - name: upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: artifacts-linux
           path: _output/binaries/
@@ -95,7 +95,7 @@ jobs:
           CGO_ENABLED=1 OS=Darwin ARCH=arm64 make
 
       - name: upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: artifacts-macos
           path: _output/binaries/
@@ -107,11 +107,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: artifacts-linux
           path: _output/binaries/
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: artifacts-macos
           path: _output/binaries/
