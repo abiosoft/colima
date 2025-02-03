@@ -31,6 +31,14 @@ func (e EnvVar) Val() string {
 	return os.Getenv(string(e))
 }
 
+// Or returns the environment variable value if set, otherwise returns val.
+func (e EnvVar) ValOr(val string) string {
+	if v := os.Getenv(string(e)); v != "" {
+		return v
+	}
+	return val
+}
+
 const EnvColimaBinary = "COLIMA_BINARY"
 
 // Executable returns the path name for the executable that started
