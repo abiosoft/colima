@@ -1,5 +1,3 @@
-config:
-  core.https_address: '[::]:8443'
 networks:
   - config:
       ipv4.address: 192.100.0.1/24
