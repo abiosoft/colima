@@ -193,9 +193,13 @@ MIT
 
 ## Sponsoring the Project
 
-If you (or your company) are benefiting from the project and would like to support the contributors, kindly support the project.
+If you (or your company) are benefiting from the project and would like to support the contributors, kindly sponsor.
 
-<a href="https://www.buymeacoffee.com/abiosoft" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-blue.png" alt="Buy Me A Coffee" style="height: 40px !important;width: 160px !important;" ></a>
+- [Github Sponsors](https://github.com/sponsors/abiosoft)
+- [Buy me a coffee](https://www.buymeacoffee.com/abiosoft)
+- [Patreon](https://patreon.com/colima)
+
+---
 
 [<img src="https://uploads-ssl.webflow.com/5ac3c046c82724970fc60918/5c019d917bba312af7553b49_MacStadium-developerlogo.png" style="max-height: 150px"/>](https://macstadium.com)
 
