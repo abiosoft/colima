@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"strings"
+	"net/url"
 )
 
 const daemonFile = "/etc/docker/daemon.json"
@@ -27,6 +27,28 @@ func getHostGatewayIp(d dockerRuntime, conf map[string]any) (string, error) {
 	}
 
 	return ip, nil
+}
+
+func resolveHostProxy(hostProxy string, hostGateway string) (string) {
+	u, err := url.Parse(hostProxy)
+	if err != nil {
+		return hostProxy
+	}
+	ips, err := net.LookupIP(u.Hostname())
+	if err != nil {
+		return hostProxy
+	}
+	for _, ip := range ips {
+		if ip.IsLoopback() {
+			newHost := hostGateway
+			if u.Port() != "" {
+				newHost = net.JoinHostPort(newHost, u.Port())
+			}
+			u.Host = newHost
+			hostProxy = u.String()
+		}
+	}
+	return hostProxy
 }
 
 func (d dockerRuntime) createDaemonFile(conf map[string]any, env map[string]string) error {
@@ -58,13 +80,13 @@ func (d dockerRuntime) createDaemonFile(conf map[string]any, env map[string]stri
 			return err
 		}
 		if vars.http != "" {
-			proxyConf["http-proxy"] = strings.ReplaceAll(vars.http, "127.0.0.1", hostGatewayIP)
+			proxyConf["http-proxy"] = resolveHostProxy(vars.http, hostGatewayIP)
 		}
 		if vars.https != "" {
-			proxyConf["https-proxy"] = strings.ReplaceAll(vars.https, "127.0.0.1", hostGatewayIP)
+			proxyConf["https-proxy"] = resolveHostProxy(vars.https, hostGatewayIP)
 		}
 		if vars.no != "" {
-			proxyConf["no-proxy"] = strings.ReplaceAll(vars.no, "127.0.0.1", hostGatewayIP)
+			proxyConf["no-proxy"] = vars.no
 		}
 		conf["proxies"] = proxyConf
 	}
