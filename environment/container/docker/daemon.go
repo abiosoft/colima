@@ -29,7 +29,7 @@ func getHostGatewayIp(d dockerRuntime, conf map[string]any) (string, error) {
 	return ip, nil
 }
 
-func resolveHostProxy(hostProxy string, hostGateway string) (string) {
+func resolveHostProxy(hostProxy, hostGateway string) string {
 	u, err := url.Parse(hostProxy)
 	if err != nil {
 		return hostProxy
@@ -46,6 +46,7 @@ func resolveHostProxy(hostProxy string, hostGateway string) (string) {
 			}
 			u.Host = newHost
 			hostProxy = u.String()
+			break
 		}
 	}
 	return hostProxy
