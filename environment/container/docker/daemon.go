@@ -29,11 +29,6 @@ func getHostGatewayIp(d dockerRuntime, conf map[string]any) (string, error) {
 	return ip, nil
 }
 
-func (d dockerRuntime) isSystemd() bool {
-	output, _ := d.guest.RunOutput("sh", "-c", "[ -S /run/systemd/private ] && printf true || printf false")
-	return output == "true"
-}
-
 func (d dockerRuntime) createDaemonFile(conf map[string]any, env map[string]string) error {
 	if conf == nil {
 		conf = map[string]any{}
@@ -44,24 +39,11 @@ func (d dockerRuntime) createDaemonFile(conf map[string]any, env map[string]stri
 		conf["features"] = map[string]any{"buildkit": true}
 	}
 
-	// set cgroupdriver for k3s (if not set by user)
-	cgroupDriver := "cgroupfs"
-	if d.isSystemd() {
-		cgroupDriver = "systemd"
-	}
+	// enable cgroupfs for k3s (if not set by user)
 	if _, ok := conf["exec-opts"]; !ok {
-		conf["exec-opts"] = []string{"native.cgroupdriver=" + cgroupDriver}
+		conf["exec-opts"] = []string{"native.cgroupdriver=cgroupfs"}
 	} else if opts, ok := conf["exec-opts"].([]string); ok {
-		manualCgroupDriver := false
-		for _, opt := range opts {
-			if strings.HasPrefix(opt, "native.cgroupdriver=") {
-				manualCgroupDriver = true
-				break
-			}
-		}
-		if !manualCgroupDriver {
-			conf["exec-opts"] = append(opts, "native.cgroupdriver="+cgroupDriver)
-		}
+		conf["exec-opts"] = append(opts, "native.cgroupdriver=cgroupfs")
 	}
 	// remove host-gateway-ip if set by the user
 	// to avoid clash with systemd configuration
