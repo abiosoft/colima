@@ -125,6 +125,10 @@ vmType: qemu
 # Default: false
 rosetta: false
 
+# Enable foreign architecture emulation via binfmt (e.g. amd64 on arm64, arm64 on amd64)
+# Default: true
+binfmt: true
+
 # Enable nested virtualization for the virtual machine (requires m3 mac and vmType `vz`)
 # Default: false
 nestedVirtualization: false
