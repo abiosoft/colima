@@ -67,6 +67,7 @@ func quotedArgs(args []string) string {
 func Prompt(question string) bool {
 	fmt.Print(question)
 	fmt.Print("? [y/N] ")
+	fmt.Print("\033[0m") // reset all formatting modes (if any) used by the question string 
 
 	var answer string
 	_, _ = fmt.Scanln(&answer)
