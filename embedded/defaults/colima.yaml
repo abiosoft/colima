@@ -18,7 +18,7 @@ memory: 2
 # Default: host
 arch: host
 
-# Container runtime to be used (docker, containerd).
+# Container runtime to be used (docker, containerd, apple).
 #
 # NOTE: value cannot be changed after virtual machine is created.
 # Default: docker
@@ -111,6 +111,18 @@ forwardAgent: false
 # Colima default behaviour: buildkit enabled
 # Default: {}
 docker: {}
+
+# Apple Container configuration for the virtual machine.
+# Apple Container is available on macOS 15+ and uses the containerization framework.
+#
+# EXAMPLE - configure containerization settings
+# apple:
+#   debug: false
+#   logLevel: info
+#   maxContainers: 100
+#
+# Default: {}
+apple: {}
 
 # Virtual Machine type (qemu, vz)
 # NOTE: this is macOS 13 only. For Linux and macOS <13.0, qemu is always used.

@@ -39,8 +39,10 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 		"  colima start --edit\n" +
 		"  colima start --foreground\n" +
 		"  colima start --runtime containerd\n" +
+		"  colima start --runtime apple\n" +
 		"  colima start --kubernetes\n" +
 		"  colima start --runtime containerd --kubernetes\n" +
+		"  colima start --runtime apple --kubernetes\n" +
 		"  colima start --cpu 4 --memory 8 --disk 100\n" +
 		"  colima start --arch aarch64\n" +
 		"  colima start --dns 1.1.1.1 --dns 8.8.8.8\n" +
@@ -400,6 +402,8 @@ func prepareConfig(cmd *cobra.Command) {
 
 	// docker can only be set in config file
 	startCmdArgs.Docker = current.Docker
+	// apple container can only be set in config file
+	startCmdArgs.Apple = current.Apple
 	// provision scripts can only be set in config file
 	startCmdArgs.Provision = current.Provision
 

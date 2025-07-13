@@ -19,6 +19,7 @@
   - [Docker](https://docker.com) (with optional Kubernetes)
   - [Containerd](https://containerd.io) (with optional Kubernetes)
   - [Incus](https://linuxcontainers.org/incus) (containers and virtual machines)
+  - Apple Container (with optional Kubernetes, macOS 15+)
 
 ## Getting Started
 
@@ -118,6 +119,18 @@ Incus client is required for Incus runtime. Installable with brew `brew install 
 You can use the `incus` client on macOS after `colima start` with no additional setup.
 
 **Note:** Running virtual machines on Incus is only supported on m3 or newer Apple Silicon devices.
+
+### Apple Container
+
+<small>**Requires v0.8.0 and macOS 15+**</small>
+
+Apple Container uses the native containerization framework available in macOS 15 and later.
+
+`colima start --runtime apple` starts and setup Apple Container.
+
+You can use the `containerization` client on macOS after `colima start` with no additional setup.
+
+**Note:** Apple Container is only available on macOS 15 or newer and requires the containerization framework.
 
 ### None
 
