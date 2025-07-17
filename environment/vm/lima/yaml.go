@@ -258,6 +258,14 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 				HostPortRange:     [2]int{1, 65535},
 				Proto:             limaconfig.TCP,
 			},
+			limaconfig.PortForward{
+				GuestIPMustBeZero: true,
+				GuestIP:           net.ParseIP("0.0.0.0"),
+				GuestPortRange:    [2]int{1, 65535},
+				HostIP:            net.ParseIP("0.0.0.0"),
+				HostPortRange:     [2]int{1, 65535},
+				Proto:             limaconfig.UDP,
+			},
 		)
 		// bind 127.0.0.1
 		l.PortForwards = append(l.PortForwards,
@@ -267,6 +275,13 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 				HostIP:         net.ParseIP("127.0.0.1"),
 				HostPortRange:  [2]int{1, 65535},
 				Proto:          limaconfig.TCP,
+			},
+			limaconfig.PortForward{
+				GuestIP:        net.ParseIP("127.0.0.1"),
+				GuestPortRange: [2]int{1, 65535},
+				HostIP:         net.ParseIP("127.0.0.1"),
+				HostPortRange:  [2]int{1, 65535},
+				Proto:          limaconfig.UDP,
 			},
 		)
 

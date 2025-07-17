@@ -78,6 +78,7 @@ type (
 
 const (
 	TCP Proto = "tcp"
+	UDP Proto = "udp"
 
 	REVSSHFS MountType = "reverse-sshfs"
 	NINEP    MountType = "9p"
