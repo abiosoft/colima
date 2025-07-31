@@ -381,9 +381,11 @@ func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Conf
 	a.Add(func() error {
 		if !l.limaConf.Rosetta.Enabled {
 			// use binfmt when rosetta is disabled and emulation is disabled i.e. host arch
-			if arch := environment.HostArch(); arch == environment.Arch(conf.Arch).Value() {
-				if err := core.SetupBinfmt(l.host, l, environment.Arch(conf.Arch)); err != nil {
-					logrus.Warn(fmt.Errorf("unable to enable qemu %s emulation: %w", arch, err))
+			if l.conf.Binfmt {
+				if arch := environment.HostArch(); arch == environment.Arch(conf.Arch).Value() {
+					if err := core.SetupBinfmt(l.host, l, environment.Arch(conf.Arch)); err != nil {
+						logrus.Warn(fmt.Errorf("unable to enable qemu %s emulation: %w", arch, err))
+					}
 				}
 			}
 

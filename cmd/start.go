@@ -168,6 +168,8 @@ func init() {
 	// host IP addresses
 	startCmd.Flags().BoolVar(&startCmdArgs.Network.HostAddresses, "network-host-addresses", false, "support port forwarding to specific host IP addresses")
 
+	binfmtDesc := "use binfmt for foreign architecture emulation"
+
 	if util.MacOS() {
 		// network address
 		startCmd.Flags().BoolVar(&startCmdArgs.Network.Address, "network-address", false, "assign reachable IP address to the VM")
@@ -177,6 +179,7 @@ func init() {
 			startCmd.Flags().StringVarP(&startCmdArgs.VMType, "vm-type", "t", defaultVMType, "virtual machine type ("+types+")")
 			if util.MacOS13OrNewerOnArm() {
 				startCmd.Flags().BoolVar(&startCmdArgs.VZRosetta, "vz-rosetta", false, "enable Rosetta for amd64 emulation")
+				binfmtDesc += " (no-op if Rosetta is enabled)"
 			}
 		}
 
@@ -185,6 +188,9 @@ func init() {
 			startCmd.Flags().BoolVarP(&startCmdArgs.NestedVirtualization, "nested-virtualization", "z", false, "enable nested virtualization")
 		}
 	}
+
+	// binfmt
+	startCmd.Flags().BoolVar(&startCmdArgs.Binfmt, "binfmt", true, binfmtDesc)
 
 	// config
 	startCmd.Flags().BoolVarP(&startCmdArgs.Flags.Edit, "edit", "e", false, "edit the configuration file before starting")
