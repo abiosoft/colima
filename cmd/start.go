@@ -137,6 +137,7 @@ var startCmdArgs struct {
 		DNSHosts                []string
 		Foreground              bool
 		SaveConfig              bool
+		LegacyCPU               int // for backward compatibility
 	}
 }
 
@@ -156,7 +157,7 @@ func init() {
 	root.Cmd().AddCommand(startCmd)
 	startCmd.Flags().StringVarP(&startCmdArgs.Runtime, "runtime", "r", docker.Name, "container runtime ("+runtimes+")")
 	startCmd.Flags().BoolVar(&startCmdArgs.Flags.ActivateRuntime, "activate", true, "set as active Docker/Kubernetes context on startup")
-	startCmd.Flags().IntVarP(&startCmdArgs.CPU, "cpu", "c", defaultCPU, "number of CPUs")
+	startCmd.Flags().IntVarP(&startCmdArgs.CPU, "cpus", "c", defaultCPU, "number of CPUs")
 	startCmd.Flags().StringVar(&startCmdArgs.CPUType, "cpu-type", "", "the CPU type, options can be checked with 'qemu-system-"+defaultArch+" -cpu help'")
 	startCmd.Flags().Float32VarP(&startCmdArgs.Memory, "memory", "m", defaultMemory, "memory in GiB")
 	startCmd.Flags().IntVarP(&startCmdArgs.Disk, "disk", "d", defaultDisk, "disk size in GiB")
@@ -165,8 +166,14 @@ func init() {
 	startCmd.Flags().StringVar(&startCmdArgs.Hostname, "hostname", "", "custom hostname for the virtual machine")
 	startCmd.Flags().StringVarP(&startCmdArgs.DiskImage, "disk-image", "i", "", "file path to a custom disk image")
 
+	// retain cpu flag for backward compatibility
+	startCmd.Flags().IntVar(&startCmdArgs.Flags.LegacyCPU, "cpu", defaultCPU, "number of CPUs")
+	startCmd.Flag("cpu").Hidden = true
+
 	// host IP addresses
 	startCmd.Flags().BoolVar(&startCmdArgs.Network.HostAddresses, "network-host-addresses", false, "support port forwarding to specific host IP addresses")
+
+	binfmtDesc := "use binfmt for foreign architecture emulation"
 
 	if util.MacOS() {
 		// network address
@@ -177,6 +184,7 @@ func init() {
 			startCmd.Flags().StringVarP(&startCmdArgs.VMType, "vm-type", "t", defaultVMType, "virtual machine type ("+types+")")
 			if util.MacOS13OrNewerOnArm() {
 				startCmd.Flags().BoolVar(&startCmdArgs.VZRosetta, "vz-rosetta", false, "enable Rosetta for amd64 emulation")
+				binfmtDesc += " (no-op if Rosetta is enabled)"
 			}
 		}
 
@@ -185,6 +193,9 @@ func init() {
 			startCmd.Flags().BoolVarP(&startCmdArgs.NestedVirtualization, "nested-virtualization", "z", false, "enable nested virtualization")
 		}
 	}
+
+	// binfmt
+	startCmd.Flags().BoolVar(&startCmdArgs.Binfmt, "binfmt", true, binfmtDesc)
 
 	// config
 	startCmd.Flags().BoolVarP(&startCmdArgs.Flags.Edit, "edit", "e", false, "edit the configuration file before starting")
@@ -371,6 +382,12 @@ func prepareConfig(cmd *cobra.Command) {
 		cmd.Flag("kubernetes").Changed = true
 	}
 
+	// handle legacy cpu flag
+	if cmd.Flag("cpu").Changed && !cmd.Flag("cpus").Changed {
+		startCmdArgs.CPU = startCmdArgs.Flags.LegacyCPU
+		cmd.Flag("cpus").Changed = true
+	}
+
 	// convert cli to config file format
 	startCmdArgs.Mounts = mountsFromFlag(startCmdArgs.Flags.Mounts)
 	startCmdArgs.Network.DNSHosts = dnsHostsFromFlag(startCmdArgs.Flags.DNSHosts)
@@ -414,16 +431,16 @@ func prepareConfig(cmd *cobra.Command) {
 	if !cmd.Flag("kubernetes").Changed {
 		startCmdArgs.Kubernetes.Enabled = current.Kubernetes.Enabled
 	}
-	if !cmd.Flag("kubernetes-version").Changed {
+	if !cmd.Flag("kubernetes-version").Changed && current.Kubernetes.Version != "" {
 		startCmdArgs.Kubernetes.Version = current.Kubernetes.Version
 	}
-	if !cmd.Flag("k3s-arg").Changed {
+	if !cmd.Flag("k3s-arg").Changed && current.Kubernetes.K3sArgs != nil {
 		startCmdArgs.Kubernetes.K3sArgs = current.Kubernetes.K3sArgs
 	}
 	if !cmd.Flag("runtime").Changed {
 		startCmdArgs.Runtime = current.Runtime
 	}
-	if !cmd.Flag("cpu").Changed {
+	if !cmd.Flag("cpus").Changed {
 		startCmdArgs.CPU = current.CPU
 	}
 	if !cmd.Flag("cpu-type").Changed {

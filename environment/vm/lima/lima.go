@@ -32,9 +32,8 @@ func New(host environment.HostActions) environment.VM {
 	var envs []string
 	envHome := limautil.EnvLimaHome + "=" + limaHome
 	envLimaInstance := envLimaInstance + "=" + config.CurrentProfile().ID
-	envSSHForward := envLimaSSHForwarder + "=" + osutil.EnvVar(envLimaSSHForwarder).ValOr("true")
 	envBinary := osutil.EnvColimaBinary + "=" + osutil.Executable()
-	envs = append(envs, envHome, envLimaInstance, envSSHForward, envBinary)
+	envs = append(envs, envHome, envLimaInstance, envBinary)
 
 	// consider making this truly flexible to support other VMs
 	return &limaVM{
@@ -46,10 +45,9 @@ func New(host environment.HostActions) environment.VM {
 }
 
 const (
-	envLimaInstance     = "LIMA_INSTANCE"
-	envLimaSSHForwarder = "LIMA_SSH_PORT_FORWARDER"
-	lima                = "lima"
-	limactl             = limautil.LimactlCommand
+	envLimaInstance = "LIMA_INSTANCE"
+	lima            = "lima"
+	limactl         = limautil.LimactlCommand
 )
 
 var _ environment.VM = (*limaVM)(nil)
@@ -383,9 +381,11 @@ func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Conf
 	a.Add(func() error {
 		if !l.limaConf.Rosetta.Enabled {
 			// use binfmt when rosetta is disabled and emulation is disabled i.e. host arch
-			if arch := environment.HostArch(); arch == environment.Arch(conf.Arch).Value() {
-				if err := core.SetupBinfmt(l.host, l, environment.Arch(conf.Arch)); err != nil {
-					logrus.Warn(fmt.Errorf("unable to enable qemu %s emulation: %w", arch, err))
+			if l.conf.Binfmt {
+				if arch := environment.HostArch(); arch == environment.Arch(conf.Arch).Value() {
+					if err := core.SetupBinfmt(l.host, l, environment.Arch(conf.Arch)); err != nil {
+						logrus.Warn(fmt.Errorf("unable to enable qemu %s emulation: %w", arch, err))
+					}
 				}
 			}
 

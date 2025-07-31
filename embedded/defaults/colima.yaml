@@ -38,7 +38,7 @@ kubernetes:
   # Kubernetes version to use.
   # This needs to exactly match a k3s version https://github.com/k3s-io/k3s/releases
   # Default: latest stable release
-  version: v1.31.2+k3s1
+  version: v1.33.3+k3s1
 
   # Additional args to pass to k3s https://docs.k3s.io/cli/server
   # Default: traefik is disabled
@@ -48,6 +48,7 @@ kubernetes:
 # Setting to true does the following on startup
 #  - sets as active Docker context (for Docker runtime).
 #  - sets as active Kubernetes context (if Kubernetes is enabled).
+#  - sets as active Incus remote (for Incus runtime).
 # Default: true
 autoActivate: true
 
@@ -124,6 +125,10 @@ vmType: qemu
 # Utilise rosetta for amd64 emulation (requires m1 mac and vmType `vz`)
 # Default: false
 rosetta: false
+
+# Enable foreign architecture emulation via binfmt (e.g. amd64 on arm64, arm64 on amd64)
+# Default: true
+binfmt: true
 
 # Enable nested virtualization for the virtual machine (requires m3 mac and vmType `vz`)
 # Default: false
