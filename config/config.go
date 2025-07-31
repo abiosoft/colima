@@ -5,10 +5,12 @@ import (
 	"path/filepath"
 
 	"github.com/abiosoft/colima/util"
+	"github.com/abiosoft/colima/util/osutil"
 )
 
 const (
-	AppName = "colima"
+	AppName    = "colima"
+	envProfile = "COLIMA_PROFILE" // environment variable for profile name
 )
 
 // VersionInfo is the application version info.
@@ -18,6 +20,7 @@ type VersionInfo struct {
 }
 
 func AppVersion() VersionInfo { return VersionInfo{Version: appVersion, Revision: revision} }
+func EnvProfile() string      { return osutil.EnvVar(envProfile).Val() }
 
 var (
 	appVersion = "development"
