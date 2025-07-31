@@ -12,6 +12,7 @@ var profile = &Profile{ID: AppName, DisplayName: AppName, ShortName: "default"}
 // Not perfect, but good enough for testing.
 func SetProfile(profileName string) {
 	profile = ProfileFromName(profileName)
+	profile.Changed = true
 }
 
 // ProfileFromName retrieves profile given name.
@@ -45,6 +46,8 @@ type Profile struct {
 	ID          string
 	DisplayName string
 	ShortName   string
+
+	Changed bool // indicates if the profile has been changed
 
 	configDir *requiredDir
 }

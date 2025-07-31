@@ -25,14 +25,16 @@ var listCmd = &cobra.Command{
 	Long: `List all created instances.
 
 A new instance can be created during 'colima start' by specifying the '--profile' flag.`,
-	Args: cobra.NoArgs,
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		profile := []string{}
-		if cmd.Flag("profile").Changed {
-			profile = append(profile, config.CurrentProfile().ID)
+		profile := config.CurrentProfile()
+		profileArgs := []string{}
+
+		if profile.Changed {
+			profileArgs = append(profileArgs, profile.ID)
 		}
 
-		instances, err := limautil.Instances(profile...)
+		instances, err := limautil.Instances(profileArgs...)
 		if err != nil {
 			return err
 		}

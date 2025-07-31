@@ -18,6 +18,8 @@ var rootCmd = &cobra.Command{
 	Long:    `Colima provides container runtimes on macOS with minimal setup.`,
 	Version: versionInfo.Version,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		// use profile from environment variable if set
+		profile := config.EnvProfile()
 
 		switch cmd.Name() {
 
@@ -28,22 +30,30 @@ var rootCmd = &cobra.Command{
 			"restart",
 			"delete",
 			"status",
+			"list",
 			"version",
 			"update",
 			"ssh-config":
 
 			// if an arg is passed, assume it to be the profile (provided --profile is unset)
 			// i.e. colima start docker == colima start --profile=docker
+			// takes precedence over the environment variable
 			if len(args) > 0 && !cmd.Flag("profile").Changed {
-				rootCmdArgs.Profile = args[0]
+				profile = args[0]
 			}
 		}
-		if rootCmdArgs.Profile != "" {
-			config.SetProfile(rootCmdArgs.Profile)
+
+		// if profile is set via flag, use it
+		// takes precedence over the environment variable and arg
+		if cmd.Flag("profile").Changed {
+			profile = rootCmdArgs.Profile
 		}
-		if err := initLog(); err != nil {
-			return err
+
+		if profile != "" {
+			config.SetProfile(profile)
 		}
+
+		initLog()
 
 		cmd.SilenceUsage = true
 		cmd.SilenceErrors = true
@@ -77,7 +87,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&rootCmdArgs.Profile, "profile", "p", "default", "profile name, for multiple instances")
 }
 
-func initLog() error {
+func initLog() {
 	if rootCmdArgs.Verbose {
 		cli.Settings.Verbose = true
 		logrus.SetLevel(logrus.DebugLevel)
@@ -90,6 +100,4 @@ func initLog() error {
 	// general log output
 	log.SetOutput(logrus.StandardLogger().Writer())
 	log.SetFlags(0)
-
-	return nil
 }
