@@ -11,6 +11,7 @@ type Arch = environment.Arch
 // Config is lima config. Code copied from lima and modified.
 type Config struct {
 	VMType               VMType            `yaml:"vmType,omitempty" json:"vmType,omitempty"`
+	VMOpts               VMOpts            `yaml:"vmOpts,omitempty" json:"vmOpts,omitempty"`
 	Arch                 Arch              `yaml:"arch,omitempty"`
 	Images               []File            `yaml:"images"`
 	CPUs                 *int              `yaml:"cpus,omitempty"`
@@ -28,7 +29,6 @@ type Config struct {
 	PortForwards         []PortForward     `yaml:"portForwards,omitempty"`
 	Networks             []Network         `yaml:"networks,omitempty"`
 	Provision            []Provision       `yaml:"provision,omitempty" json:"provision,omitempty"`
-	CPUType              map[Arch]string   `yaml:"cpuType,omitempty" json:"cpuType,omitempty"`
 	Rosetta              Rosetta           `yaml:"rosetta,omitempty" json:"rosetta,omitempty"`
 	NestedVirtualization bool              `yaml:"nestedVirtualization,omitempty" json:"nestedVirtualization,omitempty"`
 }
@@ -70,6 +70,15 @@ type Firmware struct {
 	LegacyBIOS bool `yaml:"legacyBIOS"`
 }
 
+type VMOpts struct {
+	QEMU QEMUOpts `yaml:"qemu,omitempty" json:"qemu,omitempty"`
+}
+
+type QEMUOpts struct {
+	MinimumVersion *string         `yaml:"minimumVersion,omitempty" json:"minimumVersion,omitempty"`
+	CPUType        map[Arch]string `yaml:"cpuType,omitempty" json:"cpuType,omitempty"`
+}
+
 type (
 	Proto     = string
 	MountType = string
@@ -78,6 +87,7 @@ type (
 
 const (
 	TCP Proto = "tcp"
+	UDP Proto = "udp"
 
 	REVSSHFS MountType = "reverse-sshfs"
 	NINEP    MountType = "9p"

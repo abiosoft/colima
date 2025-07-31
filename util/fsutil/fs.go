@@ -34,7 +34,7 @@ func (DefaultFS) Open(name string) (fs.File, error) { return os.Open(name) }
 func (DefaultFS) MkdirAll(path string, perm fs.FileMode) error { return os.MkdirAll(path, perm) }
 
 // FakeFS is a mock FS. The following can be done in a test before usage.
-//  osutil.FS = osutil.FakeFS
+//   osutil.FS = osutil.FakeFS
 var FakeFS FileSystem = fakeFS{}
 
 type fakeFS struct{}
