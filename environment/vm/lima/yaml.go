@@ -51,7 +51,7 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 	}
 
 	if conf.CPUType != "" && conf.CPUType != "host" {
-		l.CPUType = map[environment.Arch]string{
+		l.VMOpts.QEMU.CPUType = map[environment.Arch]string{
 			l.Arch: conf.CPUType,
 		}
 	}
