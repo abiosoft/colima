@@ -100,7 +100,7 @@ func (c colimaApp) Start(conf config.Config) error {
 	ctx := context.WithValue(context.Background(), config.CtxKey(), conf)
 
 	// this tells the full path of current profile being used, instead of misunderstanding it as a template default profile
-	log.Printf("starting with config file: %s\n", config.CurrentProfile().File())
+	log.Tracef("starting with config file: %s\n", config.CurrentProfile().File())
 
 	var containers []environment.Container
 	if !environment.IsNoneRuntime(conf.Runtime) {
