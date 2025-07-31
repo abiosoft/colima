@@ -55,7 +55,7 @@ type Config struct {
 	MountType    string  `yaml:"mountType,omitempty"`
 	MountINotify bool    `yaml:"mountInotify,omitempty"`
 
-	// Runtime is one of docker, containerd.
+	// Runtime is one of docker, containerd, apple.
 	Runtime         string `yaml:"runtime,omitempty"`
 	ActivateRuntime *bool  `yaml:"autoActivate,omitempty"`
 
@@ -64,6 +64,9 @@ type Config struct {
 
 	// Docker configuration
 	Docker map[string]any `yaml:"docker,omitempty"`
+
+	// Apple Container configuration
+	Apple map[string]any `yaml:"apple,omitempty"`
 
 	// provision scripts
 	Provision []Provision `yaml:"provision,omitempty"`
