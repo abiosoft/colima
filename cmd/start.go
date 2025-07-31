@@ -137,6 +137,7 @@ var startCmdArgs struct {
 		DNSHosts                []string
 		Foreground              bool
 		SaveConfig              bool
+		LegacyCPU               int // for backward compatibility
 	}
 }
 
@@ -156,7 +157,7 @@ func init() {
 	root.Cmd().AddCommand(startCmd)
 	startCmd.Flags().StringVarP(&startCmdArgs.Runtime, "runtime", "r", docker.Name, "container runtime ("+runtimes+")")
 	startCmd.Flags().BoolVar(&startCmdArgs.Flags.ActivateRuntime, "activate", true, "set as active Docker/Kubernetes context on startup")
-	startCmd.Flags().IntVarP(&startCmdArgs.CPU, "cpu", "c", defaultCPU, "number of CPUs")
+	startCmd.Flags().IntVarP(&startCmdArgs.CPU, "cpus", "c", defaultCPU, "number of CPUs")
 	startCmd.Flags().StringVar(&startCmdArgs.CPUType, "cpu-type", "", "the CPU type, options can be checked with 'qemu-system-"+defaultArch+" -cpu help'")
 	startCmd.Flags().Float32VarP(&startCmdArgs.Memory, "memory", "m", defaultMemory, "memory in GiB")
 	startCmd.Flags().IntVarP(&startCmdArgs.Disk, "disk", "d", defaultDisk, "disk size in GiB")
@@ -164,6 +165,10 @@ func init() {
 	startCmd.Flags().BoolVarP(&startCmdArgs.Flags.Foreground, "foreground", "f", false, "Keep colima in the foreground")
 	startCmd.Flags().StringVar(&startCmdArgs.Hostname, "hostname", "", "custom hostname for the virtual machine")
 	startCmd.Flags().StringVarP(&startCmdArgs.DiskImage, "disk-image", "i", "", "file path to a custom disk image")
+
+	// retain cpu flag for backward compatibility
+	startCmd.Flags().IntVar(&startCmdArgs.Flags.LegacyCPU, "cpu", defaultCPU, "number of CPUs")
+	startCmd.Flag("cpu").Hidden = true
 
 	// host IP addresses
 	startCmd.Flags().BoolVar(&startCmdArgs.Network.HostAddresses, "network-host-addresses", false, "support port forwarding to specific host IP addresses")
@@ -371,6 +376,12 @@ func prepareConfig(cmd *cobra.Command) {
 		cmd.Flag("kubernetes").Changed = true
 	}
 
+	// handle legacy cpu flag
+	if cmd.Flag("cpu").Changed && !cmd.Flag("cpus").Changed {
+		startCmdArgs.CPU = startCmdArgs.Flags.LegacyCPU
+		cmd.Flag("cpus").Changed = true
+	}
+
 	// convert cli to config file format
 	startCmdArgs.Mounts = mountsFromFlag(startCmdArgs.Flags.Mounts)
 	startCmdArgs.Network.DNSHosts = dnsHostsFromFlag(startCmdArgs.Flags.DNSHosts)
@@ -423,7 +434,7 @@ func prepareConfig(cmd *cobra.Command) {
 	if !cmd.Flag("runtime").Changed {
 		startCmdArgs.Runtime = current.Runtime
 	}
-	if !cmd.Flag("cpu").Changed {
+	if !cmd.Flag("cpus").Changed {
 		startCmdArgs.CPU = current.CPU
 	}
 	if !cmd.Flag("cpu-type").Changed {
