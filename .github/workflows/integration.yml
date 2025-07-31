@@ -30,7 +30,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
-          go-version: "1.23"
+          go-version: "1.24.5"
 
       - name: Install CLI deps
         run: brew install kubectl docker coreutils lima
@@ -65,7 +65,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
-          go-version: "1.23"
+          go-version: "1.24.5"
 
       - name: Install CLI deps
         run: brew install kubectl docker coreutils lima
@@ -100,7 +100,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
-          go-version: "1.23"
+          go-version: "1.24.5"
 
       - name: Install CLI deps
         run: brew install kubectl docker coreutils lima
@@ -144,7 +144,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
-          go-version: "1.23"
+          go-version: "1.24.5"
 
       - name: Install CLI deps
         run: brew install kubectl docker coreutils lima
@@ -188,7 +188,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
-          go-version: "1.23"
+          go-version: "1.24.5"
 
       - name: Install CLI deps
         run: brew install kubectl docker coreutils lima incus
