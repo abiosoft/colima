@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
 	"github.com/abiosoft/colima/environment"
 )
 
@@ -58,7 +57,7 @@ func newFileInfo(guest environment.GuestActions, filename string) (fileInfo, err
 	info.name = filename
 	info.size, _ = strconv.ParseInt(stats[0], 10, 64)
 	info.mode = func() fs.FileMode {
-		mode, _ := strconv.Atoi(stats[1])
+		mode, _ := strconv.ParseUint(stats[1], 10, 32)
 		return fs.FileMode(mode)
 	}()
 	info.modTime = func() time.Time {
