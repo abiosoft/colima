@@ -295,17 +295,19 @@ func (c colimaApp) SSH(args ...string) error {
 }
 
 type statusInfo struct {
-	DisplayName  string `json:"display_name"`
-	Driver       string `json:"driver"`
-	Arch         string `json:"arch"`
-	Runtime      string `json:"runtime"`
-	MountType    string `json:"mount_type"`
-	IPAddress    string `json:"ip_address"`
-	DockerSocket string `json:"docker_socket"`
-	Kubernetes   bool   `json:"kubernetes"`
-	CPU          int    `json:"cpu"`
-	Memory       int64  `json:"memory"`
-	Disk         int64  `json:"disk"`
+	DisplayName      string `json:"display_name"`
+	Driver           string `json:"driver"`
+	Arch             string `json:"arch"`
+	Runtime          string `json:"runtime"`
+	MountType        string `json:"mount_type"`
+	IPAddress        string `json:"ip_address"`
+	DockerSocket     string `json:"docker_socket"`
+	ContainerdSocket string `json:"containerd_socket"`
+	BuildkitdSocket  string `json:"buildkitd_socket"`
+	Kubernetes       bool   `json:"kubernetes"`
+	CPU              int    `json:"cpu"`
+	Memory           int64  `json:"memory"`
+	Disk             int64  `json:"disk"`
 }
 
 func (c colimaApp) getStatus() (status statusInfo, err error) {
@@ -335,6 +337,10 @@ func (c colimaApp) getStatus() (status statusInfo, err error) {
 	if currentRuntime == docker.Name {
 		status.DockerSocket = "unix://" + docker.HostSocketFile()
 	}
+	if currentRuntime == containerd.Name {
+		status.ContainerdSocket = "unix://" + containerd.HostSocketFiles().Containerd
+		status.BuildkitdSocket = "unix://" + containerd.HostSocketFiles().Buildkitd
+	}
 	if k, err := c.Kubernetes(); err == nil && k.Running(ctx) {
 		status.Kubernetes = true
 	}
@@ -357,7 +363,6 @@ func (c colimaApp) Status(extended bool, jsonOutput bool) error {
 			return fmt.Errorf("error encoding status as json: %w", err)
 		}
 	} else {
-
 		log.Println(config.CurrentProfile().DisplayName, "is running using", status.Driver)
 		log.Println("arch:", status.Arch)
 		log.Println("runtime:", status.Runtime)
@@ -373,6 +378,12 @@ func (c colimaApp) Status(extended bool, jsonOutput bool) error {
 		// docker socket
 		if status.DockerSocket != "" {
 			log.Println("socket:", status.DockerSocket)
+		}
+		if status.ContainerdSocket != "" {
+			log.Println("containerd socket:", status.ContainerdSocket)
+		}
+		if status.BuildkitdSocket != "" {
+			log.Println("buildkitd socket:", status.BuildkitdSocket)
 		}
 
 		// kubernetes

@@ -17,16 +17,28 @@ const Name = "containerd"
 
 var configDir = func() string { return config.CurrentProfile().ConfigDir() }
 
-// HostSocketFile returns the path to the containerd socket on host.
-func HostSocketFile() string { return filepath.Join(configDir(), "containerd.sock") }
+// HostSocketFiles returns the path to the socket files on host.
+func HostSocketFiles() (files struct {
+	Containerd string
+	Buildkitd  string
+}) {
+	files.Containerd = filepath.Join(configDir(), "containerd.sock")
+	files.Buildkitd = filepath.Join(configDir(), "buildkitd.sock")
+
+	return files
+}
 
 // This is written with assumption that Lima is the VM,
 // which provides nerdctl/containerd support out of the box.
 // There may be need to make this flexible for non-Lima VMs.
 
+//go:embed config.toml
+var containerdConf []byte
+
 //go:embed buildkitd.toml
 var buildKitConf []byte
 
+const containerdConfFile = "/etc/containerd/config.toml"
 const buildKitConfFile = "/etc/buildkit/buildkitd.toml"
 
 func newRuntime(host environment.HostActions, guest environment.GuestActions) environment.Container {
@@ -53,8 +65,20 @@ func (c containerdRuntime) Name() string {
 	return Name
 }
 
-func (c containerdRuntime) Provision(context.Context) error {
-	return c.guest.Write(buildKitConfFile, buildKitConf)
+func (c containerdRuntime) Provision(ctx context.Context) error {
+	a := c.Init(ctx)
+
+	// containerd config
+	a.Add(func() error {
+		return c.guest.Write(containerdConfFile, containerdConf)
+	})
+
+	// buildkitd config
+	a.Add(func() error {
+		return c.guest.Write(buildKitConfFile, buildKitConf)
+	})
+
+	return a.Exec()
 }
 
 func (c containerdRuntime) Start(ctx context.Context) error {
