@@ -59,7 +59,10 @@ func (d dockerRuntime) createDaemonFile(conf map[string]any, env map[string]stri
 
 	// enable buildkit (if not set by user)
 	if _, ok := conf["features"]; !ok {
-		conf["features"] = map[string]any{"buildkit": true}
+		conf["features"] = map[string]any{
+			"buildkit":               true,
+			"containerd-snapshotter": true,
+		}
 	}
 
 	// enable cgroupfs for k3s (if not set by user)
