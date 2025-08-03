@@ -146,6 +146,11 @@ func init() {
 	defaultArch := string(environment.HostArch())
 	defaultVMType = environment.DefaultVMType()
 
+	defaultMountType := defaultMountTypeQEMU
+	if defaultVMType == "vz" {
+		defaultMountType = defaultMountTypeVZ
+	}
+
 	mounts := strings.Join([]string{defaultMountTypeQEMU, "9p", "virtiofs"}, ", ")
 	types := strings.Join([]string{"qemu", "vz"}, ", ")
 
@@ -204,7 +209,7 @@ func init() {
 
 	// mounts
 	startCmd.Flags().StringSliceVarP(&startCmdArgs.Flags.Mounts, "mount", "V", nil, "directories to mount, suffix ':w' for writable")
-	startCmd.Flags().StringVar(&startCmdArgs.MountType, "mount-type", defaultMountTypeQEMU, "volume driver for the mount ("+mounts+")")
+	startCmd.Flags().StringVar(&startCmdArgs.MountType, "mount-type", defaultMountType, "volume driver for the mount ("+mounts+")")
 	startCmd.Flags().BoolVar(&startCmdArgs.MountINotify, "mount-inotify", true, "propagate inotify file events to the VM")
 
 	// ssh
