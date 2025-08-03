@@ -44,6 +44,11 @@ func (d dockerRuntime) Provision(ctx context.Context) error {
 
 	conf, _ := ctx.Value(config.CtxKey()).(config.Config)
 
+	// provision containerd
+	a.Add(func() error {
+		return d.provisionContainerd(ctx)
+	})
+
 	// daemon.json
 	a.Add(func() error {
 		// these are not fatal errors

@@ -216,7 +216,13 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 					GuestSocket: "/var/run/docker.sock",
 					HostSocket:  docker.HostSocketFile(),
 					Proto:       limaconfig.TCP,
+				},
+				limaconfig.PortForward{
+					GuestSocket: "/var/run/containerd/containerd.sock",
+					HostSocket:  containerd.HostSocketFiles().Containerd,
+					Proto:       limaconfig.TCP,
 				})
+
 			if config.CurrentProfile().ShortName == "default" {
 				// for backward compatibility, will be removed in future releases
 				l.PortForwards = append(l.PortForwards,

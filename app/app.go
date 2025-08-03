@@ -336,6 +336,7 @@ func (c colimaApp) getStatus() (status statusInfo, err error) {
 	}
 	if currentRuntime == docker.Name {
 		status.DockerSocket = "unix://" + docker.HostSocketFile()
+		status.ContainerdSocket = "unix://" + containerd.HostSocketFiles().Containerd
 	}
 	if currentRuntime == containerd.Name {
 		status.ContainerdSocket = "unix://" + containerd.HostSocketFiles().Containerd
@@ -377,7 +378,7 @@ func (c colimaApp) Status(extended bool, jsonOutput bool) error {
 
 		// docker socket
 		if status.DockerSocket != "" {
-			log.Println("socket:", status.DockerSocket)
+			log.Println("docker socket:", status.DockerSocket)
 		}
 		if status.ContainerdSocket != "" {
 			log.Println("containerd socket:", status.ContainerdSocket)
