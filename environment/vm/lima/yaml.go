@@ -232,8 +232,13 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 		if conf.Runtime == containerd.Name {
 			l.PortForwards = append(l.PortForwards,
 				limaconfig.PortForward{
-					GuestSocket: "/var/run/containerd.sock",
-					HostSocket:  containerd.HostSocketFile(),
+					GuestSocket: "/var/run/containerd/containerd.sock",
+					HostSocket:  containerd.HostSocketFiles().Containerd,
+					Proto:       limaconfig.TCP,
+				},
+				limaconfig.PortForward{
+					GuestSocket: "/var/run/buildkit/buildkitd.sock",
+					HostSocket:  containerd.HostSocketFiles().Buildkitd,
 					Proto:       limaconfig.TCP,
 				})
 		}
