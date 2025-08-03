@@ -15,6 +15,7 @@ import (
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/environment/container/docker"
+	"github.com/abiosoft/colima/environment/container/incus"
 	"github.com/abiosoft/colima/environment/container/kubernetes"
 	"github.com/abiosoft/colima/environment/host"
 	"github.com/abiosoft/colima/environment/vm/lima"
@@ -300,10 +301,11 @@ type statusInfo struct {
 	Arch             string `json:"arch"`
 	Runtime          string `json:"runtime"`
 	MountType        string `json:"mount_type"`
-	IPAddress        string `json:"ip_address"`
-	DockerSocket     string `json:"docker_socket"`
-	ContainerdSocket string `json:"containerd_socket"`
-	BuildkitdSocket  string `json:"buildkitd_socket"`
+	IPAddress        string `json:"ip_address,omitempty"`
+	DockerSocket     string `json:"docker_socket,omitempty"`
+	ContainerdSocket string `json:"containerd_socket,omitempty"`
+	BuildkitdSocket  string `json:"buildkitd_socket,omitempty"`
+	IncusSocket      string `json:"incus_socket,omitempty"`
 	Kubernetes       bool   `json:"kubernetes"`
 	CPU              int    `json:"cpu"`
 	Memory           int64  `json:"memory"`
@@ -341,6 +343,9 @@ func (c colimaApp) getStatus() (status statusInfo, err error) {
 	if currentRuntime == containerd.Name {
 		status.ContainerdSocket = "unix://" + containerd.HostSocketFiles().Containerd
 		status.BuildkitdSocket = "unix://" + containerd.HostSocketFiles().Buildkitd
+	}
+	if currentRuntime == incus.Name {
+		status.IncusSocket = "unix://" + incus.HostSocketFile()
 	}
 	if k, err := c.Kubernetes(); err == nil && k.Running(ctx) {
 		status.Kubernetes = true
@@ -385,6 +390,9 @@ func (c colimaApp) Status(extended bool, jsonOutput bool) error {
 		}
 		if status.BuildkitdSocket != "" {
 			log.Println("buildkitd socket:", status.BuildkitdSocket)
+		}
+		if status.IncusSocket != "" {
+			log.Println("incus socket:", status.IncusSocket)
 		}
 
 		// kubernetes
