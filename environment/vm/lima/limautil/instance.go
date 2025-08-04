@@ -29,8 +29,8 @@ type InstanceInfo struct {
 		VNL       string `json:"vnl,omitempty"`
 		Interface string `json:"interface,omitempty"`
 	} `json:"network,omitempty"`
-	IPAddress string `json:"address,omitempty"`
-	Runtime   string `json:"runtime,omitempty"`
+	IPAddress []string `json:"address,omitempty"`
+	Runtime   string   `json:"runtime,omitempty"`
 }
 
 // Running checks if the instance is running.

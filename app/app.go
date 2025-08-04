@@ -296,20 +296,20 @@ func (c colimaApp) SSH(args ...string) error {
 }
 
 type statusInfo struct {
-	DisplayName      string `json:"display_name"`
-	Driver           string `json:"driver"`
-	Arch             string `json:"arch"`
-	Runtime          string `json:"runtime"`
-	MountType        string `json:"mount_type"`
-	IPAddress        string `json:"ip_address,omitempty"`
-	DockerSocket     string `json:"docker_socket,omitempty"`
-	ContainerdSocket string `json:"containerd_socket,omitempty"`
-	BuildkitdSocket  string `json:"buildkitd_socket,omitempty"`
-	IncusSocket      string `json:"incus_socket,omitempty"`
-	Kubernetes       bool   `json:"kubernetes"`
-	CPU              int    `json:"cpu"`
-	Memory           int64  `json:"memory"`
-	Disk             int64  `json:"disk"`
+	DisplayName      string   `json:"display_name"`
+	Driver           string   `json:"driver"`
+	Arch             string   `json:"arch"`
+	Runtime          string   `json:"runtime"`
+	MountType        string   `json:"mount_type"`
+	IPAddress        []string `json:"ip_address,omitempty"`
+	DockerSocket     string   `json:"docker_socket,omitempty"`
+	ContainerdSocket string   `json:"containerd_socket,omitempty"`
+	BuildkitdSocket  string   `json:"buildkitd_socket,omitempty"`
+	IncusSocket      string   `json:"incus_socket,omitempty"`
+	Kubernetes       bool     `json:"kubernetes"`
+	CPU              int      `json:"cpu"`
+	Memory           int64    `json:"memory"`
+	Disk             int64    `json:"disk"`
 }
 
 func (c colimaApp) getStatus() (status statusInfo, err error) {
@@ -332,9 +332,15 @@ func (c colimaApp) getStatus() (status statusInfo, err error) {
 	status.Arch = string(c.guest.Arch())
 	status.Runtime = currentRuntime
 	status.MountType = conf.MountType
-	ipAddress := limautil.IPAddress(config.CurrentProfile().ID)
-	if ipAddress != "127.0.0.1" {
-		status.IPAddress = ipAddress
+	ipAddresses := limautil.IPAddress(config.CurrentProfile().ID)
+	var nonLocalhostAddresses []string
+	for _, addr := range ipAddresses {
+		if addr != "127.0.0.1" {
+			nonLocalhostAddresses = append(nonLocalhostAddresses, addr)
+		}
+	}
+	if len(nonLocalhostAddresses) > 0 {
+		status.IPAddress = nonLocalhostAddresses
 	}
 	if currentRuntime == docker.Name {
 		status.DockerSocket = "unix://" + docker.HostSocketFile()
@@ -377,8 +383,8 @@ func (c colimaApp) Status(extended bool, jsonOutput bool) error {
 		}
 
 		// ip address
-		if status.IPAddress != "" {
-			log.Println("address:", status.IPAddress)
+		if len(status.IPAddress) > 0 {
+			log.Println("addresses:", strings.Join(status.IPAddress, ", "))
 		}
 
 		// docker socket

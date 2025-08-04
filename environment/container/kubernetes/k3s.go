@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 
@@ -141,14 +142,28 @@ func installK3sCluster(
 		"--write-kubeconfig-mode", "644",
 	}, k3sArgs...)
 
-	// replace ip address if networking is enabled
-	ipAddress := limautil.IPAddress(config.CurrentProfile().ID)
-	if ipAddress == "127.0.0.1" {
-		args = append(args, "--flannel-iface", "eth0")
-	} else {
-		args = append(args, "--advertise-address", ipAddress)
-		args = append(args, "--flannel-iface", limautil.NetInterface)
-	}
+	a.Add(func() error {
+		// replace ip address if networking is enabled
+		ipAddresses := limautil.IPAddress(config.CurrentProfile().ID)
+		
+		// Filter for global unicast addresses only
+		var globalAddresses []string
+		for _, addr := range ipAddresses {
+			if ip := net.ParseIP(addr); ip != nil && ip.IsGlobalUnicast() {
+				globalAddresses = append(globalAddresses, addr)
+			}
+		}
+		
+		if len(globalAddresses) == 0 {
+			args = append(args, "--flannel-iface", "eth0")
+		} else if len(globalAddresses) > 1 {
+			return fmt.Errorf("multiple global unicast addresses defined for %s, please set ip from one of %v", limautil.NetInterface, globalAddresses)
+		} else {
+			args = append(args, "--advertise-address", globalAddresses[0])
+			args = append(args, "--flannel-iface", limautil.NetInterface)
+		}
+		return nil
+	})
 
 	switch containerRuntime {
 	case docker.Name:

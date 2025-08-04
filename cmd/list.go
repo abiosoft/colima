@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/abiosoft/colima/cmd/root"
@@ -53,7 +54,7 @@ A new instance can be created during 'colima start' by specifying the '--profile
 		}
 
 		w := tabwriter.NewWriter(cmd.OutOrStdout(), 4, 8, 4, ' ', 0)
-		_, _ = fmt.Fprintln(w, "PROFILE\tSTATUS\tARCH\tCPUS\tMEMORY\tDISK\tRUNTIME\tADDRESS")
+		_, _ = fmt.Fprintln(w, "PROFILE\tSTATUS\tARCH\tCPUS\tMEMORY\tDISK\tRUNTIME\tADDRESSES")
 
 		if len(instances) == 0 {
 			logrus.Warn("No instance found. Run `colima start` to create an instance.")
@@ -68,7 +69,7 @@ A new instance can be created during 'colima start' by specifying the '--profile
 				units.BytesSize(float64(inst.Memory)),
 				units.BytesSize(float64(inst.Disk)),
 				inst.Runtime,
-				inst.IPAddress,
+				strings.Join(inst.IPAddress, ", "),
 			)
 		}
 
