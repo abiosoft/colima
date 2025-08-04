@@ -145,7 +145,7 @@ func installK3sCluster(
 	a.Add(func() error {
 		// replace ip address if networking is enabled
 		ipAddresses := limautil.IPAddress(config.CurrentProfile().ID)
-		
+
 		// Filter for global unicast addresses only
 		var globalAddresses []string
 		for _, addr := range ipAddresses {
@@ -153,7 +153,7 @@ func installK3sCluster(
 				globalAddresses = append(globalAddresses, addr)
 			}
 		}
-		
+
 		if len(globalAddresses) == 0 {
 			args = append(args, "--flannel-iface", "eth0")
 		} else if len(globalAddresses) > 1 {

@@ -17,7 +17,7 @@ const masterAddressKey = "master_address"
 func (c kubernetesRuntime) provisionKubeconfig(ctx context.Context) error {
 	ips := limautil.IPAddress(config.CurrentProfile().ID)
 	masterAddress := c.guest.Get(masterAddressKey)
-	
+
 	var ip string
 	for _, addr := range ips {
 		if addr != masterAddress {
@@ -25,7 +25,7 @@ func (c kubernetesRuntime) provisionKubeconfig(ctx context.Context) error {
 			break
 		}
 	}
-	
+
 	if ip == "" {
 		return nil
 	}

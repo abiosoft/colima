@@ -591,7 +591,7 @@ func generateSSHConfig(modifySSHConfig bool) error {
 	}
 
 	sshFileColima := config.SSHConfigFile()
-	if err := os.WriteFile(sshFileColima, buf.Bytes(), 0644); err != nil {
+	if err := os.WriteFile(sshFileColima, buf.Bytes(), 0o644); err != nil {
 		return fmt.Errorf("error writing ssh_config file: %w", err)
 	}
 
@@ -607,11 +607,11 @@ func generateSSHConfig(modifySSHConfig bool) error {
 	// include the SSH config file if not included
 	// if ssh file missing, the only content will be the include
 	if _, err := os.Stat(sshFileSystem); err != nil {
-		if err := os.MkdirAll(filepath.Dir(sshFileSystem), 0700); err != nil {
+		if err := os.MkdirAll(filepath.Dir(sshFileSystem), 0o700); err != nil {
 			return fmt.Errorf("error creating ssh directory: %w", err)
 		}
 
-		if err := os.WriteFile(sshFileSystem, []byte(includeLine), 0644); err != nil {
+		if err := os.WriteFile(sshFileSystem, []byte(includeLine), 0o644); err != nil {
 			return fmt.Errorf("error modifying %s: %w", sshFileSystem, err)
 		}
 
@@ -654,7 +654,7 @@ func generateSSHConfig(modifySSHConfig bool) error {
 	}
 
 	// not found, prepend file
-	if err := os.WriteFile(sshFileSystem, []byte(includeLine+"\n\n"+string(sshContent)), 0644); err != nil {
+	if err := os.WriteFile(sshFileSystem, []byte(includeLine+"\n\n"+string(sshContent)), 0o644); err != nil {
 		return fmt.Errorf("error modifying %s: %w", sshFileSystem, err)
 	}
 	return nil
