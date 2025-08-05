@@ -181,10 +181,10 @@ jobs:
         run: colima nerdctl -- build integration
 
       - name: Run Image arm64
-        run: nerdctl run --rm --platform=linux/arm64 ghcr.io/linuxcontainers/alpine:latest uname -a
+        run: colima nerdctl -- run --rm --platform=linux/arm64 ghcr.io/linuxcontainers/alpine:latest uname -a
 
       - name: Run Image amd64
-        run: nerdctl run --rm --platform=linux/amd64 ghcr.io/linuxcontainers/alpine:latest uname -a
+        run: colima nerdctl -- run --rm --platform=linux/amd64 ghcr.io/linuxcontainers/alpine:latest uname -a
 
       - name: Stop
         run: colima stop
