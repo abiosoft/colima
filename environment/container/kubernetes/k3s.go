@@ -18,6 +18,21 @@ import (
 
 const listenPortKey = "k3s_listen_port"
 
+func hasK3sArg(k3sArgs []string, argName string) bool {
+	for _, arg := range k3sArgs {
+		if strings.HasPrefix(arg, argName+"=") {
+			return true
+		}
+		if strings.HasPrefix(arg, argName+" ") {
+			return true
+		}
+		if arg == argName {
+			return true
+		}
+	}
+	return false
+}
+
 func installK3s(host environment.HostActions,
 	guest environment.GuestActions,
 	a *cli.ActiveCommandChain,
@@ -146,8 +161,12 @@ func installK3sCluster(
 	if ipAddress == "127.0.0.1" {
 		args = append(args, "--flannel-iface", "eth0")
 	} else {
-		args = append(args, "--advertise-address", ipAddress)
-		args = append(args, "--flannel-iface", limautil.NetInterface)
+		if !hasK3sArg(k3sArgs, "--advertise-address") {
+			args = append(args, "--advertise-address", ipAddress)
+		}
+		if !hasK3sArg(k3sArgs, "--flannel-iface") {
+			args = append(args, "--flannel-iface", limautil.NetInterface)
+		}
 	}
 
 	switch containerRuntime {
