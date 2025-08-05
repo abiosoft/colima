@@ -23,6 +23,9 @@ func hasK3sArg(k3sArgs []string, argName string) bool {
 		if strings.HasPrefix(arg, argName+"=") {
 			return true
 		}
+		if strings.HasPrefix(arg, argName+" ") {
+			return true
+		}
 		if arg == argName {
 			return true
 		}
