@@ -139,6 +139,7 @@ var startCmdArgs struct {
 		Foreground              bool
 		SaveConfig              bool
 		LegacyCPU               int // for backward compatibility
+		Template                bool
 	}
 }
 
@@ -171,6 +172,7 @@ func init() {
 	startCmd.Flags().BoolVarP(&startCmdArgs.Flags.Foreground, "foreground", "f", false, "Keep colima in the foreground")
 	startCmd.Flags().StringVar(&startCmdArgs.Hostname, "hostname", "", "custom hostname for the virtual machine")
 	startCmd.Flags().StringVarP(&startCmdArgs.DiskImage, "disk-image", "i", "", "file path to a custom disk image")
+	startCmd.Flags().BoolVar(&startCmdArgs.Flags.Template, "template", false, "use the template file for initial configuration")
 
 	// retain cpu flag for backward compatibility
 	startCmd.Flags().IntVar(&startCmdArgs.Flags.LegacyCPU, "cpu", defaultCPU, "number of CPUs")
@@ -410,13 +412,21 @@ func prepareConfig(cmd *cobra.Command) {
 
 	// if there is no existing settings
 	if current.Empty() {
-		// attempt template
-		template, err := configmanager.LoadFrom(templateFile())
-		if err != nil {
-			// use default config if there is no template or existing settings
+		templateUsed := false
+
+		// attempt template if enabled
+		if startCmdArgs.Flags.Template {
+			template, err := configmanager.LoadFrom(templateFile())
+			if err == nil {
+				current = template
+				templateUsed = true
+			}
+		}
+
+		if !templateUsed {
+			// use default config if there is no template or template is disabled
 			return
 		}
-		current = template
 	}
 
 	// set missing defaults in the current config
