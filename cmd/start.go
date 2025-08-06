@@ -134,6 +134,7 @@ var startCmdArgs struct {
 		Edit                    bool
 		Editor                  string
 		ActivateRuntime         bool
+		Binfmt                  bool
 		DNSHosts                []string
 		Foreground              bool
 		SaveConfig              bool
@@ -200,7 +201,7 @@ func init() {
 	}
 
 	// binfmt
-	startCmd.Flags().BoolVar(&startCmdArgs.Binfmt, "binfmt", true, binfmtDesc)
+	startCmd.Flags().BoolVar(&startCmdArgs.Flags.Binfmt, "binfmt", true, binfmtDesc)
 
 	// config
 	startCmd.Flags().BoolVarP(&startCmdArgs.Flags.Edit, "edit", "e", false, "edit the configuration file before starting")
@@ -397,6 +398,7 @@ func prepareConfig(cmd *cobra.Command) {
 	startCmdArgs.Mounts = mountsFromFlag(startCmdArgs.Flags.Mounts)
 	startCmdArgs.Network.DNSHosts = dnsHostsFromFlag(startCmdArgs.Flags.DNSHosts)
 	startCmdArgs.ActivateRuntime = &startCmdArgs.Flags.ActivateRuntime
+	startCmdArgs.Binfmt = &startCmdArgs.Flags.Binfmt
 
 	// handle legacy kubernetes-disable
 	for _, disable := range startCmdArgs.Flags.LegacyKubernetesDisable {
@@ -487,6 +489,11 @@ func prepareConfig(cmd *cobra.Command) {
 	if !cmd.Flag("activate").Changed {
 		if current.ActivateRuntime != nil { // backward compatibility for `activate`
 			startCmdArgs.ActivateRuntime = current.ActivateRuntime
+		}
+	}
+	if !cmd.Flag("binfmt").Changed {
+		if current.Binfmt != nil {
+			startCmdArgs.Binfmt = current.Binfmt
 		}
 	}
 	if !cmd.Flag("network-host-addresses").Changed {
