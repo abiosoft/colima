@@ -157,7 +157,7 @@ func installK3sCluster(
 		"--write-kubeconfig-mode", "644",
 	}, k3sArgs...)
 
-	a.Retry("waiting for VM IP address", time.Second*2, 10, func(retryCount int) error {
+	a.Retry("waiting for VM IP address", time.Second*5, 4, func(retryCount int) error {
 		ipAddress := limautil.IPAddress(config.CurrentProfile().ID)
 		if ipAddress == "" {
 			return fmt.Errorf("no IP address assigned to network interface")
