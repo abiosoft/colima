@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
@@ -156,18 +157,24 @@ func installK3sCluster(
 		"--write-kubeconfig-mode", "644",
 	}, k3sArgs...)
 
-	// replace ip address if networking is enabled
-	ipAddress := limautil.IPAddress(config.CurrentProfile().ID)
-	if ipAddress == "127.0.0.1" {
-		args = append(args, "--flannel-iface", "eth0")
-	} else {
-		if !hasK3sArg(k3sArgs, "--advertise-address") {
-			args = append(args, "--advertise-address", ipAddress)
+	a.Retry("waiting for VM IP address", time.Second*2, 10, func(retryCount int) error {
+		ipAddress := limautil.IPAddress(config.CurrentProfile().ID)
+		if ipAddress == "" {
+			return fmt.Errorf("no IP address assigned to network interface")
 		}
-		if !hasK3sArg(k3sArgs, "--flannel-iface") {
-			args = append(args, "--flannel-iface", limautil.NetInterface)
+
+		if ipAddress == "127.0.0.1" {
+			args = append(args, "--flannel-iface", "eth0")
+		} else {
+			if !hasK3sArg(k3sArgs, "--advertise-address") {
+				args = append(args, "--advertise-address", ipAddress)
+			}
+			if !hasK3sArg(k3sArgs, "--flannel-iface") {
+				args = append(args, "--flannel-iface", limautil.NetInterface)
+			}
 		}
-	}
+		return nil
+	})
 
 	switch containerRuntime {
 	case docker.Name:
