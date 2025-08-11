@@ -168,14 +168,14 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 			if reachableIPAddress && conf.Kubernetes.Enabled && !ingressDisabled(conf.Kubernetes.K3sArgs) {
 				l.PortForwards = append(l.PortForwards,
 					limaconfig.PortForward{
-						GuestIP:           net.ParseIP("0.0.0.0"),
+						GuestIP:           net.IPv4zero,
 						GuestPort:         80,
 						GuestIPMustBeZero: true,
 						Ignore:            true,
 						Proto:             limaconfig.TCP,
 					},
 					limaconfig.PortForward{
-						GuestIP:           net.ParseIP("0.0.0.0"),
+						GuestIP:           net.IPv4zero,
 						GuestPort:         443,
 						GuestIPMustBeZero: true,
 						Ignore:            true,
@@ -188,7 +188,7 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 			if reachableIPAddress && conf.Runtime == incus.Name {
 				l.PortForwards = append(l.PortForwards,
 					limaconfig.PortForward{
-						GuestIP:           net.ParseIP("0.0.0.0"),
+						GuestIP:           net.IPv4zero,
 						GuestIPMustBeZero: true,
 						GuestPortRange:    [2]int{1, 65535},
 						HostPortRange:     [2]int{1, 65535},
@@ -263,17 +263,17 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 		l.PortForwards = append(l.PortForwards,
 			limaconfig.PortForward{
 				GuestIPMustBeZero: true,
-				GuestIP:           net.ParseIP("0.0.0.0"),
+				GuestIP:           net.IPv4zero,
 				GuestPortRange:    [2]int{1, 65535},
-				HostIP:            net.ParseIP("0.0.0.0"),
+				HostIP:            net.IPv4zero,
 				HostPortRange:     [2]int{1, 65535},
 				Proto:             limaconfig.TCP,
 			},
 			limaconfig.PortForward{
 				GuestIPMustBeZero: true,
-				GuestIP:           net.ParseIP("0.0.0.0"),
+				GuestIP:           net.IPv4zero,
 				GuestPortRange:    [2]int{1, 65535},
-				HostIP:            net.ParseIP("0.0.0.0"),
+				HostIP:            net.IPv4zero,
 				HostPortRange:     [2]int{1, 65535},
 				Proto:             limaconfig.UDP,
 			},
