@@ -80,9 +80,9 @@ Set the `$COLIMA_HOME` environment variable, otherwise it defaults to `$HOME/.co
 colima start --edit
 ```
 
-For manual edit, the config file is located at `$COLIMA_HOME/default/colima.yaml`.
+For manual edit, the config file is located at `$HOME/.colima/default/colima.yaml`.
 
-For other profiles, `$COLIMA_HOME/<profile-name>/colima.yaml`
+For other profiles, `$HOME/.colima/<profile-name>/colima.yaml`
 
 ### Setting the default config
 
@@ -90,7 +90,7 @@ For other profiles, `$COLIMA_HOME/<profile-name>/colima.yaml`
 colima template
 ```
 
-For manual edit, the template file is located at `$COLIMA_HOME/_templates/default.yaml`.
+For manual edit, the template file is located at `$HOME/.colima/_templates/default.yaml`.
 
 ### Specifying the config editor
 
@@ -113,11 +113,11 @@ Colima makes itself the default Docker context on startup and should work straig
 
 #### v0.3.4 or older
 
-Docker socket is located at `$COLIMA_HOME/docker.sock`
+Docker socket is located at `$HOME/.colima/docker.sock`
 
 #### v0.4.0 or newer
 
-Docker socket is located at `$COLIMA_HOME/default/docker.sock`
+Docker socket is located at `$HOME/.colima/default/docker.sock`
 
 It can also be retrieved by checking status
 
@@ -154,7 +154,7 @@ This can be fixed by any of the following approaches. Ensure the Docker socket p
 3. Linking the Colima socket to the default socket path. **Note** that this may break other Docker servers.
 
    ```sh
-   sudo ln -sf $COLIMA_HOME/default/docker.sock /var/run/docker.sock
+   sudo ln -sf $HOME/.colima/default/docker.sock /var/run/docker.sock
    ```
 
 
@@ -162,7 +162,7 @@ This can be fixed by any of the following approaches. Ensure the Docker socket p
 
 * v0.3.4 or lower
 
-  On first startup, Colima generates Docker daemon.json file at `$COLIMA_HOME/docker/daemon.json`.
+  On first startup, Colima generates Docker daemon.json file at `$HOME/.colima/docker/daemon.json`.
   Modify the daemon.json file accordingly and restart Colima.
 
 * v0.4.0 or newer
@@ -213,9 +213,9 @@ Then, the Docker ~/.docker/daemon.json file (as compared to the default):
 + "experimental": false,
 + "registry-mirrors": [
 +   "https://my.dockerhub.mirror.something",
-+   "https://my.quayio.mirror.something"  
++   "https://my.quayio.mirror.something"
 + ]
-```  
+```
 
 ### Docker buildx plugin is missing
 
@@ -437,9 +437,9 @@ From v0.5.6, start Colima with `--cgroups-v2` flag as a workaround.
 
 ### Issue with Docker bind mount showing empty
 
-When using docker to bind mount a volume (e.g. using `-v` or `--mount`) from the host where the volume is not contained within `/tmp/colima` or `/Users/$USER`, the container will start without raising any errors but the mapped mountpoint on the container will be empty.
+When using docker to bind mount a volume (e.g. using `-v` or `--mount`) from the host where the volume is not contained within `/Users/$USER`, the container will start without raising any errors but the mapped mountpoint on the container will be empty.
 
-This is rectified by mounting the volume on the VM, and only then can docker map the volume or any subdirectory. Edit `$COLIMA_HOME/default/colima.yaml` and add to the `mounts` section (examples are provided within the yaml file), and then run `colima restart`. Start the container again with the desired bind mount and it should show up correctly.
+This is rectified by mounting the volume on the VM, and only then can docker map the volume or any subdirectory. Edit `$HOME/.colima/default/colima.yaml` and add to the `mounts` section (examples are provided within the yaml file), and then run `colima restart`. Start the container again with the desired bind mount and it should show up correctly.
 
 ## How can Docker version be updated?
 
