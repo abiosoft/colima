@@ -172,7 +172,7 @@ func init() {
 	startCmd.Flags().BoolVarP(&startCmdArgs.Flags.Foreground, "foreground", "f", false, "Keep colima in the foreground")
 	startCmd.Flags().StringVar(&startCmdArgs.Hostname, "hostname", "", "custom hostname for the virtual machine")
 	startCmd.Flags().StringVarP(&startCmdArgs.DiskImage, "disk-image", "i", "", "file path to a custom disk image")
-	startCmd.Flags().BoolVar(&startCmdArgs.Flags.Template, "template", false, "use the template file for initial configuration")
+	startCmd.Flags().BoolVar(&startCmdArgs.Flags.Template, "template", true, "use the template file for initial configuration")
 
 	// retain cpu flag for backward compatibility
 	startCmd.Flags().IntVar(&startCmdArgs.Flags.LegacyCPU, "cpu", defaultCPU, "number of CPUs")
