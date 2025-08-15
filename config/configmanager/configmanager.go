@@ -78,6 +78,13 @@ func ValidateConfig(c config.Config) error {
 		}
 	}
 
+	// Validate Apple Container runtime requirements
+	if c.Runtime == "apple" {
+		if !util.MacOS15OrNewer() {
+			return fmt.Errorf("Apple Container runtime requires macOS 15 or newer")
+		}
+	}
+
 	if c.DiskImage != "" {
 		if strings.HasPrefix(c.DiskImage, "http://") || strings.HasPrefix(c.DiskImage, "https://") {
 			return fmt.Errorf("cannot use diskImage: remote URLs not supported, only local files can be specified")
