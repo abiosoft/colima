@@ -2,7 +2,6 @@ package config
 
 import (
 	"net"
-	"path/filepath"
 
 	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/osutil"
@@ -103,7 +102,6 @@ func (c Config) MountsOrDefault() []Mount {
 
 	return []Mount{
 		{Location: util.HomeDir(), Writable: true},
-		{Location: filepath.Join("/tmp", CurrentProfile().ID), Writable: true},
 	}
 }
 

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/abiosoft/colima/daemon"
@@ -339,7 +338,6 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 	if len(conf.Mounts) == 0 {
 		l.Mounts = append(l.Mounts,
 			limaconfig.Mount{Location: "~", Writable: true},
-			limaconfig.Mount{Location: filepath.Join("/tmp", config.CurrentProfile().ID), Writable: true},
 		)
 	} else {
 		// overlapping mounts are problematic in Lima https://github.com/lima-vm/lima/issues/302

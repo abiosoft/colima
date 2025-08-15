@@ -198,7 +198,7 @@ sshPort: 0
 #   - location: ~/projects
 #     writable: true
 #
-# Colima default behaviour: $HOME and /tmp/colima are mounted as writable.
+# Colima default behaviour: $HOME is mounted as writable.
 # Default: []
 mounts: []
 
