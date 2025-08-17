@@ -374,6 +374,14 @@ func (l *limaVM) syncDiskSize(ctx context.Context, conf config.Config) config.Co
 }
 
 func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Config) {
+	// setup dns
+	a.Add(func() error {
+		if err := l.setupDNS(conf); err != nil {
+			return fmt.Errorf("error setting up DNS: %w", err)
+		}
+		return nil
+	})
+
 	// registry certs
 	a.Add(l.copyCerts)
 
