@@ -34,6 +34,11 @@ func IPAddress(profileID string) string {
 	return fallback
 }
 
+// InternalIPAddress returns the internal IP address for the profile.
+func InternalIPAddress(profileID string) string {
+	return getIPAddress(profileID, "eth0")
+}
+
 func getIPAddress(profileID, interfaceName string) string {
 	var buf bytes.Buffer
 	// TODO: this should be less hacky

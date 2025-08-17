@@ -116,6 +116,10 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 		}
 		l.Provision = append(l.Provision, limaconfig.Provision{
 			Mode:   limaconfig.ProvisionModeSystem,
+			Script: "grep '127.0.0.1 " + hostname + "' /etc/hosts || echo '127.0.0.1 " + hostname + "' >> /etc/hosts",
+		})
+		l.Provision = append(l.Provision, limaconfig.Provision{
+			Mode:   limaconfig.ProvisionModeSystem,
 			Script: "hostnamectl set-hostname " + hostname,
 		})
 
