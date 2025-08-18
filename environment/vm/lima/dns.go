@@ -18,7 +18,18 @@ var dnsHosts = map[string]string{
 	"host.lima.internal":   gatewayAddr,
 }
 
+func hasDnsmasq(l *limaVM) bool {
+	// check if dnsmasq is installed
+	return l.RunQuiet("sh", "-c", `apt list | grep 'dnsmasq\/' | grep '\[installed'`) == nil
+}
+
 func (l *limaVM) setupDNS(conf config.Config) error {
+	if !hasDnsmasq(l) {
+		// older image still using systemd-resolved
+		// ignore
+		return nil
+	}
+
 	internalIP := limautil.InternalIPAddress(config.CurrentProfile().ID)
 
 	// extra dns entries
