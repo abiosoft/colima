@@ -59,6 +59,17 @@ network:
   # Default: false
   address: false
 
+  # Network mode for the virtual machine (shared, bridged).
+  # NOTE: this is currently macOS only and ignored on Linux.
+  # Default: shared
+  mode: shared
+
+  # Network interface to use for bridged mode.
+  # This is only used when mode is set to bridged.
+  # NOTE: this is currently macOS only and ignored on Linux.
+  # Default: en0
+  interface: en0
+
   # Custom DNS resolvers for the virtual machine.
   #
   # EXAMPLE

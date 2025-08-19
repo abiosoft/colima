@@ -33,8 +33,10 @@ func (l *limaVM) setupDNS(conf config.Config) error {
 	internalIP := limautil.InternalIPAddress(config.CurrentProfile().ID)
 
 	// extra dns entries
-	dnsHosts[conf.Hostname] = localhostAddr
 	dnsHosts["colima.internal"] = internalIP
+	if (conf.Hostname) != "" {
+		dnsHosts[conf.Hostname] = localhostAddr
+	}
 
 	var buf bytes.Buffer
 

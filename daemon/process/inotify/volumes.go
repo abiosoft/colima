@@ -23,36 +23,39 @@ func (f *inotifyProcess) monitorContainerVolumes(ctx context.Context, c chan<- [
 	fetch := func() ([]string, error) {
 		var vols []string
 
-		// docker
-		if f.runtime != containerd.Name {
+		switch f.runtime {
+
+		case docker.Name:
 			vols, err := f.fetchVolumes(docker.Name)
 			if err != nil {
 				return nil, fmt.Errorf("error fetching docker volumes: %w", err)
 			}
 			return vols, nil
-		}
 
-		// containerd
-		var namespaces []string
-		out, err := f.guest.RunOutput("sudo", "nerdctl", "namespace", "list", "-q")
-		if err != nil {
-			return nil, fmt.Errorf("error retrieving containerd namespaces: %w", err)
-		}
-		if out != "" {
-			namespaces = strings.Fields(out)
-		}
-
-		for _, ns := range namespaces {
-			v, err := f.fetchVolumes("sudo", "nerdctl", "--namespace", ns)
+		case containerd.Name:
+			var namespaces []string
+			out, err := f.guest.RunOutput("sudo", "nerdctl", "namespace", "list", "-q")
 			if err != nil {
-				return nil, fmt.Errorf("error retrieving containerd volumes: %w", err)
+				return nil, fmt.Errorf("error retrieving containerd namespaces: %w", err)
 			}
-			if len(v) > 0 {
-				vols = append(vols, v...)
+			if out != "" {
+				namespaces = strings.Fields(out)
 			}
+
+			for _, ns := range namespaces {
+				v, err := f.fetchVolumes("sudo", "nerdctl", "--namespace", ns)
+				if err != nil {
+					return nil, fmt.Errorf("error retrieving containerd volumes: %w", err)
+				}
+				if len(v) > 0 {
+					vols = append(vols, v...)
+				}
+			}
+
+			return vols, nil
 		}
 
-		return vols, nil
+		return nil, nil
 	}
 
 	go func() {

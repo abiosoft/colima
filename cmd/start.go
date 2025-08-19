@@ -186,6 +186,8 @@ func init() {
 	if util.MacOS() {
 		// network address
 		startCmd.Flags().BoolVar(&startCmdArgs.Network.Address, "network-address", false, "assign reachable IP address to the VM")
+		startCmd.Flags().StringVar(&startCmdArgs.Network.Mode, "network-mode", "shared", "network mode (shared, bridged)")
+		startCmd.Flags().StringVar(&startCmdArgs.Network.BridgeInterface, "network-interface", "en0", "host network interface to use for bridged mode")
 
 		// vm type
 		if util.MacOS13OrNewer() {
@@ -374,6 +376,10 @@ func setFixedConfigs(conf *config.Config) {
 		log.Warnln("network address cannot be disabled once enabled")
 		conf.Network.Address = true
 	}
+	if fixedConf.Network.Mode != "" {
+		warnIfNotEqual("network mode", conf.Network.Mode, fixedConf.Network.Mode)
+		conf.Network.Mode = fixedConf.Network.Mode
+	}
 }
 
 func prepareConfig(cmd *cobra.Command) {
@@ -512,6 +518,12 @@ func prepareConfig(cmd *cobra.Command) {
 	if util.MacOS() {
 		if !cmd.Flag("network-address").Changed {
 			startCmdArgs.Network.Address = current.Network.Address
+		}
+		if !cmd.Flag("network-mode").Changed {
+			startCmdArgs.Network.Mode = current.Network.Mode
+		}
+		if !cmd.Flag("network-interface").Changed {
+			startCmdArgs.Network.BridgeInterface = current.Network.BridgeInterface
 		}
 		if util.MacOS13OrNewer() {
 			if !cmd.Flag("vm-type").Changed {

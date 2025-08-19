@@ -26,9 +26,17 @@ const (
 
 var _ process.Process = (*vmnetProcess)(nil)
 
-func New() process.Process { return &vmnetProcess{} }
+func New(mode, netInterface string) process.Process {
+	return &vmnetProcess{
+		mode:         mode,
+		netInterface: netInterface,
+	}
+}
 
-type vmnetProcess struct{}
+type vmnetProcess struct {
+	mode         string
+	netInterface string
+}
 
 func (*vmnetProcess) Alive(ctx context.Context) error {
 	info := Info()
@@ -60,7 +68,7 @@ func (*vmnetProcess) Alive(ctx context.Context) error {
 func (*vmnetProcess) Name() string { return Name }
 
 // Start implements process.BgProcess
-func (*vmnetProcess) Start(ctx context.Context) error {
+func (v *vmnetProcess) Start(ctx context.Context) error {
 	info := Info()
 	socket := info.Socket.File()
 	pid := info.PidFile
@@ -73,14 +81,26 @@ func (*vmnetProcess) Start(ctx context.Context) error {
 
 	go func() {
 		// rootfully start the vmnet daemon
-		command := cli.CommandInteractive("sudo", BinaryPath,
-			"--vmnet-mode", "shared",
-			"--socket-group", "staff",
-			"--vmnet-gateway", NetGateway,
-			"--vmnet-dhcp-end", NetDHCPEnd,
-			"--pidfile", pid,
-			socket,
-		)
+		var command *exec.Cmd
+
+		if v.mode == "bridged" {
+			command = cli.CommandInteractive("sudo", BinaryPath,
+				"--vmnet-mode", "bridged",
+				"--socket-group", "staff",
+				"--vmnet-interface", v.netInterface,
+				"--pidfile", pid,
+				socket,
+			)
+		} else {
+			command = cli.CommandInteractive("sudo", BinaryPath,
+				"--vmnet-mode", "shared",
+				"--socket-group", "staff",
+				"--vmnet-gateway", NetGateway,
+				"--vmnet-dhcp-end", NetDHCPEnd,
+				"--pidfile", pid,
+				socket,
+			)
+		}
 
 		if cli.Settings.Verbose {
 			command.Env = append(command.Env, os.Environ()...)
