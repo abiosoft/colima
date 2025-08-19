@@ -94,6 +94,8 @@ func (l processManager) Start(ctx context.Context, conf config.Config) error {
 
 	if conf.Network.Address {
 		args = append(args, "--vmnet")
+		args = append(args, "--vmnet-mode", conf.Network.Mode)
+		args = append(args, "--vmnet-interface", conf.Network.BridgeInterface)
 	}
 	if conf.MountINotify {
 		args = append(args, "--inotify")
@@ -125,7 +127,7 @@ func processesFromConfig(conf config.Config) []process.Process {
 	var processes []process.Process
 
 	if conf.Network.Address {
-		processes = append(processes, vmnet.New())
+		processes = append(processes, vmnet.New(conf.Network.Mode, conf.Network.BridgeInterface))
 	}
 	if conf.MountINotify {
 		processes = append(processes, inotify.New())

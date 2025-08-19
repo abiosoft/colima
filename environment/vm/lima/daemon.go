@@ -16,7 +16,7 @@ import (
 
 func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.Context, error) {
 	// vmnet is used by QEMU and always used by incus (even with VZ)
-	useVmnet := conf.VMType == limaconfig.QEMU || conf.Runtime == incus.Name
+	useVmnet := conf.VMType == limaconfig.QEMU || conf.Runtime == incus.Name || conf.Network.Mode == "bridged"
 
 	// network daemon is only needed for vmnet
 	conf.Network.Address = conf.Network.Address && useVmnet

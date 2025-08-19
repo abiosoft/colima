@@ -31,8 +31,8 @@ var startCmd = &cobra.Command{
 		ctx := cmd.Context()
 
 		var processes []process.Process
-		if daemonArgs.vmnet {
-			processes = append(processes, vmnet.New())
+		if daemonArgs.vmnet.enabled {
+			processes = append(processes, vmnet.New(daemonArgs.vmnet.mode, daemonArgs.vmnet.netInterface))
 		}
 		if daemonArgs.inotify.enabled {
 			processes = append(processes, inotify.New())
@@ -79,7 +79,11 @@ var statusCmd = &cobra.Command{
 }
 
 var daemonArgs struct {
-	vmnet   bool
+	vmnet struct {
+		enabled      bool
+		mode         string
+		netInterface string
+	}
 	inotify struct {
 		enabled bool
 		dirs    []string
@@ -96,7 +100,9 @@ func init() {
 	daemonCmd.AddCommand(stopCmd)
 	daemonCmd.AddCommand(statusCmd)
 
-	startCmd.Flags().BoolVar(&daemonArgs.vmnet, "vmnet", false, "start vmnet")
+	startCmd.Flags().BoolVar(&daemonArgs.vmnet.enabled, "vmnet", false, "start vmnet")
+	startCmd.Flags().StringVar(&daemonArgs.vmnet.mode, "vmnet-mode", "shared", "vmnet mode (shared, bridged)")
+	startCmd.Flags().StringVar(&daemonArgs.vmnet.netInterface, "vmnet-interface", "en0", "vmnet interface for bridged mode")
 	startCmd.Flags().BoolVar(&daemonArgs.inotify.enabled, "inotify", false, "start inotify")
 	startCmd.Flags().StringSliceVar(&daemonArgs.inotify.dirs, "inotify-dir", nil, "set inotify directories")
 	startCmd.Flags().StringVar(&daemonArgs.inotify.runtime, "inotify-runtime", "docker", "set runtime")
