@@ -20,7 +20,7 @@ type Manager interface {
 	Start(context.Context, config.Config) error
 	Stop(context.Context, config.Config) error
 	Running(context.Context, config.Config) (Status, error)
-	Dependencies(context.Context, config.Config) (deps process.Dependency, root bool)
+	Dependency(ctx context.Context, conf config.Config, name string) (deps process.Dependency, root bool)
 }
 
 type Status struct {
@@ -50,9 +50,16 @@ type processManager struct {
 	host environment.HostActions
 }
 
-func (l processManager) Dependencies(ctx context.Context, conf config.Config) (deps process.Dependency, root bool) {
+func (l processManager) Dependency(ctx context.Context, conf config.Config, name string) (deps process.Dependency, root bool) {
 	processes := processesFromConfig(conf)
-	return process.Dependencies(processes...)
+
+	for _, p := range processes {
+		if p.Name() == name {
+			return process.Dependencies(p)
+		}
+	}
+
+	return process.Dependencies()
 }
 
 func (l processManager) init() error {
