@@ -54,7 +54,7 @@ type namedCommandChain struct {
 	log  *log.Entry
 }
 
-func (n namedCommandChain) Logger(ctx context.Context) *log.Entry {
+func (n *namedCommandChain) Logger(ctx context.Context) *log.Entry {
 	if quiet, _ := ctx.Value(CtxKeyQuiet).(bool); quiet {
 		l := log.New()
 		l.SetOutput(io.Discard)
@@ -66,7 +66,7 @@ func (n namedCommandChain) Logger(ctx context.Context) *log.Entry {
 	return n.log
 }
 
-func (n namedCommandChain) Init(ctx context.Context) *ActiveCommandChain {
+func (n *namedCommandChain) Init(ctx context.Context) *ActiveCommandChain {
 	return &ActiveCommandChain{
 		log: n.Logger(ctx),
 	}
@@ -99,7 +99,7 @@ func (a *ActiveCommandChain) Stage(s string) {
 }
 
 // Stagef is like stage with string format.
-func (a *ActiveCommandChain) Stagef(format string, s ...interface{}) {
+func (a *ActiveCommandChain) Stagef(format string, s ...any) {
 	f := fmt.Sprintf(format, s...)
 	a.Stage(f)
 }

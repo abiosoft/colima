@@ -40,7 +40,7 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 	if conf.MountINotify {
 		a.Add(func() error {
 			ctx = context.WithValue(ctx, ctxKeyInotify, true)
-			deps, _ := l.daemon.Dependencies(ctx, conf)
+			deps, _ := l.daemon.Dependency(ctx, conf, inotify.Name)
 			if err := deps.Install(l.host); err != nil {
 				return fmt.Errorf("error setting up inotify dependencies: %w", err)
 			}
@@ -55,7 +55,7 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 				a.Stage("preparing network")
 				ctx = context.WithValue(ctx, ctxKeyVmnet, true)
 			}
-			deps, root := l.daemon.Dependencies(ctx, conf)
+			deps, root := l.daemon.Dependency(ctx, conf, vmnet.Name)
 			if deps.Installed() {
 				ctx = context.WithValue(ctx, networkInstalledKey, true)
 				return nil
@@ -64,7 +64,7 @@ func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.C
 			// if user interaction is not required (i.e. root),
 			// no need for another verbose info.
 			if root {
-				log.Println("dependencies missing for setting up reachable IP address")
+				log.Println("setting up reachable IP address")
 				log.Println("sudo password may be required")
 			}
 
