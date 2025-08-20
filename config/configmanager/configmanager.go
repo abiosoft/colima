@@ -59,6 +59,8 @@ func LoadFrom(file string) (config.Config, error) {
 // ValidateConfig validates config before we use it
 func ValidateConfig(c config.Config) error {
 	validMountTypes := map[string]bool{"9p": true, "sshfs": true}
+	validPortForwarders := map[string]bool{"grpc": true, "ssh": true}
+
 	if util.MacOS13OrNewer() {
 		validMountTypes["virtiofs"] = true
 	}
@@ -82,6 +84,10 @@ func ValidateConfig(c config.Config) error {
 		if strings.HasPrefix(c.DiskImage, "http://") || strings.HasPrefix(c.DiskImage, "https://") {
 			return fmt.Errorf("cannot use diskImage: remote URLs not supported, only local files can be specified")
 		}
+	}
+
+	if _, ok := validPortForwarders[c.PortForwarder]; !ok {
+		return fmt.Errorf("invalid port forwarder: '%s'", c.PortForwarder)
 	}
 
 	return nil
