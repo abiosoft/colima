@@ -133,6 +133,13 @@ docker: {}
 # Default: qemu
 vmType: qemu
 
+# Port forwarder for the virtual machine (ssh, grpc).
+# ssh is more stable but supports only TCP.
+# grpc supports both TCP and UDP, but is experimental.
+#
+# Default: ssh
+portForwarder: ssh
+
 # Utilise rosetta for amd64 emulation (requires m1 mac and vmType `vz`)
 # Default: false
 rosetta: false

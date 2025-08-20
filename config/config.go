@@ -48,6 +48,7 @@ type Config struct {
 	Binfmt               *bool  `yaml:"binfmt,omitempty"`
 	NestedVirtualization bool   `yaml:"nestedVirtualization,omitempty"`
 	DiskImage            string `yaml:"diskImage,omitempty"`
+	PortForwarder        string `yaml:"portForwarder,omitempty"` // "ssh", "grpc"
 
 	// volume mounts
 	Mounts       []Mount `yaml:"mounts,omitempty"`

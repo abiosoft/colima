@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/abiosoft/colima/cli"
@@ -77,6 +78,8 @@ func (l limaVM) Dependencies() []string {
 
 func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 	a := l.Init(ctx)
+
+	l.prepareHost(conf)
 
 	if l.Created() {
 		return l.resume(ctx, conf)
@@ -446,4 +449,12 @@ func (l *limaVM) assertQemu() error {
 		return err
 	}
 	return nil
+}
+
+const envLimaSSHPortForwarder = "LIMA_SSH_PORT_FORWARDER"
+
+func (l *limaVM) prepareHost(conf config.Config) {
+	useSSHPortForwarder := conf.PortForwarder != "grpc"
+
+	l.host = l.host.WithEnv(envLimaSSHPortForwarder + "=" + strconv.FormatBool(useSSHPortForwarder))
 }
