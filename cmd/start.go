@@ -343,6 +343,10 @@ func setConfigDefaults(conf *config.Config) {
 	if conf.Hostname == "" {
 		conf.Hostname = config.CurrentProfile().ID
 	}
+
+	if conf.PortForwarder == "" {
+		conf.PortForwarder = "ssh"
+	}
 }
 
 func setFixedConfigs(conf *config.Config) {
