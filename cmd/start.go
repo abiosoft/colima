@@ -45,7 +45,7 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 		"  colima start --arch aarch64\n" +
 		"  colima start --dns 1.1.1.1 --dns 8.8.8.8\n" +
 		"  colima start --dns-host example.com=1.2.3.4\n" +
-		"  colima start --kubernetes --k3s-arg=\"--disable=coredns,servicelb,traefik,local-storage,metrics-server\"",
+		"  colima start --kubernetes --k3s-arg='\"--disable=coredns,servicelb,traefik,local-storage,metrics-server\"'",
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		app := newApp()
