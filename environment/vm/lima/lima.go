@@ -390,32 +390,29 @@ func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Conf
 
 	// cross-platform emulation
 	a.Add(func() error {
-		if !l.limaConf.Rosetta.Enabled {
-			// use binfmt when rosetta is disabled and emulation is disabled i.e. host arch
-			if conf.Binfmt != nil && *conf.Binfmt {
-				if arch := environment.HostArch(); arch == environment.Arch(conf.Arch).Value() {
-					if err := core.SetupBinfmt(l.host, l, environment.Arch(conf.Arch)); err != nil {
-						logrus.Warn(fmt.Errorf("unable to enable qemu %s emulation: %w", arch, err))
-					}
+		// use binfmt when emulation is disabled i.e. host arch
+		if conf.Binfmt != nil && *conf.Binfmt {
+			if arch := environment.HostArch(); arch == environment.Arch(conf.Arch).Value() {
+				if err := core.SetupBinfmt(l.host, l, environment.Arch(conf.Arch)); err != nil {
+					logrus.Warn(fmt.Errorf("unable to enable qemu %s emulation: %w", arch, err))
 				}
 			}
-
-			// rosetta is disabled
-			return nil
 		}
 
-		// enable rosetta
-		err := l.Run("sudo", "sh", "-c", `stat /proc/sys/fs/binfmt_misc/rosetta || echo ':rosetta:M::\x7fELF\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x3e\x00:\xff\xff\xff\xff\xff\xfe\xfe\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff:/mnt/lima-rosetta/rosetta:OCF' > /proc/sys/fs/binfmt_misc/register`)
-		if err != nil {
-			logrus.Warn(fmt.Errorf("unable to enable rosetta: %w", err))
-			return nil
-		}
-
-		// disable qemu
-		if err := l.RunQuiet("stat", "/proc/sys/fs/binfmt_misc/qemu-x86_64"); err == nil {
-			err = l.Run("sudo", "sh", "-c", `echo 0 > /proc/sys/fs/binfmt_misc/qemu-x86_64`)
+		if l.limaConf.Rosetta.Enabled {
+			// enable rosetta
+			err := l.Run("sudo", "sh", "-c", `stat /proc/sys/fs/binfmt_misc/rosetta || echo ':rosetta:M::\x7fELF\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x3e\x00:\xff\xff\xff\xff\xff\xfe\xfe\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff:/mnt/lima-rosetta/rosetta:OCF' > /proc/sys/fs/binfmt_misc/register`)
 			if err != nil {
-				logrus.Warn(fmt.Errorf("unable to disable qemu x86_84 emulation: %w", err))
+				logrus.Warn(fmt.Errorf("unable to enable rosetta: %w", err))
+				return nil
+			}
+
+			// disable qemu
+			if err := l.RunQuiet("stat", "/proc/sys/fs/binfmt_misc/qemu-x86_64"); err == nil {
+				err = l.Run("sudo", "sh", "-c", `echo 0 > /proc/sys/fs/binfmt_misc/qemu-x86_64`)
+				if err != nil {
+					logrus.Warn(fmt.Errorf("unable to disable qemu x86_84 emulation: %w", err))
+				}
 			}
 		}
 
