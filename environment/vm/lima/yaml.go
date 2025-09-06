@@ -392,14 +392,23 @@ type Arch = environment.Arch
 func checkOverlappingMounts(mounts []config.Mount) error {
 	for i := 0; i < len(mounts)-1; i++ {
 		for j := i + 1; j < len(mounts); j++ {
-			a, err := util.CleanPath(mounts[i].Location)
-			if err != nil {
-				return err
+			a := mounts[i].MountPoint
+
+			if a == "" {
+				var err error
+				a, err = util.CleanPath(mounts[i].Location)
+				if err != nil {
+					return err
+				}
 			}
 
-			b, err := util.CleanPath(mounts[j].Location)
-			if err != nil {
-				return err
+			b := mounts[j].MountPoint
+			if b == "" {
+				var err error
+				b, err = util.CleanPath(mounts[j].Location)
+				if err != nil {
+					return err
+				}
 			}
 
 			if strings.HasPrefix(a, b) || strings.HasPrefix(b, a) {
