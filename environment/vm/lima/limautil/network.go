@@ -9,7 +9,7 @@ import (
 const NetInterface = "col0"
 
 // network metric for the route
-const NetMetric = 300
+const NetMetric = 100
 
 // IPAddress returns the ip address for profile.
 // It returns the PTP address if networking is enabled or falls back to 127.0.0.1.
