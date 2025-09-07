@@ -133,12 +133,16 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 
 		reachableIPAddress := true
 		if conf.Network.Address {
+			metric := limautil.NetMetric
+			if conf.Network.PreferredRoute {
+				metric = limautil.NetMetricPreferred
+			}
 			// vmnet is always used for incus runtime or bridged mode
 			if l.VMType == limaconfig.VZ && conf.Runtime != incus.Name && conf.Network.Mode != "bridged" {
 				l.Networks = append(l.Networks, limaconfig.Network{
 					VZNAT:     true,
 					Interface: limautil.NetInterface,
-					Metric:    limautil.NetMetric,
+					Metric:    metric,
 				})
 			} else {
 				reachableIPAddress, _ = ctx.Value(daemon.CtxKey(vmnet.Name)).(bool)
@@ -155,7 +159,7 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 						l.Networks = append(l.Networks, limaconfig.Network{
 							Socket:    socketFile,
 							Interface: limautil.NetInterface,
-							Metric:    limautil.NetMetric,
+							Metric:    metric,
 						})
 
 						return nil
