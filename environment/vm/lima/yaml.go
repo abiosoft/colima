@@ -389,19 +389,25 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 
 type Arch = environment.Arch
 
+func selectPath(m config.Mount) (string, error) {
+	if m.MountPoint != "" {
+		return util.CleanPath(m.MountPoint)
+	}
+
+	return util.CleanPath(m.Location)
+}
+
 func checkOverlappingMounts(mounts []config.Mount) error {
 	for i := 0; i < len(mounts)-1; i++ {
+		a, err := selectPath(mounts[i])
+		if err != nil {
+			return err
+		}
 		for j := i + 1; j < len(mounts); j++ {
-			a, err := util.CleanPath(mounts[i].Location)
+			b, err := selectPath(mounts[j])
 			if err != nil {
 				return err
 			}
-
-			b, err := util.CleanPath(mounts[j].Location)
-			if err != nil {
-				return err
-			}
-
 			if strings.HasPrefix(a, b) || strings.HasPrefix(b, a) {
 				return fmt.Errorf("'%s' overlaps '%s'", a, b)
 			}
