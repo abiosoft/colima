@@ -70,6 +70,11 @@ network:
   # Default: en0
   interface: en0
 
+  # Use the assigned IP address as the preferred route for the VM.
+  # Note: this only has an effect when `address` is set to true.
+  # Default: false
+  preferredRoute: false
+
   # Custom DNS resolvers for the virtual machine.
   #
   # EXAMPLE

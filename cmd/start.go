@@ -191,6 +191,7 @@ func init() {
 		startCmd.Flags().BoolVar(&startCmdArgs.Network.Address, "network-address", false, "assign reachable IP address to the VM")
 		startCmd.Flags().StringVar(&startCmdArgs.Network.Mode, "network-mode", "shared", "network mode (shared, bridged)")
 		startCmd.Flags().StringVar(&startCmdArgs.Network.BridgeInterface, "network-interface", "en0", "host network interface to use for bridged mode")
+		startCmd.Flags().BoolVar(&startCmdArgs.Network.PreferredRoute, "network-preferred-route", false, "use the assigned IP address as the preferred route for the VM (implies --network-address)")
 
 		// vm type
 		if util.MacOS13OrNewer() {
@@ -534,6 +535,9 @@ func prepareConfig(cmd *cobra.Command) {
 		}
 		if !cmd.Flag("network-interface").Changed {
 			startCmdArgs.Network.BridgeInterface = current.Network.BridgeInterface
+		}
+		if !cmd.Flag("network-preferred-route").Changed {
+			startCmdArgs.Network.PreferredRoute = current.Network.PreferredRoute
 		}
 		if util.MacOS13OrNewer() {
 			if !cmd.Flag("vm-type").Changed {

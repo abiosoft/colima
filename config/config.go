@@ -84,6 +84,7 @@ type Network struct {
 	HostAddresses   bool              `yaml:"hostAddresses"`
 	Mode            string            `yaml:"mode"` // shared, bridged
 	BridgeInterface string            `yaml:"interface"`
+	PreferredRoute  bool              `yaml:"preferredRoute"`
 }
 
 // Mount is volume mount
