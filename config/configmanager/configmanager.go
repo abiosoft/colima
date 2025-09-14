@@ -3,14 +3,11 @@ package configmanager
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
-	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/yamlutil"
-	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )
 
@@ -31,13 +28,6 @@ func SaveFromFile(file string) error {
 // SaveToFile saves configuration to file.
 func SaveToFile(c config.Config, file string) error {
 	return yamlutil.Save(c, file)
-}
-
-// oldConfigFile returns the path to config file of versions <0.4.0.
-// TODO: remove later, only for backward compatibility
-func oldConfigFile() string {
-	_, configFileName := filepath.Split(config.CurrentProfile().File())
-	return filepath.Join(os.Getenv("HOME"), "."+config.CurrentProfile().ID, configFileName)
 }
 
 // LoadFrom loads config from file.
@@ -96,22 +86,10 @@ func ValidateConfig(c config.Config) error {
 // Load loads the config.
 // Error is only returned if the config file exists but could not be loaded.
 // No error is returned if the config file does not exist.
-func Load() (config.Config, error) {
+func Load() (c config.Config, err error) {
 	f := config.CurrentProfile().File()
 	if _, err := os.Stat(f); err != nil {
-		oldF := oldConfigFile()
-
-		// config file does not exist, check older version for backward compatibility
-		if _, err := os.Stat(oldF); err != nil {
-			return config.Config{}, nil
-		}
-
-		// older version exists
-		logrus.Infof("settings from older %s version detected and copied", config.AppName)
-		if err := cli.Command("cp", oldF, f).Run(); err != nil {
-			logrus.Warn(fmt.Errorf("error copying config: %w, proceeding with defaults", err))
-			return config.Config{}, nil
-		}
+		return c, nil
 	}
 
 	return LoadFrom(f)

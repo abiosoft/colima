@@ -149,3 +149,13 @@ func (d *dockerRuntime) Update(ctx context.Context) (bool, error) {
 
 	return debutil.UpdateRuntime(ctx, d.guest, d, packages...)
 }
+
+// DataDirs returns the list of directories that are used for storing container runtime data.
+func DataDirs() []environment.DataDir {
+	return []environment.DataDir{
+		{Name: "docker", Path: "/var/lib/docker"},
+		{Name: "containerd", Path: "/var/lib/containerd"},
+		{Name: "rancher", Path: "/var/lib/rancher"},
+		{Name: "cni", Path: "/var/lib/cni"},
+	}
+}

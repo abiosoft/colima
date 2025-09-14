@@ -16,12 +16,11 @@ import (
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/vm/lima/limaconfig"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
+	"github.com/abiosoft/colima/store"
 	"github.com/abiosoft/colima/util"
-	"github.com/abiosoft/colima/util/downloader"
 	"github.com/abiosoft/colima/util/osutil"
 	"github.com/abiosoft/colima/util/yamlutil"
 	"github.com/sirupsen/logrus"
-	yaml "gopkg.in/yaml.v3"
 )
 
 // New creates a new virtual machine.
@@ -101,6 +100,10 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 	a.Add(l.assertQemu)
 
 	a.Add(func() error {
+		return l.createRuntimeDisk(conf)
+	})
+
+	a.Add(func() error {
 		return l.downloadDiskImage(ctx, conf)
 	})
 
@@ -150,6 +153,11 @@ func (l *limaVM) resume(ctx context.Context, conf config.Config) error {
 	})
 
 	a.Add(l.assertQemu)
+
+	a.Add(func() error {
+		l.useRuntimeDisk(conf)
+		return nil
+	})
 
 	a.Add(l.setDiskImage)
 
@@ -274,108 +282,6 @@ func (l limaVM) Arch() environment.Arch {
 	return environment.Arch(a)
 }
 
-func (l *limaVM) downloadDiskImage(ctx context.Context, conf config.Config) error {
-	log := l.Logger(ctx)
-
-	// use a user specified disk image
-	if conf.DiskImage != "" {
-		if _, err := os.Stat(conf.DiskImage); err != nil {
-			return fmt.Errorf("invalid disk image: %w", err)
-		}
-
-		image, err := limautil.Image(l.limaConf.Arch, conf.Runtime)
-		if err != nil {
-			return fmt.Errorf("error getting disk image details: %w", err)
-		}
-
-		sha := downloader.SHA{Size: 512, Digest: image.Digest}
-		if err := sha.ValidateFile(l.host, conf.DiskImage); err != nil {
-			return fmt.Errorf("disk image must be downloaded from '%s', hash failure: %w", image.Location, err)
-		}
-
-		image.Location = conf.DiskImage
-		l.limaConf.Images = []limaconfig.File{image}
-		return nil
-	}
-
-	// use a previously cached image
-	if image, ok := limautil.ImageCached(l.limaConf.Arch, conf.Runtime); ok {
-		l.limaConf.Images = []limaconfig.File{image}
-		return nil
-	}
-
-	// download image
-	log.Infoln("downloading disk image ...")
-	image, err := limautil.DownloadImage(l.limaConf.Arch, conf.Runtime)
-	if err != nil {
-		return fmt.Errorf("error getting qcow image: %w", err)
-	}
-
-	l.limaConf.Images = []limaconfig.File{image}
-	return nil
-}
-
-func (l *limaVM) setDiskImage() error {
-	var c limaconfig.Config
-	b, err := os.ReadFile(config.CurrentProfile().LimaFile())
-	if err != nil {
-		return err
-	}
-	if err := yaml.Unmarshal(b, &c); err != nil {
-		return err
-	}
-
-	l.limaConf.Images = c.Images
-	return nil
-}
-
-func (l *limaVM) syncDiskSize(ctx context.Context, conf config.Config) config.Config {
-	log := l.Logger(ctx)
-	instance, err := configmanager.LoadInstance()
-	if err != nil {
-		// instance config missing, ignore
-		return conf
-	}
-
-	resized := func() bool {
-		if instance.Disk == conf.Disk {
-			// nothing to do
-			return false
-		}
-
-		size := conf.Disk - instance.Disk
-		if size < 0 {
-			log.Warnln("disk size cannot be reduced, ignoring...")
-			return false
-		}
-
-		if err := util.AssertQemuImg(); err != nil {
-			log.Warnln(fmt.Errorf("unable to resize disk: %w", err))
-			return false
-		}
-
-		sizeStr := fmt.Sprintf("%dG", conf.Disk)
-		args := []string{"qemu-img", "resize"}
-		disk := limautil.ColimaDiffDisk(config.CurrentProfile().ID)
-		args = append(args, disk, sizeStr)
-
-		// qemu-img resize /path/to/diffdisk +10G
-		if err := l.host.RunQuiet(args...); err != nil {
-			log.Warnln(fmt.Errorf("unable to resize disk: %w", err))
-			return false
-		}
-
-		log.Printf("resizing disk to %dGiB...", conf.Disk)
-		return true
-	}()
-
-	if !resized {
-		conf.Disk = instance.Disk
-	}
-
-	return conf
-}
-
 func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Config) {
 	// setup dns
 	a.Add(func() error {
@@ -434,6 +340,20 @@ func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Conf
 		}
 		return nil
 	})
+
+	// save store settings
+	a.Add(func() error {
+		err := store.Set(func(s *store.Store) {
+			// startup is successful, if additional disk is present, then it must've been formatted correctly.
+			s.DiskFormatted = len(l.limaConf.AdditionalDisks) > 0
+		})
+		// not fatal, but should be logged
+		if err != nil {
+			logrus.Warnln(fmt.Errorf("error persisting Colima store settings: %w", err))
+		}
+		return nil
+	})
+
 }
 
 func (l *limaVM) assertQemu() error {

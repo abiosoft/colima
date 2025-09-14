@@ -137,6 +137,16 @@ var (
 			return filepath.Join(dir, "_lima"), nil
 		},
 	}
+
+	storeDir = requiredDir{
+		dir: func() (string, error) {
+			dir, err := configBaseDir.dir()
+			if err != nil {
+				return "", err
+			}
+			return filepath.Join(dir, "_store"), nil
+		},
+	}
 )
 
 // CacheDir returns the cache directory.

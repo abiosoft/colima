@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/config/configmanager"
 	"github.com/abiosoft/colima/environment"
@@ -20,6 +21,7 @@ import (
 	"github.com/abiosoft/colima/environment/host"
 	"github.com/abiosoft/colima/environment/vm/lima"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
+	"github.com/abiosoft/colima/store"
 	"github.com/abiosoft/colima/util"
 	"github.com/docker/go-units"
 	log "github.com/sirupsen/logrus"
@@ -29,7 +31,7 @@ type App interface {
 	Active() bool
 	Start(config.Config) error
 	Stop(force bool) error
-	Delete() error
+	Delete(data, force bool) error
 	SSH(args ...string) error
 	Status(extended bool, json bool) error
 	Version() error
@@ -196,7 +198,29 @@ func (c colimaApp) Stop(force bool) error {
 	return nil
 }
 
-func (c colimaApp) Delete() error {
+func (c colimaApp) Delete(data, force bool) error {
+	confirmContainerDestruction := func() bool {
+		return cli.Prompt("\033[31m\033[1mthis will delete ALL container data. Are you sure you want to continue")
+	}
+
+	s, _ := store.Load()
+	diskInUse := s.DiskFormatted
+
+	if !force {
+		y := cli.Prompt("are you sure you want to delete " + config.CurrentProfile().DisplayName + " and all settings")
+		if !y {
+			return nil
+		}
+
+		// runtime disk not in use or data deletion is requested,
+		// deletion deletes all data, warn accordingly.
+		if !diskInUse || data {
+			if y := confirmContainerDestruction(); !y {
+				return nil
+			}
+		}
+	}
+
 	ctx := context.Background()
 	log.Println("deleting", config.CurrentProfile().DisplayName)
 
@@ -214,7 +238,6 @@ func (c colimaApp) Delete() error {
 			log.Warnln(fmt.Errorf("error retrieving runtimes: %w", err))
 		}
 		for _, cont := range containers {
-
 			log := log.WithField("context", cont.Name())
 			log.Println("deleting ...")
 
@@ -233,6 +256,14 @@ func (c colimaApp) Delete() error {
 	// delete configs
 	if err := configmanager.Teardown(); err != nil {
 		return fmt.Errorf("error deleting configs: %w", err)
+	}
+
+	// delete runtime disk if disk in use and data deletion is requested
+	if diskInUse && data {
+		log.Println("deleting container data")
+		if err := limautil.DeleteDisk(); err != nil {
+			return fmt.Errorf("error deleting container data: %w", err)
+		}
 	}
 
 	log.Println("done")

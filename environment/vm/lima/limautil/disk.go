@@ -19,6 +19,7 @@ func HasDisk() bool {
 	cmd := Limactl("disk", "list", "--json", name)
 	var buf bytes.Buffer
 	cmd.Stdout = &buf
+	cmd.Stderr = nil
 
 	if err := cmd.Run(); err != nil {
 		return false
@@ -34,10 +35,30 @@ func HasDisk() bool {
 // CreateDisk creates a lima disk with size in GiB.
 func CreateDisk(size int) error {
 	name := config.CurrentProfile().ID
+
+	var buf bytes.Buffer
 	cmd := Limactl("disk", "create", name, "--size", fmt.Sprintf("%dGiB", size))
+	cmd.Stderr = &buf
+	cmd.Stdout = &buf
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("error creating lima disk: %w", err)
+		return fmt.Errorf("error creating lima disk: %w, output: %s", err, buf.String())
+	}
+
+	return nil
+}
+
+// ResizeDisk resizes disk to new size
+func ResizeDisk(size int) error {
+	name := config.CurrentProfile().ID
+
+	var buf bytes.Buffer
+	cmd := Limactl("disk", "resize", name, "--size", fmt.Sprintf("%dGiB", size))
+	cmd.Stderr = &buf
+	cmd.Stdout = &buf
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("error resizing disk: %w, output: %s", err, buf.String())
 	}
 
 	return nil
@@ -46,11 +67,18 @@ func CreateDisk(size int) error {
 // DeleteDisk deletes lima disk for the current instance.
 func DeleteDisk() error {
 	name := config.CurrentProfile().ID
+
+	var buf bytes.Buffer
 	cmd := Limactl("disk", "delete", name)
+	cmd.Stderr = &buf
+	cmd.Stdout = &buf
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("error deleting lima disk: %w", err)
+		return fmt.Errorf("error deleting lima disk: %w, output: %s", err, buf.String())
 	}
 
 	return nil
 }
+
+// MountPoint returns the lima disk mount point for the current instance.
+func MountPoint() string { return fmt.Sprintf("/mnt/lima-%s", config.CurrentProfile().ID) }
