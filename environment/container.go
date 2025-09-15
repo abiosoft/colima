@@ -32,6 +32,12 @@ type Container interface {
 	Dependencies
 }
 
+// DataDir is the container runtime data directory
+type DataDir struct {
+	Name string
+	Path string
+}
+
 // NewContainer creates a new container environment.
 func NewContainer(runtime string, host HostActions, guest GuestActions) (Container, error) {
 	if _, ok := containerRuntimes[runtime]; !ok {

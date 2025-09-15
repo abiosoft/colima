@@ -72,6 +72,10 @@ func (c *incusRuntime) Provision(ctx context.Context) error {
 		return fmt.Errorf("error parsing incus config template: %w", err)
 	}
 
+	if err := c.guest.RunQuiet("sudo", "systemctl", "restart", "incus.socket"); err != nil {
+		return fmt.Errorf("error starting incus socket: %w", err)
+	}
+
 	stdin := bytes.NewReader(buf)
 	if err := c.guest.RunWith(stdin, nil, "sudo", "incus", "admin", "init", "--preseed"); err != nil {
 		return fmt.Errorf("error setting up incus: %w", err)
@@ -290,4 +294,11 @@ func (c *incusRuntime) Update(ctx context.Context) (bool, error) {
 	}
 
 	return debutil.UpdateRuntime(ctx, c.guest, c, packages...)
+}
+
+// DataDirs returns the list of directories that are used for storing container runtime data.
+func DataDirs() []environment.DataDir {
+	return []environment.DataDir{
+		{Name: "incus", Path: "/var/lib/incus"},
+	}
 }

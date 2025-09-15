@@ -84,6 +84,10 @@ func (p *Profile) StateFile() string {
 	return filepath.Join(p.LimaInstanceDir(), configFileName)
 }
 
+func (p *Profile) StoreFile() string {
+	return filepath.Join(storeDir.Dir(), p.ID+".json")
+}
+
 var _ ProfileInfo = (*Profile)(nil)
 
 // ProfileInfo is the information about a profile.
@@ -102,4 +106,7 @@ type ProfileInfo interface {
 
 	// StateFile returns the path to the state file.
 	StateFile() string
+
+	// StoreFile returns the path to the store file.
+	StoreFile() string
 }
