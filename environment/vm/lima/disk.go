@@ -74,7 +74,8 @@ func (l *limaVM) mountRuntimeDisk(conf config.Config) {
 			"{mount_point}", mountPoint,
 			"{name}", dir.Name,
 			"{data_path}", dir.Path,
-		).Replace("mkdir -p {mount_point}/{name} {data_path} && mount --bind {mount_point}/{name} {data_path}")
+			"{runtime}", conf.Runtime,
+		).Replace("systemctl stop {runtime}; mkdir -p {mount_point}/{name} {data_path} && mount --bind {mount_point}/{name} {data_path}")
 
 		l.limaConf.Provision = append(l.limaConf.Provision, limaconfig.Provision{
 			Mode:   "dependency",

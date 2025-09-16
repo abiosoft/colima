@@ -264,6 +264,13 @@ func (c colimaApp) Delete(data, force bool) error {
 		if err := limautil.DeleteDisk(); err != nil {
 			return fmt.Errorf("error deleting container data: %w", err)
 		}
+
+		if err := store.Set(func(s *store.Store) {
+			// reset
+			s.DiskFormatted = false
+		}); err != nil {
+			log.Trace("error updating store: %w", err)
+		}
 	}
 
 	log.Println("done")
