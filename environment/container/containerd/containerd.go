@@ -136,6 +136,7 @@ func DataDirs() []environment.DataDir {
 	return []environment.DataDir{
 		{Name: "containerd", Path: "/var/lib/containerd"},
 		{Name: "buildkit", Path: "/var/lib/buildkit"},
+		{Name: "nerdctl", Path: "/var/lib/nerdctl"},
 		{Name: "rancher", Path: "/var/lib/rancher"},
 		{Name: "cni", Path: "/var/lib/cni"},
 	}
