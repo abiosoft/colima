@@ -349,7 +349,7 @@ func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Conf
 		})
 		// not fatal, but should be logged
 		if err != nil {
-			logrus.Warnln(fmt.Errorf("error persisting Colima store settings: %w", err))
+			logrus.Warnln(fmt.Errorf("error persisting store settings: %w", err))
 		}
 		return nil
 	})
