@@ -13,6 +13,8 @@ import (
 type Store struct {
 	// if the runtime disk has been formatted.
 	DiskFormatted bool `json:"disk_formatted"`
+	// the container runtime the disk is provisioned for
+	DiskRuntime string `json:"disk_runtime"`
 }
 
 func storeFile() string { return config.CurrentProfile().StoreFile() }

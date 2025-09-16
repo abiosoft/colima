@@ -268,6 +268,7 @@ func (c colimaApp) Delete(data, force bool) error {
 		if err := store.Set(func(s *store.Store) {
 			// reset
 			s.DiskFormatted = false
+			s.DiskRuntime = ""
 		}); err != nil {
 			log.Trace("error updating store: %w", err)
 		}

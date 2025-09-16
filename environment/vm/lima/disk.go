@@ -30,6 +30,11 @@ func (l *limaVM) createRuntimeDisk(conf config.Config) error {
 		format = true // new disk should be formated
 	}
 
+	// when disk is formatted for the wrong runtime, prevent use
+	if s.DiskFormatted && s.DiskRuntime != "" && s.DiskRuntime != conf.Runtime {
+		return fmt.Errorf("runtime disk provisioned for %s runtime. Delete container data with 'colima delete --data' before using another runtime", s.DiskRuntime)
+	}
+
 	l.limaConf.AdditionalDisks = append(l.limaConf.AdditionalDisks, limaconfig.Disk{
 		Name:   config.CurrentProfile().ID,
 		Format: format,
