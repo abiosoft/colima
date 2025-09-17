@@ -73,6 +73,25 @@ Or use a config file
 colima start --edit
 ```
 
+## Using Templates
+When you run the `colima template` command, Colima opens the default configuration in a temporary file using your editor (VS Code by default, if installed).
+
+For example, you might see something like:
+```sh
+/var/folders/hm/xmq4vxs13dl2hx2jyct65r080000gn/T/colima-2758922589.yaml
+
+```
+You can edit this temporary file as needed. Once you save and close the file in the editor, Colima automatically overwrites the default template config located at:
+```sh
+~/.colima/_templates/default.yaml
+
+```
+To see more options for working with templates, run:
+```
+colima template --help
+
+```
+
 ## Runtimes
 
 On initial startup, Colima initiates with a user specified runtime that defaults to Docker.
