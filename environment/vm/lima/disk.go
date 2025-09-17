@@ -20,6 +20,12 @@ import (
 )
 
 func (l *limaVM) createRuntimeDisk(conf config.Config) error {
+	// disable for incus for now
+	// TODO remove
+	if conf.Runtime == incus.Name {
+		return nil
+	}
+
 	s, _ := store.Load()
 	format := !s.DiskFormatted // only format if not previously formatted
 
