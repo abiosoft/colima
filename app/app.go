@@ -265,12 +265,8 @@ func (c colimaApp) Delete(data, force bool) error {
 			return fmt.Errorf("error deleting container data: %w", err)
 		}
 
-		if err := store.Set(func(s *store.Store) {
-			// reset
-			s.DiskFormatted = false
-			s.DiskRuntime = ""
-		}); err != nil {
-			log.Trace("error updating store: %w", err)
+		if err := store.Reset(); err != nil {
+			log.Trace("error resetting store: %w", err)
 		}
 	}
 
@@ -502,6 +498,17 @@ func (c colimaApp) currentRuntime(ctx context.Context) (string, error) {
 }
 
 func (c colimaApp) setRuntime(runtime string) error {
+	err := store.Set(func(s *store.Store) {
+		// update runtime if runtime disk is in use
+		if s.DiskFormatted {
+			s.DiskRuntime = runtime
+		}
+	})
+
+	if err != nil {
+		log.Traceln(fmt.Errorf("error persisting store: %w", err))
+	}
+
 	return c.guest.Set(environment.ContainerRuntimeKey, runtime)
 }
 

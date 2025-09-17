@@ -60,6 +60,16 @@ func (c *incusRuntime) Provision(ctx context.Context) error {
 		return nil
 	}
 
+	// ensure that the systemd socket file is created
+	if err := c.guest.RunQuiet("sudo", "systemctl", "start", "incus.socket", "incus.service"); err != nil {
+		return fmt.Errorf("error starting incus socket: %w", err)
+	}
+
+	if limautil.DiskProvisioned(Name) {
+		// disk already provisioned
+		return nil
+	}
+
 	var value struct {
 		Disk      int
 		Interface string
@@ -70,10 +80,6 @@ func (c *incusRuntime) Provision(ctx context.Context) error {
 	buf, err := util.ParseTemplate(configYaml, value)
 	if err != nil {
 		return fmt.Errorf("error parsing incus config template: %w", err)
-	}
-
-	if err := c.guest.RunQuiet("sudo", "systemctl", "restart", "incus.socket"); err != nil {
-		return fmt.Errorf("error starting incus socket: %w", err)
 	}
 
 	stdin := bytes.NewReader(buf)
@@ -300,5 +306,12 @@ func (c *incusRuntime) Update(ctx context.Context) (bool, error) {
 func DataDirs() []environment.DataDir {
 	return []environment.DataDir{
 		{Name: "incus", Path: "/var/lib/incus"},
+	}
+}
+
+func SystemdServices() []string {
+	return []string{
+		"incus.service",
+		"incus.socket",
 	}
 }

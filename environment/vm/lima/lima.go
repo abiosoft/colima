@@ -351,7 +351,6 @@ func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Conf
 		// if additional disk is present, then it must've been formatted correctly.
 		if err := store.Set(func(s *store.Store) {
 			s.DiskFormatted = true
-			s.DiskRuntime = conf.Runtime
 		}); err != nil {
 			// not fatal, but should be logged
 			logrus.Warnln(fmt.Errorf("error persisting store settings: %w", err))

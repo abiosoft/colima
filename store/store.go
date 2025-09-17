@@ -62,3 +62,6 @@ func Set(f func(*Store)) error {
 
 	return nil
 }
+
+// Reset resets the values in the store to the defaults.
+func Reset() error { return Set(func(s *Store) { *s = Store{} }) }

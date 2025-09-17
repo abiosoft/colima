@@ -64,12 +64,14 @@ func (l *limaVM) useRuntimeDisk(conf config.Config) {
 
 func (l *limaVM) mountRuntimeDisk(conf config.Config) {
 	var dirs []environment.DataDir
+	var service = conf.Runtime
 	switch conf.Runtime {
 	case docker.Name:
 		dirs = docker.DataDirs()
 	case containerd.Name:
 		dirs = containerd.DataDirs()
 	case incus.Name:
+		service = strings.Join(incus.SystemdServices(), " ")
 		dirs = incus.DataDirs()
 	}
 
@@ -79,8 +81,8 @@ func (l *limaVM) mountRuntimeDisk(conf config.Config) {
 			"{mount_point}", mountPoint,
 			"{name}", dir.Name,
 			"{data_path}", dir.Path,
-			"{runtime}", conf.Runtime,
-		).Replace("systemctl stop {runtime}; mkdir -p {mount_point}/{name} {data_path} && mount --bind {mount_point}/{name} {data_path}")
+			"{systemd_service}", service,
+		).Replace("systemctl stop {systemd_service}; mkdir -p {mount_point}/{name} {data_path} && mount --bind {mount_point}/{name} {data_path}")
 
 		l.limaConf.Provision = append(l.limaConf.Provision, limaconfig.Provision{
 			Mode:   "dependency",
