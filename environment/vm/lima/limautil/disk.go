@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/store"
 )
 
 // HasDisk checks if a lima disk exists for the current instance.
@@ -82,3 +83,13 @@ func DeleteDisk() error {
 
 // MountPoint returns the lima disk mount point for the current instance.
 func MountPoint() string { return fmt.Sprintf("/mnt/lima-%s", config.CurrentProfile().ID) }
+
+// DiskPrivisioned returns if the disk exists and has been provisioned for the specified runtime.
+func DiskProvisioned(runtime string) bool {
+	if !HasDisk() {
+		return false
+	}
+
+	s, _ := store.Load()
+	return s.DiskFormatted && s.DiskRuntime == runtime
+}
