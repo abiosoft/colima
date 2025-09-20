@@ -80,3 +80,7 @@ integration: build
 .PHONY: images-sha
 images-sha:
 	bash embedded/images/images_sha.sh
+
+.PHONY: generate-cli-docs
+generate-cli-docs:
+	$(OUTPUT_DIR)/$(OUTPUT_BIN) generate-doc --type docsy website/_output/docsy
