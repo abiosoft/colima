@@ -1,0 +1,48 @@
+{{ $gh_repo := (.Site.Params.github_repo) -}}
+{{ $gh_docs := (printf "%s/tree/%s/docs/" $gh_repo $.Site.Params.version) -}}
+{{ $gh_templates := (printf "%s/tree/%s/templates/" $gh_repo $.Site.Params.version) -}}
+
+{{/* Store ordinal, to be retrieved by parent element */}}
+{{ if ge hugo.Version "0.93.0" }}
+
+{{ .Page.Store.Add "Ordinal" 1 }}
+{{ end }}
+
+{{/* Handle the "file" named parameter or a single unnamed parameter as the file
+path */}}
+{{ if .IsNamedParams }}
+{{ $.Scratch.Set "fparameter" ( .Get "file" ) }}
+{{ else }}
+{{ $.Scratch.Set "fparameter" ( .Get 0 ) }}
+{{ end }}
+
+
+{{/* If the first character is "/", the path is absolute from the site's
+`baseURL`. Otherwise, construct an absolute path using the current directory */}}
+
+{{ if eq (.Scratch.Get "fparameter" | printf "%.1s") "/" }}
+{{ $.Scratch.Set "filepath" ($.Scratch.Get "fparameter") }}
+{{ else }}
+{{ $.Scratch.Set "filepath" "/" }}
+{{ $.Scratch.Add "filepath" $.Page.File.Dir }}
+{{ $.Scratch.Add "filepath" ($.Scratch.Get "fparameter") }}
+{{ end }}
+
+
+{{/* If the file exists, read it and highlight it if it's code.
+Throw a compile error or print an error on the page if the file is not found */}}
+
+{{ if fileExists ($.Scratch.Get "filepath") }}
+{{ if eq (.Get "code") "true" }}
+{{- highlight ($.Scratch.Get "filepath" | readFile | htmlUnescape |
+safeHTML ) (.Get "lang") "" -}}
+{{ else }}
+{{ $file_content := ($.Scratch.Get "filepath" | os.ReadFile) }}
+{{ $file_content = replace $file_content "../docs/" $gh_docs }}
+{{- replace $file_content "./" $gh_templates -}}
+{{ end }}
+{{ else if eq (.Get "draft") "true" }}
+
+<p style="color: #D74848"><b><i>The file <code>{{ $.Scratch.Get "filepath" }}</code> was not found.</i></b></p>
+
+{{ else }}{{- errorf "Shortcode %q: file %q not found at %s" .Name ($.Scratch.Get "filepath") .Position -}}{{ end }}

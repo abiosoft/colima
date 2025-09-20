@@ -1,0 +1,54 @@
+/*
+
+Add styles or override variables from the theme here.
+
+*/
+
+$display1-weight: 500 !default;
+$display2-weight: 100 !default;
+
+$primary: rgb(255, 255, 255) !default;
+$secondary: rgb(66.274512%, 81.176472%, 21.960784%) !default;
+$dark: black !default;
+$td-sidebar-tree-root-color: #222 !default;
+
+.nav-shadow {
+  box-shadow: 0 2px 2px -2px rgba(0, 0, 0, .2);
+}
+
+.nav-link {
+  text-shadow: none !important;
+}
+
+.cncf-logo {
+  width: 20rem;
+  max-width: 80%;
+}
+
+.join-community {
+  color: $dark !important;
+  background: $secondary !important;
+
+  .td-arrow-down:before {
+    border-color: $secondary transparent transparent transparent !important;
+  }
+}
+
+.td-search__input {
+  color: var(--bs-body-color) !important;
+  border: 1px solid var(--bs-gray-400) !important;
+}
+
+.td-search__input:focus {
+  color: inherit !important;
+  border-color: var(--bs-body-bg) !important;
+  box-shadow: 0 0 0 2px var(--bs-primary) !important;
+}
+
+.td-search__input::placeholder {
+  color: var(--bs-gray) !important;
+}
+
+.td-search__icon {
+  color: $secondary !important;
+}

@@ -1,0 +1,15 @@
+{{ $usedBy := site.Data.helpfullinks -}}
+
+{{ range $usedBy -}}
+  <div class="col-lg-4 mb-5 mb-lg-0 text-center">
+    <a class="text-primary" href="{{ .link }}">
+      <div class="mb-4 h1">
+        <i class="{{ .icon }}"></i>
+      </div>
+      <h4 class="h3">{{ .header }}</h4>
+    </a>
+    <a class="mr-3 mb-4 text-secondary" href="{{ .link }}">
+      {{ .label }} <i class="fas fa-arrow-alt-circle-right ml-2"></i>
+    </a>
+  </div>
+{{- end }}

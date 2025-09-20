@@ -1,0 +1,12 @@
+- header: Install Colima
+  icon: fa-solid fa-code
+  link: /docs/installation
+  label: Get Colima Here
+- header: Try Colima
+  icon: fa-solid fa-chalkboard
+  link: /docs/usage
+  label: Get started with Colima
+- header: Contributions welcome
+  icon: fa-brands fa-github
+  link: /docs/community
+  label: Join the Colima community

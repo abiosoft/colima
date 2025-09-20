@@ -1,0 +1,53 @@
+{{ $links := .Site.Params.links -}}
+<footer class="td-footer row d-print-none">
+  <div class="container-fluid">
+    <div class="row mx-md-2">
+      <div class="col-6 col-sm-4 text-xs-center order-sm-2">
+        {{ with $links }}
+        {{ with index . "user" }}
+        {{ end }}
+        {{ end }}
+      </div>
+      <div class="col-6 col-sm-4 text-end text-xs-center order-sm-3">
+        {{ with $links }}
+        {{ with index . "developer" }}
+        {{ template "footer-links-block"  . }}
+        {{ end }}
+        {{ end }}
+      </div>
+      <div class="td-footer__copyright-etc col-12 col-sm-4 text-center py-2 order-sm-2">
+        {{ with .Site.Params.copyright -}}
+        <span>&copy; {{ now.Year }} {{ . }} {{ T "footer_all_rights_reserved" }}</span>
+        {{- end }}
+        {{ with .Site.Params.privacy_policy -}}
+        <span class="ms-1"><a href="{{ . }}" target="_blank" rel="noopener">{{ T "footer_privacy_policy" }}</a></span>
+        {{- end }}
+        {{ if not .Site.Params.ui.footer_about_disable -}}
+        {{ with .Site.GetPage "about" -}}
+        <p class="td-footer__about mt-2"><a href="{{ .RelPermalink }}">{{ .Title }}</a></p>
+        {{- end -}}
+        {{ end }}
+      </div>
+    </div>
+    <div class="row text-center text-white small">
+      <div id="cncf-footer" class="col-12 text-center py-2 order-sm-2">
+        <a class="text-secondary" href="https://www.linuxfoundation.org/terms" target="_blank" rel="noopener">Terms</a> |
+        <a class="text-secondary" href="https://www.linuxfoundation.org/privacy" target="_blank" rel="noopener">Privacy</a> |
+        <a class="text-secondary" href="https://www.linuxfoundation.org/trademark-usage" target="_blank" rel="noopener">Trademarks</a> |
+        <a class="text-secondary" href="https://github.com/abiosoft/colima/blob/main/LICENSE" target="_blank" rel="noopener">License</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+{{- define "footer-links-block" }}
+<ul class="td-footer__links-list">
+  {{ range . }}
+  <li class="td-footer__links-item" data-bs-toggle="tooltip" title="{{ .name }}" aria-label="{{ .name }}">
+    <a target="_blank" rel="noopener" href="{{ .url }}" aria-label="{{ .name }}">
+      <i class="{{ .icon }}"></i>
+    </a>
+  </li>
+  {{ end }}
+</ul>
+{{ end -}}

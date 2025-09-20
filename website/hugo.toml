@@ -1,0 +1,214 @@
+baseURL = "/"
+title = "Colima"
+
+# Language settings
+contentDir = "content/en"
+defaultContentLanguage = "en"
+defaultContentLanguageInSubdir = false
+# Useful when translating.
+enableMissingTranslationPlaceholders = true
+
+enableRobotsTXT = true
+
+# Will give values to .Lastmod etc.
+enableGitInfo = true
+
+# Comment out to enable taxonomies in Docsy
+# disableKinds = ["taxonomy", "taxonomyTerm"]
+
+# You can add your own taxonomies
+[taxonomies]
+tag = "tags"
+category = "categories"
+
+[params.taxonomy]
+# set taxonomyCloud = [] to hide taxonomy clouds
+taxonomyCloud = ["tags", "categories"]
+
+# If used, must have same length as taxonomyCloud
+taxonomyCloudTitle = ["Tag Cloud", "Categories"]
+
+# set taxonomyPageHeader = [] to hide taxonomies on the page headers
+taxonomyPageHeader = ["tags", "categories"]
+
+
+# Highlighting config
+pygmentsCodeFences = true
+pygmentsUseClasses = false
+# Use the new Chroma Go highlighter in Hugo.
+pygmentsUseClassic = false
+#pygmentsOptions = "linenos=table"
+# See https://help.farbox.com/pygments.html
+pygmentsStyle = "tango"
+
+# Configure how URLs look like per section.
+[permalinks]
+blog = "/:section/:year/:month/:day/:slug/"
+
+# Image processing configuration.
+[imaging]
+resampleFilter = "CatmullRom"
+quality = 75
+anchor = "smart"
+
+# Language configuration
+
+[languages]
+[languages.en]
+languageName ="English"
+# Weight used for sorting.
+weight = 1
+[languages.en.params]
+title = "Colima"
+
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.parser.attribute]
+      block = true
+    [markup.goldmark.renderer]
+      unsafe = true
+  [markup.highlight]
+    # See a complete list of available styles at https://xyproto.github.io/splash/docs/all.html
+    style = "tango"
+    # Uncomment if you want your chosen highlight style used for code blocks without a specified language
+    # guessSyntax = "true"
+
+# Everything below this are Site Params
+
+# Comment out if you don't want the "print entire section" link enabled.
+[outputs]
+section = ["HTML", "print", "RSS"]
+
+[params]
+copyright = "Colima Authors"
+
+# First one is picked as the Twitter card image if not set on page.
+# images = ["images/project-illustration.png"]
+
+# Menu title if your navbar has a versions selector to access old versions of your site.
+# This menu appears only if you have at least one [params.versions] set.
+version_menu = "Releases"
+
+# Repository configuration (URLs for in-page links to opening issues and suggesting changes)
+github_repo = "https://github.com/abiosoft/colima"
+
+# An optional link to a related project repo. For example, the sibling repository where your product code lives.
+github_project_repo = "https://github.com/abiosoft/colima"
+
+# Flag used in the "version-banner" partial to decide whether to display a
+# banner on every page indicating that this is an archived version of the docs.
+# Set this flag to "true" if you want to display the banner.
+archived_version = false
+
+# The version number for the version of the docs represented in this doc set.
+# Used in the "version-banner" partial to display a version number for the
+# current doc set.
+version = "master"
+
+# A link to latest version of the docs. Used in the "version-banner" partial to
+# point people to the main doc site.
+#url_latest_version = "https://lima-vm.io"
+
+# Specify a value here if your content directory is not in your repo's root directory
+github_subdir = "website"
+
+# Uncomment this if your GitHub repo does not have "main" as the default branch,
+# or specify a new value if you want to reference another branch in your GitHub links
+github_branch= "master"
+
+# Enable Lunr.js offline search
+offlineSearch = true
+
+# Enable syntax highlighting and copy buttons on code blocks with Prism
+prism_syntax_highlighting = false
+
+# User interface configuration
+[params.ui]
+#  Set to true to disable breadcrumb navigation.
+breadcrumb_disable = false
+# Set to true to disable the About link in the site footer
+footer_about_disable = false
+# Set to false if you don't want to display a logo (/assets/icons/colima.svg) in the top navbar
+navbar_logo = true
+# Set to true if you don't want the top navbar to be translucent when over a `block/cover`, like on the homepage.
+navbar_translucent_over_cover_disable = false
+# Enable to show the side bar menu in its compact state.
+sidebar_menu_compact = false
+# Set to true to hide the sidebar search box (the top nav search box will still be displayed if search is enabled)
+sidebar_search_disable = true
+sidebar_menu_foldable = true
+ul_show = 1
+
+# Adds a H2 section titled "Feedback" to the bottom of each doc. The responses are sent to Google Analytics as events.
+# This feature depends on [services.googleAnalytics] and will be disabled if "services.googleAnalytics.id" is not set.
+# If you want this feature, but occasionally need to remove the "Feedback" section from a single page,
+# add "hide_feedback: true" to the page's front matter.
+[params.ui.feedback]
+enable = false
+
+[params.ui.readingtime]
+enable = false
+
+[params.links]
+[[params.links.developer]]
+  name = "GitHub"
+  url = "https://github.com/abiosoft/colima"
+  icon = "fab fa-github"
+  desc = "Development takes place here!"
+[[params.links.developer]]
+  name = "Slack"
+  url = "https://slack.cncf.io/"
+  icon = "fab fa-slack"
+  desc = "Chat with other project developers"
+[[params.links.user]]
+  name = "Discussion"
+  url = "https://github.com/abiosoft/colima/discussions"
+  icon = "fab fa-github"
+  desc = "Discussion and help from your fellow users"
+[[params.links.user]]
+  name = "Slack"
+  url = "https://slack.cncf.io/"
+  icon = "fab fa-slack"
+  desc = "Chat with other project users"
+
+[params.mermaid]
+  enable = true
+
+[[menus.main]]
+  name = "GitHub"
+  url = "https://github.com/abiosoft/colima"
+  pre = '<i class="fab fa-github"></i>'
+[[menus.main]]
+  name = "Community"
+  url = "/docs/community"
+[[menus.main]]
+  name = "Releases"
+  url = "https://github.com/abiosoft/colima/releases"
+
+[module]
+  # uncomment line below for temporary local development of module
+  # replacements = "github.com/google/docsy -> ../../docsy"
+  [module.hugoVersion]
+    extended = true
+    min = "0.110.0"
+  [[module.imports]]
+    path = "github.com/google/docsy"
+    disable = false
+  [[module.imports]]
+    path = "github.com/google/docsy/dependencies"
+    disable = false
+  # Import command reference from website _output folder
+  [[module.imports]]
+    path="../_output"
+  [[module.imports.mounts]]
+    source="docsy"
+    target="content/docs/reference"
+    language="en"
+  # Import templates README.md from templates folder
+  [[module.imports]]
+    path="../.."
+  [[module.imports.mounts]]
+    source="templates"
+    target="static/templates"
+    language="en"
+    includeFiles = "README.md"

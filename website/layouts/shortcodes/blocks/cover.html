@@ -1,0 +1,26 @@
+{{ $col_id := .Get "color" | default "dark" }}
+{{/* Height can be one of: auto, min, med, max, full. */}}
+{{ $height := .Get "height" | default "max"  }}
+<section
+  class="row td-cover-block td-cover-block--height-{{ $height }} js-td-cover td-overlay td-overlay--light -bg-{{ $col_id }}">
+  <div class="container td-overlay__inner">
+    <div class="row">
+      <div class="col-lg-6">
+        <div class="d-flex h-100 flex-column justify-content-center align-items-center">
+          <h1 class="display-1 mt-0 pb-2">
+            <img alt="Colima" width="150" src="images/logo.svg" />
+          </h1>
+          <p class="display-2 mb-0">Container Runtimes</p>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <img src="/images/demo.gif" alt="demo" class="img-fluid" />
+      </div>
+      <div class="col-12 pt-3">
+        <div class="pt-3 lead text-center">
+          {{ .Inner }}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
