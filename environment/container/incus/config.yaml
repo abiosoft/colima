@@ -9,7 +9,7 @@ networks:
     project: default
 storage_pools:
   - config:
-      size: {{.Disk}}GiB
+      source: {{.Disk}}
     description: ""
     name: default
     driver: zfs
