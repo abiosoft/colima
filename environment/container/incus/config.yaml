@@ -7,12 +7,14 @@ networks:
     name: {{.Interface}}
     type: ""
     project: default
+{{ if .SetStorage }}
 storage_pools:
   - config:
       source: {{.Disk}}
     description: ""
     name: default
     driver: zfs
+{{ end }}
 profiles:
   - config: {}
     description: ""
