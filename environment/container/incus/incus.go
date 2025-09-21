@@ -141,8 +141,17 @@ func (c *incusRuntime) Start(ctx context.Context) error {
 
 	a := c.Init(ctx)
 
+	if !c.poolImported() {
+		// pool not yet imported
+		// stop incus and import pool
+		a.Add(func() error {
+			return c.guest.RunQuiet("sudo", "systemctl", "stop", "incus.service")
+		})
+		a.Add(c.importExistingPool)
+	}
+
 	a.Add(func() error {
-		return c.guest.RunQuiet("sudo", "service", "incus", "start")
+		return c.guest.RunQuiet("sudo", "systemctl", "start", "incus.service")
 	})
 
 	a.Add(func() error {
@@ -353,6 +362,13 @@ func (c *incusRuntime) hasExistingPool() bool {
 	script := strings.NewReplacer(
 		"{pool_name}", poolName,
 	).Replace("sudo zpool import | grep -A 2 'pool: {pool_name}' | grep 'state: ONLINE'")
+	return c.guest.RunQuiet("sh", "-c", script) == nil
+}
+
+func (c *incusRuntime) poolImported() bool {
+	script := strings.NewReplacer(
+		"{pool_name}", poolName,
+	).Replace("sudo zpool list -H -o name | grep '^{pool_name}$'")
 	return c.guest.RunQuiet("sh", "-c", script) == nil
 }
 
