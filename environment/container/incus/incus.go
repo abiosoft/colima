@@ -302,10 +302,14 @@ func (c *incusRuntime) Update(ctx context.Context) (bool, error) {
 	return debutil.UpdateRuntime(ctx, c.guest, c, packages...)
 }
 
-// DataDirs returns the list of directories that are used for storing container runtime data.
-func DataDirs() []environment.DataDir {
-	return []environment.DataDir{
-		{Name: "incus", Path: "/var/lib/incus"},
+// DataDirs represents the data disk for the container runtime.
+func DataDisk() environment.DataDisk {
+	return environment.DataDisk{
+		FSType: "zfs",
+		PreMount: []string{
+			"systemctl stop incus.service",
+			"systemctl stop incus.socket",
+		},
 	}
 }
 

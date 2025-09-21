@@ -14,7 +14,7 @@ import (
 )
 
 // WriteYAML encodes struct to file as YAML.
-func WriteYAML(value interface{}, file string) error {
+func WriteYAML(value any, file string) error {
 	b, err := yaml.Marshal(value)
 	if err != nil {
 		return fmt.Errorf("error encoding YAML: %w", err)

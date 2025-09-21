@@ -64,4 +64,13 @@ func Set(f func(*Store)) error {
 }
 
 // Reset resets the values in the store to the defaults.
-func Reset() error { return Set(func(s *Store) { *s = Store{} }) }
+func Reset() error {
+	// first attempt to remove store file
+	if err := os.Remove(storeFile()); err != nil {
+		// if it fails
+		// then attempt to set it to empty value
+		return Set(func(s *Store) { *s = Store{} })
+	}
+
+	return nil
+}
