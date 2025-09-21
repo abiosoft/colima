@@ -32,12 +32,6 @@ type Container interface {
 	Dependencies
 }
 
-// DataDir is the container runtime data directory
-type DataDir struct {
-	Name string
-	Path string
-}
-
 // NewContainer creates a new container environment.
 func NewContainer(runtime string, host HostActions, guest GuestActions) (Container, error) {
 	if _, ok := containerRuntimes[runtime]; !ok {
@@ -75,4 +69,17 @@ func ContainerRuntimes() (names []string) {
 		names = append(names, name)
 	}
 	return
+}
+
+// DataDisk holds the configuration for mounting an external runtime disk.
+type DataDisk struct {
+	Dirs     []DiskDir // the directories to be mounted
+	PreMount []string  // the scripts to run before mounting the directories
+	FSType   string    // the filesystem type for the disk e.g. ext4
+}
+
+// DiskDir is a directory mounted in a data disk.
+type DiskDir struct {
+	Name string
+	Path string
 }

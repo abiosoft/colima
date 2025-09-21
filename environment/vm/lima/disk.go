@@ -20,11 +20,7 @@ import (
 )
 
 func (l *limaVM) createRuntimeDisk(conf config.Config) error {
-	// disable for incus for now
-	// TODO remove
-	if conf.Runtime == incus.Name {
-		return nil
-	}
+	disk := dataDisk(conf.Runtime)
 
 	s, _ := store.Load()
 	format := !s.DiskFormatted // only format if not previously formatted
@@ -44,7 +40,7 @@ func (l *limaVM) createRuntimeDisk(conf config.Config) error {
 	l.limaConf.AdditionalDisks = append(l.limaConf.AdditionalDisks, limaconfig.Disk{
 		Name:   config.CurrentProfile().ID,
 		Format: format,
-		FSType: "ext4",
+		FSType: disk.FSType,
 	})
 
 	l.mountRuntimeDisk(conf)
@@ -56,39 +52,51 @@ func (l *limaVM) useRuntimeDisk(conf config.Config) {
 		return
 	}
 
+	disk := dataDisk(conf.Runtime)
+
 	s, _ := store.Load()
 	format := !s.DiskFormatted // only format if not previously formatted
 
 	l.limaConf.AdditionalDisks = append(l.limaConf.AdditionalDisks, limaconfig.Disk{
 		Name:   config.CurrentProfile().ID,
 		Format: format,
-		FSType: "ext4",
+		FSType: disk.FSType,
 	})
 
 	l.mountRuntimeDisk(conf)
 }
 
-func (l *limaVM) mountRuntimeDisk(conf config.Config) {
-	var dirs []environment.DataDir
-	var service = conf.Runtime
-	switch conf.Runtime {
+func dataDisk(runtime string) environment.DataDisk {
+	switch runtime {
 	case docker.Name:
-		dirs = docker.DataDirs()
+		return docker.DataDisk()
 	case containerd.Name:
-		dirs = containerd.DataDirs()
+		return containerd.DataDisk()
 	case incus.Name:
-		service = strings.Join(incus.SystemdServices(), " ")
-		dirs = incus.DataDirs()
+		return incus.DataDisk()
+	}
+
+	return environment.DataDisk{}
+}
+
+func (l *limaVM) mountRuntimeDisk(conf config.Config) {
+	disk := dataDisk(conf.Runtime)
+
+	// pre mount script
+	for _, script := range disk.PreMount {
+		l.limaConf.Provision = append(l.limaConf.Provision, limaconfig.Provision{
+			Mode:   "dependency",
+			Script: script,
+		})
 	}
 
 	mountPoint := limautil.MountPoint()
-	for _, dir := range dirs {
+	for _, dir := range disk.Dirs {
 		script := strings.NewReplacer(
 			"{mount_point}", mountPoint,
 			"{name}", dir.Name,
 			"{data_path}", dir.Path,
-			"{systemd_service}", service,
-		).Replace("systemctl stop {systemd_service}; mkdir -p {mount_point}/{name} {data_path} && mount --bind {mount_point}/{name} {data_path}")
+		).Replace("mkdir -p {mount_point}/{name} {data_path} && mount --bind {mount_point}/{name} {data_path}")
 
 		l.limaConf.Provision = append(l.limaConf.Provision, limaconfig.Provision{
 			Mode:   "dependency",

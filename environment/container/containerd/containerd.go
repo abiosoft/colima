@@ -131,13 +131,22 @@ func (c *containerdRuntime) Update(ctx context.Context) (bool, error) {
 	return false, fmt.Errorf("update not supported for the %s runtime", Name)
 }
 
-// DataDirs returns the list of directories that are used for storing container runtime data.
-func DataDirs() []environment.DataDir {
-	return []environment.DataDir{
-		{Name: "containerd", Path: "/var/lib/containerd"},
-		{Name: "buildkit", Path: "/var/lib/buildkit"},
-		{Name: "nerdctl", Path: "/var/lib/nerdctl"},
-		{Name: "rancher", Path: "/var/lib/rancher"},
-		{Name: "cni", Path: "/var/lib/cni"},
+// DataDirs represents the data disk for the container runtime.
+func DataDisk() environment.DataDisk {
+	return environment.DataDisk{
+		Dirs:   diskDirs,
+		FSType: "ext4",
+		PreMount: []string{
+			"systemctl stop containerd",
+			"systemctl stop buildkit",
+		},
 	}
+}
+
+var diskDirs = []environment.DiskDir{
+	{Name: "containerd", Path: "/var/lib/containerd"},
+	{Name: "buildkit", Path: "/var/lib/buildkit"},
+	{Name: "nerdctl", Path: "/var/lib/nerdctl"},
+	{Name: "rancher", Path: "/var/lib/rancher"},
+	{Name: "cni", Path: "/var/lib/cni"},
 }
