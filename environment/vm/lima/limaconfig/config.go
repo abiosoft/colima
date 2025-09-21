@@ -48,7 +48,7 @@ type Mount struct {
 
 type Disk struct {
 	Name   string   `yaml:"name" json:"name"` // REQUIRED
-	Format bool     `yaml:"format,omitempty" json:"format,omitempty"`
+	Format bool     `yaml:"format" json:"format"`
 	FSType string   `yaml:"fsType,omitempty" json:"fsType,omitempty"`
 	FSArgs []string `yaml:"fsArgs,omitempty" json:"fsArgs,omitempty"`
 }

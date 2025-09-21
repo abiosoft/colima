@@ -53,6 +53,8 @@ func (c *incusRuntime) Dependencies() []string {
 
 // Provision implements environment.Container.
 func (c *incusRuntime) Provision(ctx context.Context) error {
+	log := c.Logger(ctx)
+
 	// ensure that the systemd socket file is created
 	if err := c.guest.RunQuiet("sudo", "systemctl", "start", "incus.socket"); err != nil {
 		return fmt.Errorf("error starting incus socket: %w", err)
@@ -67,17 +69,23 @@ func (c *incusRuntime) Provision(ctx context.Context) error {
 		return nil
 	}
 
+	emptyDisk := true
+	recoverStorage := false
 	if limautil.DiskProvisioned(Name) {
-		// disk already provisioned
-		return nil
+		emptyDisk = false
+		// previous disk exist
+		// ignore storage, recovery would be attempted later
+		recoverStorage = cli.Prompt("existing Incus data found, would you like to recover the storage pool")
 	}
 
 	var value struct {
-		Disk      string
-		Interface string
+		Disk       string
+		Interface  string
+		SetStorage bool
 	}
 	value.Disk = "/dev/vdb"
 	value.Interface = incusBridgeInterface
+	value.SetStorage = emptyDisk // set only when the disk is empty
 
 	buf, err := util.ParseTemplate(configYaml, value)
 	if err != nil {
@@ -87,6 +95,40 @@ func (c *incusRuntime) Provision(ctx context.Context) error {
 	stdin := bytes.NewReader(buf)
 	if err := c.guest.RunWith(stdin, nil, "sudo", "incus", "admin", "init", "--preseed"); err != nil {
 		return fmt.Errorf("error setting up incus: %w", err)
+	}
+
+	// provision successful
+	if emptyDisk {
+		return nil
+	}
+
+	if !recoverStorage {
+		log.Warnln("discarding data, creating new storage pool")
+		return c.wipeDisk(false)
+	}
+
+	if !c.hasExistingPool() {
+		log.Warnln("discarding corrupted disk, creating new storage pool")
+		return c.wipeDisk(false)
+	}
+
+	if err := c.importExistingPool(); err != nil {
+		log.Warnln(fmt.Errorf("cannot recover disk: %w, creating new storage pool", err))
+		return c.wipeDisk(false)
+	}
+
+	for {
+		if err := c.recoverDisk(ctx); err != nil {
+			log.Warnln(err)
+
+			if cli.Prompt("recovery failed, try again") {
+				continue
+			}
+
+			log.Warnln("discarding disk, creating new storage pool")
+			return c.wipeDisk(true)
+		}
+		break
 	}
 
 	return nil
@@ -315,9 +357,61 @@ func DataDisk() environment.DataDisk {
 	}
 }
 
-func SystemdServices() []string {
-	return []string{
-		"incus.service",
-		"incus.socket",
+func (c *incusRuntime) hasExistingPool() bool {
+	return c.guest.RunQuiet("sh", "-c", "sudo zpool import | grep -A 2 'pool: default' | grep 'state: ONLINE'") == nil
+}
+
+func (c *incusRuntime) importExistingPool() error {
+	if err := c.guest.RunQuiet("sudo", "zpool", "import", "default"); err != nil {
+		return fmt.Errorf("error importing existing zpool: %w", err)
 	}
+
+	return nil
+}
+
+func (c *incusRuntime) recoverDisk(ctx context.Context) error {
+	log := c.Logger(ctx)
+
+	log.Println()
+	log.Println("Running 'incus admin recover' ...")
+	log.Println()
+	log.Println("Use the following values for the prompts")
+	log.Println("  name of storage pool: default")
+	log.Println("  name of storage backend: zfs")
+	log.Println("  source of storage pool: /dev/vdb")
+	log.Println()
+
+	if err := c.guest.RunInteractive("sudo", "incus", "admin", "recover"); err != nil {
+		return fmt.Errorf("error recovering storage pool: %w", err)
+	}
+
+	out, err := c.guest.RunOutput("sudo", "incus", "storage", "list", "name=default", "-c", "n", "--format", "compact,noheader")
+	if err != nil {
+		return err
+	}
+
+	if out != "default" {
+		return fmt.Errorf("storage pool recovery failure")
+	}
+
+	return nil
+}
+
+func (c *incusRuntime) wipeDisk(wipeZpool bool) error {
+	if wipeZpool {
+		if err := c.guest.RunQuiet("sudo", "zpool", "destroy", "default"); err != nil {
+			return fmt.Errorf("cannot resetting pool data: %w", err)
+		}
+	} else {
+		if err := c.guest.RunQuiet("sudo", "sfdisk", "--delete", "/dev/vdb", "1"); err != nil {
+			return fmt.Errorf("error resetting pool data: %w", err)
+		}
+	}
+
+	// prepare directory
+	if err := c.guest.RunQuiet("sudo", "rm", "-rf", "/var/lib/incus/storage-pools/default"); err != nil {
+		return fmt.Errorf("error preparing storage pools directory: %w", err)
+	}
+
+	return c.guest.RunQuiet("sudo", "incus", "storage", "create", "default", "zfs", "source=/dev/vdb")
 }
