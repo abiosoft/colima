@@ -53,16 +53,18 @@ func (c *incusRuntime) Dependencies() []string {
 
 // Provision implements environment.Container.
 func (c *incusRuntime) Provision(ctx context.Context) error {
-	conf, _ := ctx.Value(config.CtxKey()).(config.Config)
+	// ensure that the systemd socket file is created
+	if err := c.guest.RunQuiet("sudo", "systemctl", "start", "incus.socket"); err != nil {
+		return fmt.Errorf("error starting incus socket: %w", err)
+	}
+
+	if err := c.guest.RunQuiet("sudo", "systemctl", "start", "incus.service"); err != nil {
+		return fmt.Errorf("error starting incus service: %w", err)
+	}
 
 	if err := c.guest.RunQuiet("ip", "addr", "show", incusBridgeInterface); err == nil {
 		// already provisioned
 		return nil
-	}
-
-	// ensure that the systemd socket file is created
-	if err := c.guest.RunQuiet("sudo", "systemctl", "start", "incus.socket", "incus.service"); err != nil {
-		return fmt.Errorf("error starting incus socket: %w", err)
 	}
 
 	if limautil.DiskProvisioned(Name) {
@@ -71,10 +73,10 @@ func (c *incusRuntime) Provision(ctx context.Context) error {
 	}
 
 	var value struct {
-		Disk      int
+		Disk      string
 		Interface string
 	}
-	value.Disk = conf.Disk - 5 // use all disk except 5GiB. TODO: revisit.
+	value.Disk = "/dev/vdb"
 	value.Interface = incusBridgeInterface
 
 	buf, err := util.ParseTemplate(configYaml, value)
