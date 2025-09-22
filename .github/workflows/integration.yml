@@ -30,7 +30,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
         with:
-          go-version: "1.24.5"
+          go-version: "1.25.1"
 
       - name: Install CLI deps
         run: brew install kubectl docker coreutils lima
@@ -65,7 +65,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
         with:
-          go-version: "1.24.5"
+          go-version: "1.25.1"
 
       - name: Install CLI deps
         run: brew install kubectl docker coreutils lima
@@ -100,7 +100,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
         with:
-          go-version: "1.24.5"
+          go-version: "1.25.1"
 
       - name: Install CLI deps
         run: brew install kubectl docker coreutils lima
@@ -139,8 +139,20 @@ jobs:
       - name: Stop
         run: colima stop
 
-      - name: Teardown
+      - name: Temp Delete
         run: colima delete -f
+
+      - name: Restart
+        run: colima start --runtime docker
+
+      - name: Assert runtime disk arm64
+        run: docker run --pull=never --rm --platform=linux/arm64 ghcr.io/linuxcontainers/alpine:latest uname -a
+
+      - name: Assert runtime disk amd64
+        run: docker run --pull=never --rm --platform=linux/amd64 ghcr.io/linuxcontainers/alpine:latest uname -a
+
+      - name: Teardown
+        run: colima delete --data -f
 
   containerd:
     runs-on: macos-13
@@ -150,7 +162,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
         with:
-          go-version: "1.24.5"
+          go-version: "1.25.1"
 
       - name: Install CLI deps
         run: brew install kubectl docker coreutils lima
@@ -189,8 +201,20 @@ jobs:
       - name: Stop
         run: colima stop
 
-      - name: Teardown
+      - name: Temp Delete
         run: colima delete -f
+
+      - name: Restart
+        run: colima start --runtime containerd
+
+      - name: Assert runtime disk arm64
+        run: colima nerdctl -- run --pull=never --rm --platform=linux/arm64 ghcr.io/linuxcontainers/alpine:latest uname -a
+
+      - name: Assert runtime disk amd64
+        run: colima nerdctl -- run --pull=never --rm --platform=linux/amd64 ghcr.io/linuxcontainers/alpine:latest uname -a
+
+      - name: Teardown
+        run: colima delete --data -f
 
   incus:
     runs-on: macos-13
@@ -200,7 +224,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
         with:
-          go-version: "1.24.5"
+          go-version: "1.25.1"
 
       - name: Install CLI deps
         run: brew install kubectl docker coreutils lima incus
