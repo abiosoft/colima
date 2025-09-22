@@ -76,10 +76,8 @@ func (d dockerRuntime) Provision(ctx context.Context) error {
 func (d dockerRuntime) Start(ctx context.Context) error {
 	a := d.Init(ctx)
 
-	// TODO: interval is high due to 0.6.3->0.6.4 docker-ce package transition
-	//       to ensure startup is successful
-	a.Retry("", time.Second, 120, func(int) error {
-		return d.guest.RunQuiet("sudo", "service", "docker", "start")
+	a.Retry("", time.Second, 60, func(int) error {
+		return d.guest.RunQuiet("sudo", "systemctl", "start", "docker.service")
 	})
 
 	// service startup takes few seconds, retry for a minute before giving up.
@@ -111,7 +109,7 @@ func (d dockerRuntime) Stop(ctx context.Context) error {
 		if !d.Running(ctx) {
 			return nil
 		}
-		return d.guest.Run("sudo", "service", "docker", "stop")
+		return d.guest.Run("sudo", "systemctl", "stop", "docker.service")
 	})
 
 	// clear docker context settings
@@ -156,7 +154,8 @@ func DataDisk() environment.DataDisk {
 		Dirs:   diskDirs,
 		FSType: "ext4",
 		PreMount: []string{
-			"systemctl stop docker",
+			"systemctl stop docker.service",
+			"systemctl stop containerd.service",
 		},
 	}
 }
