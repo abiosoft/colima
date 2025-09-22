@@ -137,8 +137,8 @@ func DataDisk() environment.DataDisk {
 		Dirs:   diskDirs,
 		FSType: "ext4",
 		PreMount: []string{
-			"systemctl stop containerd",
-			"systemctl stop buildkit",
+			"systemctl stop containerd.service",
+			"systemctl stop buildkit.service",
 		},
 	}
 }
