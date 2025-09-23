@@ -10,7 +10,7 @@ networks:
 {{ if .SetStorage }}
 storage_pools:
   - config:
-      source: {{.Disk}}
+      size: {{.Disk}}GiB
     description: ""
     name: default
     driver: zfs

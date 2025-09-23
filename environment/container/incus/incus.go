@@ -33,10 +33,15 @@ var configDir = func() string { return config.CurrentProfile().ConfigDir() }
 func HostSocketFile() string { return filepath.Join(configDir(), "incus.sock") }
 
 const (
-	Name          = "incus"
-	diskName      = "/dev/vdb"
-	poolName      = "default"
+	Name = "incus"
+
 	storageDriver = "zfs"
+
+	poolName    = "default"
+	poolMetaDir = "/var/lib/incus/storage-pools/" + poolName
+
+	poolDisksDir = "/var/lib/incus/disks"
+	poolDiskFile = poolDisksDir + "/" + poolName + ".img"
 )
 
 func init() {
@@ -58,9 +63,10 @@ func (c *incusRuntime) Dependencies() []string {
 
 // Provision implements environment.Container.
 func (c *incusRuntime) Provision(ctx context.Context) error {
+	conf := ctx.Value(config.CtxKey()).(config.Config)
 	log := c.Logger(ctx)
 
-	if err := c.guest.RunQuiet("ip", "addr", "show", incusBridgeInterface); err == nil {
+	if found, _, _ := c.findNetwork(incusBridgeInterface); found {
 		// already provisioned
 		return nil
 	}
@@ -69,17 +75,17 @@ func (c *incusRuntime) Provision(ctx context.Context) error {
 	recoverStorage := false
 	if limautil.DiskProvisioned(Name) {
 		emptyDisk = false
-		// previous disk exist
+		// previous disk exists
 		// ignore storage, recovery would be attempted later
-		recoverStorage = cli.Prompt("existing Incus data found, would you like to recover the storage pool")
+		recoverStorage = cli.Prompt("existing Incus data found, would you like to recover the storage pool(s)")
 	}
 
 	var value struct {
-		Disk       string
+		Disk       int
 		Interface  string
 		SetStorage bool
 	}
-	value.Disk = diskName
+	value.Disk = conf.Disk
 	value.Interface = incusBridgeInterface
 	value.SetStorage = emptyDisk // set only when the disk is empty
 
@@ -99,30 +105,24 @@ func (c *incusRuntime) Provision(ctx context.Context) error {
 	}
 
 	if !recoverStorage {
-		log.Warnln("discarding data, creating new storage pool")
-		return c.wipeDisk(false)
+		return c.wipeDisk(conf.Disk)
 	}
 
-	if !c.hasExistingPool() {
-		log.Warnln("discarding corrupted disk, creating new storage pool")
-		return c.wipeDisk(false)
-	}
-
-	if err := c.importExistingPool(); err != nil {
+	if _, err := c.guest.Stat(poolDiskFile); err != nil {
 		log.Warnln(fmt.Errorf("cannot recover disk: %w, creating new storage pool", err))
-		return c.wipeDisk(false)
+		return c.wipeDisk(conf.Disk)
 	}
 
 	for {
 		if err := c.recoverDisk(ctx); err != nil {
 			log.Warnln(err)
 
-			if cli.Prompt("recovery failed, try again") {
+			if cli.Prompt("recovery failed for default storage pool, try again") {
 				continue
 			}
 
 			log.Warnln("discarding disk, creating new storage pool")
-			return c.wipeDisk(true)
+			return c.wipeDisk(conf.Disk)
 		}
 		break
 	}
@@ -141,18 +141,20 @@ func (c *incusRuntime) Start(ctx context.Context) error {
 
 	a := c.Init(ctx)
 
-	if !c.poolImported() {
-		// pool not yet imported
-		// stop incus and import pool
-		a.Add(func() error {
-			return c.guest.RunQuiet("sudo", "systemctl", "stop", "incus.service")
-		})
-		a.Add(c.importExistingPool)
-	}
+	// incus should already be started
+	// this is mainly to ascertain it has started
 
-	a.Add(func() error {
-		return c.guest.RunQuiet("sudo", "systemctl", "start", "incus.service")
-	})
+	if c.poolImported() {
+		a.Add(func() error {
+			return c.guest.RunQuiet("sudo", "systemctl", "start", "incus.service")
+		})
+	} else {
+		// pool not yet imported
+		// restart incus to import pool
+		a.Add(func() error {
+			return c.guest.RunQuiet("sudo", "systemctl", "restart", "incus.service")
+		})
+	}
 
 	a.Add(func() error {
 		// attempt to set remote
@@ -292,25 +294,11 @@ func (c incusRuntime) addDockerRemote() error {
 }
 
 func (c incusRuntime) registerNetworks() error {
-	b, err := c.guest.RunOutput("sudo", "incus", "network", "list", "--format", "json")
-	if err != nil {
-		return fmt.Errorf("error listing networks: %w", err)
-	}
-
-	var network networkInfo
-	var found bool
 	name := limautil.NetInterface
-	{ // decode and flatten for easy lookup
-		var resp []networkInfo
-		if err := json.NewDecoder(strings.NewReader(b)).Decode(&resp); err != nil {
-			return fmt.Errorf("error decoding networks into struct: %w", err)
-		}
-		for _, n := range resp {
-			if n.Name == name {
-				network = n
-				found = true
-			}
-		}
+
+	found, network, err := c.findNetwork(name)
+	if err != nil {
+		return err
 	}
 
 	// must be an unmanaged physical network
@@ -324,6 +312,24 @@ func (c incusRuntime) registerNetworks() error {
 	}
 
 	return nil
+}
+
+func (c incusRuntime) findNetwork(interfaceName string) (found bool, info networkInfo, err error) {
+	b, err := c.guest.RunOutput("sudo", "incus", "network", "list", "--format", "json")
+	if err != nil {
+		return found, info, fmt.Errorf("error listing networks: %w", err)
+	}
+	var resp []networkInfo
+	if err := json.NewDecoder(strings.NewReader(b)).Decode(&resp); err != nil {
+		return found, info, fmt.Errorf("error decoding networks into struct: %w", err)
+	}
+	for _, n := range resp {
+		if n.Name == interfaceName {
+			return true, n, nil
+		}
+	}
+
+	return
 }
 
 //go:embed config.yaml
@@ -351,20 +357,6 @@ func (c *incusRuntime) Update(ctx context.Context) (bool, error) {
 	return debutil.UpdateRuntime(ctx, c.guest, c, packages...)
 }
 
-// DataDirs represents the data disk for the container runtime.
-func DataDisk() environment.DataDisk {
-	return environment.DataDisk{
-		FSType: storageDriver,
-	}
-}
-
-func (c *incusRuntime) hasExistingPool() bool {
-	script := strings.NewReplacer(
-		"{pool_name}", poolName,
-	).Replace("sudo zpool import | grep -A 2 'pool: {pool_name}' | grep 'state: ONLINE'")
-	return c.guest.RunQuiet("sh", "-c", script) == nil
-}
-
 func (c *incusRuntime) poolImported() bool {
 	script := strings.NewReplacer(
 		"{pool_name}", poolName,
@@ -372,24 +364,28 @@ func (c *incusRuntime) poolImported() bool {
 	return c.guest.RunQuiet("sh", "-c", script) == nil
 }
 
-func (c *incusRuntime) importExistingPool() error {
-	if err := c.guest.RunQuiet("sudo", "zpool", "import", poolName); err != nil {
-		return fmt.Errorf("error importing existing zpool: %w", err)
+func (c *incusRuntime) recoverDisk(ctx context.Context) error {
+	var disks []string
+	str, err := c.guest.RunOutput("sh", "-c", "sudo ls "+poolDisksDir+" | grep '.img$'")
+
+	if err != nil {
+		return fmt.Errorf("cannot list storage pool disks: %w", err)
 	}
 
-	return nil
-}
+	disks = strings.Fields(str)
+	if len(disks) == 0 {
+		return fmt.Errorf("no existing storage pool disks found")
+	}
 
-func (c *incusRuntime) recoverDisk(ctx context.Context) error {
 	log := c.Logger(ctx)
 
 	log.Println()
 	log.Println("Running 'incus admin recover' ...")
 	log.Println()
-	log.Println("Use the following values for the prompts")
-	log.Println("  name of storage pool: " + poolName)
-	log.Println("  name of storage backend: " + storageDriver)
-	log.Println("  source of storage pool: " + diskName)
+	log.Println(fmt.Sprintf("Found %d storage pool sources:", len(disks)))
+	for _, disk := range disks {
+		log.Println("  " + poolDisksDir + "/" + disk)
+	}
 	log.Println()
 
 	if err := c.guest.RunInteractive("sudo", "incus", "admin", "recover"); err != nil {
@@ -402,27 +398,34 @@ func (c *incusRuntime) recoverDisk(ctx context.Context) error {
 	}
 
 	if out != poolName {
-		return fmt.Errorf("storage pool recovery failure")
+		return fmt.Errorf("default storage pool recovery failure")
 	}
 
 	return nil
 }
 
-func (c *incusRuntime) wipeDisk(wipeZpool bool) error {
-	if wipeZpool {
-		if err := c.guest.RunQuiet("sudo", "zpool", "destroy", poolName); err != nil {
-			return fmt.Errorf("cannot resetting pool data: %w", err)
-		}
-	} else {
-		if err := c.guest.RunQuiet("sudo", "sfdisk", "--delete", diskName, "1"); err != nil {
-			return fmt.Errorf("error resetting pool data: %w", err)
-		}
-	}
+func (c *incusRuntime) wipeDisk(size int) error {
+	// prepare by deleting relevant files/directories
+	deleteScript := strings.NewReplacer(
+		"{disk_file}", poolDiskFile,
+		"{meta_dir}", poolMetaDir,
+	).Replace("sudo rm -rf {disk_file} {meta_dir}")
 
-	// prepare directory
-	if err := c.guest.RunQuiet("sudo", "rm", "-rf", "/var/lib/incus/storage-pools/"+poolName); err != nil {
+	if err := c.guest.RunQuiet("sh", "-c", deleteScript); err != nil {
 		return fmt.Errorf("error preparing storage pools directory: %w", err)
 	}
 
-	return c.guest.RunQuiet("sudo", "incus", "storage", "create", poolName, storageDriver, "source="+diskName)
+	// create new storage pool
+	var diskSize = fmt.Sprintf("%dGiB", size)
+	return c.guest.RunQuiet("sudo", "incus", "storage", "create", poolName, storageDriver, "size="+diskSize)
+}
+
+// DataDirs represents the data disk for the container runtime.
+func DataDisk() environment.DataDisk {
+	return environment.DataDisk{
+		FSType: "ext4",
+		Dirs: []environment.DiskDir{
+			{Name: "incus-disks", Path: "/var/lib/incus/disks"},
+		},
+	}
 }
