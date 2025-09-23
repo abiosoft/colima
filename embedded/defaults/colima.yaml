@@ -2,7 +2,7 @@
 # Default: 2
 cpu: 2
 
-# Size of the disk in GiB to be allocated to the virtual machine.
+# Size of the disk in GiB to be allocated to the virtual machine for container data.
 # NOTE: value can only be increased after virtual machine has been created.
 #
 # Default: 100
@@ -232,6 +232,10 @@ mounts: []
 #
 # Default: ""
 diskImage: ""
+
+# Size of the disk in GiB for the root filesystem of the virtual machine.
+# Default: 20
+rootDisk: 20
 
 # Environment variables for the virtual machine.
 #
