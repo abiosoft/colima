@@ -45,6 +45,7 @@
       - [Version v0.5.6 or lower](#version-v056-or-lower)
     - [Issue with Docker bind mount showing empty](#issue-with-docker-bind-mount-showing-empty)
   - [How can Docker version be updated?](#how-can-docker-version-be-updated)
+  - [How can I delete container data](#how-can-i-delete-container-data)
 
 ## How does Colima compare to Lima?
 
@@ -446,3 +447,9 @@ This is rectified by mounting the volume on the VM, and only then can docker map
 Each Colima release includes the latest Docker version at the time of release.
 
 From v0.7.6, there is a new `colima update` command to update the container runtime without needing to update Colima or to wait for the next Colima release.
+
+## How can I delete container data
+
+From v0.9.0, Colima utilises a different disk for the container runtime data. This guards against accidental data loss after deletion and the container data should be reinstated on `colima start`.
+
+To clear all data, `colima delete --data`  should be run instead. The `--data` flag ensures that the container data is also deleted.
