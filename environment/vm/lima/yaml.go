@@ -61,8 +61,8 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 	if conf.Memory > 0 {
 		l.Memory = fmt.Sprintf("%dMiB", uint32(conf.Memory*1024))
 	}
-	if conf.Disk > 0 {
-		l.Disk = fmt.Sprintf("%dGiB", conf.Disk)
+	if conf.RootDisk > 0 {
+		l.Disk = fmt.Sprintf("%dGiB", conf.RootDisk)
 	}
 	l.SSH = limaconfig.SSH{LocalPort: conf.SSHPort, LoadDotSSHPubKeys: false, ForwardAgent: conf.ForwardAgent}
 	l.Containerd = limaconfig.Containerd{System: false, User: false}

@@ -112,6 +112,7 @@ const (
 	defaultCPU               = 2
 	defaultMemory            = 2
 	defaultDisk              = 100
+	defaultRootDisk          = 20
 	defaultKubernetesVersion = kubernetes.DefaultVersion
 
 	defaultMountTypeQEMU = "sshfs"
@@ -163,11 +164,12 @@ func init() {
 
 	root.Cmd().AddCommand(startCmd)
 	startCmd.Flags().StringVarP(&startCmdArgs.Runtime, "runtime", "r", docker.Name, "container runtime ("+runtimes+")")
-	startCmd.Flags().BoolVar(&startCmdArgs.Flags.ActivateRuntime, "activate", true, "set as active Docker/Kubernetes context on startup")
+	startCmd.Flags().BoolVar(&startCmdArgs.Flags.ActivateRuntime, "activate", true, "set as active Docker/Kubernetes/Incus context on startup")
 	startCmd.Flags().IntVarP(&startCmdArgs.CPU, "cpus", "c", defaultCPU, "number of CPUs")
 	startCmd.Flags().StringVar(&startCmdArgs.CPUType, "cpu-type", "", "the CPU type, options can be checked with 'qemu-system-"+defaultArch+" -cpu help'")
 	startCmd.Flags().Float32VarP(&startCmdArgs.Memory, "memory", "m", defaultMemory, "memory in GiB")
 	startCmd.Flags().IntVarP(&startCmdArgs.Disk, "disk", "d", defaultDisk, "disk size in GiB")
+	startCmd.Flags().IntVar(&startCmdArgs.RootDisk, "root-disk", defaultRootDisk, "disk size in GiB for the root filesystem")
 	startCmd.Flags().StringVarP(&startCmdArgs.Arch, "arch", "a", defaultArch, "architecture (aarch64, x86_64)")
 	startCmd.Flags().BoolVarP(&startCmdArgs.Flags.Foreground, "foreground", "f", false, "Keep colima in the foreground")
 	startCmd.Flags().StringVar(&startCmdArgs.Hostname, "hostname", "", "custom hostname for the virtual machine")
@@ -458,6 +460,9 @@ func prepareConfig(cmd *cobra.Command) {
 	}
 	if !cmd.Flag("disk").Changed {
 		startCmdArgs.Disk = current.Disk
+	}
+	if !cmd.Flag("root-disk").Changed {
+		startCmdArgs.RootDisk = current.RootDisk
 	}
 	if !cmd.Flag("kubernetes").Changed {
 		startCmdArgs.Kubernetes.Enabled = current.Kubernetes.Enabled

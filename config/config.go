@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"net"
 
 	"github.com/abiosoft/colima/util"
@@ -30,6 +31,7 @@ var (
 type Config struct {
 	CPU      int               `yaml:"cpu,omitempty"`
 	Disk     int               `yaml:"disk,omitempty"`
+	RootDisk int               `yaml:"rootDisk,omitempty"`
 	Memory   float32           `yaml:"memory,omitempty"`
 	Arch     string            `yaml:"arch,omitempty"`
 	CPUType  string            `yaml:"cpuType,omitempty"`
@@ -126,6 +128,9 @@ func (c Config) DriverLabel() string {
 	}
 	return "QEMU"
 }
+
+// DiskGiB returns the string represent of the disk in GiB.
+func DiskGiB(disk int) string { return fmt.Sprintf("%dGiB", disk) }
 
 // CtxKey returns the context key for config.
 func CtxKey() any {
