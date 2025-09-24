@@ -64,6 +64,12 @@ func getInstance(profileID string) (InstanceInfo, error) {
 	if err := json.Unmarshal(buf.Bytes(), &i); err != nil {
 		return i, fmt.Errorf("error retrieving instance: %w", err)
 	}
+
+	if conf, err := i.Config(); err == nil {
+		if conf.Disk > 0 {
+			i.Disk = config.Disk(conf.Disk).Int()
+		}
+	}
 	return i, nil
 }
 
@@ -98,13 +104,13 @@ func Instances(ids ...string) ([]InstanceInfo, error) {
 			continue
 		}
 
+		conf, _ := i.Config()
 		if i.Running() {
 			for _, n := range i.Network {
 				if n.Interface == NetInterface {
 					i.IPAddress = getIPAddress(i.Name, NetInterface)
 				}
 			}
-			conf, _ := i.Config()
 			i.Runtime = getRuntime(conf)
 		}
 
@@ -113,6 +119,11 @@ func Instances(ids ...string) ([]InstanceInfo, error) {
 
 		// network is low level, remove
 		i.Network = nil
+
+		// report correct disk usage
+		if conf.Disk > 0 {
+			i.Disk = config.Disk(conf.Disk).Int()
+		}
 
 		instances = append(instances, i)
 	}

@@ -37,7 +37,7 @@ func (l *limaVM) createRuntimeDisk(conf config.Config) error {
 		return fmt.Errorf("runtime disk provisioned for %s runtime. Delete container data with 'colima delete --data' before using another runtime", s.DiskRuntime)
 	}
 
-	l.limaConf.Disk = config.DiskGiB(conf.RootDisk)
+	l.limaConf.Disk = config.Disk(conf.RootDisk).GiB()
 	l.limaConf.AdditionalDisks = append(l.limaConf.AdditionalDisks, limaconfig.Disk{
 		Name:   config.CurrentProfile().ID,
 		Format: format,
@@ -50,7 +50,7 @@ func (l *limaVM) createRuntimeDisk(conf config.Config) error {
 
 func (l *limaVM) useRuntimeDisk(conf config.Config) {
 	if !limautil.HasDisk() {
-		l.limaConf.Disk = config.DiskGiB(conf.Disk)
+		l.limaConf.Disk = config.Disk(conf.Disk).GiB()
 		return
 	}
 
@@ -59,7 +59,7 @@ func (l *limaVM) useRuntimeDisk(conf config.Config) {
 	s, _ := store.Load()
 	format := !s.DiskFormatted // only format if not previously formatted
 
-	l.limaConf.Disk = config.DiskGiB(conf.RootDisk)
+	l.limaConf.Disk = config.Disk(conf.RootDisk).GiB()
 	l.limaConf.AdditionalDisks = append(l.limaConf.AdditionalDisks, limaconfig.Disk{
 		Name:   config.CurrentProfile().ID,
 		Format: format,

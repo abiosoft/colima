@@ -129,8 +129,14 @@ func (c Config) DriverLabel() string {
 	return "QEMU"
 }
 
-// DiskGiB returns the string represent of the disk in GiB.
-func DiskGiB(disk int) string { return fmt.Sprintf("%dGiB", disk) }
+// Disk is an instance disk size
+type Disk int
+
+// GiB returns the string represent of the disk in GiB.
+func (d Disk) GiB() string { return fmt.Sprintf("%dGiB", d) }
+
+// Int returns the disk size in bytes.
+func (d Disk) Int() int64 { return 1024 * 1024 * 1024 * int64(d) }
 
 // CtxKey returns the context key for config.
 func CtxKey() any {
