@@ -330,18 +330,32 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 		}
 	}
 
+	/*
+		provision scripts for disk actions
+	*/
+
+	// ensure all volumes are mounted.
 	l.Provision = append(l.Provision, limaconfig.Provision{
 		Mode:   limaconfig.ProvisionModeSystem,
 		Script: "mount -a",
 	})
 
 	// trim mounted drive to recover disk space
+	// however problematic for incus
 	if conf.Runtime != incus.Name {
 		l.Provision = append(l.Provision, limaconfig.Provision{
 			Mode:   limaconfig.ProvisionModeSystem,
 			Script: `readlink /usr/sbin/fstrim || fstrim -a`,
 		})
 	}
+
+	// grow partition in case disk size has increased
+	l.Provision = append(l.Provision, limaconfig.Provision{
+		Mode:   limaconfig.ProvisionModeSystem,
+		Script: "resize2fs " + diskByLabelPath(config.CurrentProfile().ID) + " || true",
+	})
+
+	/* end */
 
 	if len(conf.Mounts) == 0 {
 		l.Mounts = append(l.Mounts,
@@ -442,4 +456,15 @@ func ingressDisabled(disableFlags []string) bool {
 		}
 	}
 	return false
+}
+
+const diskLabelMaxLength = 16 // https://tldp.org/HOWTO/Partition/labels.html
+
+func diskByLabelPath(instanceId string) string {
+	name := "lima-" + instanceId
+	if len(name) > diskLabelMaxLength {
+		name = name[:diskLabelMaxLength]
+	}
+
+	return "/dev/disk/by-label/" + name
 }
