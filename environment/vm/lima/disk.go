@@ -20,6 +20,11 @@ import (
 )
 
 func (l *limaVM) createRuntimeDisk(conf config.Config) error {
+	if environment.IsNoneRuntime(conf.Runtime) {
+		// runtime disk is not required when no runtime is in use
+		return nil
+	}
+
 	disk := dataDisk(conf.Runtime)
 
 	s, _ := store.Load()

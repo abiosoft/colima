@@ -234,6 +234,7 @@ mounts: []
 diskImage: ""
 
 # Size of the disk in GiB for the root filesystem of the virtual machine.
+# This value is ignored if no runtime is in use. i.e. `none` runtime.
 # Default: 20
 rootDisk: 20
 
