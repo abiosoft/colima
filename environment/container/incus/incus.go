@@ -156,6 +156,15 @@ func (c *incusRuntime) Start(ctx context.Context) error {
 		})
 	}
 
+	// sync disk size for the default pool
+	if conf.Disk > 0 {
+		a.Add(func() error {
+			// this can fail silently
+			_ = c.guest.RunQuiet("sudo", "incus", "storage", "set", "default", "size="+config.Disk(conf.Disk).GiB())
+			return nil
+		})
+	}
+
 	a.Add(func() error {
 		// attempt to set remote
 		if err := c.setRemote(conf.AutoActivate()); err == nil {
