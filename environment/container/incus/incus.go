@@ -391,7 +391,7 @@ func (c *incusRuntime) recoverDisk(ctx context.Context) error {
 	log.Println()
 	log.Println("Running 'incus admin recover' ...")
 	log.Println()
-	log.Println(fmt.Sprintf("Found %d storage pool sources:", len(disks)))
+	log.Println(fmt.Sprintf("Found %d storage pool source(s):", len(disks)))
 	for _, disk := range disks {
 		log.Println("  " + poolDisksDir + "/" + disk)
 	}
