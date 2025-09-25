@@ -234,6 +234,7 @@ func init() {
 	startCmd.Flags().StringVar(&startCmdArgs.Kubernetes.Version, "kubernetes-version", defaultKubernetesVersion, "must match a k3s version https://github.com/k3s-io/k3s/releases")
 	startCmd.Flags().StringSliceVar(&startCmdArgs.Flags.LegacyKubernetesDisable, "kubernetes-disable", nil, "components to disable for k3s e.g. traefik,servicelb")
 	startCmd.Flags().StringSliceVar(&startCmdArgs.Kubernetes.K3sArgs, "k3s-arg", defaultK3sArgs, "additional args to pass to k3s")
+	startCmd.Flags().IntVar(&startCmdArgs.Kubernetes.Port, "k3s-listen-port", 0, "k3s server listen port")
 	startCmd.Flag("with-kubernetes").Hidden = true
 	startCmd.Flag("kubernetes-disable").Hidden = true
 
@@ -474,6 +475,9 @@ func prepareConfig(cmd *cobra.Command) {
 	}
 	if !cmd.Flag("k3s-arg").Changed && current.Kubernetes.K3sArgs != nil {
 		startCmdArgs.Kubernetes.K3sArgs = current.Kubernetes.K3sArgs
+	}
+	if !cmd.Flag("k3s-listen-port").Changed && current.Kubernetes.Port > 0 {
+		startCmdArgs.Kubernetes.Port = current.Kubernetes.Port
 	}
 	if !cmd.Flag("runtime").Changed {
 		startCmdArgs.Runtime = current.Runtime

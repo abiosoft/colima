@@ -117,7 +117,7 @@ func (c *kubernetesRuntime) Provision(ctx context.Context) error {
 			installK3sCache(c.host, c.guest, a, log, runtime, conf.Version)
 		}
 		// other settings may have changed e.g. ingress
-		installK3sCluster(c.host, c.guest, a, runtime, conf.Version, conf.K3sArgs)
+		installK3sCluster(c.host, c.guest, a, runtime, conf.Version, conf.K3sArgs, conf.Port)
 	} else {
 		if c.isInstalled() {
 			a.Stagef("version changed to %s, downloading and installing", conf.Version)
@@ -128,7 +128,7 @@ func (c *kubernetesRuntime) Provision(ctx context.Context) error {
 				a.Stage("installing")
 			}
 		}
-		installK3s(c.host, c.guest, a, log, runtime, conf.Version, conf.K3sArgs)
+		installK3s(c.host, c.guest, a, log, runtime, conf.Version, conf.K3sArgs, conf.Port)
 	}
 
 	// this needs to happen on each startup
