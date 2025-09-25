@@ -47,7 +47,7 @@ kubernetes:
   # Kubernetes port to listen on
   # A common port is 6443, though left unbound to ensure no port conflicts
   # Default: pick random unbound port
-  listenPort: 0
+  port: 0
 
 # Auto-activate on the Host for client access.
 # Setting to true does the following on startup
