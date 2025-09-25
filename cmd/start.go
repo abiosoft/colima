@@ -477,7 +477,7 @@ func prepareConfig(cmd *cobra.Command) {
 		startCmdArgs.Kubernetes.K3sArgs = current.Kubernetes.K3sArgs
 	}
 	if !cmd.Flag("k3s-listen-port").Changed && current.Kubernetes.Port > 0 {
-		startCmdArgs.Kubernetes.ListenPort = current.Kubernetes.Port
+		startCmdArgs.Kubernetes.Port = current.Kubernetes.Port
 	}
 	if !cmd.Flag("runtime").Changed {
 		startCmdArgs.Runtime = current.Runtime
