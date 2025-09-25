@@ -462,7 +462,9 @@ func prepareConfig(cmd *cobra.Command) {
 		startCmdArgs.Disk = current.Disk
 	}
 	if !cmd.Flag("root-disk").Changed {
-		startCmdArgs.RootDisk = current.RootDisk
+		if current.RootDisk > 0 {
+			startCmdArgs.RootDisk = current.RootDisk
+		}
 	}
 	if !cmd.Flag("kubernetes").Changed {
 		startCmdArgs.Kubernetes.Enabled = current.Kubernetes.Enabled
