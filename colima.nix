@@ -2,12 +2,12 @@
 
 with pkgs;
 
-buildGo120Module {
+buildGo123Module {
   name = "colima";
   pname = "colima";
   src = ./.;
   nativeBuildInputs = [ installShellFiles makeWrapper git ];
-  vendorSha256 = "sha256-7DIhSjHpaCyHyXKhR8KWQc2YGaD8CMq+BZHF4zIkL50=";
+  vendorHash = "sha256-ZwgzKCOEhgKK2LNRLjnWP6qHI4f6OGORvt3CREJf55I=";
   CGO_ENABLED = 1;
 
   subPackages = [ "cmd/colima" ];

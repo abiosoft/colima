@@ -40,11 +40,12 @@ func installK3s(host environment.HostActions,
 	log *logrus.Entry,
 	containerRuntime string,
 	k3sVersion string,
-	disable []string,
+	k3sArgs []string,
+	k3sListenPort int,
 ) {
 	installK3sBinary(host, guest, a, k3sVersion)
 	installK3sCache(host, guest, a, log, containerRuntime, k3sVersion)
-	installK3sCluster(host, guest, a, containerRuntime, k3sVersion, disable)
+	installK3sCluster(host, guest, a, containerRuntime, k3sVersion, k3sArgs, k3sListenPort)
 }
 
 func installK3sBinary(
@@ -141,6 +142,7 @@ func installK3sCluster(
 	containerRuntime string,
 	k3sVersion string,
 	k3sArgs []string,
+	k3sListenPort int,
 ) {
 	// install k3s last to ensure it is the last step
 	downloadPath := "/tmp/k3s-install.sh"
@@ -184,7 +186,7 @@ func installK3sCluster(
 	}
 
 	a.Add(func() error {
-		port, err := getPortNumber(guest)
+		port, err := getPortNumber(guest, k3sListenPort)
 		if err != nil {
 			return err
 		}
@@ -199,7 +201,7 @@ func installK3sCluster(
 
 // getPortNumber retrieves the previously set port number.
 // If missing, an available random port is set and return.
-func getPortNumber(guest environment.GuestActions) (int, error) {
+func getPortNumber(guest environment.GuestActions, k3sListenPort int) (int, error) {
 	// port previously set, reuse it
 	if port, err := strconv.Atoi(guest.Get(listenPortKey)); err == nil && port > 0 {
 		return port, nil
@@ -211,8 +213,15 @@ func getPortNumber(guest environment.GuestActions) (int, error) {
 		return 6443, nil
 	}
 
-	// new instance, assign random port
-	port := util.RandomAvailablePort()
+	var port int
+	if k3sListenPort > 0 {
+		// template configured port
+		port = k3sListenPort
+	} else {
+		// new instance, assign random port
+		port = util.RandomAvailablePort()
+	}
+
 	if err := guest.Set(listenPortKey, strconv.Itoa(port)); err != nil {
 		return 0, err
 	}
