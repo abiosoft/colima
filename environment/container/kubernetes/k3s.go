@@ -40,11 +40,11 @@ func installK3s(host environment.HostActions,
 	log *logrus.Entry,
 	containerRuntime string,
 	k3sVersion string,
-	disable []string,
+	k3sArgs []string,
 ) {
 	installK3sBinary(host, guest, a, k3sVersion)
 	installK3sCache(host, guest, a, log, containerRuntime, k3sVersion)
-	installK3sCluster(host, guest, a, containerRuntime, k3sVersion, disable)
+	installK3sCluster(host, guest, a, containerRuntime, k3sVersion, k3sArgs)
 }
 
 func installK3sBinary(
