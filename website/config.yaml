@@ -1,0 +1,15 @@
+# THIS IS A TEST CONFIG ONLY!
+# FOR THE CONFIGURATION OF YOUR SITE USE hugo.yaml.
+#
+# As of Docsy 0.7.0, Hugo 0.110.0 or later must be used.
+#
+# The sole purpose of this config file is to detect Hugo-module builds that use
+# an older version of Hugo.
+#
+# DO NOT add any config parameters to this file. You can safely delete this file
+# if your project is using the required Hugo version.
+
+module:
+  hugoVersion:
+    extended: true
+    min: 0.110.0

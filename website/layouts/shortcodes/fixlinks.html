@@ -1,0 +1,3 @@
+{{ $gh_repo := (.Site.Params.github_repo) -}}
+
+{{- replace (.Inner | safeHTML) "(./" (printf "(%s/tree/%s/" $gh_repo $.Site.Params.version) -}}

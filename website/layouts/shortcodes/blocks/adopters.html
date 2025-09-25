@@ -1,0 +1,13 @@
+{{ $usedBy := site.Data.adopters -}}
+
+<div class="col">
+  <h2 class="text-center pb-3 mt-3">Adopters</h2>
+  <p class="text-center">
+    {{ range $usedBy -}}
+    {{ $img := printf "images/users/%s" .image | relURL -}}
+    <a href="{{ .link }}" aria-label="{{ .name }}" target="_blank" rel="noopener">
+      <img class="mx-3" width="{{ .width }}" src="{{ $img }}" alt="{{ .name }} logo">
+    </a>
+    {{- end }}
+  </p>
+</div>
