@@ -1,7 +1,8 @@
 {
   description = "Container runtimes on macOS (and Linux) with minimal setup";
 
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  # Last revision with go_1_23
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/25.05";
 
   outputs = { self, nixpkgs, flake-utils }: flake-utils.lib.eachDefaultSystem
     (system:
