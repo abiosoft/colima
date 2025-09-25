@@ -73,9 +73,10 @@ type Config struct {
 
 // Kubernetes is kubernetes configuration
 type Kubernetes struct {
-	Enabled bool     `yaml:"enabled"`
-	Version string   `yaml:"version"`
-	K3sArgs []string `yaml:"k3sArgs"`
+	Enabled    bool     `yaml:"enabled"`
+	Version    string   `yaml:"version"`
+	K3sArgs    []string `yaml:"k3sArgs"`
+	ListenPort int      `yaml:"listenPort,omitempty"`
 }
 
 // Network is VM network configuration
