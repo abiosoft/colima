@@ -14,6 +14,7 @@ import (
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/config/configmanager"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/environment/container/apple"
 	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/environment/container/docker"
 	"github.com/abiosoft/colima/environment/container/incus"
@@ -61,9 +62,9 @@ type colimaApp struct {
 func (c colimaApp) startWithRuntime(conf config.Config) ([]environment.Container, error) {
 	kubernetesEnabled := conf.Kubernetes.Enabled
 
-	// Kubernetes can only be enabled for docker and containerd
+	// Kubernetes can only be enabled for docker, containerd, and apple
 	switch conf.Runtime {
-	case docker.Name, containerd.Name:
+	case docker.Name, containerd.Name, apple.Name:
 	default:
 		kubernetesEnabled = false
 	}
