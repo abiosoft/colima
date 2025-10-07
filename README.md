@@ -43,6 +43,12 @@ Or stay on the bleeding edge (only Homebrew)
 brew install --HEAD colima
 ```
 
+**NOTE**: For macOS 12 or older, `qemu` VM emulator. Any VM type setting will be ignored on these platforms.
+
+```
+brew install qemu
+```
+
 ### Upgrading
 
 If upgrading from v0.5.6 or lower, it is required to start afresh by deleting existing instance.
@@ -170,7 +176,7 @@ Or by editing the config file with `colima start --edit`.
   colima start --cpu 4 --memory 8
   ```
 
-- create VM with Rosetta 2 emulation. Requires v0.5.3 and MacOS >= 13 (Ventura) on Apple Silicon.
+- create VM with Rosetta 2 emulation. Requires v0.5.3 and **MacOS >= 13 (Ventura)** on Apple Silicon.
 
   ```
   colima start --vm-type=vz --vz-rosetta
