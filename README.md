@@ -10,7 +10,8 @@
 
 ## Features
 
-  Support for Intel and Apple Silicon Macs, and Linux
+Support for Intel and Apple Silicon macOS, and Linux
+
 - Simple CLI interface with sensible defaults
 - Automatic Port Forwarding
 - Volume mounts
@@ -170,7 +171,7 @@ Or by editing the config file with `colima start --edit`.
   colima start --cpu 4 --memory 8
   ```
 
-- create VM with Rosetta 2 emulation. Requires v0.5.3 and MacOS >= 13 (Ventura) on Apple Silicon.
+- create VM with Rosetta 2 emulation. Requires v0.5.3 and macOS >= 13 (Ventura) on Apple Silicon.
 
   ```
   colima start --vm-type=vz --vz-rosetta

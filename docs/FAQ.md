@@ -57,6 +57,11 @@ Colima supports and works on both Intel and Apple Silicon Macs.
 
 Feedbacks would be appreciated.
 
+## Are older macOS versions supported?
+
+Colima is supported and regularly tested on the latest macOS version. However, Colima requires macOS 13 or newer.
+
+You may be able to build Colima and it's dependencies from source on older macOS version. Colima requires [Lima](https://github.com/lima-vm/lima) and [Qemu](https://www.qemu.org/).
 ## Does Colima support autostart?
 
 Since v0.5.6 Colima supports foreground mode via the `--foreground` flag. i.e. `colima start --foreground`.
