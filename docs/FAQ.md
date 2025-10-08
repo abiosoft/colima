@@ -57,14 +57,11 @@ Colima supports and works on both Intel and Apple Silicon Macs, with macOS >= 13
 
 Feedbacks would be appreciated.
 
-For macOS 12 (Monterey) and prior, as neither Homebrew and QEMU are supporting these version, the compatibility is unfortunately too hazardous for Colima.
+## Are older macOS versions supported?
 
-> QEMU requires the most recent macOS version that is currently available. Support for the last previous version will be dropped two years after the current version has been released or when Apple drops support for it, whatever comes first. ([source](https://www.qemu.org/download/#macos))
+Colima is supported and regularly tested on the latest macOS version. However, Colima requires macOS 13 or newer.
 
-> macOS 14 (Sonoma) or higher is best and supported, 10.15 (Catalina) – 13 (Ventura) are unsupported but may work and 10.14 (Mojave) and older will not run Homebrew at all. ([source](https://docs.brew.sh/Installation#2))
-
-You can either try to install older versions of Colima and QEMU (through [MacPorts](https://www.macports.org/)), with no success guarantee, either fallback to Docker Desktop. You can find older Docker Desktop versions compatible with you macOS version on this [gist](https://gist.github.com/franklinyu/5e0bb9d6c0d873f33c78415dd2ea4138). Or, try to update macOS using [OpenCore Legacy Patcher](https://dortania.github.io/OpenCore-Legacy-Patcher/).
-
+You may be able to build Colima and it's dependencies from source on older macOS version. Colima requires [Lima](https://github.com/lima-vm/lima) and [Qemu](https://www.qemu.org/).
 ## Does Colima support autostart?
 
 Since v0.5.6 Colima supports foreground mode via the `--foreground` flag. i.e. `colima start --foreground`.
