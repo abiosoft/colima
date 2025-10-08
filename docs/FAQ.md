@@ -53,9 +53,15 @@ Colima is basically a higher level usage of Lima and utilises Lima to provide Do
 
 ## Are Apple Silicon Macs supported?
 
-Colima supports and works on both Intel and Apple Silicon Macs.
+Colima supports and works on both Intel and Apple Silicon Macs, with macOS >= 13 (Ventura).
 
 Feedbacks would be appreciated.
+
+For macOS 12 (Monterey) and prior, as neither Homebrew and QEMU are supporting these version, the compatibility is unfortunately too hazardous for Colima.
+
+> QEMU requires the most recent macOS version that is currently available. Support for the last previous version will be dropped two years after the current version has been released or when Apple drops support for it, whatever comes first. ([source](https://www.qemu.org/download/#macos))
+
+You can either try to install older versions of Colima and QEMU (through [MacPorts](https://www.macports.org/)), with no success guarantee, either fallback to Docker Desktop. You can find older Docker Desktop versions compatible with you macOS version on this [gist](https://gist.github.com/franklinyu/5e0bb9d6c0d873f33c78415dd2ea4138).
 
 ## Does Colima support autostart?
 
