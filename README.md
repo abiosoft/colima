@@ -10,7 +10,7 @@
 
 ## Features
 
-Support for Intel and Apple Silicon macOS (>= 13 - Ventura), and Linux
+Support for Intel and Apple Silicon macOS, and Linux
 
 - Simple CLI interface with sensible defaults
 - Automatic Port Forwarding
@@ -24,8 +24,6 @@ Support for Intel and Apple Silicon macOS (>= 13 - Ventura), and Linux
 ## Getting Started
 
 ### Installation
-
-**NOTE**: Colima requires macOS >= 13 (Ventura). For older macOS version, check [FAQ](docs/FAQ.md#are-apple-silicon-macs-supported).
 
 Colima is available on Homebrew, MacPorts, and Nix. Check [here](docs/INSTALL.md) for other installation options.
 

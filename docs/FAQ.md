@@ -53,7 +53,7 @@ Colima is basically a higher level usage of Lima and utilises Lima to provide Do
 
 ## Are Apple Silicon Macs supported?
 
-Colima supports and works on both Intel and Apple Silicon Macs, with macOS >= 13 (Ventura).
+Colima supports and works on both Intel and Apple Silicon Macs.
 
 Feedbacks would be appreciated.
 
