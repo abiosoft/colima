@@ -9,14 +9,9 @@ import (
 )
 
 const (
-	localhostAddr = "127.0.0.1"
-	gatewayAddr   = "192.168.5.2"
+	localhostAddr         = "127.0.0.1"
+	defaultGatewayAddress = "192.168.5.2"
 )
-
-var dnsHosts = map[string]string{
-	"host.docker.internal": gatewayAddr,
-	"host.lima.internal":   gatewayAddr,
-}
 
 func hasDnsmasq(l *limaVM) bool {
 	// check if dnsmasq is installed
@@ -28,6 +23,22 @@ func (l *limaVM) setupDNS(conf config.Config) error {
 		// older image still using systemd-resolved
 		// ignore
 		return nil
+	}
+
+	// use custom gateway address
+	var gatewayAddr = defaultGatewayAddress
+	customGatewayAddress := conf.Network.GatewayAddress
+	if len(customGatewayAddress) != 0 {
+		adjustedGateway, err := limautil.AdjustGateway(customGatewayAddress)
+		if err != nil {
+			return err
+		}
+		gatewayAddr = adjustedGateway
+	}
+
+	var dnsHosts = map[string]string{
+		"host.docker.internal": gatewayAddr,
+		"host.lima.internal":   gatewayAddr,
 	}
 
 	internalIP := limautil.InternalIPAddress(config.CurrentProfile().ID)

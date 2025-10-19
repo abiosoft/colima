@@ -2,6 +2,8 @@ package limautil
 
 import (
 	"bytes"
+	"fmt"
+	"net"
 	"strings"
 )
 
@@ -50,4 +52,41 @@ func getIPAddress(profileID, interfaceName string) string {
 
 	_ = cmd.Run()
 	return strings.TrimSpace(buf.String())
+}
+
+type LimaNetworkConfig struct {
+	Mode    string `yaml:"mode"`
+	Gateway string `yaml:"gateway"`
+	Netmask string `yaml:"netmask"`
+}
+
+type LimaNetwork struct {
+	Networks struct {
+		UserV2 LimaNetworkConfig `yaml:"user-v2"`
+	} `yaml:"networks"`
+}
+
+// AdjustGateway ensures gateway is a valid IPv4 address and then ensures the last octet is “2”.
+// If it’s valid IPv4 but last octet != 2, it changes the last octet to 2.
+func AdjustGateway(gateway string) (string, error) {
+	ip := net.ParseIP(gateway)
+	if ip == nil {
+		return "", fmt.Errorf("gateway %q is not a valid IP address", gateway)
+	}
+	ip4 := ip.To4()
+	if ip4 == nil {
+		return "", fmt.Errorf("gateway %q is not IPv4", gateway)
+	}
+
+	parts := strings.Split(gateway, ".")
+	if len(parts) != 4 {
+		return "", fmt.Errorf("gateway %q does not have 4 octets", gateway)
+	}
+
+	if parts[3] != "2" {
+		parts[3] = "2"
+		gateway = strings.Join(parts, ".")
+	}
+
+	return gateway, nil
 }

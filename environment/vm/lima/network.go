@@ -11,13 +11,35 @@ import (
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/util"
 	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
 )
 
-func (l *limaVM) writeNetworkFile() error {
+func (l *limaVM) writeNetworkFile(conf config.Config) error {
 	networkFile := limautil.NetworkFile()
 	embeddedFile, err := embedded.Read("network/networks.yaml")
 	if err != nil {
 		return fmt.Errorf("error reading embedded network config file: %w", err)
+	}
+
+	// use custom gateway address
+	gatewayAddress := conf.Network.GatewayAddress
+	if len(gatewayAddress) != 0 {
+		var cfg limautil.LimaNetwork
+		if err := yaml.Unmarshal(embeddedFile, &cfg); err != nil {
+			return fmt.Errorf("error unmarshalling the `networks.yaml` file: %w", err)
+		}
+
+		adjustedGateway, err := limautil.AdjustGateway(gatewayAddress)
+		if err != nil {
+			return err
+		}
+		cfg.Networks.UserV2.Gateway = adjustedGateway
+
+		out, err := yaml.Marshal(&cfg)
+		if err != nil {
+			return fmt.Errorf("error marshalling the `networks.yaml` file: %w", err)
+		}
+		embeddedFile = out
 	}
 
 	// if there are no running instances, clear network directory

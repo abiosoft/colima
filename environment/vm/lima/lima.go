@@ -111,7 +111,8 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 		return yamlutil.WriteYAML(l.limaConf, confFile)
 	})
 
-	a.Add(l.writeNetworkFile)
+	a.Add(func() error { return l.writeNetworkFile(conf) })
+
 	a.Add(func() error {
 		return l.host.Run(limactl, "start", "--tty=false", confFile)
 	})
@@ -166,7 +167,7 @@ func (l *limaVM) resume(ctx context.Context, conf config.Config) error {
 		return err
 	})
 
-	a.Add(l.writeNetworkFile)
+	a.Add(func() error { return l.writeNetworkFile(conf) })
 
 	a.Stage("starting")
 	a.Add(func() error {
