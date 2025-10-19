@@ -29,11 +29,7 @@ func (l *limaVM) setupDNS(conf config.Config) error {
 	var gatewayAddr = defaultGatewayAddress
 	customGatewayAddress := conf.Network.GatewayAddress
 	if len(customGatewayAddress) != 0 {
-		adjustedGateway, err := limautil.AdjustGateway(customGatewayAddress)
-		if err != nil {
-			return err
-		}
-		gatewayAddr = adjustedGateway
+		gatewayAddr = customGatewayAddress
 	}
 
 	var dnsHosts = map[string]string{
