@@ -107,6 +107,15 @@ network:
   # Default: false
   hostAddresses: false
 
+  # Custom gateway address for the virtual machine.
+  # The last octet will be converted to 2. Always.
+  #
+  # EXAMPLE
+  # gatewayAddress: 192.168.10.2
+  #
+  # Default: 192.168.5.2
+  gatewayAddress: 192.168.5.2
+
 # ===================================================================== #
 # ADVANCED CONFIGURATION
 # ===================================================================== #

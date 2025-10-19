@@ -88,6 +88,7 @@ type Network struct {
 	Mode            string            `yaml:"mode"` // shared, bridged
 	BridgeInterface string            `yaml:"interface"`
 	PreferredRoute  bool              `yaml:"preferredRoute"`
+	GatewayAddress  string            `yaml:"gatewayAddress"`
 }
 
 // Mount is volume mount
