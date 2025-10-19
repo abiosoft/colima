@@ -29,11 +29,7 @@ func (l *limaVM) writeNetworkFile(conf config.Config) error {
 			return fmt.Errorf("error unmarshalling the `networks.yaml` file: %w", err)
 		}
 
-		adjustedGateway, err := limautil.AdjustGateway(gatewayAddress)
-		if err != nil {
-			return err
-		}
-		cfg.Networks.UserV2.Gateway = adjustedGateway
+		cfg.Networks.UserV2.Gateway = gatewayAddress
 
 		out, err := yaml.Marshal(&cfg)
 		if err != nil {
