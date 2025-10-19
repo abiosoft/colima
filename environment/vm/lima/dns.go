@@ -28,7 +28,7 @@ func (l *limaVM) setupDNS(conf config.Config) error {
 	// use custom gateway address
 	var gatewayAddr = defaultGatewayAddress
 	customGatewayAddress := conf.Network.GatewayAddress
-	if len(customGatewayAddress) != 0 {
+	if customGatewayAddress != "" {
 		gatewayAddr = customGatewayAddress
 	}
 
