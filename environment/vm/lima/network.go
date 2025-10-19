@@ -23,7 +23,7 @@ func (l *limaVM) writeNetworkFile(conf config.Config) error {
 
 	// use custom gateway address
 	gatewayAddress := conf.Network.GatewayAddress
-	if len(gatewayAddress) != 0 {
+	if gatewayAddress != "" {
 		var cfg limautil.LimaNetwork
 		if err := yaml.Unmarshal(embeddedFile, &cfg); err != nil {
 			return fmt.Errorf("error unmarshalling the `networks.yaml` file: %w", err)
