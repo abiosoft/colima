@@ -72,7 +72,7 @@ jobs:
           OS=Linux ARCH=aarch64 make
 
       - name: upload artifacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: artifacts-linux
           path: _output/binaries/
@@ -95,7 +95,7 @@ jobs:
           CGO_ENABLED=1 OS=Darwin ARCH=arm64 make
 
       - name: upload artifacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: artifacts-macos
           path: _output/binaries/
