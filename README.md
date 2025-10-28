@@ -208,7 +208,7 @@ Check [here](docs/CONTRIBUTE.md) for the instructions on contributing to the pro
 
 ## Help Wanted
 
-- Documentation and project website
+- Documentation and project [website](lima-vm.io)
 
 ## License
 
