@@ -62,6 +62,9 @@ func ValidateConfig(c config.Config) error {
 	if util.MacOS13OrNewer() {
 		validVMTypes["vz"] = true
 	}
+	if util.MacOS13OrNewerOnArm() {
+		validVMTypes["krunkit"] = true
+	}
 	if _, ok := validVMTypes[c.VMType]; !ok {
 		return fmt.Errorf("invalid vmType: '%s'", c.VMType)
 	}
