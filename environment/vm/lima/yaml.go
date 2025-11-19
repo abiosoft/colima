@@ -33,11 +33,11 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 	if util.MacOS13OrNewer() && conf.VMType == limaconfig.VZ && sameArchitecture {
 		l.VMType = limaconfig.VZ
 
-		// Rosetta is only available on M1
+		// Rosetta is only available on Apple Silicon
 		if conf.VZRosetta && util.MacOS13OrNewerOnArm() {
 			if util.RosettaRunning() {
-				l.Rosetta.Enabled = true
-				l.Rosetta.BinFmt = true
+				l.VMOpts.VZOpts.Rosetta.Enabled = true
+				l.VMOpts.VZOpts.Rosetta.BinFmt = true
 			} else {
 				logrus.Warnln("Unable to enable Rosetta: Rosetta2 is not installed")
 				logrus.Warnln("Run 'softwareupdate --install-rosetta' to install Rosetta2")
@@ -47,6 +47,11 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 		if util.MacOSNestedVirtualizationSupported() {
 			l.NestedVirtualization = conf.NestedVirtualization
 		}
+	}
+
+	// when krunkit is chosen and OS version supports it
+	if util.MacOS13OrNewerOnArm() && conf.VMType == limaconfig.Krunkit && sameArchitecture {
+		l.VMType = limaconfig.Krunkit
 	}
 
 	if conf.CPUType != "" && conf.CPUType != "host" {
