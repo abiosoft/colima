@@ -7,12 +7,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"text/template"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment/container/containerd"
+	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/fsutil"
 	"github.com/abiosoft/colima/util/osutil"
 	"github.com/spf13/cobra"
@@ -90,10 +90,6 @@ var nerdctlLinkFunc = func() *cobra.Command {
 				exists = true
 			}
 
-			t, err := template.New("").Parse(nerdctlScript)
-			if err != nil {
-				return fmt.Errorf("error parsing nerdctl script template: %w", err)
-			}
 			var values = struct {
 				ColimaApp string
 				Profile   string
@@ -101,8 +97,8 @@ var nerdctlLinkFunc = func() *cobra.Command {
 				ColimaApp: osutil.Executable(),
 				Profile:   config.CurrentProfile().ShortName,
 			}
-			var buf bytes.Buffer
-			if err := t.Execute(&buf, values); err != nil {
+			buf, err := util.ParseTemplate(nerdctlScript, values)
+			if err != nil {
 				return fmt.Errorf("error applying nerdctl script template: %w", err)
 			}
 
@@ -117,7 +113,7 @@ var nerdctlLinkFunc = func() *cobra.Command {
 				if err := fsutil.MkdirAll("/usr/local/bin", 0755); err != nil {
 					return nil
 				}
-				return os.WriteFile(nerdctlCmdArgs.path, buf.Bytes(), 0755)
+				return os.WriteFile(nerdctlCmdArgs.path, buf, 0755)
 			}
 
 			// sudo is needed for the default path
@@ -138,7 +134,7 @@ var nerdctlLinkFunc = func() *cobra.Command {
 			// install script
 			{
 				c := cli.CommandInteractive("sudo", "sh", "-c", "cat > "+nerdctlCmdArgs.path)
-				c.Stdin = &buf
+				c.Stdin = bytes.NewReader(buf)
 				if err := c.Run(); err != nil {
 					return err
 				}
