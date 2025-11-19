@@ -29,7 +29,6 @@ type Config struct {
 	PortForwards         []PortForward     `yaml:"portForwards,omitempty"`
 	Networks             []Network         `yaml:"networks,omitempty"`
 	Provision            []Provision       `yaml:"provision,omitempty" json:"provision,omitempty"`
-	Rosetta              Rosetta           `yaml:"rosetta,omitempty" json:"rosetta,omitempty"`
 	NestedVirtualization bool              `yaml:"nestedVirtualization,omitempty" json:"nestedVirtualization,omitempty"`
 }
 
@@ -70,15 +69,6 @@ type Firmware struct {
 	LegacyBIOS bool `yaml:"legacyBIOS"`
 }
 
-type VMOpts struct {
-	QEMU QEMUOpts `yaml:"qemu,omitempty" json:"qemu,omitempty"`
-}
-
-type QEMUOpts struct {
-	MinimumVersion *string         `yaml:"minimumVersion,omitempty" json:"minimumVersion,omitempty"`
-	CPUType        map[Arch]string `yaml:"cpuType,omitempty" json:"cpuType,omitempty"`
-}
-
 type (
 	Proto     = string
 	MountType = string
@@ -93,8 +83,9 @@ const (
 	NINEP    MountType = "9p"
 	VIRTIOFS MountType = "virtiofs"
 
-	QEMU VMType = "qemu"
-	VZ   VMType = "vz"
+	Krunkit VMType = "krunkit"
+	QEMU    VMType = "qemu"
+	VZ      VMType = "vz"
 )
 
 type PortForward struct {
@@ -155,6 +146,20 @@ type NineP struct {
 	ProtocolVersion string `yaml:"protocolVersion,omitempty" json:"protocolVersion,omitempty"`
 	Msize           string `yaml:"msize,omitempty" json:"msize,omitempty"`
 	Cache           string `yaml:"cache,omitempty" json:"cache,omitempty"`
+}
+
+type VMOpts struct {
+	QEMU   QEMUOpts `yaml:"qemu,omitempty" json:"qemu,omitempty"`
+	VZOpts VZOpts   `yaml:"vz,omitempty" json:"vz,omitempty"`
+}
+
+type QEMUOpts struct {
+	MinimumVersion *string         `yaml:"minimumVersion,omitempty" json:"minimumVersion,omitempty"`
+	CPUType        map[Arch]string `yaml:"cpuType,omitempty" json:"cpuType,omitempty"`
+}
+
+type VZOpts struct {
+	Rosetta Rosetta `yaml:"rosetta,omitempty" json:"rosetta,omitempty"`
 }
 
 type Rosetta struct {
