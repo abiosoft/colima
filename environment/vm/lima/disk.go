@@ -2,6 +2,7 @@ package lima
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"os"
 	"strings"
@@ -15,9 +16,13 @@ import (
 	"github.com/abiosoft/colima/environment/vm/lima/limaconfig"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/store"
+	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/downloader"
 	"gopkg.in/yaml.v3"
 )
+
+//go:embed disk.sh
+var diskScript string
 
 func (l *limaVM) createRuntimeDisk(conf config.Config) error {
 	if environment.IsNoneRuntime(conf.Runtime) {
@@ -49,7 +54,7 @@ func (l *limaVM) createRuntimeDisk(conf config.Config) error {
 		FSType: disk.FSType,
 	})
 
-	l.mountRuntimeDisk(conf)
+	l.mountRuntimeDisk(conf, format)
 	return nil
 }
 
@@ -71,7 +76,7 @@ func (l *limaVM) useRuntimeDisk(conf config.Config) {
 		FSType: disk.FSType,
 	})
 
-	l.mountRuntimeDisk(conf)
+	l.mountRuntimeDisk(conf, format)
 }
 
 func dataDisk(runtime string) environment.DataDisk {
@@ -87,7 +92,31 @@ func dataDisk(runtime string) environment.DataDisk {
 	return environment.DataDisk{}
 }
 
-func (l *limaVM) mountRuntimeDisk(conf config.Config) {
+func diskMountScript(format bool) string {
+	var values = struct {
+		Format     bool
+		InstanceId string
+	}{
+		Format:     format,
+		InstanceId: config.CurrentProfile().ID,
+	}
+
+	b, err := util.ParseTemplate(diskScript, values)
+	if err != nil {
+		// must never happen
+		panic(fmt.Sprintf("error parsing disk mount script template: %v", err))
+	}
+	return string(b)
+}
+
+func (l *limaVM) mountRuntimeDisk(conf config.Config, format bool) {
+	// provision script to prepare disk
+	l.limaConf.Provision = append(l.limaConf.Provision, limaconfig.Provision{
+		Mode:   "dependency",
+		Script: diskMountScript(format),
+	})
+
+	// handle disk mounts
 	disk := dataDisk(conf.Runtime)
 
 	// pre mount script
@@ -104,7 +133,7 @@ func (l *limaVM) mountRuntimeDisk(conf config.Config) {
 			"{mount_point}", mountPoint,
 			"{name}", dir.Name,
 			"{data_path}", dir.Path,
-		).Replace("mkdir -p {mount_point}/{name} {data_path} && mount --bind {mount_point}/{name} {data_path}")
+		).Replace("[ -d {mount_point} ] && mkdir -p {mount_point}/{name} {data_path} && mount --bind {mount_point}/{name} {data_path}")
 
 		l.limaConf.Provision = append(l.limaConf.Provision, limaconfig.Provision{
 			Mode:   "dependency",

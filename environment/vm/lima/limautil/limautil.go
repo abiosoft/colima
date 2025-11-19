@@ -11,6 +11,9 @@ import (
 // EnvLimaHome is the environment variable for the Lima directory.
 const EnvLimaHome = "LIMA_HOME"
 
+// EnvLimaDrivers is the environment variable for the path to external Lima drivers.
+const EnvLimaDrivers = "LIMA_DRIVERS_PATH"
+
 // LimactlCommand is the limactl command.
 const LimactlCommand = "limactl"
 
