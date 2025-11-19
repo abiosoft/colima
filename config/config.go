@@ -127,6 +127,8 @@ func (c Config) Empty() bool { return c.Runtime == "" } // this may be better bu
 func (c Config) DriverLabel() string {
 	if util.MacOS13OrNewer() && c.VMType == "vz" {
 		return "macOS Virtualization.Framework"
+	} else if util.MacOS13OrNewerOnArm() && c.VMType == "krunkit" {
+		return "Krunkit"
 	}
 	return "QEMU"
 }

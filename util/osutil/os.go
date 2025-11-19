@@ -39,6 +39,14 @@ func (e EnvVar) ValOr(val string) string {
 	return val
 }
 
+// WithPath appends p to the environment variable value as path list.
+func (e EnvVar) WithPath(p string) string {
+	if v := e.Val(); v != "" {
+		return v + string(os.PathListSeparator) + p
+	}
+	return p
+}
+
 const EnvColimaBinary = "COLIMA_BINARY"
 
 // Executable returns the path name for the executable that started
