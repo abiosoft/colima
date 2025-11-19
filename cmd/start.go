@@ -307,7 +307,7 @@ func setFlagDefaults(cmd *cobra.Command) {
 	// mount type
 	{
 		// convert mount type for qemu
-		if startCmdArgs.VMType != "vz" && startCmdArgs.MountType == defaultMountTypeVZ {
+		if startCmdArgs.VMType != "vz" && startCmdArgs.VMType != "krunkit" && startCmdArgs.MountType == defaultMountTypeVZ {
 			startCmdArgs.MountType = defaultMountTypeQEMU
 			if cmd.Flag("mount-type").Changed {
 				log.Warnf("%s is only available for 'vz' vmType, using %s", defaultMountTypeVZ, defaultMountTypeQEMU)
