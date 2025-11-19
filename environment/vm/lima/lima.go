@@ -33,7 +33,8 @@ func New(host environment.HostActions) environment.VM {
 	envHome := limautil.EnvLimaHome + "=" + limaHome
 	envLimaInstance := envLimaInstance + "=" + config.CurrentProfile().ID
 	envBinary := osutil.EnvColimaBinary + "=" + osutil.Executable()
-	envs = append(envs, envHome, envLimaInstance, envBinary)
+	envDrivers := limautil.EnvLimaDrivers + "=" + osutil.EnvVar(limautil.EnvLimaDrivers).WithPath("/usr/local/bin")
+	envs = append(envs, envHome, envLimaInstance, envBinary, envDrivers)
 
 	// consider making this truly flexible to support other VMs
 	return &limaVM{

@@ -11,6 +11,9 @@ import (
 // EnvLimaHome is the environment variable for the Lima directory.
 const EnvLimaHome = "LIMA_HOME"
 
+// EnvLimaDrivers is the environment variable for the path to external Lima drivers.
+const EnvLimaDrivers = "LIMA_DRIVERS_PATH"
+
 // LimactlCommand is the limactl command.
 const LimactlCommand = "limactl"
 
@@ -19,5 +22,6 @@ func Limactl(args ...string) *exec.Cmd {
 	cmd := cli.Command(LimactlCommand, args...)
 	cmd.Env = append(cmd.Env, os.Environ()...)
 	cmd.Env = append(cmd.Env, EnvLimaHome+"="+config.LimaDir())
+	cmd.Env = append(cmd.Env, EnvLimaDrivers+"=/usr/local/bin")
 	return cmd
 }
