@@ -40,7 +40,7 @@ nix-shell -p colima
 
 Install dependencies
 ```
-sudo pacman -S qemu-base go docker
+sudo pacman -S qemu-full go docker
 ```
 Install Lima and Colima from Aur
 ```
