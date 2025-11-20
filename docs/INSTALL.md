@@ -40,10 +40,8 @@ nix-shell -p colima
 
 Install dependencies
 ```
-# If you see issues with ssh, try `qemu-full` instead.
-sudo pacman -S qemu-base go docker
+sudo pacman -S qemu-full go docker
 ```
-
 Install Lima and Colima from Aur
 ```
 yay -S lima-bin colima-bin
