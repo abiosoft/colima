@@ -25,7 +25,7 @@ Support for Intel and Apple Silicon macOS, and Linux
 
 ### Installation
 
-Colima is available on Homebrew, MacPorts, and Nix. Check [here](docs/INSTALL.md) for other installation options.
+Colima is available on Homebrew, MacPorts, Nix and [mise](http://github.com/jdx/mise). Check [here](docs/INSTALL.md) for other installation options.
 
 ```
 # Homebrew
@@ -36,6 +36,10 @@ sudo port install colima
 
 # Nix
 nix-env -iA nixpkgs.colima
+
+# Mise
+mise use -g colima@latest
+
 ```
 
 Or stay on the bleeding edge (only Homebrew)
