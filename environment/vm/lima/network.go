@@ -43,6 +43,14 @@ func (l *limaVM) replicateHostAddresses(conf config.Config) error {
 				return err
 			}
 		}
+		// also replicate loopback addresses
+		for _, ip := range util.LoopbackIPAddresses() {
+			if ip.String() != "127.0.0.1" {
+				if err := l.RunQuiet("sudo", "ip", "address", "add", ip.String()+"/24", "dev", "lo"); err != nil {
+					return err
+				}
+			}
+		}
 	}
 	return nil
 }
@@ -52,6 +60,12 @@ func (l *limaVM) removeHostAddresses() {
 	if !conf.Network.Address && conf.Network.HostAddresses {
 		for _, ip := range util.HostIPAddresses() {
 			_ = l.RunQuiet("sudo", "ip", "address", "del", ip.String()+"/24", "dev", "lo")
+		}
+		// also remove loopback addresses
+		for _, ip := range util.LoopbackIPAddresses() {
+			if ip.String() != "127.0.0.1" {
+				_ = l.RunQuiet("sudo", "ip", "address", "del", ip.String()+"/24", "dev", "lo")
+			}
 		}
 	}
 }

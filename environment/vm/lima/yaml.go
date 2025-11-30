@@ -285,7 +285,7 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 				Proto:             limaconfig.UDP,
 			},
 		)
-		// bind 127.0.0.1
+		// bind 127.0.0.1 and other loopback addresses
 		l.PortForwards = append(l.PortForwards,
 			limaconfig.PortForward{
 				GuestIP:        net.ParseIP("127.0.0.1"),
@@ -302,6 +302,28 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 				Proto:          limaconfig.UDP,
 			},
 		)
+
+		// bind all additional loopback addresses (127.0.0.2-127.0.0.254)
+		for _, ip := range util.LoopbackIPAddresses() {
+			if ip.String() != "127.0.0.1" {
+				l.PortForwards = append(l.PortForwards,
+					limaconfig.PortForward{
+						GuestIP:        ip,
+						GuestPortRange: [2]int{1, 65535},
+						HostIP:         ip,
+						HostPortRange:  [2]int{1, 65535},
+						Proto:          limaconfig.TCP,
+					},
+					limaconfig.PortForward{
+						GuestIP:        ip,
+						GuestPortRange: [2]int{1, 65535},
+						HostIP:         ip,
+						HostPortRange:  [2]int{1, 65535},
+						Proto:          limaconfig.UDP,
+					},
+				)
+			}
+		}
 
 		// bind all host addresses when network address is not enabled
 		if !conf.Network.Address && conf.Network.HostAddresses {
