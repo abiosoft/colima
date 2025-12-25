@@ -435,6 +435,7 @@ func DataDisk() environment.DataDisk {
 		FSType: "ext4",
 		Dirs: []environment.DiskDir{
 			{Name: "incus-disks", Path: "/var/lib/incus/disks"},
+			{Name: "incus-backups", Path: "/var/lib/incus/backups"},
 		},
 	}
 }
