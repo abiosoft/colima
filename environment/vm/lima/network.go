@@ -19,7 +19,6 @@ var defaultLimaNetworkConfig = limautil.LimaNetwork{
 		UserV2 limautil.LimaNetworkConfig `yaml:"user-v2"`
 	}{
 		UserV2: limautil.LimaNetworkConfig{
-
 			Mode:    "user-v2",
 			Gateway: net.ParseIP("192.168.5.2"),
 			Netmask: "255.255.255.0",

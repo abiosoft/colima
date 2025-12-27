@@ -124,12 +124,8 @@ func validateGatewayAddress(gateway net.IP) error {
 		return fmt.Errorf("gateway %q is not IPv4", gateway)
 	}
 
-	parts := strings.Split(gateway.String(), ".")
-	if len(parts) != 4 {
-		return fmt.Errorf("gateway %q does not have 4 octets", gateway)
-	}
-
-	if parts[3] != "2" {
+	// Check last octet
+	if ip4[3] != 2 {
 		return fmt.Errorf("the last octet of gateway %q is not 2", gateway)
 	}
 
