@@ -2,6 +2,7 @@ package limautil
 
 import (
 	"bytes"
+	"net"
 	"strings"
 )
 
@@ -50,4 +51,16 @@ func getIPAddress(profileID, interfaceName string) string {
 
 	_ = cmd.Run()
 	return strings.TrimSpace(buf.String())
+}
+
+type LimaNetworkConfig struct {
+	Mode    string `yaml:"mode"`
+	Gateway net.IP `yaml:"gateway"`
+	Netmask string `yaml:"netmask"`
+}
+
+type LimaNetwork struct {
+	Networks struct {
+		UserV2 LimaNetworkConfig `yaml:"user-v2"`
+	} `yaml:"networks"`
 }

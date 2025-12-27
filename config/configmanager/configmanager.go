@@ -2,6 +2,7 @@ package configmanager
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"strings"
 
@@ -80,6 +81,12 @@ func ValidateConfig(c config.Config) error {
 		return fmt.Errorf("invalid port forwarder: '%s'", c.PortForwarder)
 	}
 
+	if c.Network.GatewayAddress != nil {
+		if err := validateGatewayAddress(c.Network.GatewayAddress); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -106,5 +113,21 @@ func Teardown() error {
 	if _, err := os.Stat(dir); err == nil {
 		return os.RemoveAll(dir)
 	}
+	return nil
+}
+
+// Validates that gateway is a valid IPv4 address and that the last octet is “2”.
+// Lima uses the last octet as 2 for gateways.
+func validateGatewayAddress(gateway net.IP) error {
+	ip4 := gateway.To4()
+	if ip4 == nil {
+		return fmt.Errorf("gateway %q is not IPv4", gateway)
+	}
+
+	// Check last octet
+	if ip4[3] != 2 {
+		return fmt.Errorf("the last octet of gateway %q is not 2", gateway)
+	}
+
 	return nil
 }
