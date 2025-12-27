@@ -2,6 +2,7 @@ package limautil
 
 import (
 	"bytes"
+	"net"
 	"strings"
 )
 
@@ -54,7 +55,7 @@ func getIPAddress(profileID, interfaceName string) string {
 
 type LimaNetworkConfig struct {
 	Mode    string `yaml:"mode"`
-	Gateway string `yaml:"gateway"`
+	Gateway net.IP `yaml:"gateway"`
 	Netmask string `yaml:"netmask"`
 }
 

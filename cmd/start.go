@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -212,7 +213,7 @@ func init() {
 	}
 
 	// Gateway Address
-	startCmd.Flags().StringVar(&startCmdArgs.Network.GatewayAddress, "gateway-address", "192.168.5.2", "gateway address")
+	startCmd.Flags().IPVar(&startCmdArgs.Network.GatewayAddress, "gateway-address", net.ParseIP("192.168.5.2"), "gateway address")
 
 	// binfmt
 	startCmd.Flags().BoolVar(&startCmdArgs.Flags.Binfmt, "binfmt", true, binfmtDesc)
