@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -45,6 +46,7 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 		"  colima start --arch aarch64\n" +
 		"  colima start --dns 1.1.1.1 --dns 8.8.8.8\n" +
 		"  colima start --dns-host example.com=1.2.3.4\n" +
+		"  colima start --gateway-address 192.168.6.2\n" +
 		"  colima start --kubernetes --k3s-arg='\"--disable=coredns,servicelb,traefik,local-storage,metrics-server\"'",
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -209,6 +211,9 @@ func init() {
 			startCmd.Flags().BoolVarP(&startCmdArgs.NestedVirtualization, "nested-virtualization", "z", false, "enable nested virtualization")
 		}
 	}
+
+	// Gateway Address
+	startCmd.Flags().IPVar(&startCmdArgs.Network.GatewayAddress, "gateway-address", net.ParseIP("192.168.5.2"), "gateway address")
 
 	// binfmt
 	startCmd.Flags().BoolVar(&startCmdArgs.Flags.Binfmt, "binfmt", true, binfmtDesc)
@@ -517,6 +522,9 @@ func prepareConfig(cmd *cobra.Command) {
 	}
 	if !cmd.Flag("dns-host").Changed {
 		startCmdArgs.Network.DNSHosts = current.Network.DNSHosts
+	}
+	if !cmd.Flag("gateway-address").Changed {
+		startCmdArgs.Network.GatewayAddress = current.Network.GatewayAddress
 	}
 	if !cmd.Flag("env").Changed {
 		startCmdArgs.Env = current.Env
