@@ -3,6 +3,7 @@
 - [FAQs](#faqs)
   - [How does Colima compare to Lima?](#how-does-colima-compare-to-lima)
   - [Are Apple Silicon Macs supported?](#are-apple-silicon-macs-supported)
+  - [Are older macOS versions supported?](#are-older-macos-versions-supported)
   - [Does Colima support autostart?](#does-colima-support-autostart)
   - [Can config file be used instead of cli flags?](#can-config-file-be-used-instead-of-cli-flags)
     - [Specifying the config location](#specifying-the-config-location)
@@ -155,7 +156,7 @@ This can be fixed by any of the following approaches. Ensure the Docker socket p
 2. Setting the `DOCKER_HOST` environment variable to point to Colima socket.
 
    ```sh
-   export DOCKER_HOST="unix://${COLIMA_HOME}/default/docker.sock"
+   export DOCKER_HOST="unix://$HOME/.colima/default/docker.sock"
    ```
 3. Linking the Colima socket to the default socket path. **Note** that this may break other Docker servers.
 
