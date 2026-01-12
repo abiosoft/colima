@@ -35,7 +35,7 @@ func RandomAvailablePort() int {
 	return listener.Addr().(*net.TCPAddr).Port
 }
 
-// HostIPAddresses returns all IPv4 addresses on the host.
+// HostIPAddresses returns all IPv4 addresses on the host, including loopback addresses except 127.0.0.1.
 func HostIPAddresses() []net.IP {
 	var addresses []net.IP
 	ints, err := net.InterfaceAddrs()
@@ -45,8 +45,27 @@ func HostIPAddresses() []net.IP {
 	for i := range ints {
 		split := strings.Split(ints[i].String(), "/")
 		addr := net.ParseIP(split[0]).To4()
-		// ignore default loopback
+		// include all loopback addresses except 127.0.0.1 (which is handled separately)
 		if addr != nil && addr.String() != "127.0.0.1" {
+			addresses = append(addresses, addr)
+		}
+	}
+
+	return addresses
+}
+
+// LoopbackIPAddresses returns all loopback IPv4 addresses on the host (127.0.0.0/8).
+func LoopbackIPAddresses() []net.IP {
+	var addresses []net.IP
+	ints, err := net.InterfaceAddrs()
+	if err != nil {
+		return nil
+	}
+	for i := range ints {
+		split := strings.Split(ints[i].String(), "/")
+		addr := net.ParseIP(split[0]).To4()
+		// include all loopback addresses (127.0.0.0/8)
+		if addr != nil && addr[0] == 127 {
 			addresses = append(addresses, addr)
 		}
 	}
