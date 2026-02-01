@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/fatih/color"
@@ -24,6 +25,8 @@ type verboseWriter struct {
 	overflow   int
 
 	lastUpdate time.Time
+
+	sync.Mutex
 }
 
 // NewVerboseWriter creates a new verbose writer.
@@ -38,6 +41,9 @@ func (v *verboseWriter) Write(p []byte) (n int, err error) {
 	if !isTerminal {
 		return os.Stdout.Write(p)
 	}
+
+	v.Lock()
+	defer v.Unlock()
 
 	for i, c := range p {
 		if c != '\n' {
@@ -81,6 +87,9 @@ func (v *verboseWriter) addLine() {
 }
 
 func (v *verboseWriter) Close() error {
+	v.Lock()
+	defer v.Unlock()
+
 	if v.buf.Len() > 0 {
 		if err := v.refresh(); err != nil {
 			return err
@@ -91,7 +100,7 @@ func (v *verboseWriter) Close() error {
 	return nil
 }
 
-func (v verboseWriter) sanitizeLine(line string) string {
+func (v *verboseWriter) sanitizeLine(line string) string {
 	// remove logrus noises
 	if strings.HasPrefix(line, "time=") && strings.Contains(line, "msg=") {
 		line = line[strings.Index(line, "msg=")+4:]
