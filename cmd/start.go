@@ -224,7 +224,7 @@ func init() {
 	startCmd.Flags().BoolVar(&startCmdArgs.Flags.SaveConfig, "save-config", saveConfigDefault, "persist and overwrite config file with (newly) specified flags")
 
 	// mounts
-	startCmd.Flags().StringSliceVarP(&startCmdArgs.Flags.Mounts, "mount", "V", nil, "directories to mount, suffix ':w' for writable")
+	startCmd.Flags().StringSliceVarP(&startCmdArgs.Flags.Mounts, "mount", "V", nil, "directories to mount, suffix ':w' for writable, disable with 'none'")
 	startCmd.Flags().StringVar(&startCmdArgs.MountType, "mount-type", defaultMountType, "volume driver for the mount ("+mounts+")")
 	startCmd.Flags().BoolVar(&startCmdArgs.MountINotify, "mount-inotify", true, "propagate inotify file events to the VM")
 
@@ -272,6 +272,12 @@ func dnsHostsFromFlag(hosts []string) map[string]string {
 func mountsFromFlag(mounts []string) []config.Mount {
 	mnts := make([]config.Mount, len(mounts))
 	for i, mount := range mounts {
+
+		// if one of the parameters is none, treat as none.
+		if strings.ToLower(mount) == "none" {
+			return nil
+		}
+
 		str := strings.SplitN(mount, ":", 3)
 		mnt := config.Mount{Location: str[0]}
 

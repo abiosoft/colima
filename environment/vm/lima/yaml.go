@@ -368,7 +368,7 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 
 	/* end */
 
-	if len(conf.Mounts) == 0 {
+	if conf.Mounts != nil && len(conf.Mounts) == 0 {
 		l.Mounts = append(l.Mounts,
 			limaconfig.Mount{Location: "~", Writable: true},
 		)

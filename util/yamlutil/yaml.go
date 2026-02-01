@@ -78,6 +78,12 @@ func encodeYAML(conf config.Config) ([]byte, error) {
 			}
 		}
 
+		// nil slices are converted to untyped nil to encode as `null` instead of `[]`.
+		// this preserves nil vs empty slice distinction when the yaml is loaded back.
+		if v := reflect.ValueOf(val); v.Kind() == reflect.Slice && v.IsNil() {
+			val = nil
+		}
+
 		// lazy way, delegate node construction to the yaml library via a roundtrip.
 		// no performance concern as only one file is being read
 		b, err := yaml.Marshal(val)
