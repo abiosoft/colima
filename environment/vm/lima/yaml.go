@@ -220,7 +220,13 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 	}
 
 	// ports and sockets
-	{
+	if conf.PortForwarder == "none" {
+		l.PortForwards = append(l.PortForwards, limaconfig.PortForward{
+			GuestIP: net.IPv4zero,
+			Proto:   "any",
+			Ignore:  true,
+		})
+	} else {
 		// docker socket
 		if conf.Runtime == docker.Name {
 			l.PortForwards = append(l.PortForwards,

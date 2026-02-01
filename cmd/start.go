@@ -179,7 +179,7 @@ func init() {
 	startCmd.Flags().BoolVar(&startCmdArgs.Flags.Template, "template", true, "use the template file for initial configuration")
 
 	// port forwarder
-	startCmd.Flags().StringVar(&startCmdArgs.PortForwarder, "port-forwarder", "ssh", "port forwarder to use (ssh, grpc)")
+	startCmd.Flags().StringVar(&startCmdArgs.PortForwarder, "port-forwarder", "ssh", "port forwarder to use (ssh, grpc, none)")
 
 	// retain cpu flag for backward compatibility
 	startCmd.Flags().IntVar(&startCmdArgs.Flags.LegacyCPU, "cpu", defaultCPU, "number of CPUs")

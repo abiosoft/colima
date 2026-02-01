@@ -50,7 +50,7 @@ func LoadFrom(file string) (config.Config, error) {
 // ValidateConfig validates config before we use it
 func ValidateConfig(c config.Config) error {
 	validMountTypes := map[string]bool{"9p": true, "sshfs": true}
-	validPortForwarders := map[string]bool{"grpc": true, "ssh": true}
+	validPortForwarders := map[string]bool{"grpc": true, "ssh": true, "none": true}
 
 	if util.MacOS13OrNewer() {
 		validMountTypes["virtiofs"] = true
