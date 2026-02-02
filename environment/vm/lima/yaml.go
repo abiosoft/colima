@@ -261,6 +261,7 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 				})
 		}
 
+		// incus socket
 		if conf.Runtime == incus.Name {
 			l.PortForwards = append(l.PortForwards,
 				limaconfig.PortForward{
@@ -270,56 +271,66 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 				})
 		}
 
-		// handle port forwarding to allow listening on 0.0.0.0
-		// bind 0.0.0.0
-		l.PortForwards = append(l.PortForwards,
-			limaconfig.PortForward{
-				GuestIPMustBeZero: true,
-				GuestIP:           net.IPv4zero,
-				GuestPortRange:    [2]int{1, 65535},
-				HostIP:            net.IPv4zero,
-				HostPortRange:     [2]int{1, 65535},
-				Proto:             limaconfig.TCP,
-			},
-			limaconfig.PortForward{
-				GuestIPMustBeZero: true,
-				GuestIP:           net.IPv4zero,
-				GuestPortRange:    [2]int{1, 65535},
-				HostIP:            net.IPv4zero,
-				HostPortRange:     [2]int{1, 65535},
-				Proto:             limaconfig.UDP,
-			},
-		)
-		// bind 127.0.0.1
-		l.PortForwards = append(l.PortForwards,
-			limaconfig.PortForward{
-				GuestIP:        net.ParseIP("127.0.0.1"),
-				GuestPortRange: [2]int{1, 65535},
-				HostIP:         net.ParseIP("127.0.0.1"),
-				HostPortRange:  [2]int{1, 65535},
-				Proto:          limaconfig.TCP,
-			},
-			limaconfig.PortForward{
-				GuestIP:        net.ParseIP("127.0.0.1"),
-				GuestPortRange: [2]int{1, 65535},
-				HostIP:         net.ParseIP("127.0.0.1"),
-				HostPortRange:  [2]int{1, 65535},
-				Proto:          limaconfig.UDP,
-			},
-		)
+		if conf.PortForwarder == "none" {
+			// disable port forwarding
+			l.PortForwards = append(l.PortForwards,
+				limaconfig.PortForward{
+					GuestIP: net.IPv4zero,
+					Proto:   "any",
+					Ignore:  true,
+				})
+		} else {
+			// handle port forwarding to allow listening on 0.0.0.0
+			// bind 0.0.0.0
+			l.PortForwards = append(l.PortForwards,
+				limaconfig.PortForward{
+					GuestIPMustBeZero: true,
+					GuestIP:           net.IPv4zero,
+					GuestPortRange:    [2]int{1, 65535},
+					HostIP:            net.IPv4zero,
+					HostPortRange:     [2]int{1, 65535},
+					Proto:             limaconfig.TCP,
+				},
+				limaconfig.PortForward{
+					GuestIPMustBeZero: true,
+					GuestIP:           net.IPv4zero,
+					GuestPortRange:    [2]int{1, 65535},
+					HostIP:            net.IPv4zero,
+					HostPortRange:     [2]int{1, 65535},
+					Proto:             limaconfig.UDP,
+				},
+			)
+			// bind 127.0.0.1
+			l.PortForwards = append(l.PortForwards,
+				limaconfig.PortForward{
+					GuestIP:        net.ParseIP("127.0.0.1"),
+					GuestPortRange: [2]int{1, 65535},
+					HostIP:         net.ParseIP("127.0.0.1"),
+					HostPortRange:  [2]int{1, 65535},
+					Proto:          limaconfig.TCP,
+				},
+				limaconfig.PortForward{
+					GuestIP:        net.ParseIP("127.0.0.1"),
+					GuestPortRange: [2]int{1, 65535},
+					HostIP:         net.ParseIP("127.0.0.1"),
+					HostPortRange:  [2]int{1, 65535},
+					Proto:          limaconfig.UDP,
+				},
+			)
 
-		// bind all host addresses when network address is not enabled
-		if !conf.Network.Address && conf.Network.HostAddresses {
-			for _, ip := range util.HostIPAddresses() {
-				l.PortForwards = append(l.PortForwards,
-					limaconfig.PortForward{
-						GuestIP:        ip,
-						GuestPortRange: [2]int{1, 65535},
-						HostIP:         ip,
-						HostPortRange:  [2]int{1, 65535},
-						Proto:          limaconfig.TCP,
-					},
-				)
+			// bind all host addresses when network address is not enabled
+			if !conf.Network.Address && conf.Network.HostAddresses {
+				for _, ip := range util.HostIPAddresses() {
+					l.PortForwards = append(l.PortForwards,
+						limaconfig.PortForward{
+							GuestIP:        ip,
+							GuestPortRange: [2]int{1, 65535},
+							HostIP:         ip,
+							HostPortRange:  [2]int{1, 65535},
+							Proto:          limaconfig.TCP,
+						},
+					)
+				}
 			}
 		}
 	}
@@ -362,7 +373,7 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 
 	/* end */
 
-	if len(conf.Mounts) == 0 {
+	if conf.Mounts != nil && len(conf.Mounts) == 0 {
 		l.Mounts = append(l.Mounts,
 			limaconfig.Mount{Location: "~", Writable: true},
 		)

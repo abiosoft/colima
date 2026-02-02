@@ -54,12 +54,17 @@ func Test_config_Mounts(t *testing.T) {
 	}{
 		{mounts: []string{"/User/user", "/tmp/another"}},
 		{mounts: []string{"/User/another", "/User/something", "/User/else"}},
-		{isDefault: true},
+		{mounts: []string{}, isDefault: true},
+		{mounts: nil},
 		{mounts: []string{util.HomeDir()}, includesCache: true},
 	}
 	for i, tt := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			mounts := func(mounts []string) (mnts []config.Mount) {
+				if mounts != nil {
+					mnts = []config.Mount{}
+				}
+
 				for _, m := range mounts {
 					mnts = append(mnts, config.Mount{Location: m})
 				}
@@ -73,7 +78,7 @@ func Test_config_Mounts(t *testing.T) {
 
 			expectedLocations := tt.mounts
 			if tt.isDefault {
-				expectedLocations = []string{"~", "/tmp/colima"}
+				expectedLocations = []string{"~"}
 			} else if !tt.includesCache {
 				expectedLocations = append([]string{config.CacheDir()}, tt.mounts...)
 			}

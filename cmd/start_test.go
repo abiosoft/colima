@@ -50,6 +50,12 @@ func Test_mountsFromFlag(t *testing.T) {
 				{Location: "/tmp", MountPoint: "/users/tmp", Writable: true},
 			},
 		},
+		{
+			mounts: []string{
+				"none",
+			},
+			want: nil,
+		},
 	}
 	for i, tt := range tests {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {

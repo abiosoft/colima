@@ -38,7 +38,7 @@ kubernetes:
   # Kubernetes version to use.
   # This needs to exactly match a k3s version https://github.com/k3s-io/k3s/releases
   # Default: latest stable release
-  version: v1.33.3+k3s1
+  version: v1.35.0+k3s1
 
   # Additional args to pass to k3s https://docs.k3s.io/cli/server
   # Default: traefik is disabled
@@ -153,9 +153,10 @@ docker: {}
 # Default: qemu
 vmType: qemu
 
-# Port forwarder for the virtual machine (ssh, grpc).
+# Port forwarder for the virtual machine (ssh, grpc, none).
 # ssh is more stable but supports only TCP.
 # grpc supports both TCP and UDP, but is experimental.
+# none disables port forwarding.
 #
 # Default: ssh
 portForwarder: ssh
