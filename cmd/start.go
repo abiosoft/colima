@@ -18,9 +18,11 @@ import (
 	"github.com/abiosoft/colima/core"
 	"github.com/abiosoft/colima/embedded"
 	"github.com/abiosoft/colima/environment"
+	applecontainer "github.com/abiosoft/colima/environment/container/apple"
 	"github.com/abiosoft/colima/environment/container/docker"
 	"github.com/abiosoft/colima/environment/container/incus"
 	"github.com/abiosoft/colima/environment/container/kubernetes"
+	"github.com/abiosoft/colima/environment/vm"
 	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/osutil"
 	log "github.com/sirupsen/logrus"
@@ -50,8 +52,13 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 		"  colima start --kubernetes --k3s-arg='\"--disable=coredns,servicelb,traefik,local-storage,metrics-server\"'",
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		app := newApp()
 		conf := startCmdArgs.Config
+
+		// Determine the backend based on runtime
+		backend := getBackendForRuntime(conf.Runtime)
+
+		// Create app with appropriate backend
+		app := newAppWithBackend(backend)
 
 		if !startCmdArgs.Flags.Edit {
 			if app.Active() {
@@ -86,13 +93,15 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 		return start(app, conf)
 	},
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		// validate Lima version
-		if err := core.LimaVersionSupported(); err != nil {
-			return fmt.Errorf("lima compatibility error: %w", err)
-		}
-
 		// combine args and current config file(if any)
 		prepareConfig(cmd)
+
+		// Skip Lima version check for Apple runtime
+		if startCmdArgs.Runtime != applecontainer.Name {
+			if err := core.LimaVersionSupported(); err != nil {
+				return fmt.Errorf("lima compatibility error: %w", err)
+			}
+		}
 
 		// validate config
 		if err := configmanager.ValidateConfig(startCmdArgs.Config); err != nil {
@@ -646,4 +655,12 @@ func awaitForInterruption(app app.App) error {
 	}
 
 	return nil
+}
+
+// getBackendForRuntime returns the appropriate VM backend for the given runtime.
+func getBackendForRuntime(runtime string) vm.Backend {
+	if runtime == applecontainer.Name {
+		return vm.BackendApple
+	}
+	return vm.BackendLima
 }

@@ -52,6 +52,15 @@ func ValidateConfig(c config.Config) error {
 	validMountTypes := map[string]bool{"9p": true, "sshfs": true}
 	validPortForwarders := map[string]bool{"grpc": true, "ssh": true, "none": true}
 
+	// Apple runtime validation
+	if c.Runtime == "apple" {
+		if !util.MacOS26OrNewer() {
+			return fmt.Errorf("runtime 'apple' requires macOS 26 or newer")
+		}
+		// Skip Lima-specific validation for Apple runtime
+		return nil
+	}
+
 	if util.MacOS13OrNewer() {
 		validMountTypes["virtiofs"] = true
 	}
@@ -110,6 +119,32 @@ func LoadInstance() (config.Config, error) {
 	return LoadFrom(config.CurrentProfile().StateFile())
 }
 
+// LoadProfiles loads the configs of all existing profiles.
+// The returned map is keyed by profile short name.
+func LoadProfiles() map[string]config.Config {
+	result := map[string]config.Config{}
+	entries, err := os.ReadDir(config.Dir())
+	if err != nil {
+		return result
+	}
+
+	for _, entry := range entries {
+		if !entry.IsDir() || strings.HasPrefix(entry.Name(), "_") {
+			continue
+		}
+
+		profile := config.ProfileFromName(entry.Name())
+		c, err := LoadFrom(profile.File())
+		if err != nil {
+			continue
+		}
+
+		result[profile.ShortName] = c
+	}
+
+	return result
+}
+
 // Teardown deletes the config.
 func Teardown() error {
 	dir := config.CurrentProfile().ConfigDir()
@@ -119,7 +154,7 @@ func Teardown() error {
 	return nil
 }
 
-// Validates that gateway is a valid IPv4 address and that the last octet is “2”.
+// Validates that gateway is a valid IPv4 address and that the last octet is "2".
 // Lima uses the last octet as 2 for gateways.
 func validateGatewayAddress(gateway net.IP) error {
 	ip4 := gateway.To4()

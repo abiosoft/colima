@@ -8,6 +8,7 @@ import (
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/daemon/process"
 	"github.com/abiosoft/colima/daemon/process/inotify"
+	"github.com/abiosoft/colima/daemon/process/socktainer"
 	"github.com/abiosoft/colima/daemon/process/vmnet"
 	"github.com/abiosoft/colima/environment/host"
 	"github.com/abiosoft/colima/environment/vm/lima"
@@ -43,6 +44,9 @@ var startCmd = &cobra.Command{
 				Dirs:         daemonArgs.inotify.dirs,
 			}
 			ctx = context.WithValue(ctx, inotify.CtxKeyArgs(), args)
+		}
+		if daemonArgs.socktainer.enabled {
+			processes = append(processes, socktainer.New())
 		}
 
 		return start(ctx, processes)
@@ -89,6 +93,9 @@ var daemonArgs struct {
 		dirs    []string
 		runtime string
 	}
+	socktainer struct {
+		enabled bool
+	}
 
 	verbose bool
 }
@@ -106,4 +113,5 @@ func init() {
 	startCmd.Flags().BoolVar(&daemonArgs.inotify.enabled, "inotify", false, "start inotify")
 	startCmd.Flags().StringSliceVar(&daemonArgs.inotify.dirs, "inotify-dir", nil, "set inotify directories")
 	startCmd.Flags().StringVar(&daemonArgs.inotify.runtime, "inotify-runtime", "docker", "set runtime")
+	startCmd.Flags().BoolVar(&daemonArgs.socktainer.enabled, "socktainer", false, "start socktainer")
 }

@@ -158,6 +158,9 @@ func TemplatesDir() string { return templatesDir.Dir() }
 // LimaDir returns Lima directory.
 func LimaDir() string { return limaDir.Dir() }
 
+// Dir returns the base config directory.
+func Dir() string { return configBaseDir.Dir() }
+
 const configFileName = "colima.yaml"
 
 // SSHConfigFile returns the path to generated ssh config.

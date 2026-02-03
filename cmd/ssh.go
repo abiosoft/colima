@@ -1,7 +1,10 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/abiosoft/colima/cmd/root"
+	"github.com/abiosoft/colima/environment/vm/apple/appleutil"
 	"github.com/spf13/cobra"
 )
 
@@ -17,6 +20,10 @@ e.g. 'colima ssh -- htop' will run htop.
 
 It is recommended to specify '--' to differentiate from colima flags.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// Check if this is an Apple Container instance
+		if appleutil.IsAppleBackend() {
+			return fmt.Errorf("ssh is not supported for Apple Container runtime")
+		}
 		return newApp().SSH(args...)
 	},
 }

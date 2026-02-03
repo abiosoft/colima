@@ -3,14 +3,20 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
-	"github.com/abiosoft/colima/environment/vm/lima/limautil"
+	"github.com/abiosoft/colima/environment/vm"
 	"github.com/docker/go-units"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+
+	// Register VM backends for instance listing
+	_ "github.com/abiosoft/colima/environment/vm/apple"
+	_ "github.com/abiosoft/colima/environment/vm/lima"
 )
 
 var listCmdArgs struct {
@@ -34,7 +40,8 @@ A new instance can be created during 'colima start' by specifying the '--profile
 			profileArgs = append(profileArgs, profile.ID)
 		}
 
-		instances, err := limautil.Instances(profileArgs...)
+		// Get instances from all backends
+		instances, err := vm.AllInstances(profileArgs...)
 		if err != nil {
 			return err
 		}
@@ -52,28 +59,56 @@ A new instance can be created during 'colima start' by specifying the '--profile
 			return nil
 		}
 
+		// only show the backend column if an apple runtime instance exists
+		var showBackend bool
+		for _, inst := range instances {
+			if inst.Backend == string(vm.BackendApple) {
+				showBackend = true
+				break
+			}
+		}
+
+		columns := []column{
+			{header: "PROFILE", value: func(i vm.InstanceInfo) string { return i.Name }},
+			{header: "STATUS", value: func(i vm.InstanceInfo) string { return i.Status }},
+			{header: "BACKEND", value: func(i vm.InstanceInfo) string { return i.Backend }, hidden: !showBackend},
+			{header: "ARCH", value: func(i vm.InstanceInfo) string { return i.Arch }},
+			{header: "CPUS", value: func(i vm.InstanceInfo) string { return fmt.Sprintf("%d", i.CPU) }},
+			{header: "MEMORY", value: func(i vm.InstanceInfo) string { return units.BytesSize(float64(i.Memory)) }},
+			{header: "DISK", value: func(i vm.InstanceInfo) string { return units.BytesSize(float64(i.Disk)) }},
+			{header: "RUNTIME", value: func(i vm.InstanceInfo) string { return i.Runtime }},
+			{header: "ADDRESS", value: func(i vm.InstanceInfo) string { return i.IPAddress }},
+		}
+
 		w := tabwriter.NewWriter(cmd.OutOrStdout(), 4, 8, 4, ' ', 0)
-		_, _ = fmt.Fprintln(w, "PROFILE\tSTATUS\tARCH\tCPUS\tMEMORY\tDISK\tRUNTIME\tADDRESS")
+		printRow(w, columns, func(c column) string { return c.header })
 
 		if len(instances) == 0 {
 			logrus.Warn("No instance found. Run `colima start` to create an instance.")
 		}
 
 		for _, inst := range instances {
-			_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%d\t%s\t%s\t%s\t%s\n",
-				inst.Name,
-				inst.Status,
-				inst.Arch,
-				inst.CPU,
-				units.BytesSize(float64(inst.Memory)),
-				units.BytesSize(float64(inst.Disk)),
-				inst.Runtime,
-				inst.IPAddress,
-			)
+			printRow(w, columns, func(c column) string { return c.value(inst) })
 		}
 
 		return w.Flush()
 	},
+}
+
+type column struct {
+	header string
+	value  func(vm.InstanceInfo) string
+	hidden bool
+}
+
+func printRow(w io.Writer, columns []column, value func(column) string) {
+	var vals []string
+	for _, c := range columns {
+		if !c.hidden {
+			vals = append(vals, value(c))
+		}
+	}
+	_, _ = fmt.Fprintln(w, strings.Join(vals, "\t"))
 }
 
 func init() {

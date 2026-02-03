@@ -19,12 +19,17 @@ import (
 	"github.com/abiosoft/colima/environment/container/incus"
 	"github.com/abiosoft/colima/environment/container/kubernetes"
 	"github.com/abiosoft/colima/environment/host"
+	"github.com/abiosoft/colima/environment/vm"
 	"github.com/abiosoft/colima/environment/vm/lima"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/store"
 	"github.com/abiosoft/colima/util"
 	"github.com/docker/go-units"
 	log "github.com/sirupsen/logrus"
+
+	// Register Apple Container VM and runtime (on supported systems)
+	_ "github.com/abiosoft/colima/environment/container/apple"
+	_ "github.com/abiosoft/colima/environment/vm/apple"
 )
 
 type App interface {
@@ -42,20 +47,40 @@ type App interface {
 
 var _ App = (*colimaApp)(nil)
 
-// New creates a new app.
+// New creates a new app with the default Lima backend.
 func New() (App, error) {
-	guest := lima.New(host.New())
+	return NewWithBackend(vm.BackendLima)
+}
+
+// NewWithBackend creates a new app with the specified VM backend.
+func NewWithBackend(backend vm.Backend) (App, error) {
+	var guest environment.VM
+	var err error
+
+	if backend == vm.BackendLima {
+		// Use Lima directly for backward compatibility
+		guest = lima.New(host.New())
+	} else {
+		// Use registry for other backends
+		guest, err = vm.NewVM(backend, host.New())
+		if err != nil {
+			return nil, fmt.Errorf("error creating VM backend '%s': %w", backend, err)
+		}
+	}
+
 	if err := host.IsInstalled(guest); err != nil {
 		return nil, fmt.Errorf("dependency check failed for VM: %w", err)
 	}
 
 	return &colimaApp{
-		guest: guest,
+		guest:   guest,
+		backend: backend,
 	}, nil
 }
 
 type colimaApp struct {
-	guest environment.VM
+	guest   environment.VM
+	backend vm.Backend
 }
 
 func (c colimaApp) startWithRuntime(conf config.Config) ([]environment.Container, error) {
@@ -288,6 +313,12 @@ func (c colimaApp) SSH(args ...string) error {
 	if err != nil {
 		return fmt.Errorf("error retrieving current working directory: %w", err)
 	}
+
+	// For non-Lima backends, use the guest directly
+	if c.backend != vm.BackendLima {
+		return c.guest.SSH(workDir, args...)
+	}
+
 	// peek the current directory to see if it is mounted to prevent `cd` errors
 	// with limactl ssh
 	if err := func() error {
@@ -333,9 +364,10 @@ func (c colimaApp) SSH(args ...string) error {
 type statusInfo struct {
 	DisplayName      string `json:"display_name"`
 	Driver           string `json:"driver"`
+	Backend          string `json:"backend,omitempty"`
 	Arch             string `json:"arch"`
 	Runtime          string `json:"runtime"`
-	MountType        string `json:"mount_type"`
+	MountType        string `json:"mount_type,omitempty"`
 	IPAddress        string `json:"ip_address,omitempty"`
 	DockerSocket     string `json:"docker_socket,omitempty"`
 	ContainerdSocket string `json:"containerd_socket,omitempty"`
@@ -359,18 +391,34 @@ func (c colimaApp) getStatus() (status statusInfo, err error) {
 	}
 
 	status.DisplayName = config.CurrentProfile().DisplayName
-	status.Driver = "QEMU"
-	conf, _ := configmanager.LoadInstance()
-	if !conf.Empty() {
-		status.Driver = conf.DriverLabel()
+	status.Backend = string(c.backend)
+
+	// Set driver based on backend
+	if c.backend == vm.BackendApple {
+		status.Driver = "Apple Container"
+	} else {
+		status.Driver = "QEMU"
+		conf, _ := configmanager.LoadInstance()
+		if !conf.Empty() {
+			status.Driver = conf.DriverLabel()
+		}
+		status.MountType = conf.MountType
+
+		// Lima-specific status
+		ipAddress := limautil.IPAddress(config.CurrentProfile().ID)
+		if ipAddress != "127.0.0.1" {
+			status.IPAddress = ipAddress
+		}
+		if inst, err := limautil.Instance(); err == nil {
+			status.CPU = inst.CPU
+			status.Memory = inst.Memory
+			status.Disk = inst.Disk
+		}
 	}
+
 	status.Arch = string(c.guest.Arch())
 	status.Runtime = currentRuntime
-	status.MountType = conf.MountType
-	ipAddress := limautil.IPAddress(config.CurrentProfile().ID)
-	if ipAddress != "127.0.0.1" {
-		status.IPAddress = ipAddress
-	}
+
 	if currentRuntime == docker.Name {
 		status.DockerSocket = "unix://" + docker.HostSocketFile()
 		status.ContainerdSocket = "unix://" + containerd.HostSocketFiles().Containerd
@@ -384,11 +432,6 @@ func (c colimaApp) getStatus() (status statusInfo, err error) {
 	}
 	if k, err := c.Kubernetes(); err == nil && k.Running(ctx) {
 		status.Kubernetes = true
-	}
-	if inst, err := limautil.Instance(); err == nil {
-		status.CPU = inst.CPU
-		status.Memory = inst.Memory
-		status.Disk = inst.Disk
 	}
 	return status, nil
 }
@@ -405,6 +448,9 @@ func (c colimaApp) Status(extended bool, jsonOutput bool) error {
 		}
 	} else {
 		log.Println(config.CurrentProfile().DisplayName, "is running using", status.Driver)
+		if status.Backend != "" && status.Backend != string(vm.BackendLima) {
+			log.Println("backend:", status.Backend)
+		}
 		log.Println("arch:", status.Arch)
 		log.Println("runtime:", status.Runtime)
 		if status.MountType != "" {

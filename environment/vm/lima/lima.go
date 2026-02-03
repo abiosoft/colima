@@ -14,6 +14,7 @@ import (
 	"github.com/abiosoft/colima/core"
 	"github.com/abiosoft/colima/daemon"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/environment/vm"
 	"github.com/abiosoft/colima/environment/vm/lima/limaconfig"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/store"
@@ -22,6 +23,39 @@ import (
 	"github.com/abiosoft/colima/util/yamlutil"
 	"github.com/sirupsen/logrus"
 )
+
+func init() {
+	vm.RegisterVM(vm.BackendLima, New)
+	vm.RegisterInstanceLister(vm.BackendLima, &limaInstanceLister{})
+}
+
+// limaInstanceLister implements vm.InstanceLister for Lima.
+type limaInstanceLister struct{}
+
+// Instances returns all Lima instances as vm.InstanceInfo.
+func (l *limaInstanceLister) Instances(ids ...string) ([]vm.InstanceInfo, error) {
+	limaInstances, err := limautil.Instances(ids...)
+	if err != nil {
+		return nil, err
+	}
+
+	instances := make([]vm.InstanceInfo, len(limaInstances))
+	for i, inst := range limaInstances {
+		instances[i] = vm.InstanceInfo{
+			Name:      inst.Name,
+			Status:    inst.Status,
+			Arch:      inst.Arch,
+			CPU:       inst.CPU,
+			Memory:    inst.Memory,
+			Disk:      inst.Disk,
+			Dir:       inst.Dir,
+			IPAddress: inst.IPAddress,
+			Runtime:   inst.Runtime,
+			Backend:   string(vm.BackendLima),
+		}
+	}
+	return instances, nil
+}
 
 // New creates a new virtual machine.
 func New(host environment.HostActions) environment.VM {

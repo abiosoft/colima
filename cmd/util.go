@@ -11,11 +11,20 @@ import (
 
 	"github.com/abiosoft/colima/app"
 	"github.com/abiosoft/colima/cli"
+	"github.com/abiosoft/colima/environment/vm"
 	"github.com/sirupsen/logrus"
 )
 
 func newApp() app.App {
 	colimaApp, err := app.New()
+	if err != nil {
+		logrus.Fatal("Error: ", err)
+	}
+	return colimaApp
+}
+
+func newAppWithBackend(backend vm.Backend) app.App {
+	colimaApp, err := app.NewWithBackend(backend)
 	if err != nil {
 		logrus.Fatal("Error: ", err)
 	}
