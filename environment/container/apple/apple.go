@@ -121,7 +121,7 @@ func HostSocketFile() string {
 }
 
 func contextName() string {
-	return "colima-apple"
+	return config.CurrentProfile().ID
 }
 
 func (a appleRuntime) contextCreated() bool {

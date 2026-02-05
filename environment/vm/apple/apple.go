@@ -248,7 +248,7 @@ func (a appleVM) Running(_ context.Context) bool {
 	}
 
 	// Check docker context is created
-	if a.host.RunQuiet("docker", "context", "inspect", "colima-apple") != nil {
+	if a.host.RunQuiet("docker", "context", "inspect", config.CurrentProfile().ID) != nil {
 		return false
 	}
 
