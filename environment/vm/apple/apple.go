@@ -16,6 +16,7 @@ import (
 	"github.com/abiosoft/colima/environment/vm"
 	"github.com/abiosoft/colima/environment/vm/apple/appleutil"
 	"github.com/abiosoft/colima/util"
+	"github.com/abiosoft/colima/util/osutil"
 )
 
 // Name is the name of the Apple Container backend.
@@ -115,8 +116,6 @@ func (a appleVM) Stop(ctx context.Context, force bool) error {
 	log := a.Logger(ctx)
 	chain := a.Init(ctx)
 
-	// Only check if container system is running (not socktainer/docker context)
-	// so we can stop even if socktainer failed to start
 	if !a.containerSystemRunning() && !force {
 		log.Println("not running")
 		return nil
@@ -126,7 +125,7 @@ func (a appleVM) Stop(ctx context.Context, force bool) error {
 
 	// Stop daemon first
 	chain.Add(func() error {
-		return a.stopDaemon(ctx, a.conf)
+		return a.stopDaemon()
 	})
 
 	// Stop the Apple Container system
@@ -160,7 +159,7 @@ func (a appleVM) Teardown(ctx context.Context) error {
 
 	// Stop daemon first
 	chain.Add(func() error {
-		return a.stopDaemon(ctx, a.conf)
+		return a.stopDaemon()
 	})
 
 	// Stop the Apple Container system
@@ -223,8 +222,8 @@ func (a *appleVM) startDaemon(ctx context.Context, conf config.Config) error {
 }
 
 // stopDaemon stops the background daemon.
-func (a appleVM) stopDaemon(ctx context.Context, conf config.Config) error {
-	return a.daemon.Stop(ctx, conf)
+func (a appleVM) stopDaemon() error {
+	return a.host.RunQuiet(osutil.Executable(), "daemon", "stop", config.CurrentProfile().ShortName)
 }
 
 // Created returns if Colima has previously been set up with Apple Container.
@@ -327,7 +326,6 @@ func findAppleInstance() *vm.InstanceInfo {
 	// Determine runtime string based on socktainer status
 	runtime := Name
 	if status == "Running" {
-		// Check if socktainer socket exists (Docker API is available)
 		if _, err := os.Stat(socktainer.SocketFile()); err == nil {
 			runtime = Name + "+docker"
 		}
