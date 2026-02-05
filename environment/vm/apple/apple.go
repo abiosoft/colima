@@ -84,7 +84,7 @@ func (a *appleVM) Start(ctx context.Context, conf config.Config) error {
 
 	// Start the Apple Container system
 	chain.Add(func() error {
-		return a.host.Run(ContainerCommand, "system", "start")
+		return a.host.RunInteractive(ContainerCommand, "system", "start")
 	})
 
 	// Wait for system to be running
@@ -128,7 +128,7 @@ func (a appleVM) Stop(ctx context.Context, force bool) error {
 
 	// Stop the Apple Container system
 	chain.Add(func() error {
-		return a.host.Run(ContainerCommand, "system", "stop")
+		return a.host.RunInteractive(ContainerCommand, "system", "stop")
 	})
 
 	return chain.Exec()
@@ -162,7 +162,7 @@ func (a appleVM) Teardown(ctx context.Context) error {
 
 	// Stop the Apple Container system
 	chain.Add(func() error {
-		return a.host.Run(ContainerCommand, "system", "stop")
+		return a.host.RunInteractive(ContainerCommand, "system", "stop")
 	})
 
 	return chain.Exec()
