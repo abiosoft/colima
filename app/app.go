@@ -240,7 +240,8 @@ func (c colimaApp) Delete(data, force bool) error {
 
 		// runtime disk not in use or data deletion is requested,
 		// deletion deletes all data, warn accordingly.
-		if !diskInUse || data {
+		// Skip this warning for Apple runtime as it doesn't manage container data.
+		if c.backend != vm.BackendApple && (!diskInUse || data) {
 			if y := confirmContainerDestruction(); !y {
 				return nil
 			}
