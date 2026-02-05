@@ -73,9 +73,24 @@ A new instance can be created during 'colima start' by specifying the '--profile
 			{header: "STATUS", value: func(i vm.InstanceInfo) string { return i.Status }},
 			{header: "BACKEND", value: func(i vm.InstanceInfo) string { return i.Backend }, hidden: !showBackend},
 			{header: "ARCH", value: func(i vm.InstanceInfo) string { return i.Arch }},
-			{header: "CPUS", value: func(i vm.InstanceInfo) string { return fmt.Sprintf("%d", i.CPU) }},
-			{header: "MEMORY", value: func(i vm.InstanceInfo) string { return units.BytesSize(float64(i.Memory)) }},
-			{header: "DISK", value: func(i vm.InstanceInfo) string { return units.BytesSize(float64(i.Disk)) }},
+			{header: "CPUS", value: func(i vm.InstanceInfo) string {
+				if i.CPU < 0 {
+					return "N/A"
+				}
+				return fmt.Sprintf("%d", i.CPU)
+			}},
+			{header: "MEMORY", value: func(i vm.InstanceInfo) string {
+				if i.Memory < 0 {
+					return "N/A"
+				}
+				return units.BytesSize(float64(i.Memory))
+			}},
+			{header: "DISK", value: func(i vm.InstanceInfo) string {
+				if i.Disk < 0 {
+					return "N/A"
+				}
+				return units.BytesSize(float64(i.Disk))
+			}},
 			{header: "RUNTIME", value: func(i vm.InstanceInfo) string { return i.Runtime }},
 			{header: "ADDRESS", value: func(i vm.InstanceInfo) string { return i.IPAddress }},
 		}

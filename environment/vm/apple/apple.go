@@ -302,6 +302,9 @@ func findAppleInstance() *vm.InstanceInfo {
 		Name:    profileName,
 		Status:  status,
 		Arch:    string(environment.HostArch()),
+		CPU:     -1, // N/A for Apple Container
+		Memory:  -1, // N/A for Apple Container
+		Disk:    -1, // N/A for Apple Container
 		Runtime: Name,
 		Backend: string(vm.BackendApple),
 	}
