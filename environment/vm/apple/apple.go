@@ -3,6 +3,7 @@ package apple
 import (
 	"context"
 	"fmt"
+	"os"
 	"slices"
 	"time"
 
@@ -231,9 +232,27 @@ func (a appleVM) Created() bool {
 }
 
 // Running returns if the Apple Container system is currently running.
+// For Apple runtime, all three conditions must be met:
+// 1. container system is running
+// 2. socktainer daemon is running (socket exists)
+// 3. docker context has been created
 func (a appleVM) Running(_ context.Context) bool {
-	// Check system status using `container system status`
-	return a.host.RunQuiet(ContainerCommand, "system", "status") == nil
+	// Check container system status
+	if a.host.RunQuiet(ContainerCommand, "system", "status") != nil {
+		return false
+	}
+
+	// Check socktainer socket exists (daemon is running)
+	if _, err := os.Stat(socktainer.SocketFile()); err != nil {
+		return false
+	}
+
+	// Check docker context is created
+	if a.host.RunQuiet("docker", "context", "inspect", "colima-apple") != nil {
+		return false
+	}
+
+	return true
 }
 
 // Env retrieves an environment variable in the container.
