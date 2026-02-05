@@ -2,10 +2,12 @@ package cmd
 
 import (
 	"github.com/abiosoft/colima/cmd/root"
+	"github.com/abiosoft/colima/environment/vm"
+	"github.com/abiosoft/colima/environment/vm/apple/appleutil"
 	"github.com/spf13/cobra"
 )
 
-// statusCmd represents the status command
+// updateCmd represents the update command
 var updateCmd = &cobra.Command{
 	Use:     "update [profile]",
 	Aliases: []string{"u", "up"},
@@ -13,6 +15,9 @@ var updateCmd = &cobra.Command{
 	Long:    `Update the current container runtime.`,
 	Args:    cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if appleutil.IsAppleBackend() {
+			return newAppWithBackend(vm.BackendApple).Update()
+		}
 		return newApp().Update()
 	},
 }

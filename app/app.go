@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
@@ -635,6 +636,11 @@ func (c *colimaApp) Update() error {
 		return err
 	}
 
+	// Use the multi-step update flow for runtimes that require stop/restart
+	if updater, ok := container.(environment.AppUpdater); ok {
+		return c.updateWithAppControl(ctx, updater, container)
+	}
+
 	oldVersion := container.Version(ctx)
 
 	updated, err := container.Update(ctx)
@@ -650,6 +656,67 @@ func (c *colimaApp) Update() error {
 		fmt.Println("Current")
 		fmt.Println(container.Version(ctx))
 	}
+
+	return nil
+}
+
+func (c *colimaApp) updateWithAppControl(ctx context.Context, updater environment.AppUpdater, container environment.Container) error {
+	// check for updates
+	info, err := updater.CheckUpdate(ctx)
+	if err != nil {
+		return fmt.Errorf("error checking for updates: %w", err)
+	}
+
+	if !info.Available {
+		log.Println("already up to date")
+		fmt.Println(container.Version(ctx))
+		return nil
+	}
+
+	// display available updates
+	fmt.Println("updates available:")
+	fmt.Print(info.Description)
+
+	if !cli.Prompt(config.CurrentProfile().DisplayName + " will be stopped to install updates (sudo password may be required). proceed") {
+		return nil
+	}
+
+	oldVersion := container.Version(ctx)
+
+	// download packages while still running
+	if err := updater.DownloadUpdate(ctx); err != nil {
+		return fmt.Errorf("error downloading updates: %w", err)
+	}
+
+	// stop the instance
+	log.Println("stopping", config.CurrentProfile().DisplayName, "for update ...")
+	if err := c.Stop(false); err != nil {
+		return fmt.Errorf("error stopping for update: %w", err)
+	}
+	time.Sleep(time.Second * 3)
+
+	// install updates while stopped
+	if err := updater.InstallUpdate(ctx); err != nil {
+		return fmt.Errorf("error installing updates: %w", err)
+	}
+
+	// restart
+	log.Println("restarting", config.CurrentProfile().DisplayName, "...")
+	conf, err := configmanager.Load()
+	if err != nil {
+		return fmt.Errorf("error loading config for restart: %w", err)
+	}
+
+	if err := c.Start(conf); err != nil {
+		return fmt.Errorf("error restarting after update: %w", err)
+	}
+
+	fmt.Println()
+	fmt.Println("Previous")
+	fmt.Println(oldVersion)
+	fmt.Println()
+	fmt.Println("Current")
+	fmt.Println(container.Version(ctx))
 
 	return nil
 }

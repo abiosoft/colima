@@ -71,6 +71,29 @@ func ContainerRuntimes() (names []string) {
 	return
 }
 
+// UpdateInfo describes available updates for a container runtime.
+type UpdateInfo struct {
+	// Available indicates if updates are available.
+	Available bool
+	// Description is a human-readable summary of the available updates.
+	Description string
+}
+
+// AppUpdater is an optional interface for container runtimes that require
+// app-level control during updates (e.g., stop and restart).
+// Container runtimes that implement this interface will use the multi-step
+// update flow instead of the standard Container.Update() method.
+type AppUpdater interface {
+	// CheckUpdate checks for available updates.
+	CheckUpdate(ctx context.Context) (UpdateInfo, error)
+	// DownloadUpdate downloads the update packages.
+	// Called before the instance is stopped.
+	DownloadUpdate(ctx context.Context) error
+	// InstallUpdate installs the previously downloaded update packages.
+	// Called after the instance is stopped.
+	InstallUpdate(ctx context.Context) error
+}
+
 // DataDisk holds the configuration for mounting an external runtime disk.
 type DataDisk struct {
 	Dirs     []DiskDir // the directories to be mounted

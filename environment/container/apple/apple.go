@@ -9,7 +9,6 @@ import (
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/daemon/process/socktainer"
 	"github.com/abiosoft/colima/environment"
-	"github.com/abiosoft/colima/environment/vm/apple"
 	"github.com/abiosoft/colima/util"
 )
 
@@ -32,6 +31,8 @@ type appleRuntime struct {
 	host  environment.HostActions
 	guest environment.GuestActions
 	cli.CommandChain
+
+	pendingUpdates []componentUpdate // set by CheckUpdate, consumed by DownloadUpdate/InstallUpdate
 }
 
 // newRuntime creates a new Apple Container runtime.
@@ -100,22 +101,24 @@ func (a appleRuntime) Teardown(ctx context.Context) error {
 	return chain.Exec()
 }
 
-// Update updates the container runtime.
+// Update is not used for Apple runtime; updates use the AppUpdater interface instead.
 func (a *appleRuntime) Update(ctx context.Context) (bool, error) {
-	// Apple Container updates are managed by the system
 	return false, nil
 }
 
-
 // Version returns the container runtime version.
 func (a appleRuntime) Version(ctx context.Context) string {
-	// Get container CLI version
-	version, err := a.host.RunOutput(apple.ContainerCommand, "--version")
-	if err != nil {
-		return ""
+	var parts []string
+
+	if version, err := containerCurrentVersion(a.host); err == nil {
+		parts = append(parts, fmt.Sprintf("Apple Container: %s", version))
 	}
 
-	return fmt.Sprintf("Apple Container: %s", strings.TrimSpace(version))
+	if version, err := socktainerCurrentVersion(a.host); err == nil {
+		parts = append(parts, fmt.Sprintf("Socktainer: %s", version))
+	}
+
+	return strings.Join(parts, "\n")
 }
 
 // HostSocketFile returns the path to the docker socket on host.

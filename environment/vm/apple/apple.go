@@ -52,10 +52,10 @@ type appleVM struct {
 }
 
 // Dependencies returns the dependencies required for Apple Container.
+// The container CLI and socktainer are not listed here because they are
+// installed interactively during container runtime provisioning if missing.
 func (a appleVM) Dependencies() []string {
-	return []string{
-		ContainerCommand,
-	}
+	return nil
 }
 
 // Host returns the host actions.
