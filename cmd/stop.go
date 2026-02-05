@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"github.com/abiosoft/colima/cmd/root"
+	"github.com/abiosoft/colima/environment/vm"
+	"github.com/abiosoft/colima/environment/vm/apple/appleutil"
 	"github.com/spf13/cobra"
 )
 
@@ -19,6 +21,9 @@ The state of the VM is persisted at stop. A start afterwards
 should return it back to its previous state.`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if appleutil.IsAppleBackend() {
+			return newAppWithBackend(vm.BackendApple).Stop(stopCmdArgs.force)
+		}
 		return newApp().Stop(stopCmdArgs.force)
 	},
 }

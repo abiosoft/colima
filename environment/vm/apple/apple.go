@@ -115,7 +115,9 @@ func (a appleVM) Stop(ctx context.Context, force bool) error {
 	log := a.Logger(ctx)
 	chain := a.Init(ctx)
 
-	if !a.Running(ctx) && !force {
+	// Only check if container system is running (not socktainer/docker context)
+	// so we can stop even if socktainer failed to start
+	if !a.containerSystemRunning() && !force {
 		log.Println("not running")
 		return nil
 	}
