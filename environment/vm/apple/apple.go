@@ -322,6 +322,15 @@ func findAppleInstance() *vm.InstanceInfo {
 		status = "Running"
 	}
 
+	// Determine runtime string based on socktainer status
+	runtime := Name
+	if status == "Running" {
+		// Check if socktainer socket exists (Docker API is available)
+		if _, err := os.Stat(socktainer.SocketFile()); err == nil {
+			runtime = Name + "+docker"
+		}
+	}
+
 	return &vm.InstanceInfo{
 		Name:    profileName,
 		Status:  status,
@@ -329,7 +338,7 @@ func findAppleInstance() *vm.InstanceInfo {
 		CPU:     -1, // N/A for Apple Container
 		Memory:  -1, // N/A for Apple Container
 		Disk:    -1, // N/A for Apple Container
-		Runtime: Name,
+		Runtime: runtime,
 		Backend: string(vm.BackendApple),
 	}
 }
