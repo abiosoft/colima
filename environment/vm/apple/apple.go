@@ -223,6 +223,12 @@ func (a *appleVM) startDaemon(ctx context.Context, conf config.Config) error {
 
 // stopDaemon stops the background daemon.
 func (a appleVM) stopDaemon() error {
+	// Stop socktainer directly using PID file
+	if err := socktainer.Stop(); err != nil {
+		return err
+	}
+
+	// Also stop the daemon manager for cleanup
 	return a.host.RunQuiet(osutil.Executable(), "daemon", "stop", config.CurrentProfile().ShortName)
 }
 

@@ -6,6 +6,8 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
+	"syscall"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/daemon/process"
@@ -74,7 +76,19 @@ func (s *socktainerProcess) Start(ctx context.Context) error {
 			command.Env = append(command.Env, "DEBUG=1")
 		}
 
-		done <- command.Run()
+		// Start the command and write PID to file
+		if err := command.Start(); err != nil {
+			done <- fmt.Errorf("error starting socktainer: %w", err)
+			return
+		}
+
+		// Write PID to file
+		if err := writePidFile(command.Process.Pid); err != nil {
+			logrus.Warnln(fmt.Errorf("error writing socktainer pid file: %w", err))
+		}
+
+		// Wait for command to complete
+		done <- command.Wait()
 	}()
 
 	select {
@@ -106,4 +120,55 @@ func SocketFile() string {
 // Socket returns the socket as osutil.Socket.
 func Socket() osutil.Socket {
 	return osutil.Socket(SocketFile())
+}
+
+// PidFile returns the path to the socktainer PID file.
+func PidFile() string {
+	return filepath.Join(process.Dir(), "socktainer.pid")
+}
+
+// writePidFile writes the PID to the PID file.
+func writePidFile(pid int) error {
+	pidFile := PidFile()
+	// Ensure directory exists
+	if err := os.MkdirAll(filepath.Dir(pidFile), 0755); err != nil {
+		return err
+	}
+	return os.WriteFile(pidFile, []byte(strconv.Itoa(pid)), 0644)
+}
+
+// Stop terminates the socktainer process using the PID file.
+func Stop() error {
+	pidFile := PidFile()
+
+	data, err := os.ReadFile(pidFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil // No PID file, nothing to stop
+		}
+		return fmt.Errorf("error reading socktainer pid file: %w", err)
+	}
+
+	pid, err := strconv.Atoi(string(data))
+	if err != nil {
+		return fmt.Errorf("error parsing socktainer pid: %w", err)
+	}
+
+	// Send SIGTERM to the process
+	proc, err := os.FindProcess(pid)
+	if err != nil {
+		return fmt.Errorf("error finding socktainer process: %w", err)
+	}
+
+	if err := proc.Signal(syscall.SIGKILL); err != nil {
+		// Process might already be dead
+		if err != os.ErrProcessDone {
+			logrus.Debugln(fmt.Errorf("error sending SIGTERM to socktainer: %w", err))
+		}
+	}
+
+	// Remove PID file
+	_ = os.Remove(pidFile)
+
+	return nil
 }
