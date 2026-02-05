@@ -52,10 +52,10 @@ type appleVM struct {
 }
 
 // Dependencies returns the dependencies required for Apple Container.
-// The container CLI and socktainer are not listed here because they are
-// installed interactively during container runtime provisioning if missing.
+// The container CLI is required and can be installed via 'brew install container'.
+// Socktainer is installed automatically when starting the daemon.
 func (a appleVM) Dependencies() []string {
-	return nil
+	return []string{ContainerCommand}
 }
 
 // Host returns the host actions.
@@ -172,6 +172,11 @@ func (a appleVM) Teardown(ctx context.Context) error {
 func (a *appleVM) startDaemon(ctx context.Context, conf config.Config) error {
 	chain := a.Init(ctx)
 	log := chain.Logger()
+
+	// Ensure socktainer is installed before starting daemon
+	if err := ensureSocktainer(a.host, log); err != nil {
+		return err
+	}
 
 	ctxKeySocktainer := daemon.CtxKey(socktainer.Name)
 

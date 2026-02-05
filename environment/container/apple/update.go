@@ -15,51 +15,44 @@ import (
 	"github.com/coreos/go-semver/semver"
 )
 
-// GitHub repository paths for version checking.
-const (
-	containerRepo  = "apple/container"
-	socktainerRepo = "socktainer/socktainer"
-)
+// GitHub repository path for version checking.
+const socktainerRepo = "socktainer/socktainer"
 
-// componentUpdate describes an available update for a single component.
+// componentUpdate describes an available update for socktainer.
 type componentUpdate struct {
-	Name           string // display name (e.g. "container")
+	Name           string // display name
 	CurrentVersion string // currently installed version
 	LatestVersion  string // latest version from GitHub
-	PkgURL         string // download URL for the .pkg file (from install.go constants)
+	PkgURL         string // download URL for the .pkg file
 }
 
 // Ensure appleRuntime implements AppUpdater.
 var _ environment.AppUpdater = (*appleRuntime)(nil)
 
-// CheckUpdate checks for available updates for container and socktainer.
+// CheckUpdate checks for available updates for socktainer.
 func (a *appleRuntime) CheckUpdate(ctx context.Context) (environment.UpdateInfo, error) {
 	log := a.Logger(ctx)
 	log.Println("checking for updates ...")
 
-	updates, err := checkUpdates(a.host)
+	update, err := checkSocktainerUpdate(a.host)
 	if err != nil {
 		return environment.UpdateInfo{}, err
 	}
 
-	a.pendingUpdates = updates
-
-	if len(updates) == 0 {
+	if update == nil {
+		a.pendingUpdates = nil
 		return environment.UpdateInfo{}, nil
 	}
 
-	var desc strings.Builder
-	for _, u := range updates {
-		fmt.Fprintf(&desc, "  %s: %s -> %s\n", u.Name, u.CurrentVersion, u.LatestVersion)
-	}
+	a.pendingUpdates = []componentUpdate{*update}
 
 	return environment.UpdateInfo{
 		Available:   true,
-		Description: desc.String(),
+		Description: fmt.Sprintf("  %s: %s -> %s\n", update.Name, update.CurrentVersion, update.LatestVersion),
 	}, nil
 }
 
-// DownloadUpdate downloads the update packages.
+// DownloadUpdate downloads the update package.
 // Called before the instance is stopped.
 func (a *appleRuntime) DownloadUpdate(ctx context.Context) error {
 	log := a.Logger(ctx)
@@ -78,7 +71,7 @@ func (a *appleRuntime) DownloadUpdate(ctx context.Context) error {
 	return nil
 }
 
-// InstallUpdate installs the previously downloaded update packages.
+// InstallUpdate installs the previously downloaded update package.
 // Called after the instance is stopped.
 func (a *appleRuntime) InstallUpdate(ctx context.Context) error {
 	log := a.Logger(ctx)
@@ -97,15 +90,6 @@ func (a *appleRuntime) InstallUpdate(ctx context.Context) error {
 		}
 		defer func() { _ = os.Remove(tmpPkg) }()
 
-		// container requires stopping the system and uninstalling before updating.
-		if u.Name == apple.ContainerCommand {
-			log.Println("uninstalling previous", u.Name, "version ...")
-			_ = a.host.RunQuiet(apple.ContainerCommand, "system", "stop")
-			if err := a.host.RunInteractive("/usr/local/bin/uninstall-container.sh", "-k"); err != nil {
-				return fmt.Errorf("failed to uninstall previous %s version: %w", u.Name, err)
-			}
-		}
-
 		log.Println("installing", u.Name, u.LatestVersion, "(sudo password may be required) ...")
 		if err := a.host.RunInteractive("sudo", "installer", "-pkg", tmpPkg, "-target", "/"); err != nil {
 			return fmt.Errorf("failed to install %s: %w", u.Name, err)
@@ -116,56 +100,29 @@ func (a *appleRuntime) InstallUpdate(ctx context.Context) error {
 	return nil
 }
 
-// checkUpdates checks both container and socktainer for available updates.
-// Returns only the components that have updates available.
-func checkUpdates(host environment.HostActions) ([]componentUpdate, error) {
-	type component struct {
-		name   string
-		repo   string
-		pkgURL string
-		// getVersion returns the currently installed version for this component.
-		getVersion func() (string, error)
+// checkSocktainerUpdate checks if socktainer has an available update.
+// Returns nil if already up to date.
+func checkSocktainerUpdate(host environment.HostActions) (*componentUpdate, error) {
+	current, err := socktainerCurrentVersion(host)
+	if err != nil {
+		return nil, fmt.Errorf("error getting socktainer version: %w", err)
 	}
 
-	components := []component{
-		{
-			name:       apple.ContainerCommand,
-			repo:       containerRepo,
-			pkgURL:     containerPkgURL,
-			getVersion: func() (string, error) { return containerCurrentVersion(host) },
-		},
-		{
-			name:       SocktainerCommand,
-			repo:       socktainerRepo,
-			pkgURL:     socktainerPkgURL,
-			getVersion: func() (string, error) { return socktainerCurrentVersion(host) },
-		},
+	latest, err := latestGitHubVersion(host, socktainerRepo)
+	if err != nil {
+		return nil, fmt.Errorf("error checking latest socktainer version: %w", err)
 	}
 
-	var updates []componentUpdate
-
-	for _, comp := range components {
-		current, err := comp.getVersion()
-		if err != nil {
-			return nil, fmt.Errorf("error getting %s version: %w", comp.name, err)
-		}
-
-		latest, err := latestGitHubVersion(host, comp.repo)
-		if err != nil {
-			return nil, fmt.Errorf("error checking latest %s version: %w", comp.name, err)
-		}
-
-		if isNewer(latest, current) {
-			updates = append(updates, componentUpdate{
-				Name:           comp.name,
-				CurrentVersion: current,
-				LatestVersion:  latest,
-				PkgURL:         comp.pkgURL,
-			})
-		}
+	if !isNewer(latest, current) {
+		return nil, nil
 	}
 
-	return updates, nil
+	return &componentUpdate{
+		Name:           SocktainerCommand,
+		CurrentVersion: current,
+		LatestVersion:  latest,
+		PkgURL:         socktainerPkgURL,
+	}, nil
 }
 
 // containerCurrentVersion returns the installed version of the container CLI.
@@ -214,8 +171,8 @@ func latestGitHubVersion(host environment.HostActions, repo string) (string, err
 	latestURL := fmt.Sprintf("https://github.com/%s/releases/latest", repo)
 
 	// Follow redirects to get the final URL.
-	// e.g. https://github.com/apple/container/releases/latest
-	//   -> https://github.com/apple/container/releases/tag/v1.2.3
+	// e.g. https://github.com/socktainer/socktainer/releases/latest
+	//   -> https://github.com/socktainer/socktainer/releases/tag/v1.2.3
 	finalURL, err := host.RunOutput("curl", "-ILs", "-o", "/dev/null", "-w", "%{url_effective}", latestURL)
 	if err != nil {
 		return "", fmt.Errorf("error resolving latest release: %w", err)

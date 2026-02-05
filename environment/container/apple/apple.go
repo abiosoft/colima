@@ -52,14 +52,8 @@ func (a appleRuntime) Name() string {
 // Provision provisions/installs the container runtime.
 func (a appleRuntime) Provision(ctx context.Context) error {
 	chain := a.Init(ctx)
-	log := a.Logger(ctx)
 
 	conf, _ := ctx.Value(config.CtxKey()).(config.Config)
-
-	// Check and install dependencies if missing
-	chain.Add(func() error {
-		return a.ensureDependencies(log)
-	})
 
 	// Setup docker context pointing to socktainer socket
 	// (socktainer is started by the daemon manager)
