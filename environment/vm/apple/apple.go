@@ -88,10 +88,10 @@ func (a *appleVM) Start(ctx context.Context, conf config.Config) error {
 		return a.host.RunInteractive(ContainerCommand, "system", "start")
 	})
 
-	// Wait for system to be running
-	chain.Retry("waiting for system", time.Second, 30, func(int) error {
-		if !a.Running(ctx) {
-			return fmt.Errorf("system not yet running")
+	// Wait for container system to be running
+	chain.Retry("waiting for container to start", 5*time.Second, 3, func(int) error {
+		if !a.containerSystemRunning() {
+			return fmt.Errorf("container not running")
 		}
 		return nil
 	})
@@ -231,14 +231,19 @@ func (a appleVM) Created() bool {
 	return appleutil.IsAppleBackend()
 }
 
+// containerSystemRunning checks if the container system is running.
+// This only checks `container system status` without socktainer or docker context.
+func (a appleVM) containerSystemRunning() bool {
+	return a.host.RunQuiet(ContainerCommand, "system", "status") == nil
+}
+
 // Running returns if the Apple Container system is currently running.
 // For Apple runtime, all three conditions must be met:
 // 1. container system is running
 // 2. socktainer daemon is running (socket exists)
 // 3. docker context has been created
 func (a appleVM) Running(_ context.Context) bool {
-	// Check container system status
-	if a.host.RunQuiet(ContainerCommand, "system", "status") != nil {
+	if !a.containerSystemRunning() {
 		return false
 	}
 
