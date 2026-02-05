@@ -130,7 +130,7 @@ func (a appleVM) Stop(ctx context.Context, force bool) error {
 
 	// Stop the Apple Container system
 	chain.Add(func() error {
-		return a.host.RunInteractive(ContainerCommand, "system", "stop")
+		return a.host.RunQuiet(ContainerCommand, "system", "stop")
 	})
 
 	return chain.Exec()
@@ -164,7 +164,7 @@ func (a appleVM) Teardown(ctx context.Context) error {
 
 	// Stop the Apple Container system
 	chain.Add(func() error {
-		return a.host.RunInteractive(ContainerCommand, "system", "stop")
+		return a.host.RunQuiet(ContainerCommand, "system", "stop")
 	})
 
 	return chain.Exec()
