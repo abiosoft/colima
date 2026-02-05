@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"github.com/abiosoft/colima/cmd/root"
+	"github.com/abiosoft/colima/environment/vm"
+	"github.com/abiosoft/colima/environment/vm/apple/appleutil"
 	"github.com/spf13/cobra"
 )
 
@@ -17,6 +19,9 @@ var statusCmd = &cobra.Command{
 	Long:  `Show the status of Colima`,
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if appleutil.IsAppleBackend() {
+			return newAppWithBackend(vm.BackendApple).Status(statusCmdArgs.extended, statusCmdArgs.json)
+		}
 		return newApp().Status(statusCmdArgs.extended, statusCmdArgs.json)
 	},
 }
