@@ -3,9 +3,10 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/abiosoft/colima/app"
 	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/environment/vm"
+	"github.com/abiosoft/colima/environment/vm/apple/appleutil"
 	"github.com/spf13/cobra"
 )
 
@@ -20,8 +21,10 @@ var versionCmd = &cobra.Command{
 		fmt.Println(config.AppName, "version", version.Version)
 		fmt.Println("git commit:", version.Revision)
 
-		if colimaApp, err := app.New(); err == nil {
-			_ = colimaApp.Version()
+		if appleutil.IsAppleBackend() {
+			_ = newAppWithBackend(vm.BackendApple).Version()
+		} else {
+			_ = newApp().Version()
 		}
 	},
 }
