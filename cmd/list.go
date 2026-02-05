@@ -59,7 +59,7 @@ A new instance can be created during 'colima start' by specifying the '--profile
 			return nil
 		}
 
-		// only show the backend column if an apple runtime instance exists
+		// Check if we should show/hide certain columns based on instances
 		var showBackend bool
 		for _, inst := range instances {
 			if inst.Backend == string(vm.BackendApple) {
@@ -67,6 +67,10 @@ A new instance can be created during 'colima start' by specifying the '--profile
 				break
 			}
 		}
+
+		// Hide CPU, Memory, Disk, and Address columns if there's only one instance
+		// and it's an Apple runtime (these values are N/A for Apple)
+		onlyAppleInstance := len(instances) == 1 && instances[0].Backend == string(vm.BackendApple)
 
 		columns := []column{
 			{header: "PROFILE", value: func(i vm.InstanceInfo) string { return i.Name }},
@@ -78,21 +82,21 @@ A new instance can be created during 'colima start' by specifying the '--profile
 					return "N/A"
 				}
 				return fmt.Sprintf("%d", i.CPU)
-			}},
+			}, hidden: onlyAppleInstance},
 			{header: "MEMORY", value: func(i vm.InstanceInfo) string {
 				if i.Memory < 0 {
 					return "N/A"
 				}
 				return units.BytesSize(float64(i.Memory))
-			}},
+			}, hidden: onlyAppleInstance},
 			{header: "DISK", value: func(i vm.InstanceInfo) string {
 				if i.Disk < 0 {
 					return "N/A"
 				}
 				return units.BytesSize(float64(i.Disk))
-			}},
+			}, hidden: onlyAppleInstance},
 			{header: "RUNTIME", value: func(i vm.InstanceInfo) string { return i.Runtime }},
-			{header: "ADDRESS", value: func(i vm.InstanceInfo) string { return i.IPAddress }},
+			{header: "ADDRESS", value: func(i vm.InstanceInfo) string { return i.IPAddress }, hidden: onlyAppleInstance},
 		}
 
 		w := tabwriter.NewWriter(cmd.OutOrStdout(), 4, 8, 4, ' ', 0)
