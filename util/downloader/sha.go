@@ -1,12 +1,18 @@
 package downloader
 
 import (
+	"bufio"
+	"bytes"
+	"context"
+	"crypto/sha256"
+	"crypto/sha512"
 	"fmt"
+	"hash"
+	"io"
+	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
-
-	"github.com/abiosoft/colima/util"
+	"time"
 )
 
 // SHA is the shasum of a file.
@@ -17,28 +23,54 @@ type SHA struct {
 }
 
 // ValidateFile validates the SHA of the file.
+// The host parameter is kept for API compatibility but is not used.
 func (s SHA) ValidateFile(host hostActions, file string) error {
-	dir, filename := filepath.Split(file)
-	digest := strings.TrimPrefix(s.Digest, fmt.Sprintf("sha%d:", s.Size))
-	shasumBinary := "shasum"
-	if util.MacOS() {
-		shasumBinary = "/usr/bin/shasum"
-	}
-
-	script := strings.NewReplacer(
-		"{dir}", dir,
-		"{digest}", digest,
-		"{size}", strconv.Itoa(s.Size),
-		"{filename}", filename,
-		"{shasum_bin}", shasumBinary,
-	).Replace(
-		`cd {dir} && echo "{digest}  {filename}" | {shasum_bin} -a {size} --check --status`,
-	)
-
-	return host.Run("sh", "-c", script)
+	return s.validateFile(file)
 }
 
-func (s SHA) validateDownload(host hostActions, url string, filename string) error {
+// validateFile performs SHA validation using pure Go crypto.
+func (s SHA) validateFile(file string) error {
+	// open the file
+	f, err := os.Open(file)
+	if err != nil {
+		return fmt.Errorf("cannot open file for validation: %w", err)
+	}
+	defer func() { _ = f.Close() }()
+
+	// select hash algorithm
+	var h hash.Hash
+	switch s.Size {
+	case 256:
+		h = sha256.New()
+	case 512:
+		h = sha512.New()
+	default:
+		return fmt.Errorf("unsupported SHA size: %d (must be 256 or 512)", s.Size)
+	}
+
+	// compute hash
+	if _, err := io.Copy(h, f); err != nil {
+		return fmt.Errorf("error reading file for SHA validation: %w", err)
+	}
+
+	// compare
+	computed := fmt.Sprintf("%x", h.Sum(nil))
+	expected := strings.TrimPrefix(s.Digest, fmt.Sprintf("sha%d:", s.Size))
+	expected = strings.ToLower(strings.TrimSpace(expected))
+
+	if computed != expected {
+		return &SHAValidationError{
+			File:     filepath.Base(file),
+			Expected: expected,
+			Actual:   computed,
+			Size:     s.Size,
+		}
+	}
+
+	return nil
+}
+
+func (s SHA) validateDownload(url string, filename string) error {
 	if s.URL == "" && s.Digest == "" {
 		return fmt.Errorf("error validating SHA: one of Digest or URL must be set")
 	}
@@ -46,34 +78,67 @@ func (s SHA) validateDownload(host hostActions, url string, filename string) err
 	// fetch digest from URL if empty
 	if s.Digest == "" {
 		// retrieve the filename from the download url.
-		filename := func() string {
-			if url == "" {
-				return ""
-			}
+		targetFilename := ""
+		if url != "" {
 			split := strings.Split(url, "/")
-			return split[len(split)-1]
-		}()
+			targetFilename = split[len(split)-1]
+		}
 
-		digest, err := fetchSHAFromURL(host, s.URL, filename)
+		digest, err := fetchSHAFromURL(s.URL, targetFilename)
 		if err != nil {
 			return err
 		}
 		s.Digest = digest
 	}
 
-	return s.ValidateFile(host, filename)
+	return s.validateFile(filename)
 }
 
-func fetchSHAFromURL(host hostActions, url, filename string) (string, error) {
-	script := strings.NewReplacer(
-		"{url}", url,
-		"{filename}", filename,
-	).Replace(
-		"curl -sL {url} | grep '  {filename}$' | awk -F' ' '{print $1}'",
-	)
-	sha, err := host.RunOutput("sh", "-c", script)
+// fetchSHAFromURL fetches SHA checksum file and extracts digest for the target file
+func fetchSHAFromURL(shaURL, targetFilename string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	client := NewHTTPClient()
+
+	// fetch SHA file content
+	data, err := client.Fetch(ctx, shaURL)
 	if err != nil {
-		return "", fmt.Errorf("error retrieving sha from url '%s': %w", url, err)
+		return "", fmt.Errorf("error downloading SHA file from '%s': %w", shaURL, err)
 	}
-	return strings.TrimSpace(sha), nil
+
+	// parse SHA file to find the matching entry
+	digest, err := parseSHAContent(data, targetFilename)
+	if err != nil {
+		return "", fmt.Errorf("error parsing SHA file from '%s': %w", shaURL, err)
+	}
+
+	return digest, nil
+}
+
+// parseSHAContent reads SHA checksum content and extracts the digest for the target filename.
+// Supports formats:
+//   - GNU coreutils: "<hash>  <filename>" (two spaces)
+//   - BSD/binary mode: "<hash> *<filename>" (space + asterisk)
+func parseSHAContent(data []byte, targetFilename string) (string, error) {
+	scanner := bufio.NewScanner(bytes.NewReader(data))
+	for scanner.Scan() {
+		line := scanner.Text()
+		// format: "<hash>  <filename>" (two spaces) or "<hash> *<filename>" (binary mode)
+		parts := strings.Fields(line)
+		if len(parts) >= 2 {
+			hash := parts[0]
+			filename := strings.TrimPrefix(parts[len(parts)-1], "*")
+
+			if filename == targetFilename || strings.HasSuffix(filename, "/"+targetFilename) {
+				return hash, nil
+			}
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return "", err
+	}
+
+	return "", fmt.Errorf("no SHA entry found for '%s' in checksum file", targetFilename)
 }

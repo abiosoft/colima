@@ -1,16 +1,18 @@
 package downloader
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/util/shautil"
-	"github.com/abiosoft/colima/util/terminal"
 )
 
 type (
@@ -45,22 +47,18 @@ func DownloadToGuest(host hostActions, guest guestActions, r Request, filename s
 
 // Download downloads file at url and returns the location of the downloaded file.
 func Download(host hostActions, r Request) (string, error) {
-	d := downloader{
-		host: host,
-	}
+	d := downloader{}
 
 	if !d.hasCache(r.URL) {
 		if err := d.downloadFile(r); err != nil {
-			return "", fmt.Errorf("error downloading '%s': %w", r.URL, err)
+			return "", err
 		}
 	}
 
 	return CacheFilename(r.URL), nil
 }
 
-type downloader struct {
-	host hostActions
-}
+type downloader struct{}
 
 // CacheFilename returns the computed filename for the url.
 func CacheFilename(url string) string {
@@ -71,40 +69,85 @@ func (d downloader) cacheDownloadingFileName(url string) string {
 	return CacheFilename(url) + ".downloading"
 }
 
+func (d downloader) resumeInfoPath(url string) string {
+	return CacheFilename(url) + ".resume"
+}
+
 func (d downloader) downloadFile(r Request) (err error) {
-	// save to a temporary file initially before renaming to the desired file after successful download
-	// this prevents having a corrupt file
 	cacheDownloadingFilename := d.cacheDownloadingFileName(r.URL)
-	if err := d.host.RunQuiet("mkdir", "-p", filepath.Dir(cacheDownloadingFilename)); err != nil {
+
+	// create cache directory
+	cacheDir := filepath.Dir(cacheDownloadingFilename)
+	if err := os.MkdirAll(cacheDir, 0755); err != nil {
 		return fmt.Errorf("error preparing cache dir: %w", err)
 	}
 
-	// get rid of curl's initial progress bar by getting the redirect url directly.
-	downloadURL, err := d.host.RunOutput("curl", "-ILs", "-o", "/dev/null", "-w", "%{url_effective}", r.URL)
+	// check for existing partial download and resume info
+	var resumeInfo ResumeInfo
+	resumeInfoPath := d.resumeInfoPath(r.URL)
+	if data, err := os.ReadFile(resumeInfoPath); err == nil {
+		_ = json.Unmarshal(data, &resumeInfo)
+	}
+
+	// get existing file size for resume
+	var existingSize int64
+	if stat, err := os.Stat(cacheDownloadingFilename); err == nil {
+		existingSize = stat.Size()
+	}
+
+	// create HTTP client
+	client := NewHTTPClient()
+
+	// use a long timeout for large files (2 hours)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Hour)
+	defer cancel()
+
+	// get final URL (follows redirects)
+	finalURL, err := client.GetFinalURL(ctx, r.URL)
 	if err != nil {
-		return fmt.Errorf("error retrieving redirect url: %w", err)
+		return fmt.Errorf("error resolving download URL '%s': %w", r.URL, err)
 	}
 
-	// ask curl to resume previous download if possible "-C -"
-	if err := d.host.RunInteractive("curl", "-L", "-#", "-C", "-", "-o", cacheDownloadingFilename, downloadURL); err != nil {
-		return err
+	// download the file
+	result, err := client.Download(ctx, DownloadOptions{
+		URL:            finalURL,
+		DestPath:       cacheDownloadingFilename,
+		ExpectedETag:   resumeInfo.ETag,
+		ResumeFromByte: existingSize,
+		ShowProgress:   true,
+	})
+	if err != nil {
+		// save resume info for next attempt if we have ETag
+		if result != nil && result.ETag != "" {
+			d.saveResumeInfo(r.URL, result.ETag, existingSize)
+		}
+		return fmt.Errorf("error downloading '%s': %w", path.Base(r.URL), err)
 	}
-	// clear curl progress line
-	terminal.ClearLine()
 
-	// validate download if sha is present
+	// clean up resume info on successful download
+	_ = os.Remove(resumeInfoPath)
+
+	// validate download if SHA is present
 	if r.SHA != nil {
-		if err := r.SHA.validateDownload(d.host, r.URL, cacheDownloadingFilename); err != nil {
-
+		if err := r.SHA.validateDownload(r.URL, cacheDownloadingFilename); err != nil {
 			// move file to allow subsequent re-download
-			// error discarded, would not be actioned anyways
-			_ = d.host.RunQuiet("mv", cacheDownloadingFilename, cacheDownloadingFilename+".invalid")
-
+			_ = os.Rename(cacheDownloadingFilename, cacheDownloadingFilename+".invalid")
 			return fmt.Errorf("error validating SHA sum for '%s': %w", path.Base(r.URL), err)
 		}
 	}
 
-	return d.host.RunQuiet("mv", cacheDownloadingFilename, CacheFilename(r.URL))
+	// move completed download to final location
+	if err := os.Rename(cacheDownloadingFilename, CacheFilename(r.URL)); err != nil {
+		return fmt.Errorf("error finalizing download: %w", err)
+	}
+
+	return nil
+}
+
+func (d downloader) saveResumeInfo(url, etag string, bytesWritten int64) {
+	info := ResumeInfo{ETag: etag, BytesWritten: bytesWritten}
+	data, _ := json.Marshal(info)
+	_ = os.WriteFile(d.resumeInfoPath(url), data, 0644)
 }
 
 func (d downloader) hasCache(url string) bool {
