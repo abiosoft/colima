@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/abiosoft/colima/cli"
+	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/daemon/process"
 	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/osutil"
@@ -20,8 +21,13 @@ import (
 // Name is the name of the socktainer process.
 const Name = "socktainer"
 
-// Command is the socktainer binary name.
-const Command = Name
+// socktainerDir is the directory name for socktainer installation.
+const socktainerDir = "_socktainer"
+
+// BinPath returns the absolute path to the socktainer binary.
+func BinPath() string {
+	return filepath.Join(config.Dir(), socktainerDir, "bin", Name)
+}
 
 // socketDir is the directory where socktainer creates its socket.
 // This is a fixed path managed by socktainer itself.
@@ -111,7 +117,7 @@ func (s *socktainerProcess) runOnce(ctx context.Context) error {
 
 	// Start socktainer process - it manages its own socket at ~/.socktainer/container.sock
 	// Use non-interactive command as socktainer is a background daemon
-	command := cli.Command(Command)
+	command := cli.Command(BinPath())
 
 	if cli.Settings.Verbose {
 		command.Env = append(command.Env, os.Environ()...)

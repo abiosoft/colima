@@ -1,7 +1,7 @@
 package socktainer
 
 import (
-	"os/exec"
+	"os"
 
 	"github.com/abiosoft/colima/environment"
 )
@@ -11,7 +11,7 @@ type socktainerBinary struct{}
 
 // Installed implements process.Dependency.
 func (s socktainerBinary) Installed() bool {
-	_, err := exec.LookPath(Command)
+	_, err := os.Stat(BinPath())
 	return err == nil
 }
 

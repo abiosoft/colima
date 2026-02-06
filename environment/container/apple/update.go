@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 
 	"github.com/abiosoft/colima/environment"
@@ -23,7 +22,7 @@ type componentUpdate struct {
 	Name           string // display name
 	CurrentVersion string // currently installed version
 	LatestVersion  string // latest version from GitHub
-	PkgURL         string // download URL for the .pkg file
+	ZipURL         string // download URL for the .zip file
 }
 
 // Ensure appleRuntime implements AppUpdater.
@@ -60,10 +59,10 @@ func (a *appleRuntime) DownloadUpdate(ctx context.Context) error {
 	for _, u := range a.pendingUpdates {
 		// Clear cached download to ensure the latest version is fetched,
 		// since the /releases/latest/ URL does not change between versions.
-		_ = os.Remove(downloader.CacheFilename(u.PkgURL))
+		_ = os.Remove(downloader.CacheFilename(u.ZipURL))
 
 		log.Println("downloading", u.Name, u.LatestVersion, "...")
-		if _, err := downloader.Download(a.host, downloader.Request{URL: u.PkgURL}); err != nil {
+		if _, err := downloader.Download(a.host, downloader.Request{URL: u.ZipURL}); err != nil {
 			return fmt.Errorf("failed to download %s %s: %w", u.Name, u.LatestVersion, err)
 		}
 	}
@@ -77,21 +76,10 @@ func (a *appleRuntime) InstallUpdate(ctx context.Context) error {
 	log := a.Logger(ctx)
 
 	for _, u := range a.pendingUpdates {
-		// Download returns from cache since already downloaded in DownloadUpdate.
-		pkgFile, err := downloader.Download(a.host, downloader.Request{URL: u.PkgURL})
-		if err != nil {
-			return fmt.Errorf("failed to get cached package for %s: %w", u.Name, err)
-		}
+		log.Println("installing", u.Name, u.LatestVersion, "...")
 
-		// Copy to a temporary location with .pkg extension for installer.
-		tmpPkg := filepath.Join(os.TempDir(), u.Name+".pkg")
-		if err := a.host.RunQuiet("cp", pkgFile, tmpPkg); err != nil {
-			return fmt.Errorf("failed to prepare package for %s: %w", u.Name, err)
-		}
-		defer func() { _ = os.Remove(tmpPkg) }()
-
-		log.Println("installing", u.Name, u.LatestVersion, "(sudo password may be required) ...")
-		if err := a.host.RunInteractive("sudo", "installer", "-pkg", tmpPkg, "-target", "/"); err != nil {
+		// Use the same installation logic as initial install
+		if err := apple.InstallSocktainer(a.host, log); err != nil {
 			return fmt.Errorf("failed to install %s: %w", u.Name, err)
 		}
 	}
@@ -118,10 +106,10 @@ func checkSocktainerUpdate(host environment.HostActions) (*componentUpdate, erro
 	}
 
 	return &componentUpdate{
-		Name:           SocktainerCommand,
+		Name:           apple.SocktainerCommand,
 		CurrentVersion: current,
 		LatestVersion:  latest,
-		PkgURL:         socktainerPkgURL,
+		ZipURL:         apple.SocktainerZipURL,
 	}, nil
 }
 
@@ -149,7 +137,7 @@ func containerCurrentVersion(host environment.HostActions) (string, error) {
 // socktainerCurrentVersion returns the installed version of socktainer.
 // Output format: socktainer: v0.9.0 (git commit: 6a710bf)
 func socktainerCurrentVersion(host environment.HostActions) (string, error) {
-	output, err := host.RunOutput(SocktainerCommand, "--version")
+	output, err := host.RunOutput(apple.SocktainerBinPath(), "--version")
 	if err != nil {
 		return "", fmt.Errorf("error running socktainer --version: %w", err)
 	}

@@ -15,9 +15,6 @@ import (
 // Name is the container runtime name.
 const Name = "apple"
 
-// SocktainerCommand is the command for the socktainer Docker API bridge.
-const SocktainerCommand = "socktainer"
-
 var _ environment.Container = (*appleRuntime)(nil)
 
 func init() {
