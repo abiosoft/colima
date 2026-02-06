@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/daemon/process"
@@ -64,44 +65,81 @@ func (*socktainerProcess) Alive(ctx context.Context) error {
 
 // Start implements process.Process.
 // Socktainer is a blocking process that runs until the context is cancelled.
+// It automatically restarts on crash or error exit.
 func (s *socktainerProcess) Start(ctx context.Context) error {
+	for {
+		// Check if context is already cancelled before starting
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+		}
+
+		err := s.runOnce(ctx)
+		if err == nil {
+			// Clean exit, check if we should restart
+			select {
+			case <-ctx.Done():
+				return nil
+			default:
+				// Process exited cleanly but context not cancelled, restart
+				logrus.Debugln("socktainer exited, restarting...")
+			}
+		} else {
+			// Error exit, check if context is cancelled
+			select {
+			case <-ctx.Done():
+				return nil
+			default:
+				// Context not cancelled, log and restart
+				logrus.Warnln(fmt.Errorf("socktainer crashed, restarting: %w", err))
+			}
+		}
+
+		// Small delay before restart to prevent rapid restart loops
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-time.After(time.Second):
+		}
+	}
+}
+
+// runOnce starts socktainer and waits for it to exit or context cancellation.
+func (s *socktainerProcess) runOnce(ctx context.Context) error {
 	done := make(chan error, 1)
 
+	// Start socktainer process - it manages its own socket at ~/.socktainer/container.sock
+	// Use non-interactive command as socktainer is a background daemon
+	command := cli.Command(Command)
+
+	if cli.Settings.Verbose {
+		command.Env = append(command.Env, os.Environ()...)
+		command.Env = append(command.Env, "DEBUG=1")
+	}
+
+	// Start the command and write PID to file
+	if err := command.Start(); err != nil {
+		return fmt.Errorf("error starting socktainer: %w", err)
+	}
+
+	// Write PID to file
+	if err := writePidFile(command.Process.Pid); err != nil {
+		logrus.Warnln(fmt.Errorf("error writing socktainer pid file: %w", err))
+	}
+
 	go func() {
-		// Start socktainer process - it manages its own socket at ~/.socktainer/container.sock
-		command := cli.CommandInteractive(Command)
-
-		if cli.Settings.Verbose {
-			command.Env = append(command.Env, os.Environ()...)
-			command.Env = append(command.Env, "DEBUG=1")
-		}
-
-		// Start the command and write PID to file
-		if err := command.Start(); err != nil {
-			done <- fmt.Errorf("error starting socktainer: %w", err)
-			return
-		}
-
-		// Write PID to file
-		if err := writePidFile(command.Process.Pid); err != nil {
-			logrus.Warnln(fmt.Errorf("error writing socktainer pid file: %w", err))
-		}
-
-		// Wait for command to complete
 		done <- command.Wait()
 	}()
 
 	select {
 	case <-ctx.Done():
-		// Context cancelled, socktainer will be terminated by the daemon manager
+		// Context cancelled, kill the process
+		_ = command.Process.Kill()
 		return nil
 	case err := <-done:
-		if err != nil {
-			return fmt.Errorf("error running socktainer: %w", err)
-		}
+		return err
 	}
-
-	return nil
 }
 
 // Dependencies implements process.Process.
