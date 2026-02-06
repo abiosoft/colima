@@ -11,6 +11,7 @@ import (
 	"github.com/abiosoft/colima/daemon/process/socktainer"
 	"github.com/abiosoft/colima/daemon/process/vmnet"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/environment/vm/apple/appleutil"
 	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/fsutil"
 	"github.com/abiosoft/colima/util/osutil"
@@ -106,7 +107,7 @@ func (l processManager) Start(ctx context.Context, conf config.Config) error {
 		args = append(args, "--vmnet-interface", conf.Network.BridgeInterface)
 	}
 	// inotify is not needed for Apple runtime (no VM mounts)
-	if conf.MountINotify && conf.Runtime != "apple" {
+	if conf.MountINotify && conf.Runtime != appleutil.Name {
 		args = append(args, "--inotify")
 		args = append(args, "--inotify-runtime", conf.Runtime)
 		for _, mount := range conf.MountsOrDefault() {
@@ -117,7 +118,7 @@ func (l processManager) Start(ctx context.Context, conf config.Config) error {
 			args = append(args, "--inotify-dir", p)
 		}
 	}
-	if conf.Runtime == "apple" {
+	if conf.Runtime == appleutil.Name {
 		args = append(args, "--socktainer")
 	}
 
@@ -142,10 +143,10 @@ func processesFromConfig(conf config.Config) []process.Process {
 		processes = append(processes, vmnet.New(conf.Network.Mode, conf.Network.BridgeInterface))
 	}
 	// inotify is not needed for Apple runtime (no VM mounts)
-	if conf.MountINotify && conf.Runtime != "apple" {
+	if conf.MountINotify && conf.Runtime != appleutil.Name {
 		processes = append(processes, inotify.New())
 	}
-	if conf.Runtime == "apple" {
+	if conf.Runtime == appleutil.Name {
 		processes = append(processes, socktainer.New())
 	}
 

@@ -20,7 +20,7 @@ import (
 )
 
 // Name is the name of the Apple Container backend.
-const Name = "apple"
+const Name = appleutil.Name
 
 // ContainerCommand is the command for Apple Container CLI.
 const ContainerCommand = "container"
