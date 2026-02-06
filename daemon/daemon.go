@@ -105,7 +105,8 @@ func (l processManager) Start(ctx context.Context, conf config.Config) error {
 		args = append(args, "--vmnet-mode", conf.Network.Mode)
 		args = append(args, "--vmnet-interface", conf.Network.BridgeInterface)
 	}
-	if conf.MountINotify {
+	// inotify is not needed for Apple runtime (no VM mounts)
+	if conf.MountINotify && conf.Runtime != "apple" {
 		args = append(args, "--inotify")
 		args = append(args, "--inotify-runtime", conf.Runtime)
 		for _, mount := range conf.MountsOrDefault() {
@@ -140,7 +141,8 @@ func processesFromConfig(conf config.Config) []process.Process {
 	if conf.Network.Address {
 		processes = append(processes, vmnet.New(conf.Network.Mode, conf.Network.BridgeInterface))
 	}
-	if conf.MountINotify {
+	// inotify is not needed for Apple runtime (no VM mounts)
+	if conf.MountINotify && conf.Runtime != "apple" {
 		processes = append(processes, inotify.New())
 	}
 	if conf.Runtime == "apple" {
