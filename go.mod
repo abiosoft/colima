@@ -1,6 +1,6 @@
 module github.com/abiosoft/colima
 
-go 1.23.0
+go 1.24.0
 
 require (
 	github.com/coreos/go-semver v0.3.1
@@ -12,7 +12,7 @@ require (
 	github.com/sevlyar/go-daemon v0.1.6
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.9.1
-	golang.org/x/term v0.33.0
+	golang.org/x/term v0.39.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -24,5 +24,5 @@ require (
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
-	golang.org/x/sys v0.34.0 // indirect
+	golang.org/x/sys v0.40.0 // indirect
 )
