@@ -138,6 +138,19 @@ func (h hostEnv) RunInteractive(args ...string) error {
 	if h.dir != "" {
 		cmd.Dir = h.dir
 	}
+
+	// When not in verbose mode, track output lines and clear them after completion.
+	// Note: stdin is not wrapped to preserve TTY functionality for interactive commands.
+	// User input lines are not tracked, so clearing may leave some residual lines.
+	if !cli.Settings.Verbose {
+		intIO := terminal.NewInteractiveIO()
+		cmd.Stdout = intIO.Writer(os.Stdout)
+		cmd.Stderr = intIO.Writer(os.Stderr)
+		err := cmd.Run()
+		intIO.Clear()
+		return err
+	}
+
 	return cmd.Run()
 }
 

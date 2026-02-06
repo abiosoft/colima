@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"strconv"
 
+	"github.com/abiosoft/colima/util/terminal"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -71,6 +72,11 @@ func Prompt(question string) bool {
 
 	var answer string
 	_, _ = fmt.Scanln(&answer)
+
+	// Clear the prompt line after response (only when not in verbose mode)
+	if !Settings.Verbose {
+		terminal.ClearLine()
+	}
 
 	if answer == "" {
 		return false
