@@ -15,7 +15,7 @@ var updateCmd = &cobra.Command{
 	Long:    `Update the current container runtime.`,
 	Args:    cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if appleutil.IsAppleBackend() {
+		if appleutil.AppleBackend() {
 			return newAppWithBackend(vm.BackendApple).Update()
 		}
 		return newApp().Update()

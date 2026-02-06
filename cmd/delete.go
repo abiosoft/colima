@@ -22,7 +22,7 @@ Use with caution. This deletes everything and a startup afterwards is like the
 initial startup of Colima.`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if appleutil.IsAppleBackend() {
+		if appleutil.AppleBackend() {
 			return newAppWithBackend(vm.BackendApple).Delete(deleteCmdArgs.data, deleteCmdArgs.force)
 		}
 		return newApp().Delete(deleteCmdArgs.data, deleteCmdArgs.force)

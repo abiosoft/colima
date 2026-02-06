@@ -32,15 +32,15 @@ func SocktainerBinPath() string {
 	return filepath.Join(socktainerBinDir(), SocktainerCommand)
 }
 
-// isSocktainerInstalled checks if socktainer is installed.
-func isSocktainerInstalled() bool {
+// socktainerInstalled checks if socktainer is installed.
+func socktainerInstalled() bool {
 	_, err := os.Stat(SocktainerBinPath())
 	return err == nil
 }
 
 // ensureSocktainer checks if socktainer is installed and installs it if missing.
 func ensureSocktainer(host environment.HostActions, logger *log.Entry) error {
-	if isSocktainerInstalled() {
+	if socktainerInstalled() {
 		return nil
 	}
 

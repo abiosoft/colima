@@ -19,7 +19,7 @@ var statusCmd = &cobra.Command{
 	Long:  `Show the status of Colima`,
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if appleutil.IsAppleBackend() {
+		if appleutil.AppleBackend() {
 			return newAppWithBackend(vm.BackendApple).Status(statusCmdArgs.extended, statusCmdArgs.json)
 		}
 		return newApp().Status(statusCmdArgs.extended, statusCmdArgs.json)

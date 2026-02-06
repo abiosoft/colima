@@ -18,7 +18,7 @@ var sshConfigCmd = &cobra.Command{
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Check if this is an Apple Container instance
-		if appleutil.IsAppleBackend() {
+		if appleutil.AppleBackend() {
 			return fmt.Errorf("ssh-config is not supported for Apple Container runtime")
 		}
 		resp, err := limautil.ShowSSH(config.CurrentProfile().ID)

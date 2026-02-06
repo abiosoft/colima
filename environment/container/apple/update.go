@@ -101,7 +101,7 @@ func checkSocktainerUpdate(host environment.HostActions) (*componentUpdate, erro
 		return nil, fmt.Errorf("error checking latest socktainer version: %w", err)
 	}
 
-	if !isNewer(latest, current) {
+	if !newer(latest, current) {
 		return nil, nil
 	}
 
@@ -175,8 +175,8 @@ func latestGitHubVersion(host environment.HostActions, repo string) (string, err
 	return tag, nil
 }
 
-// isNewer returns true if latest is a newer semver than current.
-func isNewer(latest, current string) bool {
+// newer returns true if latest is a newer semver than current.
+func newer(latest, current string) bool {
 	latestVer, err := parseSemver(latest)
 	if err != nil {
 		return false

@@ -21,7 +21,7 @@ e.g. 'colima ssh -- htop' will run htop.
 It is recommended to specify '--' to differentiate from colima flags.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Check if this is an Apple Container instance
-		if appleutil.IsAppleBackend() {
+		if appleutil.AppleBackend() {
 			return fmt.Errorf("ssh is not supported for Apple Container runtime")
 		}
 		return newApp().SSH(args...)

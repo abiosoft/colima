@@ -21,7 +21,7 @@ var versionCmd = &cobra.Command{
 		fmt.Println(config.AppName, "version", version.Version)
 		fmt.Println("git commit:", version.Revision)
 
-		if appleutil.IsAppleBackend() {
+		if appleutil.AppleBackend() {
 			_ = newAppWithBackend(vm.BackendApple).Version()
 		} else {
 			_ = newApp().Version()

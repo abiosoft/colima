@@ -21,7 +21,7 @@ The state of the VM is persisted at stop. A start afterwards
 should return it back to its previous state.`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if appleutil.IsAppleBackend() {
+		if appleutil.AppleBackend() {
 			return newAppWithBackend(vm.BackendApple).Stop(stopCmdArgs.force)
 		}
 		return newApp().Stop(stopCmdArgs.force)

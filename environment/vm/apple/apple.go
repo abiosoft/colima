@@ -235,7 +235,7 @@ func (a appleVM) stopDaemon() error {
 // Created returns if Colima has previously been set up with Apple Container.
 // Checks the config file for apple runtime.
 func (a appleVM) Created() bool {
-	return appleutil.IsAppleBackend()
+	return appleutil.AppleBackend()
 }
 
 // containerSystemRunning checks if the container system is running.
