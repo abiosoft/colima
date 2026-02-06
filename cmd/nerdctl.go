@@ -45,7 +45,24 @@ It is recommended to specify '--' to differentiate from Colima flags.
 			return fmt.Errorf("nerdctl only supports %s runtime", containerd.Name)
 		}
 
-		nerdctlArgs := append([]string{"sudo", "nerdctl"}, args...)
+		// collect CONTAINERD_* and NERDCTL_* environment variables from the host
+		var envVars []string
+		for _, env := range os.Environ() {
+			if strings.HasPrefix(env, "CONTAINERD_") || strings.HasPrefix(env, "NERDCTL_") {
+				envVars = append(envVars, env)
+			}
+		}
+
+		var nerdctlArgs []string
+		if len(envVars) > 0 {
+			// use 'sudo env VAR=value ... nerdctl' to pass environment variables
+			nerdctlArgs = append([]string{"sudo", "env"}, envVars...)
+			nerdctlArgs = append(nerdctlArgs, "nerdctl")
+		} else {
+			nerdctlArgs = []string{"sudo", "nerdctl"}
+		}
+		nerdctlArgs = append(nerdctlArgs, args...)
+
 		return app.SSH(nerdctlArgs...)
 	},
 }
