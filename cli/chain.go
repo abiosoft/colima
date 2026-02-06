@@ -6,6 +6,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/abiosoft/colima/util/terminal"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -67,8 +68,14 @@ func (n *namedCommandChain) Logger(ctx context.Context) *log.Entry {
 }
 
 func (n *namedCommandChain) Init(ctx context.Context) *ActiveCommandChain {
+	output := terminal.OutputFromContext(ctx)
+	// begin this context in status output
+	if output != nil {
+		output.Begin(n.name)
+	}
 	return &ActiveCommandChain{
-		log: n.Logger(ctx),
+		log:    n.Logger(ctx),
+		output: output,
 	}
 }
 
@@ -77,6 +84,7 @@ type ActiveCommandChain struct {
 	funcs     []cFunc
 	lastStage string
 	log       *log.Entry
+	output    *terminal.Output
 
 	executing bool
 }
@@ -92,7 +100,11 @@ func (a *ActiveCommandChain) Add(f func() error) {
 // Stage sets the current stage of the runner.
 func (a *ActiveCommandChain) Stage(s string) {
 	if a.executing {
-		a.log.Println(s, "...")
+		if a.output != nil {
+			a.output.Child(s)
+		} else {
+			a.log.Println(s, "...")
+		}
 		return
 	}
 	a.funcs = append(a.funcs, cFunc{s: s})
@@ -114,7 +126,11 @@ func (a *ActiveCommandChain) Exec() error {
 	for _, f := range a.funcs {
 		if f.f == nil {
 			if f.s != "" {
-				a.log.Println(f.s, "...")
+				if a.output != nil {
+					a.output.Child(f.s)
+				} else {
+					a.log.Println(f.s, "...")
+				}
 				a.lastStage = f.s
 			}
 			continue
@@ -153,7 +169,11 @@ func (a *ActiveCommandChain) Retry(stage string, interval time.Duration, count i
 		var i int
 		for err = f(i + 1); i < count && err != nil; i, err = i+1, f(i+1) {
 			if stage != "" {
-				a.log.Println(stage, "...")
+				if a.output != nil {
+					a.output.Child(stage)
+				} else {
+					a.log.Println(stage, "...")
+				}
 			}
 			time.Sleep(interval)
 		}

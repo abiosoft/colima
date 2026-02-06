@@ -23,6 +23,7 @@ import (
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/store"
 	"github.com/abiosoft/colima/util"
+	"github.com/abiosoft/colima/util/terminal"
 	"github.com/docker/go-units"
 	log "github.com/sirupsen/logrus"
 )
@@ -58,7 +59,7 @@ type colimaApp struct {
 	guest environment.VM
 }
 
-func (c colimaApp) startWithRuntime(conf config.Config) ([]environment.Container, error) {
+func (c colimaApp) startWithRuntime(conf config.Config, output *terminal.Output) ([]environment.Container, error) {
 	kubernetesEnabled := conf.Kubernetes.Enabled
 
 	// Kubernetes can only be enabled for docker and containerd
@@ -75,7 +76,11 @@ func (c colimaApp) startWithRuntime(conf config.Config) ([]environment.Container
 		if kubernetesEnabled {
 			runtime += "+k3s"
 		}
-		log.Println("runtime:", runtime)
+		if output != nil {
+			output.Child("runtime " + runtime)
+		} else {
+			log.Println("runtime:", runtime)
+		}
 	}
 
 	// runtime
@@ -100,16 +105,24 @@ func (c colimaApp) startWithRuntime(conf config.Config) ([]environment.Container
 }
 
 func (c colimaApp) Start(conf config.Config) error {
-	ctx := context.WithValue(context.Background(), config.CtxKey(), conf)
+	// create terminal output manager
+	output := terminal.NewOutput()
+	output.Start()
+	defer output.Stop()
 
-	log.Println("starting", config.CurrentProfile().DisplayName)
+	ctx := context.WithValue(context.Background(), config.CtxKey(), conf)
+	ctx = context.WithValue(ctx, terminal.CtxKeyOutput, output)
+
 	// print the full path of current profile being used
 	log.Tracef("starting with config file: %s\n", config.CurrentProfile().File())
 
+	output.Begin("starting " + config.CurrentProfile().DisplayName)
+
 	var containers []environment.Container
 	if !environment.IsNoneRuntime(conf.Runtime) {
-		cs, err := c.startWithRuntime(conf)
+		cs, err := c.startWithRuntime(conf, output)
 		if err != nil {
+			output.Error(err.Error())
 			return err
 		}
 		containers = cs
@@ -120,18 +133,21 @@ func (c colimaApp) Start(conf config.Config) error {
 
 	// start vm
 	if err := c.guest.Start(ctx, conf); err != nil {
+		output.Error(err.Error())
 		return fmt.Errorf("error starting vm: %w", err)
 	}
 
 	// provision and start container runtimes
 	for _, cont := range containers {
-		log := log.WithField("context", cont.Name())
-		log.Println("provisioning ...")
+		output.Begin(cont.Name())
+		output.Child("provisioning")
 		if err := cont.Provision(ctx); err != nil {
+			output.Error(err.Error())
 			return fmt.Errorf("error provisioning %s: %w", cont.Name(), err)
 		}
-		log.Println("starting ...")
+		output.Child("starting")
 		if err := cont.Start(ctx); err != nil {
+			output.Error(err.Error())
 			return fmt.Errorf("error starting %s: %w", cont.Name(), err)
 		}
 	}
@@ -146,7 +162,7 @@ func (c colimaApp) Start(conf config.Config) error {
 		log.Error(fmt.Errorf("error persisting kubernetes settings: %w", err))
 	}
 
-	log.Println("done")
+	output.Done("done")
 
 	if err := generateSSHConfig(conf.SSHConfig); err != nil {
 		log.Trace("error generating ssh_config: %w", err)
@@ -155,8 +171,15 @@ func (c colimaApp) Start(conf config.Config) error {
 }
 
 func (c colimaApp) Stop(force bool) error {
+	// create terminal output manager
+	output := terminal.NewOutput()
+	output.Start()
+	defer output.Stop()
+
 	ctx := context.Background()
-	log.Println("stopping", config.CurrentProfile().DisplayName)
+	ctx = context.WithValue(ctx, terminal.CtxKeyOutput, output)
+
+	output.Begin("stopping " + config.CurrentProfile().DisplayName)
 
 	// the order for stop is:
 	//   container stop -> vm stop
@@ -172,8 +195,8 @@ func (c colimaApp) Stop(force bool) error {
 		for i := len(containers) - 1; i >= 0; i-- {
 			cont := containers[i]
 
-			log := log.WithField("context", cont.Name())
-			log.Println("stopping ...")
+			output.Begin(cont.Name())
+			output.Child("stopping")
 
 			if err := cont.Stop(ctx); err != nil {
 				// failure to stop a container runtime is not fatal
@@ -187,10 +210,11 @@ func (c colimaApp) Stop(force bool) error {
 	// stop vm
 	// no need to check running status, it may be in a state that requires stopping.
 	if err := c.guest.Stop(ctx, force); err != nil {
+		output.Error(err.Error())
 		return fmt.Errorf("error stopping vm: %w", err)
 	}
 
-	log.Println("done")
+	output.Done("done")
 
 	if err := generateSSHConfig(false); err != nil {
 		log.Trace("error generating ssh_config: %w", err)
@@ -221,8 +245,15 @@ func (c colimaApp) Delete(data, force bool) error {
 		}
 	}
 
+	// create terminal output manager
+	output := terminal.NewOutput()
+	output.Start()
+	defer output.Stop()
+
 	ctx := context.Background()
-	log.Println("deleting", config.CurrentProfile().DisplayName)
+	ctx = context.WithValue(ctx, terminal.CtxKeyOutput, output)
+
+	output.Begin("deleting " + config.CurrentProfile().DisplayName)
 
 	// the order for teardown is:
 	//   container teardown -> vm teardown
@@ -238,8 +269,8 @@ func (c colimaApp) Delete(data, force bool) error {
 			log.Warnln(fmt.Errorf("error retrieving runtimes: %w", err))
 		}
 		for _, cont := range containers {
-			log := log.WithField("context", cont.Name())
-			log.Println("deleting ...")
+			output.Begin(cont.Name())
+			output.Child("deleting")
 
 			if err := cont.Teardown(ctx); err != nil {
 				// failure here is not fatal
@@ -249,19 +280,24 @@ func (c colimaApp) Delete(data, force bool) error {
 	}
 
 	// teardown vm
+	output.Begin("vm")
+	output.Child("deleting")
 	if err := c.guest.Teardown(ctx); err != nil {
+		output.Error(err.Error())
 		return fmt.Errorf("error during teardown of vm: %w", err)
 	}
 
 	// delete configs
 	if err := configmanager.Teardown(); err != nil {
+		output.Error(err.Error())
 		return fmt.Errorf("error deleting configs: %w", err)
 	}
 
 	// delete runtime disk if disk in use and data deletion is requested
 	if diskInUse && data {
-		log.Println("deleting container data")
+		output.Child("deleting container data")
 		if err := limautil.DeleteDisk(); err != nil {
+			output.Error(err.Error())
 			return fmt.Errorf("error deleting container data: %w", err)
 		}
 
@@ -270,7 +306,7 @@ func (c colimaApp) Delete(data, force bool) error {
 		}
 	}
 
-	log.Println("done")
+	output.Done("done")
 
 	if err := generateSSHConfig(false); err != nil {
 		log.Trace("error generating ssh_config: %w", err)

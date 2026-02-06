@@ -24,14 +24,16 @@ func New() environment.Host {
 var _ environment.Host = (*hostEnv)(nil)
 
 type hostEnv struct {
-	env []string
-	dir string // working directory
+	env    []string
+	dir    string // working directory
+	output *terminal.Output
 }
 
 func (h hostEnv) clone() hostEnv {
 	var newHost hostEnv
 	newHost.env = append(newHost.env, h.env...)
 	newHost.dir = h.dir
+	newHost.output = h.output
 	return newHost
 }
 
@@ -45,6 +47,12 @@ func (h hostEnv) WithEnv(env ...string) environment.HostActions {
 func (h hostEnv) WithDir(dir string) environment.HostActions {
 	newHost := h.clone()
 	newHost.dir = dir
+	return newHost
+}
+
+func (h hostEnv) WithOutput(output *terminal.Output) environment.HostActions {
+	newHost := h.clone()
+	newHost.output = output
 	return newHost
 }
 
@@ -63,7 +71,14 @@ func (h hostEnv) Run(args ...string) error {
 		lineHeight = -1 // disable scrolling
 	}
 
-	out := terminal.NewVerboseWriter(lineHeight)
+	// use output's verbose writer if available for coordination,
+	// otherwise use standalone verbose writer
+	var out io.WriteCloser
+	if h.output != nil {
+		out = h.output.VerboseWriter(lineHeight)
+	} else {
+		out = terminal.NewVerboseWriter(lineHeight)
+	}
 	cmd.Stdout = out
 	cmd.Stderr = out
 

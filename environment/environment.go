@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/util/terminal"
 )
 
 type runActions interface {
@@ -38,6 +39,9 @@ type HostActions interface {
 	// WithDir creates a new instance based on the current instance
 	// with the working directory set to dir.
 	WithDir(dir string) HostActions
+	// WithOutput creates a new instance based on the current instance
+	// with the terminal output manager for coordinated output.
+	WithOutput(output *terminal.Output) HostActions
 	// Env retrieves environment variable on the host.
 	Env(string) string
 }

@@ -19,6 +19,7 @@ import (
 	"github.com/abiosoft/colima/store"
 	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/osutil"
+	"github.com/abiosoft/colima/util/terminal"
 	"github.com/abiosoft/colima/util/yamlutil"
 	"github.com/sirupsen/logrus"
 )
@@ -75,8 +76,19 @@ func (l limaVM) Dependencies() []string {
 	}
 }
 
+// hostWithOutput returns the host with Output wired from context if available
+func (l *limaVM) hostWithOutput(ctx context.Context) environment.HostActions {
+	if output := terminal.OutputFromContext(ctx); output != nil {
+		return l.host.WithOutput(output)
+	}
+	return l.host
+}
+
 func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 	a := l.Init(ctx)
+
+	// wire output from context to host for coordinated verbose output
+	host := l.hostWithOutput(ctx)
 
 	l.prepareHost(conf)
 
@@ -114,7 +126,7 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 	a.Add(func() error { return l.writeNetworkFile(conf) })
 
 	a.Add(func() error {
-		return l.host.Run(limactl, "start", "--tty=false", confFile)
+		return host.Run(limactl, "start", "--tty=false", confFile)
 	})
 	a.Add(func() error {
 		return os.Remove(confFile)
@@ -134,6 +146,9 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 func (l *limaVM) resume(ctx context.Context, conf config.Config) error {
 	log := l.Logger(ctx)
 	a := l.Init(ctx)
+
+	// wire output from context to host for coordinated verbose output
+	host := l.hostWithOutput(ctx)
 
 	if l.Running(ctx) {
 		log.Println("already running")
@@ -171,7 +186,7 @@ func (l *limaVM) resume(ctx context.Context, conf config.Config) error {
 
 	a.Stage("starting")
 	a.Add(func() error {
-		return l.host.Run(limactl, "start", config.CurrentProfile().ID)
+		return host.Run(limactl, "start", config.CurrentProfile().ID)
 	})
 
 	l.addPostStartActions(a, conf)
@@ -191,6 +206,10 @@ func (l limaVM) Running(_ context.Context) bool {
 func (l limaVM) Stop(ctx context.Context, force bool) error {
 	log := l.Logger(ctx)
 	a := l.Init(ctx)
+
+	// wire output from context to host for coordinated verbose output
+	host := l.hostWithOutput(ctx)
+
 	if !l.Running(ctx) && !force {
 		log.Println("not running")
 		return nil
@@ -213,9 +232,9 @@ func (l limaVM) Stop(ctx context.Context, force bool) error {
 
 	a.Add(func() error {
 		if force {
-			return l.host.Run(limactl, "stop", "--force", config.CurrentProfile().ID)
+			return host.Run(limactl, "stop", "--force", config.CurrentProfile().ID)
 		}
-		return l.host.Run(limactl, "stop", config.CurrentProfile().ID)
+		return host.Run(limactl, "stop", config.CurrentProfile().ID)
 	})
 
 	return a.Exec()
@@ -223,6 +242,9 @@ func (l limaVM) Stop(ctx context.Context, force bool) error {
 
 func (l limaVM) Teardown(ctx context.Context) error {
 	a := l.Init(ctx)
+
+	// wire output from context to host for coordinated verbose output
+	host := l.hostWithOutput(ctx)
 
 	if util.MacOS() {
 		conf, _ := configmanager.LoadInstance()
@@ -232,7 +254,7 @@ func (l limaVM) Teardown(ctx context.Context) error {
 	}
 
 	a.Add(func() error {
-		return l.host.Run(limactl, "delete", "--force", config.CurrentProfile().ID)
+		return host.Run(limactl, "delete", "--force", config.CurrentProfile().ID)
 	})
 
 	return a.Exec()

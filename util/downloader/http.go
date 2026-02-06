@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/util/terminal"
 	"github.com/schollz/progressbar/v3"
 	"golang.org/x/term"
 )
@@ -197,7 +198,13 @@ func (h *HTTPClient) Download(ctx context.Context, opts DownloadOptions) (*Downl
 	// set up progress bar
 	var writer io.Writer = file
 	var bar *progressbar.ProgressBar
+	var progressWriter *terminal.ProgressWriter
 	if opts.ShowProgress && isTerminal() {
+		// get output from context for coordination
+		if output := terminal.OutputFromContext(ctx); output != nil {
+			progressWriter = output.ProgressWriter()
+			progressWriter.Begin()
+		}
 		bar = h.createProgressBar(result.TotalBytes, existingSize)
 		writer = io.MultiWriter(file, bar)
 	}
@@ -205,12 +212,20 @@ func (h *HTTPClient) Download(ctx context.Context, opts DownloadOptions) (*Downl
 	// stream response body to file
 	written, err := io.Copy(writer, resp.Body)
 	if err != nil {
+		if progressWriter != nil {
+			progressWriter.End()
+		}
 		return result, &NetworkError{Op: "download", URL: opts.URL, Err: err}
 	}
 
 	// finish progress bar
 	if bar != nil {
 		_ = bar.Finish()
+	}
+
+	// resume status output
+	if progressWriter != nil {
+		progressWriter.End()
 	}
 
 	result.TotalBytes = existingSize + written
