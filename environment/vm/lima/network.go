@@ -8,6 +8,7 @@ import (
 
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/config/configmanager"
+	"github.com/abiosoft/colima/environment/container/incus"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/util"
 	"github.com/sirupsen/logrus"
@@ -75,4 +76,22 @@ func (l *limaVM) removeHostAddresses() {
 			_ = l.RunQuiet("sudo", "ip", "address", "del", ip.String()+"/24", "dev", "lo")
 		}
 	}
+}
+
+// removeIncusContainerRoute is a safety net for force-stop,
+// where the Incus container Stop() is skipped.
+func (l *limaVM) removeIncusContainerRoute() {
+	if !util.MacOS() {
+		return
+	}
+
+	if l.conf.Runtime != incus.Name {
+		return
+	}
+
+	if !util.RouteExists(incus.BridgeSubnet) {
+		return
+	}
+
+	_ = l.host.RunQuiet("sudo", "/sbin/route", "delete", "-net", incus.BridgeSubnet)
 }

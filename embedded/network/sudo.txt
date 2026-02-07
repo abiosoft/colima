@@ -5,3 +5,7 @@
 %staff ALL=(root:wheel) NOPASSWD:NOSETENV: /usr/bin/pkill -F /opt/colima/run/*.pid
 # validating vmnet daemon
 %staff ALL=(root:wheel) NOPASSWD:NOSETENV: /usr/bin/pkill -0 -F /opt/colima/run/*.pid
+# adding route to Incus container network
+%staff ALL=(root:wheel) NOPASSWD:NOSETENV: /sbin/route add -net 192.168.100.0/24 *
+# removing route to Incus container network
+%staff ALL=(root:wheel) NOPASSWD:NOSETENV: /sbin/route delete -net 192.168.100.0/24

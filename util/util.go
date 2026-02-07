@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -52,6 +53,65 @@ func HostIPAddresses() []net.IP {
 	}
 
 	return addresses
+}
+
+// SubnetAvailable checks if a subnet (in CIDR notation) does not conflict
+// with any existing host network interface addresses.
+func SubnetAvailable(subnet string) bool {
+	_, cidr, err := net.ParseCIDR(subnet)
+	if err != nil {
+		return false
+	}
+
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return false
+	}
+
+	for _, addr := range addrs {
+		ip, _, err := net.ParseCIDR(addr.String())
+		if err != nil {
+			continue
+		}
+		if ip = ip.To4(); ip == nil {
+			continue
+		}
+		if cidr.Contains(ip) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// RouteExists checks if a route exists for the given subnet on macOS.
+func RouteExists(subnet string) bool {
+	if !MacOS() {
+		return false
+	}
+
+	ip, _, err := net.ParseCIDR(subnet)
+	if err != nil {
+		return false
+	}
+
+	out, err := exec.Command("netstat", "-rn", "-f", "inet").Output()
+	if err != nil {
+		return false
+	}
+
+	// macOS netstat shows /24 subnets without trailing .0
+	// e.g. "192.168.100" instead of "192.168.100.0"
+	networkAddr := strings.TrimSuffix(ip.String(), ".0")
+
+	for _, line := range strings.Split(string(out), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) > 0 && (fields[0] == networkAddr || fields[0] == subnet) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // ShellSplit splits cmd into arguments using.
