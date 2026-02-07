@@ -81,12 +81,14 @@ func (c *incusRuntime) Provision(ctx context.Context) error {
 	}
 
 	var value struct {
-		Disk       int
-		Interface  string
-		SetStorage bool
+		Disk          int
+		Interface     string
+		BridgeGateway string
+		SetStorage    bool
 	}
 	value.Disk = conf.Disk
 	value.Interface = incusBridgeInterface
+	value.BridgeGateway = bridgeGateway
 	value.SetStorage = emptyDisk // set only when the disk is empty
 
 	buf, err := util.ParseTemplate(configYaml, value)
@@ -195,12 +197,24 @@ func (c *incusRuntime) Start(ctx context.Context) error {
 		return nil
 	})
 
+	a.Add(func() error {
+		if err := c.addContainerRoute(); err != nil {
+			return cli.ErrNonFatal(err)
+		}
+		return nil
+	})
+
 	return a.Exec()
 }
 
 // Stop implements environment.Container.
 func (c *incusRuntime) Stop(ctx context.Context) error {
 	a := c.Init(ctx)
+
+	a.Add(func() error {
+		_ = c.removeContainerRoute()
+		return nil
+	})
 
 	a.Add(func() error {
 		return c.guest.RunQuiet("sudo", "incus", "admin", "shutdown")
@@ -214,6 +228,11 @@ func (c *incusRuntime) Stop(ctx context.Context) error {
 // Teardown implements environment.Container.
 func (c *incusRuntime) Teardown(ctx context.Context) error {
 	a := c.Init(ctx)
+
+	a.Add(func() error {
+		_ = c.removeContainerRoute()
+		return nil
+	})
 
 	a.Add(c.unsetRemote)
 

@@ -1,12 +1,10 @@
 package vmnet
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 
 	"github.com/abiosoft/colima/daemon/process"
 	"github.com/abiosoft/colima/embedded"
@@ -18,41 +16,11 @@ var _ process.Dependency = sudoerFile{}
 type sudoerFile struct{}
 
 // Installed implements Dependency
-func (s sudoerFile) Installed() bool {
-	if _, err := os.Stat(s.path()); err != nil {
-		return false
-	}
-	b, err := os.ReadFile(s.path())
-	if err != nil {
-		return false
-	}
-	txt, err := embedded.Read(s.embeddedPath())
-	if err != nil {
-		return false
-	}
-	return bytes.Contains(b, txt)
-}
+func (s sudoerFile) Installed() bool { return embedded.SudoersInstalled() }
 
-func (s sudoerFile) path() string         { return "/etc/sudoers.d/colima" }
-func (s sudoerFile) embeddedPath() string { return "network/sudo.txt" }
+// Install implements Dependency
 func (s sudoerFile) Install(host environment.HostActions) error {
-	// read embedded file contents
-	txt, err := embedded.ReadString("network/sudo.txt")
-	if err != nil {
-		return fmt.Errorf("error retrieving embedded sudo file: %w", err)
-	}
-	// ensure parent directory exists
-	dir := filepath.Dir(s.path())
-	if err := host.RunInteractive("sudo", "mkdir", "-p", dir); err != nil {
-		return fmt.Errorf("error preparing sudoers directory: %w", err)
-	}
-	// persist file to desired location
-	stdin := strings.NewReader(txt)
-	stdout := &bytes.Buffer{}
-	if err := host.RunWith(stdin, stdout, "sudo", "sh", "-c", "cat > "+s.path()); err != nil {
-		return fmt.Errorf("error writing sudoers file, stderr: %s, err: %w", stdout.String(), err)
-	}
-	return nil
+	return embedded.InstallSudoers(host)
 }
 
 var _ process.Dependency = vmnetFile{}

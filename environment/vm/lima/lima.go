@@ -211,6 +211,8 @@ func (l limaVM) Stop(ctx context.Context, force bool) error {
 
 	a.Add(func() error { l.removeHostAddresses(); return nil })
 
+	a.Add(func() error { l.removeIncusContainerRoute(); return nil })
+
 	a.Add(func() error {
 		if force {
 			return l.host.Run(limactl, "stop", "--force", config.CurrentProfile().ID)

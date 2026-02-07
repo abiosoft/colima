@@ -9,14 +9,13 @@ import (
 	"github.com/abiosoft/colima/daemon"
 	"github.com/abiosoft/colima/daemon/process/inotify"
 	"github.com/abiosoft/colima/daemon/process/vmnet"
-	"github.com/abiosoft/colima/environment/container/incus"
 	"github.com/abiosoft/colima/environment/vm/lima/limaconfig"
 	"github.com/abiosoft/colima/util"
 )
 
 func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.Context, error) {
-	// vmnet is used by QEMU and always used by incus (even with VZ)
-	useVmnet := conf.VMType == limaconfig.QEMU || conf.Runtime == incus.Name || conf.Network.Mode == "bridged"
+	// vmnet is used by QEMU or bridged mode
+	useVmnet := conf.VMType == limaconfig.QEMU || conf.Network.Mode == "bridged"
 
 	// network daemon is only needed for vmnet
 	conf.Network.Address = conf.Network.Address && useVmnet
