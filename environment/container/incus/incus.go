@@ -191,13 +191,6 @@ func (c *incusRuntime) Start(ctx context.Context) error {
 	})
 
 	a.Add(func() error {
-		if err := c.registerNetworks(); err != nil {
-			return cli.ErrNonFatal(err)
-		}
-		return nil
-	})
-
-	a.Add(func() error {
 		if err := c.addContainerRoute(); err != nil {
 			return cli.ErrNonFatal(err)
 		}
@@ -319,27 +312,6 @@ func (c incusRuntime) addDockerRemote() error {
 	}
 
 	return c.host.RunQuiet("incus", "remote", "add", "docker", "https://docker.io", "--protocol=oci")
-}
-
-func (c incusRuntime) registerNetworks() error {
-	name := limautil.NetInterface
-
-	found, network, err := c.findNetwork(name)
-	if err != nil {
-		return err
-	}
-
-	// must be an unmanaged physical network
-	if !found || network.Managed || network.Type != "physical" {
-		return nil
-	}
-
-	err = c.guest.RunQuiet("sudo", "incus", "network", "create", name, "--type", "macvlan", "parent="+name)
-	if err != nil {
-		return fmt.Errorf("error creating managed network '%s': %w", name, err)
-	}
-
-	return nil
 }
 
 func (c incusRuntime) findNetwork(interfaceName string) (found bool, info networkInfo, err error) {

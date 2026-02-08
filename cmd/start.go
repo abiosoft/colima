@@ -336,6 +336,15 @@ func setFlagDefaults(cmd *cobra.Command) {
 			}
 		}
 	}
+
+	// always enable network address for incus, if supported and not explicitly disabled
+	if util.MacOS13OrNewer() {
+		if !cmd.Flag("network-address").Changed {
+			if startCmdArgs.Runtime == incus.Name && startCmdArgs.VMType == "vz" {
+				startCmdArgs.Network.Address = true
+			}
+		}
+	}
 }
 
 func setConfigDefaults(conf *config.Config) {
