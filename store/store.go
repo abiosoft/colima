@@ -15,6 +15,8 @@ type Store struct {
 	DiskFormatted bool `json:"disk_formatted"`
 	// the container runtime the disk is provisioned for
 	DiskRuntime string `json:"disk_runtime"`
+	// if ramalama has been provisioned in the VM
+	RamalamaProvisioned bool `json:"ramalama_provisioned"`
 }
 
 func storeFile() string { return config.CurrentProfile().StoreFile() }
