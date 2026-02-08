@@ -31,7 +31,7 @@ func MacOS15OrNewer() bool { return minMacOSVersion("15.0.0") }
 
 // MacOSNestedVirtualizationSupported returns if the current device supports nested virtualization.
 func MacOSNestedVirtualizationSupported() bool {
-	return (IsMx(3) || IsMx(4)) && MacOS15OrNewer()
+	return (IsMx(3) || IsMx(4) || IsMx(5)) && MacOS15OrNewer()
 }
 
 func minMacOSVersion(version string) bool {

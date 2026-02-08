@@ -45,7 +45,6 @@ func (c *incusRuntime) addContainerRoute() error {
 }
 
 // removeContainerRoute removes the macOS route for the Incus container subnet.
-// This is best-effort and errors are silently ignored.
 func (c *incusRuntime) removeContainerRoute() error {
 	if !util.MacOS() {
 		return nil
