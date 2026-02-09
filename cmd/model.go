@@ -1,7 +1,11 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"strings"
+	"time"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/cmd/root"
@@ -13,6 +17,9 @@ import (
 	"github.com/abiosoft/colima/environment/vm/lima/limaconfig"
 	"github.com/abiosoft/colima/store"
 	"github.com/abiosoft/colima/util"
+	"github.com/abiosoft/colima/util/terminal"
+	"github.com/coreos/go-semver/semver"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -32,8 +39,8 @@ var modelCmd = &cobra.Command{
 	Long: `Manage AI models inside the VM.
 This requires docker runtime and krunkit VM type for GPU access.
 
-All arguments are passed to AI model runner (ramalama).
-You can specify '--' to interact directly with the underlying ramalama command.
+All arguments are passed to the AI model runner.
+You can specify '--' to pass arguments directly to the underlying tool.
 
 Examples:
   colima model list
@@ -71,7 +78,7 @@ var modelSetupCmd = &cobra.Command{
 		return validateModelPrerequisites()
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return provisionRamalama()
+		return setupOrUpdateRamalama()
 	},
 }
 
@@ -133,28 +140,162 @@ func ensureRamalamaProvisioned() error {
 	return provisionRamalama()
 }
 
+const ramalamaReleasesURL = "https://api.github.com/repos/containers/ramalama/releases/latest"
+
+// setupOrUpdateRamalama handles both fresh installs and updates with version checking.
+func setupOrUpdateRamalama() error {
+	s, _ := store.Load()
+
+	// Fresh install - no version check needed
+	if !s.RamalamaProvisioned {
+		if err := provisionRamalama(); err != nil {
+			return err
+		}
+		// Print installed version
+		if version := getRamalamaVersion(); version != "" {
+			fmt.Println("AI model runner")
+			fmt.Printf("version: %s", version)
+			fmt.Println()
+		}
+		return nil
+	}
+
+	// Update - check versions first
+	currentVersion := getRamalamaVersion()
+	if currentVersion == "" {
+		// Can't determine current version, proceed with update
+		log.Debug("could not determine current ramalama version, proceeding with update")
+		return provisionRamalama()
+	}
+
+	latestVersion, err := getLatestRamalamaVersion()
+	if err != nil {
+		log.Debugf("could not fetch latest ramalama version: %v", err)
+		return fmt.Errorf("could not check for updates: %w", err)
+	}
+
+	// Compare versions
+	current, err := semver.NewVersion(currentVersion)
+	if err != nil {
+		log.Debugf("could not parse current version %q: %v", currentVersion, err)
+		return provisionRamalama()
+	}
+
+	latest, err := semver.NewVersion(latestVersion)
+	if err != nil {
+		log.Debugf("could not parse latest version %q: %v", latestVersion, err)
+		return provisionRamalama()
+	}
+
+	// Show version info
+	fmt.Println("AI model runner")
+	fmt.Printf("current: %s", currentVersion)
+	fmt.Println()
+	fmt.Printf("latest:  %s", latestVersion)
+	fmt.Println()
+
+	if current.Compare(*latest) >= 0 {
+		fmt.Println()
+		fmt.Println("Already up to date")
+		return nil
+	}
+
+	if err := provisionRamalama(); err != nil {
+		return err
+	}
+
+	// Print new version
+	if newVersion := getRamalamaVersion(); newVersion != "" {
+		fmt.Printf("updated: %s", newVersion)
+		fmt.Println()
+	}
+	return nil
+}
+
+// getRamalamaVersion returns the currently installed ramalama version in the VM.
+// Returns empty string if ramalama is not installed or version cannot be determined.
+func getRamalamaVersion() string {
+	guest := lima.New(host.New())
+	output, err := guest.RunOutput("sh", "-c", `export PATH="$HOME/.local/bin:$PATH"; ramalama version 2>/dev/null`)
+	if err != nil {
+		return ""
+	}
+	// Output format: "ramalama version 0.17.1"
+	output = strings.TrimSpace(output)
+	if version, ok := strings.CutPrefix(output, "ramalama version "); ok {
+		return version
+	}
+	return ""
+}
+
+// getLatestRamalamaVersion fetches the latest release version from GitHub.
+func getLatestRamalamaVersion() (string, error) {
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get(ramalamaReleasesURL)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch releases: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	var release struct {
+		TagName string `json:"tag_name"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+		return "", fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	// Tag might be "v0.17.1" or "0.17.1"
+	version := strings.TrimPrefix(release.TagName, "v")
+	return version, nil
+}
+
 // provisionRamalama installs ramalama and its dependencies in the VM.
 func provisionRamalama() error {
 	guest := lima.New(host.New())
 
-	script := `set -e
+	log.Println("Installing AI model runner...")
+
+	// step 1: Install ramalama binary (uses normal scrolling output)
+	installScript := `set -e
 export PATH="$HOME/.local/bin:$PATH"
-
-# install ramalama
 curl -fsSL https://ramalama.ai/install.sh | bash
+`
+	if err := guest.Run("sh", "-c", installScript); err != nil {
+		return fmt.Errorf("error installing AI model runner: %w", err)
+	}
 
-# pull ramalama container images
+	// step 2: Pull container images (uses alternate screen for progress bars)
+	pullScript := `set -e
 docker pull quay.io/ramalama/ramalama
 docker pull quay.io/ramalama/ramalama-rag
+`
+	if err := terminal.WithAltScreen(func() error {
+		log.Println()
+		log.Println("  Colima - AI Model Runner Setup")
+		log.Println("  ===============================")
+		log.Println()
+		log.Println("  Pulling container images...")
+		log.Println("  This may take a few minutes depending on your internet connection.")
+		log.Println()
+		return guest.RunInteractive("sh", "-c", pullScript)
+	}); err != nil {
+		return fmt.Errorf("error pulling container images: %w", err)
+	}
 
-# fix ownership of persistent data dir and symlink to expected location
+	log.Println("Configuring AI model runner...")
+
+	// step 3: Post-install setup (uses normal scrolling output)
+	setupScript := `set -e
 sudo chown -R $(id -u):$(id -g) /var/lib/ramalama
 mkdir -p "$HOME/.local/share"
 ln -sfn /var/lib/ramalama "$HOME/.local/share/ramalama"
 `
-
-	if err := guest.Run("sh", "-c", script); err != nil {
-		return fmt.Errorf("error provisioning ramalama: %w", err)
+	if err := guest.Run("sh", "-c", setupScript); err != nil {
+		return fmt.Errorf("error configuring AI model runner: %w", err)
 	}
 
 	// mark as provisioned
