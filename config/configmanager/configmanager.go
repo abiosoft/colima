@@ -65,11 +65,19 @@ func ValidateConfig(c config.Config) error {
 	if util.MacOS13OrNewerOnArm() {
 		validVMTypes["krunkit"] = true
 	}
+	if c.VMType == "krunkit" && !util.MacOS13OrNewerOnArm() {
+		return fmt.Errorf("vmType 'krunkit' is only available on macOS with Apple Silicon")
+	}
 	if _, ok := validVMTypes[c.VMType]; !ok {
 		return fmt.Errorf("invalid vmType: '%s'", c.VMType)
 	}
 	if c.VMType == "qemu" {
 		if err := util.AssertQemuImg(); err != nil {
+			return fmt.Errorf("cannot use vmType: '%s', error: %w", c.VMType, err)
+		}
+	}
+	if c.VMType == "krunkit" {
+		if err := util.AssertKrunkit(); err != nil {
 			return fmt.Errorf("cannot use vmType: '%s', error: %w", c.VMType, err)
 		}
 	}

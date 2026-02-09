@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os/exec"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/cmd/root"
@@ -13,6 +12,7 @@ import (
 	"github.com/abiosoft/colima/environment/vm/lima"
 	"github.com/abiosoft/colima/environment/vm/lima/limaconfig"
 	"github.com/abiosoft/colima/store"
+	"github.com/abiosoft/colima/util"
 	"github.com/spf13/cobra"
 )
 
@@ -111,9 +111,8 @@ func validateModelPrerequisites() error {
 	}
 
 	// check krunkit binary exists on host
-	if _, err := exec.LookPath("krunkit"); err != nil {
-		return fmt.Errorf("krunkit not found in $PATH\n" +
-			"Install with: brew tap slp/krunkit/krunkit && brew install krunkit")
+	if err := util.AssertKrunkit(); err != nil {
+		return err
 	}
 
 	return nil

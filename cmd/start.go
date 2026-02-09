@@ -157,7 +157,12 @@ func init() {
 	}
 
 	mounts := strings.Join([]string{defaultMountTypeQEMU, "9p", "virtiofs"}, ", ")
-	types := strings.Join([]string{"krunkit", "qemu", "vz"}, ", ")
+
+	vmTypes := []string{"qemu", "vz"}
+	if util.MacOS13OrNewerOnArm() {
+		vmTypes = append(vmTypes, "krunkit")
+	}
+	types := strings.Join(vmTypes, ", ")
 
 	saveConfigDefault := true
 	if envSaveConfig.Exists() {
