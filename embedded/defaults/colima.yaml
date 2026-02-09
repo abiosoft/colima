@@ -212,6 +212,16 @@ cpuType: host
 #       echo provisioning as $USER...
 #       touch ~/.provision
 #
+# EXAMPLE - script executed after VM boot, before container runtimes start
+# provision:
+#   - mode: after-boot
+#     script: echo "VM is up, containers not yet started"
+#
+# EXAMPLE - script executed after VM and container runtimes are ready
+# provision:
+#   - mode: ready
+#     script: echo "everything is ready"
+#
 # Default: []
 provision: []
 

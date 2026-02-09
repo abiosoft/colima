@@ -123,6 +123,9 @@ func (c colimaApp) Start(conf config.Config) error {
 		return fmt.Errorf("error starting vm: %w", err)
 	}
 
+	// run after-boot provision scripts
+	c.runProvisionScripts(conf, config.ProvisionModeAfterBoot)
+
 	// provision and start container runtimes
 	for _, cont := range containers {
 		log := log.WithField("context", cont.Name())
@@ -135,6 +138,9 @@ func (c colimaApp) Start(conf config.Config) error {
 			return fmt.Errorf("error starting %s: %w", cont.Name(), err)
 		}
 	}
+
+	// run ready provision scripts
+	c.runProvisionScripts(conf, config.ProvisionModeReady)
 
 	// persist the current runtime
 	if err := c.setRuntime(conf.Runtime); err != nil {
@@ -152,6 +158,21 @@ func (c colimaApp) Start(conf config.Config) error {
 		log.Trace("error generating ssh_config: %w", err)
 	}
 	return nil
+}
+
+func (c colimaApp) runProvisionScripts(conf config.Config, mode string) {
+	var failed bool
+	for _, s := range conf.Provision {
+		if s.Mode != mode {
+			continue
+		}
+		if err := c.guest.Run("sh", "-c", s.Script); err != nil {
+			failed = true
+		}
+	}
+	if failed {
+		log.Warnln(fmt.Errorf("error running %s provision script(s)", mode))
+	}
 }
 
 func (c colimaApp) Stop(force bool) error {
