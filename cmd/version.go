@@ -6,6 +6,7 @@ import (
 	"github.com/abiosoft/colima/app"
 	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/store"
 	"github.com/spf13/cobra"
 )
 
@@ -22,6 +23,16 @@ var versionCmd = &cobra.Command{
 
 		if colimaApp, err := app.New(); err == nil {
 			_ = colimaApp.Version()
+
+			// Show AI model runner version if provisioned
+			s, _ := store.Load()
+			if s.RamalamaProvisioned {
+				if modelVersion := getRamalamaVersion(); modelVersion != "" {
+					fmt.Println()
+					fmt.Println("AI model runner")
+					fmt.Println("version:", modelVersion)
+				}
+			}
 		}
 	},
 }
