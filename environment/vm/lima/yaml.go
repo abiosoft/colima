@@ -410,8 +410,11 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 		}
 	}
 
-	// provision scripts
+	// provision scripts (only pass Lima-managed modes)
 	for _, script := range conf.Provision {
+		if script.IsColimaMode() {
+			continue
+		}
 		l.Provision = append(l.Provision, limaconfig.Provision{
 			Mode:   script.Mode,
 			Script: script.Script,

@@ -98,9 +98,21 @@ type Mount struct {
 	Writable   bool   `yaml:"writable"`
 }
 
+// Provision modes managed by Colima (not passed to Lima).
+const (
+	ProvisionModeAfterBoot = "after-boot"
+	ProvisionModeReady     = "ready"
+)
+
 type Provision struct {
 	Mode   string `yaml:"mode"`
 	Script string `yaml:"script"`
+}
+
+// IsColimaMode returns true if the provision script is managed by Colima
+// rather than being passed to Lima.
+func (p Provision) IsColimaMode() bool {
+	return p.Mode == ProvisionModeAfterBoot || p.Mode == ProvisionModeReady
 }
 
 func (c Config) MountsOrDefault() []Mount {
