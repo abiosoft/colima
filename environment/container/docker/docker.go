@@ -165,4 +165,5 @@ var diskDirs = []environment.DiskDir{
 	{Name: "containerd", Path: "/var/lib/containerd"},
 	{Name: "rancher", Path: "/var/lib/rancher"},
 	{Name: "cni", Path: "/var/lib/cni"},
+	{Name: "ramalama", Path: "/var/lib/ramalama"},
 }
