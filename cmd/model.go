@@ -40,14 +40,21 @@ var modelCmd = &cobra.Command{
 This requires docker runtime and krunkit VM type for GPU access.
 
 All arguments are passed to the AI model runner.
-You can specify '--' to pass arguments directly to the underlying tool.
+Specifying '--' will pass arguments to the underlying (ramalama) tool.
 
 Examples:
   colima model list
-  colima model pull ollama://tinyllama
-  colima model run ollama://tinyllama
-  colima model serve ollama://tinyllama
-  colima model -- --help
+  colima model pull tinyllama
+  colima model run tinyllama
+  colima model serve tinyllama
+  colima model serve -- --help
+
+Multiple registries are supported including HuggingFace.co (default) and
+Ollama.
+
+Examples:
+  colima model run hf://gemma3
+  colima model run ollama://gemma3
 `,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		return validateModelPrerequisites()
