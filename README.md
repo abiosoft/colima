@@ -20,6 +20,7 @@ Support for Intel and Apple Silicon macOS, and Linux
   - [Docker](https://docker.com) (with optional Kubernetes)
   - [Containerd](https://containerd.io) (with optional Kubernetes)
   - [Incus](https://linuxcontainers.org/incus) (containers and virtual machines)
+- GPU accelerated containers for AI workloads
 
 ## Getting Started
 
@@ -143,12 +144,24 @@ You can use the `incus` client on macOS after `colima start` with no additional 
 
 **Note:** Running virtual machines on Incus is only supported on m3 or newer Apple Silicon devices.
 
-### None
+### AI Models (GPU Accelerated)
 
-<small>**Requires v0.7.0**</small>
+<small>**Requires v0.10.0, Apple Silicon and macOS 13+**</small>
 
-Colima can also be utilised solely as a headless virtual machine manager by specifying `none` runtime.
+Colima supports GPU accelerated containers for AI workloads using the `krunkit` VM type.
 
+```
+colima start --runtime docker --vm-type krunkit
+colima model setup
+colima model run gemma3
+```
+
+Multiple model registries are supported including HuggingFace (default) and Ollama.
+
+```
+colima model run hf://tinyllama
+colima model run ollama://tinyllama
+```
 
 ### Customizing the VM
 
