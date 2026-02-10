@@ -3,6 +3,7 @@
 - [FAQs](#faqs)
   - [How does Colima compare to Lima?](#how-does-colima-compare-to-lima)
   - [Are Apple Silicon Macs supported?](#are-apple-silicon-macs-supported)
+  - [Are AI workloads supported?](#are-ai-workloads-supported)
   - [Are older macOS versions supported?](#are-older-macos-versions-supported)
   - [Does Colima support autostart?](#does-colima-support-autostart)
   - [Can config file be used instead of cli flags?](#can-config-file-be-used-instead-of-cli-flags)
@@ -31,6 +32,7 @@
     - [Version v0.6.0 and newer](#version-v060-and-newer)
   - [The Virtual Machine's IP is not reachable](#the-virtual-machines-ip-is-not-reachable)
     - [Enable reachable IP address](#enable-reachable-ip-address)
+  - [Incus instances are not reachable from the host](#incus-instances-are-not-reachable-from-the-host)
   - [How can disk space be recovered?](#how-can-disk-space-be-recovered)
     - [Automatic](#automatic)
     - [Manual](#manual)
@@ -57,6 +59,32 @@ Colima is basically a higher level usage of Lima and utilises Lima to provide Do
 Colima supports and works on both Intel and Apple Silicon Macs.
 
 Feedbacks would be appreciated.
+
+## Are AI workloads supported?
+
+Yes, Colima supports GPU accelerated containers for AI workloads on Apple Silicon Macs running macOS 13 or newer.
+
+To get started, start Colima with Docker runtime and krunkit VM type:
+
+```sh
+colima start --runtime docker --vm-type krunkit
+```
+
+Then setup and run AI models:
+
+```sh
+colima model setup
+colima model run gemma3
+```
+
+Multiple model registries are supported including HuggingFace (default) and Ollama:
+
+```sh
+colima model run hf://tinyllama
+colima model run ollama://tinyllama
+```
+
+For more options, run `colima model --help`.
 
 ## Are older macOS versions supported?
 
@@ -319,6 +347,31 @@ Reachable IP address is not enabled by default due to root privilege and slower 
   -  address: false
   +  address: true
   ```
+
+## Incus instances are not reachable from the host
+
+<small>**Requires v0.10.0**</small>
+
+Incus containers and virtual machines are not reachable from the host by default. This is because network address is not enabled by default.
+
+To fix this, stop Colima and restart with network address enabled:
+
+```sh
+colima stop
+colima start --network-address
+```
+
+Or enable it in the config file:
+
+```sh
+colima start --edit
+```
+
+```diff
+network:
+-  address: false
++  address: true
+```
 
 ## How can disk space be recovered?
 
