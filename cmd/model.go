@@ -257,46 +257,38 @@ func getLatestRamalamaVersion() (string, error) {
 func provisionRamalama() error {
 	guest := lima.New(host.New())
 
-	log.Println("Installing AI model runner...")
-
-	// step 1: Install ramalama binary (uses normal scrolling output)
-	installScript := `set -e
+	script := `set -e
 export PATH="$HOME/.local/bin:$PATH"
-curl -fsSL https://ramalama.ai/install.sh | bash
-`
-	if err := guest.Run("sh", "-c", installScript); err != nil {
-		return fmt.Errorf("error installing AI model runner: %w", err)
-	}
 
-	// step 2: Pull container images (uses alternate screen for progress bars)
-	pullScript := `set -e
+# install ramalama
+curl -fsSL https://ramalama.ai/install.sh | bash
+
+# pull ramalama container images
 docker pull quay.io/ramalama/ramalama
 docker pull quay.io/ramalama/ramalama-rag
-`
-	if err := terminal.WithAltScreen(func() error {
-		log.Println()
-		log.Println("  Colima - AI Model Runner Setup")
-		log.Println("  ===============================")
-		log.Println()
-		log.Println("  Pulling container images...")
-		log.Println("  This may take a few minutes depending on your internet connection.")
-		log.Println()
-		return guest.RunInteractive("sh", "-c", pullScript)
-	}); err != nil {
-		return fmt.Errorf("error pulling container images: %w", err)
-	}
 
-	log.Println("Configuring AI model runner...")
-
-	// step 3: Post-install setup (uses normal scrolling output)
-	setupScript := `set -e
+# fix ownership of persistent data dir and symlink to expected location
 sudo chown -R $(id -u):$(id -g) /var/lib/ramalama
 mkdir -p "$HOME/.local/share"
 ln -sfn /var/lib/ramalama "$HOME/.local/share/ramalama"
 `
-	if err := guest.Run("sh", "-c", setupScript); err != nil {
-		return fmt.Errorf("error configuring AI model runner: %w", err)
+
+	log.Println("installing AI model runner...")
+
+	if err := terminal.WithAltScreen(func() error {
+		return guest.RunInteractive("sh", "-c", script)
+	},
+		"",
+		"  Colima - AI Model Runner Setup",
+		"  ===============================",
+		"",
+		"  Installing AI model runner.",
+		"  This may take several minutes depending on your internet connection speed.",
+	); err != nil {
+		return fmt.Errorf("error setting up AI model runner: %w", err)
 	}
+
+	log.Println("AI model runner installed")
 
 	// mark as provisioned
 	if err := store.Set(func(s *store.Store) {
