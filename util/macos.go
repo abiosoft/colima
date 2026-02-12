@@ -67,7 +67,7 @@ func IsMx(x int) bool {
 	cmd.Stdout = &buf
 
 	if err := cmd.Run(); err != nil {
-		logrus.Trace(fmt.Errorf("error retriving chip version: %w", err))
+		logrus.Trace(fmt.Errorf("error retrieving chip version: %w", err))
 		return false
 	}
 
