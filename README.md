@@ -150,6 +150,15 @@ You can use the `incus` client on macOS after `colima start` with no additional 
 
 Colima supports GPU accelerated containers for AI workloads using the `krunkit` VM type.
 
+**Note:** To use krunkit with colima, ensure it is installed.
+
+```
+brew tap slp/krunkit
+brew install krunkit
+```
+
+Setup and use model.
+
 ```
 colima start --runtime docker --vm-type krunkit
 colima model setup
