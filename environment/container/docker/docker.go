@@ -2,11 +2,14 @@ package docker
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/debutil"
 )
 
@@ -166,4 +169,14 @@ var diskDirs = []environment.DiskDir{
 	{Name: "rancher", Path: "/var/lib/rancher"},
 	{Name: "cni", Path: "/var/lib/cni"},
 	{Name: "ramalama", Path: "/var/lib/ramalama"},
+}
+
+// DockerDir returns the path to Docker config.
+func DockerDir() string {
+	// if DOCKER_CONFIG env var is set, obey it.
+	if dir := os.Getenv("DOCKER_CONFIG"); dir != "" {
+		return dir
+	}
+
+	return filepath.Join(util.HomeDir(), ".docker")
 }
