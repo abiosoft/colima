@@ -6,13 +6,13 @@ import (
 	"path/filepath"
 
 	"github.com/abiosoft/colima/config"
-	"github.com/abiosoft/colima/util"
+	"github.com/abiosoft/colima/environment/container/docker"
 )
 
 func (l limaVM) copyCerts() error {
 	log := l.Logger(context.Background())
 	err := func() error {
-		dockerCertsDirHost := filepath.Join(util.HomeDir(), ".docker", "certs.d")
+		dockerCertsDirHost := filepath.Join(docker.DockerDir(), "certs.d")
 		dockerCertsDirsGuest := []string{"/etc/docker/certs.d", "/etc/ssl/certs"}
 		if _, err := l.host.Stat(dockerCertsDirHost); err != nil {
 			// no certs found
