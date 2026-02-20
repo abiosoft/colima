@@ -11,6 +11,11 @@ import (
 
 var isTerminal = term.IsTerminal(int(os.Stdout.Fd()))
 
+// IsTerminal returns true if stdout is a terminal.
+func IsTerminal() bool {
+	return isTerminal
+}
+
 // ClearLine clears the previous line of the terminal
 func ClearLine() {
 	if !isTerminal {

@@ -207,6 +207,7 @@ func init() {
 			startCmd.Flags().StringVarP(&startCmdArgs.VMType, "vm-type", "t", defaultVMType, "virtual machine type ("+types+")")
 			if util.MacOS13OrNewerOnArm() {
 				startCmd.Flags().BoolVar(&startCmdArgs.VZRosetta, "vz-rosetta", false, "enable Rosetta for amd64 emulation")
+				startCmd.Flags().StringVar(&startCmdArgs.ModelRunner, "model-runner", "docker", "AI model runner (docker, ramalama)")
 				binfmtDesc += " (no-op if Rosetta is enabled)"
 			}
 		}
@@ -506,6 +507,11 @@ func prepareConfig(cmd *cobra.Command) {
 	}
 	if !cmd.Flag("runtime").Changed {
 		startCmdArgs.Runtime = current.Runtime
+	}
+	if util.MacOS13OrNewerOnArm() {
+		if !cmd.Flag("model-runner").Changed {
+			startCmdArgs.ModelRunner = current.ModelRunner
+		}
 	}
 	if !cmd.Flag("cpus").Changed {
 		startCmdArgs.CPU = current.CPU

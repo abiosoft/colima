@@ -61,6 +61,9 @@ type Config struct {
 	Runtime         string `yaml:"runtime,omitempty"`
 	ActivateRuntime *bool  `yaml:"autoActivate,omitempty"`
 
+	// ModelRunner is the AI model runner (docker, ramalama).
+	ModelRunner string `yaml:"modelRunner,omitempty"`
+
 	// Kubernetes configuration
 	Kubernetes Kubernetes `yaml:"kubernetes,omitempty"`
 
