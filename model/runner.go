@@ -15,6 +15,9 @@ import (
 	"github.com/abiosoft/colima/environment/vm/lima/limaconfig"
 	"github.com/abiosoft/colima/store"
 	"github.com/abiosoft/colima/util"
+	"github.com/abiosoft/colima/util/terminal"
+	"github.com/coreos/go-semver/semver"
+	log "github.com/sirupsen/logrus"
 )
 
 // RunnerType represents the type of AI model runner.
@@ -25,10 +28,22 @@ const (
 	RunnerRamalama RunnerType = "ramalama"
 )
 
+// SetupStatus contains the result of checking if setup is needed.
+type SetupStatus struct {
+	// NeedsSetup indicates whether setup/update is required.
+	NeedsSetup bool
+	// CurrentVersion is the currently installed version (empty if not installed).
+	CurrentVersion string
+	// LatestVersion is the latest available version (empty if not checked).
+	LatestVersion string
+}
+
 // Runner defines the interface for AI model runners.
 type Runner interface {
 	// Name returns the runner type name.
 	Name() RunnerType
+	// DisplayName returns a human-readable name for the runner.
+	DisplayName() string
 	// ValidatePrerequisites checks runner-specific requirements.
 	ValidatePrerequisites(a app.App) error
 	// EnsureProvisioned ensures the runner is set up (no-op for docker).
@@ -43,8 +58,14 @@ type Runner interface {
 	// This is a blocking call that runs until interrupted.
 	// The model should already be available (call EnsureModel first).
 	Serve(model string, port int) error
+	// CheckSetup checks if setup/update is needed and returns version info.
+	// This should be called before Setup() to display version info on primary screen.
+	CheckSetup() (SetupStatus, error)
 	// Setup installs or updates the runner.
+	// Call CheckSetup() first to determine if setup is needed.
 	Setup() error
+	// GetCurrentVersion returns the currently installed version.
+	GetCurrentVersion() string
 }
 
 // GetRunner returns the appropriate Runner based on type.
@@ -99,6 +120,10 @@ type dockerRunner struct{}
 
 func (d *dockerRunner) Name() RunnerType {
 	return RunnerDocker
+}
+
+func (d *dockerRunner) DisplayName() string {
+	return "Docker Model Runner"
 }
 
 func (d *dockerRunner) ValidatePrerequisites(a app.App) error {
@@ -255,8 +280,20 @@ func normalizeModelName(name string) string {
 	return name
 }
 
+func (d *dockerRunner) CheckSetup() (SetupStatus, error) {
+	// Docker Model Runner always reinstalls; no version comparison
+	return SetupStatus{
+		NeedsSetup:     true,
+		CurrentVersion: GetDockerModelVersion(),
+	}, nil
+}
+
 func (d *dockerRunner) Setup() error {
 	return SetupOrUpdateDocker()
+}
+
+func (d *dockerRunner) GetCurrentVersion() string {
+	return GetDockerModelVersion()
 }
 
 // gpuSubcommands are ramalama subcommands that need GPU device passthrough.
@@ -275,6 +312,10 @@ func (r *ramalamaRunner) Name() RunnerType {
 	return RunnerRamalama
 }
 
+func (r *ramalamaRunner) DisplayName() string {
+	return "Ramalama"
+}
+
 func (r *ramalamaRunner) ValidatePrerequisites(a app.App) error {
 	return validateCommonPrerequisites(a)
 }
@@ -285,11 +326,15 @@ func (r *ramalamaRunner) EnsureProvisioned() error {
 		return nil
 	}
 
-	if !cli.Prompt("AI model support requires initial setup (this may take a few minutes depending on internet connection speed). Continue") {
+	prompt := fmt.Sprintf("%s requires initial setup (this may take a few minutes depending on internet connection speed). Continue", r.DisplayName())
+	if !cli.Prompt(prompt) {
 		return fmt.Errorf("setup cancelled")
 	}
 
-	return ProvisionRamalama()
+	separator := "────────────────────────────────────────"
+	header := fmt.Sprintf("Colima - %s Setup\n%s", r.DisplayName(), separator)
+
+	return terminal.WithAltScreen(ProvisionRamalama, header)
 }
 
 func (r *ramalamaRunner) BuildArgs(args []string) ([]string, error) {
@@ -333,6 +378,63 @@ func (r *ramalamaRunner) buildRamalamaArgs(args []string) []string {
 	return ramalamaArgs
 }
 
+func (r *ramalamaRunner) CheckSetup() (SetupStatus, error) {
+	s, _ := store.Load()
+
+	// Fresh install - no version check needed
+	if !s.RamalamaProvisioned {
+		return SetupStatus{NeedsSetup: true}, nil
+	}
+
+	// Get current version
+	currentVersion := GetRamalamaVersion()
+	if currentVersion == "" {
+		// Can't determine current version, proceed with update
+		log.Debug("could not determine current ramalama version, proceeding with update")
+		return SetupStatus{NeedsSetup: true}, nil
+	}
+
+	// Fetch latest version
+	latestVersion, err := getLatestRamalamaVersion()
+	if err != nil {
+		log.Debugf("could not fetch latest ramalama version: %v", err)
+		return SetupStatus{}, fmt.Errorf("could not check for updates: %w", err)
+	}
+
+	// Compare versions
+	current, err := semver.NewVersion(currentVersion)
+	if err != nil {
+		log.Debugf("could not parse current version %q: %v", currentVersion, err)
+		return SetupStatus{
+			NeedsSetup:     true,
+			CurrentVersion: currentVersion,
+			LatestVersion:  latestVersion,
+		}, nil
+	}
+
+	latest, err := semver.NewVersion(latestVersion)
+	if err != nil {
+		log.Debugf("could not parse latest version %q: %v", latestVersion, err)
+		return SetupStatus{
+			NeedsSetup:     true,
+			CurrentVersion: currentVersion,
+			LatestVersion:  latestVersion,
+		}, nil
+	}
+
+	needsSetup := current.Compare(*latest) < 0
+
+	return SetupStatus{
+		NeedsSetup:     needsSetup,
+		CurrentVersion: currentVersion,
+		LatestVersion:  latestVersion,
+	}, nil
+}
+
 func (r *ramalamaRunner) Setup() error {
 	return SetupOrUpdateRamalama()
+}
+
+func (r *ramalamaRunner) GetCurrentVersion() string {
+	return GetRamalamaVersion()
 }

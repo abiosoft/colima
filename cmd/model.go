@@ -90,19 +90,44 @@ var modelSetupCmd = &cobra.Command{
 			return err
 		}
 
-		// Build header for alternate screen
-		var header string
-		separator := "────────────────────────────────────────"
-		if runner.Name() == model.RunnerDocker {
-			header = fmt.Sprintf("Colima - Docker Model Runner Setup\n%s", separator)
-		} else {
-			header = fmt.Sprintf("Colima - Ramalama Setup\n%s", separator)
+		// Check if setup is needed (on primary screen)
+		status, err := runner.CheckSetup()
+		if err != nil {
+			return err
 		}
 
-		// Run in alternate screen with header
-		return terminal.WithAltScreen(func() error {
+		// Print version info on primary screen
+		fmt.Println(runner.DisplayName())
+		if status.CurrentVersion != "" {
+			fmt.Printf("current: %s\n", status.CurrentVersion)
+		}
+		if status.LatestVersion != "" {
+			fmt.Printf("latest:  %s\n", status.LatestVersion)
+		}
+
+		if !status.NeedsSetup {
+			fmt.Println()
+			fmt.Println("Already up to date")
+			return nil
+		}
+
+		// Build header for alternate screen
+		separator := "────────────────────────────────────────"
+		header := fmt.Sprintf("Colima - %s Setup\n%s", runner.DisplayName(), separator)
+
+		// Run setup in alternate screen
+		if err := terminal.WithAltScreen(func() error {
 			return runner.Setup()
-		}, header)
+		}, header); err != nil {
+			return err
+		}
+
+		// Print new version on primary screen after update
+		if newVersion := runner.GetCurrentVersion(); newVersion != "" {
+			fmt.Printf("updated: %s\n", newVersion)
+		}
+
+		return nil
 	},
 }
 

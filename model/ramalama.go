@@ -10,80 +10,15 @@ import (
 	"github.com/abiosoft/colima/environment/host"
 	"github.com/abiosoft/colima/environment/vm/lima"
 	"github.com/abiosoft/colima/store"
-	"github.com/coreos/go-semver/semver"
 	log "github.com/sirupsen/logrus"
 )
 
 const ramalamaReleasesURL = "https://api.github.com/repos/containers/ramalama/releases/latest"
 
-// SetupOrUpdateRamalama handles both fresh installs and updates with version checking.
+// SetupOrUpdateRamalama installs or updates ramalama.
+// Call CheckSetup() first to determine if setup is needed and display version info.
 func SetupOrUpdateRamalama() error {
-	s, _ := store.Load()
-
-	// Fresh install - no version check needed
-	if !s.RamalamaProvisioned {
-		if err := ProvisionRamalama(); err != nil {
-			return err
-		}
-		// Print installed version
-		if version := GetRamalamaVersion(); version != "" {
-			fmt.Println("AI model runner")
-			fmt.Printf("version: %s", version)
-			fmt.Println()
-		}
-		return nil
-	}
-
-	// Update - check versions first
-	currentVersion := GetRamalamaVersion()
-	if currentVersion == "" {
-		// Can't determine current version, proceed with update
-		log.Debug("could not determine current ramalama version, proceeding with update")
-		return ProvisionRamalama()
-	}
-
-	latestVersion, err := getLatestRamalamaVersion()
-	if err != nil {
-		log.Debugf("could not fetch latest ramalama version: %v", err)
-		return fmt.Errorf("could not check for updates: %w", err)
-	}
-
-	// Compare versions
-	current, err := semver.NewVersion(currentVersion)
-	if err != nil {
-		log.Debugf("could not parse current version %q: %v", currentVersion, err)
-		return ProvisionRamalama()
-	}
-
-	latest, err := semver.NewVersion(latestVersion)
-	if err != nil {
-		log.Debugf("could not parse latest version %q: %v", latestVersion, err)
-		return ProvisionRamalama()
-	}
-
-	// Show version info
-	fmt.Println("AI model runner")
-	fmt.Printf("current: %s", currentVersion)
-	fmt.Println()
-	fmt.Printf("latest:  %s", latestVersion)
-	fmt.Println()
-
-	if current.Compare(*latest) >= 0 {
-		fmt.Println()
-		fmt.Println("Already up to date")
-		return nil
-	}
-
-	if err := ProvisionRamalama(); err != nil {
-		return err
-	}
-
-	// Print new version
-	if newVersion := GetRamalamaVersion(); newVersion != "" {
-		fmt.Printf("updated: %s", newVersion)
-		fmt.Println()
-	}
-	return nil
+	return ProvisionRamalama()
 }
 
 // GetRamalamaVersion returns the currently installed ramalama version in the VM.
@@ -216,8 +151,15 @@ func ProvisionRamalama() error {
 	script := `set -e
 export PATH="$HOME/.local/bin:$PATH"
 
-# install ramalama
-curl -fsSL https://ramalama.ai/install.sh | bash
+# ensure pipx is available
+sudo apt-get update -y && sudo apt-get install -y pipx
+
+# install ramalama via pipx; upgrade if ramalama is already installed
+if command -v ramalama >/dev/null 2>&1; then
+  pipx upgrade ramalama
+else
+  pipx install ramalama
+fi
 
 # pull ramalama container images
 docker pull quay.io/ramalama/ramalama
