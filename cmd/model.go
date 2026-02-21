@@ -6,6 +6,7 @@ import (
 	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config/configmanager"
 	"github.com/abiosoft/colima/model"
+	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/terminal"
 	"github.com/spf13/cobra"
 )
@@ -159,13 +160,35 @@ Press Ctrl-C to stop the server.
 			return err
 		}
 
+		// Determine the port to use
+		port := modelCmdArgs.ServePort
+		portExplicitlySet := cmd.Flags().Changed("port")
+
+		// If port was not explicitly set, find an available port starting from the default
+		const maxPortAttempts = 20
+		if !portExplicitlySet {
+			availablePort, found := util.FindAvailablePort(port, maxPortAttempts)
+			if !found {
+				return fmt.Errorf("no available port found in range %d-%d", port, port+maxPortAttempts-1)
+			}
+			if availablePort != port {
+				fmt.Printf("Port %d is in use, using port %d instead\n", port, availablePort)
+			}
+			port = availablePort
+		} else {
+			// User explicitly set the port, check if it's available
+			if _, found := util.FindAvailablePort(port, 1); !found {
+				return fmt.Errorf("port %d is already in use", port)
+			}
+		}
+
 		// Build header for alternate screen
 		separator := "────────────────────────────────────────"
-		header := fmt.Sprintf("Colima - Model Server (Ctrl-C to stop)\nWeb UI & API at http://localhost:%d\n%s", modelCmdArgs.ServePort, separator)
+		header := fmt.Sprintf("Colima - Model Server (Ctrl-C to stop)\nWeb UI & API at http://localhost:%d\n%s", port, separator)
 
 		// Run in alternate screen with header
 		return terminal.WithAltScreen(func() error {
-			return runner.Serve(normalizedModel, modelCmdArgs.ServePort)
+			return runner.Serve(normalizedModel, port)
 		}, header)
 	},
 }
