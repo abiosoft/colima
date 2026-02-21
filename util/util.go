@@ -36,6 +36,31 @@ func RandomAvailablePort() int {
 	return listener.Addr().(*net.TCPAddr).Port
 }
 
+// isPortAvailable checks if a specific port is available on the host.
+func isPortAvailable(port int) bool {
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		return false
+	}
+	if err := listener.Close(); err != nil {
+		return false
+	}
+	return true
+}
+
+// FindAvailablePort finds the first available port starting from startPort.
+// It checks up to maxAttempts consecutive ports (startPort, startPort+1, ...).
+// Returns the available port and true if found, or 0 and false if no port is available.
+func FindAvailablePort(startPort, maxAttempts int) (int, bool) {
+	for i := range maxAttempts {
+		port := startPort + i
+		if isPortAvailable(port) {
+			return port, true
+		}
+	}
+	return 0, false
+}
+
 // HostIPAddresses returns all IPv4 addresses on the host.
 func HostIPAddresses() []net.IP {
 	var addresses []net.IP
