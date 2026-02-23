@@ -22,6 +22,7 @@ import (
 	"github.com/abiosoft/colima/environment/container/incus"
 	"github.com/abiosoft/colima/environment/container/kubernetes"
 	"github.com/abiosoft/colima/util"
+	"github.com/abiosoft/colima/util/downloader"
 	"github.com/abiosoft/colima/util/osutil"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -106,6 +107,15 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 			}
 		}
 
+		// validate and set downloader if flag is specified (takes precedence over env var)
+		if cmd.Flag("downloader").Changed {
+			normalized, err := downloader.ValidateDownloader(startCmdArgs.Flags.Downloader)
+			if err != nil {
+				return err
+			}
+			downloader.SetDownloader(normalized)
+		}
+
 		return nil
 	},
 }
@@ -141,8 +151,9 @@ var startCmdArgs struct {
 		DNSHosts                []string
 		Foreground              bool
 		SaveConfig              bool
-		LegacyCPU               int // for backward compatibility
+		LegacyCPU               int    // for backward compatibility
 		Template                bool
+		Downloader              string // downloader to use (native, curl)
 	}
 }
 
@@ -255,6 +266,9 @@ func init() {
 	// dns
 	startCmd.Flags().IPSliceVarP(&startCmdArgs.Network.DNSResolvers, "dns", "n", nil, "DNS resolvers for the VM")
 	startCmd.Flags().StringSliceVar(&startCmdArgs.Flags.DNSHosts, "dns-host", nil, "custom DNS names to provide to resolver")
+
+	// download options
+	startCmd.Flags().StringVar(&startCmdArgs.Flags.Downloader, "downloader", downloader.DownloaderNative, "downloader to use (native, curl)")
 }
 
 func dnsHostsFromFlag(hosts []string) map[string]string {

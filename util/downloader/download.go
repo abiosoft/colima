@@ -82,6 +82,40 @@ func (d downloader) downloadFile(r Request) (err error) {
 		return fmt.Errorf("error preparing cache dir: %w", err)
 	}
 
+	// use curl if enabled (supports .curlrc for proxy auth, SSPI, etc.)
+	if UseCurl() {
+		if err := d.downloadWithCurl(r, cacheDownloadingFilename); err != nil {
+			return err
+		}
+	} else {
+		if err := d.downloadWithHTTP(r, cacheDownloadingFilename); err != nil {
+			return err
+		}
+	}
+
+	// validate download if SHA is present
+	if r.SHA != nil {
+		if err := r.SHA.validateDownload(r.URL, cacheDownloadingFilename); err != nil {
+			// move file to allow subsequent re-download
+			_ = os.Rename(cacheDownloadingFilename, cacheDownloadingFilename+".invalid")
+			return fmt.Errorf("error validating SHA sum for '%s': %w", path.Base(r.URL), err)
+		}
+	}
+
+	// move completed download to final location
+	if err := os.Rename(cacheDownloadingFilename, CacheFilename(r.URL)); err != nil {
+		return fmt.Errorf("error finalizing download: %w", err)
+	}
+
+	return nil
+}
+
+func (d downloader) downloadWithCurl(r Request, destPath string) error {
+	curl := curlDownloader{}
+	return curl.downloadFile(r, destPath)
+}
+
+func (d downloader) downloadWithHTTP(r Request, destPath string) error {
 	// check for existing partial download and resume info
 	var resumeInfo ResumeInfo
 	resumeInfoPath := d.resumeInfoPath(r.URL)
@@ -91,7 +125,7 @@ func (d downloader) downloadFile(r Request) (err error) {
 
 	// get existing file size for resume
 	var existingSize int64
-	if stat, err := os.Stat(cacheDownloadingFilename); err == nil {
+	if stat, err := os.Stat(destPath); err == nil {
 		existingSize = stat.Size()
 	}
 
@@ -111,7 +145,7 @@ func (d downloader) downloadFile(r Request) (err error) {
 	// download the file
 	result, err := client.Download(ctx, DownloadOptions{
 		URL:            finalURL,
-		DestPath:       cacheDownloadingFilename,
+		DestPath:       destPath,
 		ExpectedETag:   resumeInfo.ETag,
 		ResumeFromByte: existingSize,
 		ShowProgress:   true,
@@ -126,20 +160,6 @@ func (d downloader) downloadFile(r Request) (err error) {
 
 	// clean up resume info on successful download
 	_ = os.Remove(resumeInfoPath)
-
-	// validate download if SHA is present
-	if r.SHA != nil {
-		if err := r.SHA.validateDownload(r.URL, cacheDownloadingFilename); err != nil {
-			// move file to allow subsequent re-download
-			_ = os.Rename(cacheDownloadingFilename, cacheDownloadingFilename+".invalid")
-			return fmt.Errorf("error validating SHA sum for '%s': %w", path.Base(r.URL), err)
-		}
-	}
-
-	// move completed download to final location
-	if err := os.Rename(cacheDownloadingFilename, CacheFilename(r.URL)); err != nil {
-		return fmt.Errorf("error finalizing download: %w", err)
-	}
 
 	return nil
 }
