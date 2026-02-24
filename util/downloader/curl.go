@@ -7,7 +7,6 @@ import (
 	"path"
 	"strings"
 
-	"github.com/abiosoft/colima/util/osutil"
 	"github.com/abiosoft/colima/util/terminal"
 )
 
@@ -33,40 +32,11 @@ func ValidateDownloader(v string) (string, error) {
 	}
 }
 
-// Downloader returns the configured downloader type.
-// Flag takes precedence over environment variable when explicitly set.
-func Downloader() string {
-	if downloaderOverride != nil {
-		return *downloaderOverride
-	}
-	if v := osutil.EnvVar(envDownloader).Val(); v != "" {
-		// normalize env var value
-		if normalized, err := ValidateDownloader(v); err == nil {
-			return normalized
-		}
-	}
-	return DownloaderNative
-}
-
-// UseCurl returns true if curl should be used for downloads.
-func UseCurl() bool {
-	return Downloader() == DownloaderCurl
-}
-
-// downloaderOverride is set by the --downloader flag (nil means not set)
-var downloaderOverride *string
-
-// SetDownloader sets the downloader override (called from start command when flag is explicitly set).
-// The value should be validated before calling this function.
-func SetDownloader(v string) {
-	downloaderOverride = &v
-}
-
 // curlDownloader handles downloads using the curl command
 type curlDownloader struct{}
 
-// downloadFile downloads a file using curl
-func (c curlDownloader) downloadFile(r Request, destPath string) error {
+// Download downloads a file using curl
+func (c *curlDownloader) Download(r Request, destPath string) error {
 	// check if curl is available
 	if _, err := exec.LookPath("curl"); err != nil {
 		return fmt.Errorf("curl not found in PATH: %w", err)

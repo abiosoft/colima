@@ -1,17 +1,16 @@
 package downloader
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/util/osutil"
 	"github.com/abiosoft/colima/util/shautil"
 )
 
@@ -24,6 +23,33 @@ type (
 type Request struct {
 	URL string // request URL
 	SHA *SHA   // shasum url
+}
+
+// FileDownloader is the interface for downloading files
+type FileDownloader interface {
+	Download(r Request, destPath string) error
+}
+
+// fileDownloader is the configured downloader implementation
+var fileDownloader FileDownloader = &nativeDownloader{}
+
+// SetDownloader sets the downloader implementation based on the provided type.
+// The value should be validated before calling this function.
+func SetDownloader(v string) {
+	if v == DownloaderCurl {
+		fileDownloader = &curlDownloader{}
+	} else {
+		fileDownloader = &nativeDownloader{}
+	}
+}
+
+func init() {
+	// check environment variable for default downloader
+	if v := osutil.EnvVar(envDownloader).Val(); v != "" {
+		if d, err := ValidateDownloader(v); err == nil {
+			SetDownloader(d)
+		}
+	}
 }
 
 // DownloadToGuest downloads file at url and saves it in the destination.
@@ -82,15 +108,8 @@ func (d downloader) downloadFile(r Request) (err error) {
 		return fmt.Errorf("error preparing cache dir: %w", err)
 	}
 
-	// use curl if enabled (supports .curlrc for proxy auth, SSPI, etc.)
-	if UseCurl() {
-		if err := d.downloadWithCurl(r, cacheDownloadingFilename); err != nil {
-			return err
-		}
-	} else {
-		if err := d.downloadWithHTTP(r, cacheDownloadingFilename); err != nil {
-			return err
-		}
+	if err := fileDownloader.Download(r, cacheDownloadingFilename); err != nil {
+		return err
 	}
 
 	// validate download if SHA is present
@@ -106,60 +125,6 @@ func (d downloader) downloadFile(r Request) (err error) {
 	if err := os.Rename(cacheDownloadingFilename, CacheFilename(r.URL)); err != nil {
 		return fmt.Errorf("error finalizing download: %w", err)
 	}
-
-	return nil
-}
-
-func (d downloader) downloadWithCurl(r Request, destPath string) error {
-	curl := curlDownloader{}
-	return curl.downloadFile(r, destPath)
-}
-
-func (d downloader) downloadWithHTTP(r Request, destPath string) error {
-	// check for existing partial download and resume info
-	var resumeInfo ResumeInfo
-	resumeInfoPath := d.resumeInfoPath(r.URL)
-	if data, err := os.ReadFile(resumeInfoPath); err == nil {
-		_ = json.Unmarshal(data, &resumeInfo)
-	}
-
-	// get existing file size for resume
-	var existingSize int64
-	if stat, err := os.Stat(destPath); err == nil {
-		existingSize = stat.Size()
-	}
-
-	// create HTTP client
-	client := NewHTTPClient()
-
-	// use a long timeout for large files (2 hours)
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Hour)
-	defer cancel()
-
-	// get final URL (follows redirects)
-	finalURL, err := client.GetFinalURL(ctx, r.URL)
-	if err != nil {
-		return fmt.Errorf("error resolving download URL '%s': %w", r.URL, err)
-	}
-
-	// download the file
-	result, err := client.Download(ctx, DownloadOptions{
-		URL:            finalURL,
-		DestPath:       destPath,
-		ExpectedETag:   resumeInfo.ETag,
-		ResumeFromByte: existingSize,
-		ShowProgress:   true,
-	})
-	if err != nil {
-		// save resume info for next attempt if we have ETag
-		if result != nil && result.ETag != "" {
-			d.saveResumeInfo(r.URL, result.ETag, existingSize)
-		}
-		return fmt.Errorf("error downloading '%s': %w", path.Base(r.URL), err)
-	}
-
-	// clean up resume info on successful download
-	_ = os.Remove(resumeInfoPath)
 
 	return nil
 }
