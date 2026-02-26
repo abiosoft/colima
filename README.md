@@ -161,15 +161,7 @@ Setup and use model.
 
 ```
 colima start --runtime docker --vm-type krunkit
-colima model setup
 colima model run gemma3
-```
-
-Multiple model registries are supported including HuggingFace (default) and Ollama.
-
-```
-colima model run hf://tinyllama
-colima model run ollama://tinyllama
 ```
 
 ### Customizing the VM
