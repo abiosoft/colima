@@ -71,38 +71,64 @@ func (c containerdRuntime) Provision(ctx context.Context) error {
 
 	// containerd config
 	a.Add(func() error {
-		hostPath := filepath.Join(configDir(), "containerd", "config.toml")
-		return c.provisionConfig(hostPath, containerdConfFile, containerdConf)
+		profilePath := filepath.Join(configDir(), "containerd", "config.toml")
+		centralPath := filepath.Join(userConfigDir(), "containerd", "config.toml")
+		return c.provisionConfig(profilePath, centralPath, containerdConfFile, containerdConf)
 	})
 
 	// buildkitd config
 	a.Add(func() error {
-		hostPath := filepath.Join(configDir(), "containerd", "buildkitd.toml")
-		return c.provisionConfig(hostPath, buildKitConfFile, buildKitConf)
+		profilePath := filepath.Join(configDir(), "containerd", "buildkitd.toml")
+		centralPath := filepath.Join(userConfigDir(), "buildkit", "buildkitd.toml")
+		return c.provisionConfig(profilePath, centralPath, buildKitConfFile, buildKitConf)
 	})
 
 	return a.Exec()
 }
 
-// provisionConfig writes a config file to the VM. If a user-provided config
-// exists at hostPath, it is used instead of the embedded default. On first run,
-// the default config is written to hostPath for user discovery and editing.
-func (c containerdRuntime) provisionConfig(hostPath, guestPath string, defaultConf []byte) error {
-	conf := defaultConf
+// userConfigDir returns the user config directory following XDG conventions.
+// This is ~/.config on Linux/macOS, used for central config file locations
+// that follow the containerd/buildkit rootless conventions.
+func userConfigDir() string {
+	if dir := os.Getenv("XDG_CONFIG_HOME"); dir != "" {
+		return dir
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	return filepath.Join(home, ".config")
+}
 
-	if data, err := os.ReadFile(hostPath); err == nil {
-		conf = data
-	} else {
-		// generate the default config on the host for user discovery
-		if err := os.MkdirAll(filepath.Dir(hostPath), 0755); err != nil {
-			return fmt.Errorf("error creating config directory: %w", err)
-		}
-		if err := os.WriteFile(hostPath, defaultConf, 0644); err != nil {
-			return fmt.Errorf("error writing default config: %w", err)
-		}
+// provisionConfig writes a config file to the VM. Config files are resolved
+// in the following order:
+//  1. Per-profile override at ~/.colima/<profile>/containerd/<file>
+//  2. Central config at ~/.config/containerd/<file> (or ~/.config/buildkit/<file>)
+//  3. Embedded default
+//
+// On first run, the default config is written to the central location for
+// user discovery and editing.
+func (c containerdRuntime) provisionConfig(profilePath, centralPath, guestPath string, defaultConf []byte) error {
+	// 1. per-profile override takes highest priority
+	if data, err := os.ReadFile(profilePath); err == nil {
+		return c.guest.Write(guestPath, data)
 	}
 
-	return c.guest.Write(guestPath, conf)
+	// 2. central config
+	if data, err := os.ReadFile(centralPath); err == nil {
+		return c.guest.Write(guestPath, data)
+	}
+
+	// 3. no user config found; write the default to the central location
+	// for discoverability and use it
+	if err := os.MkdirAll(filepath.Dir(centralPath), 0755); err != nil {
+		return fmt.Errorf("error creating config directory: %w", err)
+	}
+	if err := os.WriteFile(centralPath, defaultConf, 0644); err != nil {
+		return fmt.Errorf("error writing default config: %w", err)
+	}
+
+	return c.guest.Write(guestPath, defaultConf)
 }
 
 func (c containerdRuntime) Start(ctx context.Context) error {
