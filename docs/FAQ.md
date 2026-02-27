@@ -22,6 +22,8 @@
     - [How to customize Docker config (e.g., adding insecure registries or registry mirrors)?](#how-to-customize-docker-config-eg-adding-insecure-registries-or-registry-mirrors)
     - [Docker buildx plugin is missing](#docker-buildx-plugin-is-missing)
       - [Installing Buildx](#installing-buildx)
+  - [Containerd](#containerd)
+    - [How to customize Containerd config?](#how-to-customize-containerd-config)
   - [How does Colima compare to minikube, Kind, K3d?](#how-does-colima-compare-to-minikube-kind-k3d)
     - [For Kubernetes](#for-kubernetes)
     - [For Docker](#for-docker)
@@ -275,6 +277,31 @@ mkdir -p ~/.docker/cli-plugins
 mv buildx-${VERSION}.darwin-${ARCH} ~/.docker/cli-plugins/docker-buildx
 chmod +x ~/.docker/cli-plugins/docker-buildx
 docker buildx version # verify installation
+```
+
+## Containerd
+
+### How to customize Containerd config?
+
+On first startup with the containerd runtime, Colima generates config files at `$HOME/.colima/default/containerd/`.
+
+For other profiles, `$HOME/.colima/<profile-name>/containerd/`.
+
+The following files are generated:
+
+| File | Description |
+|------|-------------|
+| `config.toml` | Containerd daemon configuration |
+| `buildkitd.toml` | BuildKit daemon configuration |
+
+Modify the files accordingly and restart Colima for changes to take effect.
+
+```sh
+# edit the containerd config
+$EDITOR $HOME/.colima/default/containerd/config.toml
+
+# restart colima
+colima stop && colima start --runtime containerd
 ```
 
 ## How does Colima compare to minikube, Kind, K3d?

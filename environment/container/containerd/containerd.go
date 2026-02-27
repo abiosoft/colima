@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -70,15 +71,38 @@ func (c containerdRuntime) Provision(ctx context.Context) error {
 
 	// containerd config
 	a.Add(func() error {
-		return c.guest.Write(containerdConfFile, containerdConf)
+		hostPath := filepath.Join(configDir(), "containerd", "config.toml")
+		return c.provisionConfig(hostPath, containerdConfFile, containerdConf)
 	})
 
 	// buildkitd config
 	a.Add(func() error {
-		return c.guest.Write(buildKitConfFile, buildKitConf)
+		hostPath := filepath.Join(configDir(), "containerd", "buildkitd.toml")
+		return c.provisionConfig(hostPath, buildKitConfFile, buildKitConf)
 	})
 
 	return a.Exec()
+}
+
+// provisionConfig writes a config file to the VM. If a user-provided config
+// exists at hostPath, it is used instead of the embedded default. On first run,
+// the default config is written to hostPath for user discovery and editing.
+func (c containerdRuntime) provisionConfig(hostPath, guestPath string, defaultConf []byte) error {
+	conf := defaultConf
+
+	if data, err := os.ReadFile(hostPath); err == nil {
+		conf = data
+	} else {
+		// generate the default config on the host for user discovery
+		if err := os.MkdirAll(filepath.Dir(hostPath), 0755); err != nil {
+			return fmt.Errorf("error creating config directory: %w", err)
+		}
+		if err := os.WriteFile(hostPath, defaultConf, 0644); err != nil {
+			return fmt.Errorf("error writing default config: %w", err)
+		}
+	}
+
+	return c.guest.Write(guestPath, conf)
 }
 
 func (c containerdRuntime) Start(ctx context.Context) error {
