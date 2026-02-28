@@ -108,7 +108,7 @@ func (d systemProfilerChipDetector) GetChipType() (string, error) {
 	return resp.SPHardwareDataType[0].ChipType, nil
 }
 
-// chipDetector is the instance used by IsMx/IsMxOrNewer. Tests can replace
+// chipDetector is the instance used by IsMxOrNewer. Tests can replace
 // this with a fake implementation.
 var chipDetector chipTypeDetector = systemProfilerChipDetector{}
 
@@ -118,7 +118,7 @@ func parseMNumber(s string) (int, bool) {
 	if s == "" {
 		return 0, false
 	}
-	matches := mRe.FindStringSubmatch(s)
+	matches := mRe.FindStringSubmatch(strings.ToUpper(s))
 	if len(matches) < 2 {
 		return 0, false
 	}

@@ -2,7 +2,6 @@ package util
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 )
 
@@ -22,13 +21,15 @@ func TestParseMNumber(t *testing.T) {
 		{"M3", 3, true},
 		{"APPLE M1", 1, true},
 		{"M10 Pro", 10, true},
+		{"apple m3 pro", 3, true},
+		{"Apple M1", 1, true},
 		{"No M here", 0, false},
 		{"", 0, false},
 		{"ARM64", 0, false},
 	}
 
 	for _, c := range cases {
-		n, ok := parseMNumber(strings.ToUpper(c.in))
+		n, ok := parseMNumber(c.in)
 		if ok != c.ok || n != c.want {
 			t.Fatalf("parseMNumber(%q) = (%d, %v), want (%d, %v)", c.in, n, ok, c.want, c.ok)
 		}
