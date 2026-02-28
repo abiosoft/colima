@@ -8,6 +8,8 @@
 
 ![Demonstration](colima.gif)
 
+**Website & Documentation:** [colima.run](https://colima.run) | [colima.run/docs](https://colima.run/docs/)
+
 ## Features
 
 Support for Intel and Apple Silicon macOS, and Linux
@@ -26,9 +28,9 @@ Support for Intel and Apple Silicon macOS, and Linux
 
 ### Installation
 
-Colima is available on Homebrew, MacPorts, Nix and [mise](http://github.com/jdx/mise). Check [here](docs/INSTALL.md) for other installation options.
+Colima is available on Homebrew, MacPorts, Nix and [Mise](http://github.com/jdx/mise). Check [here](docs/INSTALL.md) for other installation options.
 
-```
+```sh
 # Homebrew
 brew install colima
 
@@ -47,15 +49,6 @@ Or stay on the bleeding edge (only Homebrew)
 
 ```
 brew install --HEAD colima
-```
-
-### Upgrading
-
-If upgrading from v0.5.6 or lower, it is required to start afresh by deleting existing instance.
-
-```sh
-colima delete # delete existing instance
-colima start
 ```
 
 ## Usage
@@ -79,32 +72,19 @@ Or use a config file
 colima start --edit
 ```
 
-## Using Templates
-When you run the `colima template` command, Colima opens the default configuration in a temporary file using your editor (VS Code by default, if installed).
-
-For example, you might see something like:
-```sh
-/var/folders/hm/xmq4vxs13dl2hx2jyct65r080000gn/T/colima-2758922589.yaml
-
-```
-You can edit this temporary file as needed. Once you save and close the file in the editor, Colima automatically overwrites the default template config located at:
-```sh
-~/.colima/_templates/default.yaml
-
-```
-To see more options for working with templates, run:
-```
-colima template --help
-
-```
-
 ## Runtimes
 
 On initial startup, Colima initiates with a user specified runtime that defaults to Docker.
 
 ### Docker
 
-Docker client is required for Docker runtime. Installable with brew `brew install docker`.
+Docker client is required for Docker runtime. Installable with `brew install docker`.
+
+```
+colima start
+docker run hello-world
+docker ps
+```
 
 You can use the `docker` client on macOS after `colima start` with no additional setup.
 
@@ -112,6 +92,12 @@ You can use the `docker` client on macOS after `colima start` with no additional
 
 `colima start --runtime containerd` starts and setup Containerd. You can use `colima nerdctl` to interact with
 Containerd using [nerdctl](https://github.com/containerd/nerdctl).
+
+```
+colima start --runtime containerd
+nerdctl run hello-world
+nerdctl ps
+```
 
 It is recommended to run `colima nerdctl install` to install `nerdctl` alias script in $PATH.
 
@@ -123,6 +109,8 @@ To enable Kubernetes, start Colima with `--kubernetes` flag.
 
 ```
 colima start --kubernetes
+kubectl run caddy --image=caddy
+kubectl get pods
 ```
 
 #### Interacting with Image Registry
@@ -139,6 +127,12 @@ For Containerd runtime, images built or pulled in the `k8s.io` namespace are acc
 Incus client is required for Incus runtime. Installable with brew `brew install incus`.
 
 `colima start --runtime incus` starts and setup Incus.
+
+```
+colima start --runtime incus
+incus launch images:alpine/edge
+incus list
+```
 
 You can use the `incus` client on macOS after `colima start` with no additional setup.
 
@@ -157,12 +151,30 @@ brew tap slp/krunkit
 brew install krunkit
 ```
 
-Setup and use model.
+Setup and use a model.
 
 ```
 colima start --runtime docker --vm-type krunkit
 colima model run gemma3
 ```
+
+Colima supports two model runner backends:
+
+- **Docker Model Runner** (default) — supports [Docker AI Registry](https://hub.docker.com/u/ai) and [HuggingFace](https://huggingface.co).
+- **Ramalama** — supports [HuggingFace](https://huggingface.co) and [Ollama](https://ollama.com) registries.
+
+The default registry is the Docker AI Registry. Models can be run by name without a prefix:
+
+```sh
+colima model run gemma3
+colima model run llama3.2
+# HuggingFace (Docker Model Runner)
+colima model run hf.co/microsoft/Phi-3-mini-4k-instruct-gguf
+# Ollama (requires ramalama runner)
+colima model run ollama://gemma3 --runner ramalama
+```
+
+See the [AI Workloads documentation](https://colima.run/docs/ai/) for more details.
 
 ### Customizing the VM
 
@@ -172,7 +184,7 @@ The VM can be customized either by passing additional flags to `colima start`.
 e.g. `--cpu`, `--memory`, `--disk`, `--runtime`.
 Or by editing the config file with `colima start --edit`.
 
-**NOTE**: ~~disk size cannot be changed after the VM is created.~~ From v0.5.3, disk size can be increased.
+**NOTE**: Disk size can be increased after the VM is created.
 
 #### Customization Examples
 
@@ -211,7 +223,7 @@ The logo was contributed by [Daniel Hodvogner](https://github.com/dhodvogner). C
 
 ## Troubleshooting and FAQs
 
-Check [here](docs/FAQ.md) for Frequently Asked Questions.
+Check [here](docs/FAQ.md) for Frequently Asked Questions, or visit the [online FAQ](https://colima.run/docs/faq/) for a searchable version.
 
 ## How to Contribute?
 
@@ -220,13 +232,10 @@ Check [here](docs/CONTRIBUTE.md) for the instructions on contributing to the pro
 ## Community
 - [GitHub Discussions](https://github.com/abiosoft/colima/discussions)
 - [GitHub Issues](https://github.com/abiosoft/colima/issues)
+- [Announcements](https://colima.run/announcements/)
 - `#colima` channel in the CNCF Slack
   - New account: <https://slack.cncf.io/>
   - Login: <https://cloud-native.slack.com/>
-
-## Help Wanted
-
-- Documentation and project website
 
 ## License
 
