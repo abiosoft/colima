@@ -56,6 +56,9 @@ func minMacOSVersion(version string) bool {
 // IsMx returns if the current device is an Apple Silicon Mx device
 // where x is the number e.g. x = 1 --> m1, x = 3 --> m3 e.t.c.
 func IsMx(x int) bool {
+	if !MacOS() {
+		return false
+	}
 	var resp struct {
 		SPHardwareDataType []struct {
 			ChipType string `json:"chip_type"`
