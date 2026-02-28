@@ -22,6 +22,9 @@
     - [How to customize Docker config (e.g., adding insecure registries or registry mirrors)?](#how-to-customize-docker-config-eg-adding-insecure-registries-or-registry-mirrors)
     - [Docker buildx plugin is missing](#docker-buildx-plugin-is-missing)
       - [Installing Buildx](#installing-buildx)
+  - [Containerd](#containerd)
+    - [How to customize Containerd config?](#how-to-customize-containerd-config)
+      - [Per-profile overrides](#per-profile-overrides)
   - [How does Colima compare to minikube, Kind, K3d?](#how-does-colima-compare-to-minikube-kind-k3d)
     - [For Kubernetes](#for-kubernetes)
     - [For Docker](#for-docker)
@@ -276,6 +279,41 @@ mv buildx-${VERSION}.darwin-${ARCH} ~/.docker/cli-plugins/docker-buildx
 chmod +x ~/.docker/cli-plugins/docker-buildx
 docker buildx version # verify installation
 ```
+
+## Containerd
+
+### How to customize Containerd config?
+
+On first startup with the containerd runtime, Colima generates default config files at the standard user config locations:
+
+| File | Location |
+|------|----------|
+| Containerd config | `~/.config/containerd/config.toml` |
+| BuildKit config | `~/.config/buildkit/buildkitd.toml` |
+
+These follow the standard rootless containerd/buildkit config paths and are shared across all Colima profiles.
+
+Modify the files accordingly and restart Colima for changes to take effect.
+
+```sh
+# edit the containerd config
+$EDITOR ~/.config/containerd/config.toml
+
+# restart colima
+colima stop && colima start --runtime containerd
+```
+
+#### Per-profile overrides
+
+To use a different config for a specific profile, place the config file at `$HOME/.colima/<profile-name>/containerd/config.toml` (or `buildkitd.toml`). Per-profile configs take priority over the central config.
+
+The resolution order is:
+
+1. `~/.colima/<profile>/containerd/<file>` (per-profile override)
+2. `~/.config/containerd/<file>` or `~/.config/buildkit/<file>` (central)
+3. Embedded default
+
+**Note:** `$XDG_CONFIG_HOME` is respected for the central config location if set.
 
 ## How does Colima compare to minikube, Kind, K3d?
 
