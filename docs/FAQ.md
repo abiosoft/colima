@@ -38,6 +38,12 @@
     - [Manual](#manual)
   - [How can disk size be increased?](#how-can-disk-size-be-increased)
   - [Are Lima overrides supported?](#are-lima-overrides-supported)
+    - [Example: Adding provision scripts](#example-adding-provision-scripts)
+  - [How can the VM and its tools be updated?](#how-can-the-vm-and-its-tools-be-updated)
+    - [Updating Colima](#updating-colima)
+    - [Updating the container runtime](#updating-the-container-runtime)
+    - [Accessing the Virtual Machine](#accessing-the-virtual-machine)
+    - [Environment variables](#environment-variables)
   - [Troubleshooting](#troubleshooting)
     - [Colima not starting](#colima-not-starting)
       - [Broken status](#broken-status)
@@ -407,7 +413,103 @@ __Note:__ This feature is available from Version 0.5.3.
 
 Yes, however this should only be done by advanced users.
 
-Overriding the image is not supported as Colima's image includes bundled dependencies that would be missing in the user specified image.
+Lima supports `override.yaml` and `default.yaml` files that can modify the VM configuration.
+
+The override file is located at `$HOME/.colima/_lima/_config/override.yaml` (or `$LIMA_HOME/_config/override.yaml` if `LIMA_HOME` is set).
+
+Settings in `override.yaml` are applied **before** the instance config, while settings in `default.yaml` are applied **after** (as fallback defaults).
+
+**Note:** Overriding the image is not supported as Colima's image includes bundled dependencies that would be missing in a user-specified image.
+
+### Example: Adding provision scripts
+
+Provision scripts can be added via Lima overrides to run commands during VM boot.
+
+```yaml
+# $HOME/.colima/_lima/_config/override.yaml
+provision:
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      # install additional packages
+      apt-get update && apt-get install -y curl
+```
+
+Alternatively, provision scripts can be specified directly in `colima.yaml`:
+
+```sh
+colima start --edit
+```
+
+```diff
+- provision: []
++ provision:
++   - mode: system
++     script: |
++       #!/bin/bash
++       set -eux -o pipefail
++       apt-get update && apt-get install -y curl
+```
+
+## How can the VM and its tools be updated?
+
+### Updating Colima
+
+```sh
+brew upgrade colima
+```
+
+After upgrading, delete and recreate the instance to use the latest VM image:
+
+```sh
+colima delete
+colima start
+```
+
+To test the upgrade without affecting the existing setup, use a separate profile:
+
+```sh
+colima start debug
+```
+
+### Updating the container runtime
+
+From v0.7.6, the container runtime (Docker, containerd) can be updated independently:
+
+```sh
+colima update
+```
+
+This updates Docker (or containerd) to the latest version without needing to update Colima itself.
+
+### Accessing the Virtual Machine
+
+SSH into the VM to inspect or modify it directly:
+
+```sh
+colima ssh
+```
+
+Run a single command without an interactive session:
+
+```sh
+colima ssh -- uname -a
+```
+
+### Environment variables
+
+| Variable | Description |
+|----------|-------------|
+| `COLIMA_HOME` | Colima configuration directory (default: `$HOME/.colima`) |
+| `COLIMA_PROFILE` | Active profile name (default: `default`) |
+| `DOCKER_HOST` | Docker socket path, set automatically by Colima on startup |
+
+Pass environment variables into the VM at startup:
+
+```sh
+colima start --env MY_VAR=value
+```
 
 ## Troubleshooting
 
