@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/abiosoft/colima/cli"
@@ -31,7 +33,7 @@ func MacOS15OrNewer() bool { return minMacOSVersion("15.0.0") }
 
 // MacOSNestedVirtualizationSupported returns if the current device supports nested virtualization.
 func MacOSNestedVirtualizationSupported() bool {
-	return (IsMx(3) || IsMx(4) || IsMx(5)) && MacOS15OrNewer()
+	return IsMxOrNewer(3) && MacOS15OrNewer()
 }
 
 func minMacOSVersion(version string) bool {
@@ -53,11 +55,33 @@ func minMacOSVersion(version string) bool {
 	return cver.Compare(*ver) <= 0
 }
 
-// IsMx returns if the current device is an Apple Silicon Mx device
-// where x is the number e.g. x = 1 --> m1, x = 3 --> m3 e.t.c.
-func IsMx(x int) bool {
-	if !MacOS() {
+// IsMxOrNewer returns true if the machine is Apple Silicon M{n} where n >= min
+// e.g. IsMxOrNewer(3) returns true for M3, M4, M5, ...
+func IsMxOrNewer(min int) bool {
+	chip, err := chipDetector.GetChipType()
+	if err != nil {
+		logrus.Trace(fmt.Errorf("error getting chip type: %w", err))
 		return false
+	}
+	n, ok := parseMNumber(chip)
+	if !ok {
+		return false
+	}
+	return n >= min
+}
+
+// chipTypeDetector fetches the chip type string from the host.
+type chipTypeDetector interface {
+	GetChipType() (string, error)
+}
+
+// systemProfilerChipDetector is the production implementation that calls
+// `system_profiler -json SPHardwareDataType`.
+type systemProfilerChipDetector struct{}
+
+func (d systemProfilerChipDetector) GetChipType() (string, error) {
+	if !MacOS() {
+		return "", fmt.Errorf("not macOS")
 	}
 	var resp struct {
 		SPHardwareDataType []struct {
@@ -70,21 +94,39 @@ func IsMx(x int) bool {
 	cmd.Stdout = &buf
 
 	if err := cmd.Run(); err != nil {
-		logrus.Trace(fmt.Errorf("error retrieving chip version: %w", err))
-		return false
+		return "", fmt.Errorf("error retrieving chip version: %w", err)
 	}
 
 	if err := json.NewDecoder(&buf).Decode(&resp); err != nil {
-		logrus.Trace(fmt.Errorf("error decoding system_profiler response: %w", err))
-		return false
+		return "", fmt.Errorf("error decoding system_profiler response: %w", err)
 	}
 
 	if len(resp.SPHardwareDataType) == 0 {
-		return false
+		return "", fmt.Errorf("no SPHardwareDataType in response")
 	}
 
-	chipType := strings.ToUpper(resp.SPHardwareDataType[0].ChipType)
-	return strings.Contains(chipType, fmt.Sprintf("M%d", x))
+	return resp.SPHardwareDataType[0].ChipType, nil
+}
+
+// chipDetector is the instance used by IsMx/IsMxOrNewer. Tests can replace
+// this with a fake implementation.
+var chipDetector chipTypeDetector = systemProfilerChipDetector{}
+
+var mRe = regexp.MustCompile(`\bM(\d+)\b`)
+
+func parseMNumber(s string) (int, bool) {
+	if s == "" {
+		return 0, false
+	}
+	matches := mRe.FindStringSubmatch(s)
+	if len(matches) < 2 {
+		return 0, false
+	}
+	n, err := strconv.Atoi(matches[1])
+	if err != nil {
+		return 0, false
+	}
+	return n, true
 }
 
 // RosettaRunning checks if Rosetta process is running.
