@@ -119,10 +119,10 @@ func (d dockerRuntime) addHostGateway(conf map[string]any) error {
 }
 
 func (d dockerRuntime) reloadAndRestartSystemdService() error {
-	if err := d.guest.Run("sudo", "systemctl", "daemon-reload"); err != nil {
+	if err := d.systemctl.DaemonReload(); err != nil {
 		return fmt.Errorf("error reloading systemd daemon: %w", err)
 	}
-	if err := d.guest.Run("sudo", "systemctl", "restart", "docker"); err != nil {
+	if err := d.systemctl.Restart("docker.service"); err != nil {
 		return fmt.Errorf("error restarting docker: %w", err)
 	}
 	return nil

@@ -9,6 +9,7 @@ import (
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/environment/guest/systemctl"
 	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/debutil"
 )
@@ -23,8 +24,9 @@ func init() {
 }
 
 type dockerRuntime struct {
-	host  environment.HostActions
-	guest environment.GuestActions
+	host      environment.HostActions
+	guest     environment.GuestActions
+	systemctl systemctl.Systemctl
 	cli.CommandChain
 }
 
@@ -33,6 +35,7 @@ func newRuntime(host environment.HostActions, guest environment.GuestActions) en
 	return &dockerRuntime{
 		host:         host,
 		guest:        guest,
+		systemctl:    systemctl.New(guest),
 		CommandChain: cli.New(Name),
 	}
 }
@@ -80,7 +83,7 @@ func (d dockerRuntime) Start(ctx context.Context) error {
 	a := d.Init(ctx)
 
 	a.Retry("", time.Second, 60, func(int) error {
-		return d.guest.RunQuiet("sudo", "systemctl", "start", "docker.service")
+		return d.systemctl.Start("docker.service")
 	})
 
 	// service startup takes few seconds, retry for a minute before giving up.
@@ -102,17 +105,17 @@ func (d dockerRuntime) Start(ctx context.Context) error {
 }
 
 func (d dockerRuntime) Running(ctx context.Context) bool {
-	return d.guest.RunQuiet("service", "docker", "status") == nil
+	return d.systemctl.Active("docker.service")
 }
 
-func (d dockerRuntime) Stop(ctx context.Context) error {
+func (d dockerRuntime) Stop(ctx context.Context, force bool) error {
 	a := d.Init(ctx)
 
 	a.Add(func() error {
 		if !d.Running(ctx) {
 			return nil
 		}
-		return d.guest.Run("sudo", "systemctl", "stop", "docker.service")
+		return d.systemctl.Stop("docker.service", force)
 	})
 
 	// clear docker context settings
