@@ -182,8 +182,8 @@ func (c colimaApp) Stop(force bool) error {
 	// the order for stop is:
 	//   container stop -> vm stop
 
-	// stop container runtimes if not a forceful shutdown
-	if c.guest.Running(ctx) && !force {
+	// stop container runtimes
+	if c.guest.Running(ctx) {
 		containers, err := c.currentContainerEnvironments(ctx)
 		if err != nil {
 			log.Warnln(fmt.Errorf("error retrieving runtimes: %w", err))
@@ -196,7 +196,7 @@ func (c colimaApp) Stop(force bool) error {
 			log := log.WithField("context", cont.Name())
 			log.Println("stopping ...")
 
-			if err := cont.Stop(ctx); err != nil {
+			if err := cont.Stop(ctx, force); err != nil {
 				// failure to stop a container runtime is not fatal
 				// it is only meant for graceful shutdown.
 				// the VM will shut down anyways.

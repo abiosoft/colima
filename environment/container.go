@@ -19,7 +19,8 @@ type Container interface {
 	// Start starts the container runtime.
 	Start(ctx context.Context) error
 	// Stop stops the container runtime.
-	Stop(ctx context.Context) error
+	// If force is true, the runtime is killed immediately without graceful shutdown.
+	Stop(ctx context.Context, force bool) error
 	// Teardown tears down/uninstall the container runtime.
 	Teardown(ctx context.Context) error
 	// Update the container runtime.

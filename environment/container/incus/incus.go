@@ -12,6 +12,7 @@ import (
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/environment/guest/systemctl"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/debutil"
@@ -23,6 +24,7 @@ func newRuntime(host environment.HostActions, guest environment.GuestActions) en
 	return &incusRuntime{
 		host:         host,
 		guest:        guest,
+		systemctl:    systemctl.New(guest),
 		CommandChain: cli.New(Name),
 	}
 }
@@ -51,8 +53,9 @@ func init() {
 var _ environment.Container = (*incusRuntime)(nil)
 
 type incusRuntime struct {
-	host  environment.HostActions
-	guest environment.GuestActions
+	host      environment.HostActions
+	guest     environment.GuestActions
+	systemctl systemctl.Systemctl
 	cli.CommandChain
 }
 
@@ -134,7 +137,7 @@ func (c *incusRuntime) Provision(ctx context.Context) error {
 
 // Running implements environment.Container.
 func (c *incusRuntime) Running(ctx context.Context) bool {
-	return c.guest.RunQuiet("service", "incus", "status") == nil
+	return c.systemctl.Active("incus.service")
 }
 
 // Start implements environment.Container.
@@ -148,13 +151,13 @@ func (c *incusRuntime) Start(ctx context.Context) error {
 
 	if c.poolImported() {
 		a.Add(func() error {
-			return c.guest.RunQuiet("sudo", "systemctl", "start", "incus.service")
+			return c.systemctl.Start("incus.service")
 		})
 	} else {
 		// pool not yet imported
 		// restart incus to import pool
 		a.Add(func() error {
-			return c.guest.RunQuiet("sudo", "systemctl", "restart", "incus.service")
+			return c.systemctl.Restart("incus.service")
 		})
 	}
 
@@ -201,7 +204,7 @@ func (c *incusRuntime) Start(ctx context.Context) error {
 }
 
 // Stop implements environment.Container.
-func (c *incusRuntime) Stop(ctx context.Context) error {
+func (c *incusRuntime) Stop(ctx context.Context, force bool) error {
 	a := c.Init(ctx)
 
 	a.Add(func() error {
@@ -210,7 +213,7 @@ func (c *incusRuntime) Stop(ctx context.Context) error {
 	})
 
 	a.Add(func() error {
-		return c.guest.RunQuiet("sudo", "incus", "admin", "shutdown")
+		return c.systemctl.Stop("incus.service", force)
 	})
 
 	a.Add(c.unsetRemote)
