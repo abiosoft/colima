@@ -37,7 +37,7 @@ func (d dockerRuntime) provisionContainerd(ctx context.Context) error {
 
 	a.Add(func() error {
 		// restart containerd service
-		return d.guest.Run("sudo", "service", "containerd", "restart")
+		return d.systemctl.Restart("containerd.service")
 	})
 
 	return a.Exec()

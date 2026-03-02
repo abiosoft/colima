@@ -12,6 +12,7 @@ import (
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/environment/container/docker"
+	"github.com/abiosoft/colima/environment/guest/systemctl"
 )
 
 // Name is container runtime name
@@ -27,6 +28,7 @@ func newRuntime(host environment.HostActions, guest environment.GuestActions) en
 	return &kubernetesRuntime{
 		host:         host,
 		guest:        guest,
+		systemctl:    systemctl.New(guest),
 		CommandChain: cli.New(Name),
 	}
 }
@@ -38,8 +40,9 @@ func init() {
 var _ environment.Container = (*kubernetesRuntime)(nil)
 
 type kubernetesRuntime struct {
-	host  environment.HostActions
-	guest environment.GuestActions
+	host      environment.HostActions
+	guest     environment.GuestActions
+	systemctl systemctl.Systemctl
 	cli.CommandChain
 }
 
@@ -152,7 +155,7 @@ func (c kubernetesRuntime) Start(ctx context.Context) error {
 	}
 
 	a.Add(func() error {
-		return c.guest.Run("sudo", "service", "k3s", "start")
+		return c.systemctl.Start("k3s.service")
 	})
 	a.Retry("", time.Second*2, 10, func(int) error {
 		return c.guest.RunQuiet("kubectl", "cluster-info")
@@ -165,7 +168,7 @@ func (c kubernetesRuntime) Start(ctx context.Context) error {
 	return c.provisionKubeconfig(ctx)
 }
 
-func (c kubernetesRuntime) Stop(ctx context.Context) error {
+func (c kubernetesRuntime) Stop(ctx context.Context, force bool) error {
 	a := c.Init(ctx)
 	a.Add(func() error {
 		return c.guest.Run("k3s-killall.sh")
@@ -173,7 +176,9 @@ func (c kubernetesRuntime) Stop(ctx context.Context) error {
 
 	// k3s is buggy with external containerd for now
 	// cleanup is manual
-	a.Add(c.stopAllContainers)
+	if !force {
+		a.Add(c.stopAllContainers)
+	}
 
 	return a.Exec()
 }

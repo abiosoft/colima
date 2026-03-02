@@ -68,7 +68,7 @@ var kubernetesStopCmd = &cobra.Command{
 			return fmt.Errorf("%s is not enabled", kubernetes.Name)
 		}
 
-		return k.Stop(ctx)
+		return k.Stop(ctx, false)
 	},
 }
 

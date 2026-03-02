@@ -11,6 +11,7 @@ import (
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/environment/guest/systemctl"
 )
 
 // Name is container runtime name
@@ -46,6 +47,7 @@ func newRuntime(host environment.HostActions, guest environment.GuestActions) en
 	return &containerdRuntime{
 		host:         host,
 		guest:        guest,
+		systemctl:    systemctl.New(guest),
 		CommandChain: cli.New(Name),
 	}
 }
@@ -57,8 +59,9 @@ func init() {
 var _ environment.Container = (*containerdRuntime)(nil)
 
 type containerdRuntime struct {
-	host  environment.HostActions
-	guest environment.GuestActions
+	host      environment.HostActions
+	guest     environment.GuestActions
+	systemctl systemctl.Systemctl
 	cli.CommandChain
 }
 
@@ -135,7 +138,7 @@ func (c containerdRuntime) Start(ctx context.Context) error {
 	a := c.Init(ctx)
 
 	a.Add(func() error {
-		return c.guest.Run("sudo", "service", "containerd", "restart")
+		return c.systemctl.Restart("containerd.service")
 	})
 
 	// service startup takes few seconds, retry at most 10 times before giving up.
@@ -144,20 +147,20 @@ func (c containerdRuntime) Start(ctx context.Context) error {
 	})
 
 	a.Add(func() error {
-		return c.guest.Run("sudo", "service", "buildkit", "start")
+		return c.systemctl.Start("buildkit.service")
 	})
 
 	return a.Exec()
 }
 
 func (c containerdRuntime) Running(ctx context.Context) bool {
-	return c.guest.RunQuiet("service", "containerd", "status") == nil
+	return c.systemctl.Active("containerd.service")
 }
 
-func (c containerdRuntime) Stop(ctx context.Context) error {
+func (c containerdRuntime) Stop(ctx context.Context, force bool) error {
 	a := c.Init(ctx)
 	a.Add(func() error {
-		return c.guest.Run("sudo", "service", "containerd", "stop")
+		return c.systemctl.Stop("containerd.service", force)
 	})
 	return a.Exec()
 }
