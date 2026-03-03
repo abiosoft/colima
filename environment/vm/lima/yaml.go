@@ -52,6 +52,10 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 	// when krunkit is chosen and OS version supports it
 	if util.MacOS13OrNewerOnArm() && conf.VMType == limaconfig.Krunkit && sameArchitecture {
 		l.VMType = limaconfig.Krunkit
+
+		if util.MacOSNestedVirtualizationSupported() {
+			l.NestedVirtualization = conf.NestedVirtualization
+		}
 	}
 
 	if conf.CPUType != "" && conf.CPUType != "host" {

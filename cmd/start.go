@@ -151,7 +151,7 @@ var startCmdArgs struct {
 		DNSHosts                []string
 		Foreground              bool
 		SaveConfig              bool
-		LegacyCPU               int    // for backward compatibility
+		LegacyCPU               int // for backward compatibility
 		Template                bool
 		Downloader              string // downloader to use (native, curl)
 	}
@@ -351,7 +351,7 @@ func setFlagDefaults(cmd *cobra.Command) {
 	// always enable nested virtualization for incus, if supported and not explicitly disabled.
 	if util.MacOSNestedVirtualizationSupported() {
 		if !cmd.Flag("nested-virtualization").Changed {
-			if startCmdArgs.Runtime == incus.Name && startCmdArgs.VMType == "vz" {
+			if startCmdArgs.Runtime == incus.Name && (startCmdArgs.VMType == "vz" || startCmdArgs.VMType == "krunkit") {
 				startCmdArgs.NestedVirtualization = true
 			}
 		}
