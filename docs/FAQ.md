@@ -541,7 +541,7 @@ colima ssh -- uname -a
 |----------|-------------|
 | `COLIMA_HOME` | Colima configuration directory (default: `$HOME/.colima`) |
 | `COLIMA_PROFILE` | Active profile name (default: `default`) |
-| `DOCKER_HOST` | Docker socket path, set automatically by Colima on startup |
+| `DOCKER_CONFIG` | Path to Docker client configuration directory (default: `~/.docker`) |
 
 Pass environment variables into the VM at startup:
 
