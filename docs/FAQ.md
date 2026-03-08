@@ -11,6 +11,8 @@
     - [Editing the config](#editing-the-config)
     - [Setting the default config](#setting-the-default-config)
     - [Specifying the config editor](#specifying-the-config-editor)
+  - [How do I change where Colima files are stored?](#how-do-i-change-where-colima-files-are-stored)
+  - [How do I pass custom environment variables into the VM?](#how-do-i-pass-custom-environment-variables-into-the-vm)
   - [Docker](#docker)
     - [Can it run alongside Docker for Mac?](#can-it-run-alongside-docker-for-mac)
     - [Docker socket location](#docker-socket-location)
@@ -46,7 +48,6 @@
     - [Updating Colima](#updating-colima)
     - [Updating the container runtime](#updating-the-container-runtime)
     - [Accessing the Virtual Machine](#accessing-the-virtual-machine)
-    - [Environment variables](#environment-variables)
   - [Troubleshooting](#troubleshooting)
     - [Colima not starting](#colima-not-starting)
       - [Broken status](#broken-status)
@@ -143,6 +144,38 @@ Set the `$EDITOR` environment variable or use the `--editor` flag.
 ```sh
 colima start --edit --editor code # one-off config
 colima template --editor code # default config
+```
+
+## How do I change where Colima files are stored?
+
+Colima supports these environment variables, set on your host machine:
+
+| Variable | Description |
+|----------|-------------|
+| `COLIMA_HOME` | Colima configuration directory (default: `$HOME/.colima`) |
+| `COLIMA_CACHE_HOME` | Colima cache directory (default is host-specific, see [os.UserCacheDir()](https://pkg.go.dev/os#UserCacheDir)) |
+| `COLIMA_PROFILE` | Active profile name (default: `default`) |
+| `DOCKER_CONFIG` | Path to Docker client configuration directory (default: `~/.docker`) |
+
+## How do I pass custom environment variables into the VM?
+
+Pass environment variables into the VM at startup using the YAML configuration file:
+
+```yaml
+env:
+  MY_VAR: value
+```
+
+You can also use command-line flags:
+
+```bash session
+# On your host machine...
+$ colima start --env MY_VAR=value
+
+# Then, within the VM...
+$ colima ssh
+user@colima:~$ env | grep MY_VAR
+MY_VAR=value
 ```
 
 ## Docker
@@ -533,20 +566,6 @@ Run a single command without an interactive session:
 
 ```sh
 colima ssh -- uname -a
-```
-
-### Environment variables
-
-| Variable | Description |
-|----------|-------------|
-| `COLIMA_HOME` | Colima configuration directory (default: `$HOME/.colima`) |
-| `COLIMA_PROFILE` | Active profile name (default: `default`) |
-| `DOCKER_CONFIG` | Path to Docker client configuration directory (default: `~/.docker`) |
-
-Pass environment variables into the VM at startup:
-
-```sh
-colima start --env MY_VAR=value
 ```
 
 ## Troubleshooting
