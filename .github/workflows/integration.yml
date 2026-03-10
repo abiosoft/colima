@@ -248,11 +248,32 @@ jobs:
       - name: Validate Incus
         run: incus version && incus list
 
+      - name: Launch Instance
+        run: incus launch images:alpine/edge test-instance
+
+      - name: Delay for instance
+        run: sleep 5
+
+      - name: Validate Instance
+        run: incus exec test-instance -- cat /etc/os-release
+
       - name: Validate DNS
         run: colima ssh -- sh -c "sudo apt-get update -y -qq && sudo apt-get install -qq dnsutils && nslookup host.docker.internal"
 
       - name: Stop
         run: colima stop
 
-      - name: Teardown
+      - name: Temp Delete
         run: colima delete -f
+
+      - name: Restart
+        run: colima start --runtime incus
+
+      - name: Delay for restart
+        run: sleep 10
+
+      - name: Assert instance restored
+        run: incus exec test-instance -- cat /etc/os-release
+
+      - name: Teardown
+        run: colima delete --data -f

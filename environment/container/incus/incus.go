@@ -69,8 +69,13 @@ func (c *incusRuntime) Provision(ctx context.Context) error {
 	conf := ctx.Value(config.CtxKey()).(config.Config)
 	log := c.Logger(ctx)
 
+	// start incus to check if already fully provisioned.
+	// after a full /var/lib/incus restore from external disk, incus
+	// reads its previous database and restores networks/pools automatically.
+	_ = c.systemctl.Start("incus.service")
+
 	if found, _, _ := c.findNetwork(incusBridgeInterface); found {
-		// already provisioned
+		// already provisioned (e.g. full restore from external disk)
 		return nil
 	}
 
@@ -423,13 +428,37 @@ func (c *incusRuntime) wipeDisk(size int) error {
 	return c.guest.RunQuiet("sudo", "incus", "storage", "create", poolName, storageDriver, "size="+diskSize)
 }
 
-// DataDirs represents the data disk for the container runtime.
+// migrationScript returns a script that migrates from the old disk layout
+// (separate incus-disks and incus-backups subdirectories) to the new layout
+// (full /var/lib/incus directory).
+func migrationScript() string {
+	mountPoint := limautil.MountPoint()
+	return `MOUNT_POINT="` + mountPoint + `"
+if [ -d "$MOUNT_POINT/incus-disks" ] && [ ! -d "$MOUNT_POINT/incus" ]; then
+  mkdir -p "$MOUNT_POINT/incus"
+  if [ -d /var/lib/incus ]; then
+    cp -a /var/lib/incus/. "$MOUNT_POINT/incus/"
+  fi
+  rm -rf "$MOUNT_POINT/incus/disks"
+  mv "$MOUNT_POINT/incus-disks" "$MOUNT_POINT/incus/disks"
+  if [ -d "$MOUNT_POINT/incus-backups" ]; then
+    rm -rf "$MOUNT_POINT/incus/backups"
+    mv "$MOUNT_POINT/incus-backups" "$MOUNT_POINT/incus/backups"
+  fi
+fi`
+}
+
+// DataDisk represents the data disk for the container runtime.
 func DataDisk() environment.DataDisk {
 	return environment.DataDisk{
 		FSType: "ext4",
 		Dirs: []environment.DiskDir{
-			{Name: "incus-disks", Path: "/var/lib/incus/disks"},
-			{Name: "incus-backups", Path: "/var/lib/incus/backups"},
+			{Name: "incus", Path: "/var/lib/incus"},
+		},
+		PreMount: []string{
+			"systemctl stop incus.service || true",
+			"systemctl stop incus.socket || true",
+			migrationScript(),
 		},
 	}
 }
