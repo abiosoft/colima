@@ -48,15 +48,14 @@ func Test_checkOverlappingMounts(t *testing.T) {
 func Test_config_Mounts(t *testing.T) {
 	fsutil.FS = fsutil.FakeFS
 	tests := []struct {
-		mounts        []string
-		isDefault     bool
-		includesCache bool
+		mounts    []string
+		isDefault bool
 	}{
 		{mounts: []string{"/User/user", "/tmp/another"}},
 		{mounts: []string{"/User/another", "/User/something", "/User/else"}},
 		{mounts: []string{}, isDefault: true},
 		{mounts: nil},
-		{mounts: []string{util.HomeDir()}, includesCache: true},
+		{mounts: []string{util.HomeDir()}},
 	}
 	for i, tt := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
@@ -79,8 +78,6 @@ func Test_config_Mounts(t *testing.T) {
 			expectedLocations := tt.mounts
 			if tt.isDefault {
 				expectedLocations = []string{"~"}
-			} else if !tt.includesCache {
-				expectedLocations = append([]string{config.CacheDir()}, tt.mounts...)
 			}
 
 			sameMounts := func(expectedLocations []string, mounts []limaconfig.Mount) bool {

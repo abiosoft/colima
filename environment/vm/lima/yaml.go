@@ -388,9 +388,6 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 			return
 		}
 
-		l.Mounts = append(l.Mounts, limaconfig.Mount{Location: config.CacheDir(), Writable: false})
-		cacheOverlapFound := false
-
 		for _, m := range conf.Mounts {
 			var location, mountPoint string
 			location, err = util.CleanPath(m.Location)
@@ -405,12 +402,6 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 			mount := limaconfig.Mount{Location: location, MountPoint: mountPoint, Writable: m.Writable}
 
 			l.Mounts = append(l.Mounts, mount)
-
-			// check if cache directory has been mounted by other mounts, and remove cache directory from mounts
-			if strings.HasPrefix(config.CacheDir(), location) && !cacheOverlapFound {
-				l.Mounts = l.Mounts[1:]
-				cacheOverlapFound = true
-			}
 		}
 	}
 

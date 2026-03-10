@@ -54,13 +54,13 @@ func init() {
 
 // DownloadToGuest downloads file at url and saves it in the destination.
 //
-// In the implementation, the file is downloaded (and cached) on the host, but copied to the desired
-// destination for the guest.
+// In the implementation, the file is downloaded (and cached) on the host,
+// then copied to the guest using limactl copy.
 // filename must be an absolute path and a directory on the guest that does not require root access.
 func DownloadToGuest(host hostActions, guest guestActions, r Request, filename string) error {
 	// if file is on the filesystem, no need for download. A copy suffices
 	if strings.HasPrefix(r.URL, "/") {
-		return guest.RunQuiet("cp", r.URL, filename)
+		return CopyToGuest(host, r.URL, filename)
 	}
 
 	cacheFile, err := Download(host, r)
@@ -68,7 +68,13 @@ func DownloadToGuest(host hostActions, guest guestActions, r Request, filename s
 		return err
 	}
 
-	return guest.RunQuiet("cp", cacheFile, filename)
+	return CopyToGuest(host, cacheFile, filename)
+}
+
+// CopyToGuest copies a file or directory from the host to the guest VM using limactl copy.
+func CopyToGuest(host hostActions, src, dest string) error {
+	instanceName := config.CurrentProfile().ID
+	return host.RunQuiet("limactl", "copy", "-r", src, instanceName+":"+dest)
 }
 
 // Download downloads file at url and returns the location of the downloaded file.

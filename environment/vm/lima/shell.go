@@ -20,7 +20,11 @@ func (l limaVM) Run(args ...string) error {
 }
 
 func (l limaVM) SSH(workingDir string, args ...string) error {
-	args = append([]string{limactl, "shell", "--workdir", workingDir, config.CurrentProfile().ID}, args...)
+	if workingDir == "" {
+		args = append([]string{limactl, "shell", config.CurrentProfile().ID}, args...)
+	} else {
+		args = append([]string{limactl, "shell", "--workdir", workingDir, config.CurrentProfile().ID}, args...)
+	}
 
 	a := l.Init(context.Background())
 

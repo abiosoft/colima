@@ -119,13 +119,15 @@ func (p Provision) IsColimaMode() bool {
 }
 
 func (c Config) MountsOrDefault() []Mount {
-	if len(c.Mounts) > 0 {
-		return c.Mounts
+	// explicit empty list means mount home directory (matches yaml.go)
+	if c.Mounts != nil && len(c.Mounts) == 0 {
+		return []Mount{
+			{Location: util.HomeDir(), Writable: true},
+		}
 	}
 
-	return []Mount{
-		{Location: util.HomeDir(), Writable: true},
-	}
+	// nil means no mounts, non-empty means user-specified mounts
+	return c.Mounts
 }
 
 // AutoActivate returns if auto-activation of host client config is enabled.

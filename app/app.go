@@ -339,12 +339,7 @@ func (c colimaApp) SSH(args ...string) error {
 		// the errors returned here is not critical and thereby silenced.
 		// the goal is to prevent unnecessary warning message from Lima.
 		log.Trace(fmt.Errorf("error checking if PWD is mounted: %w", err))
-
-		// fallback to the user's homedir
-		username, err := c.guest.User()
-		if err == nil {
-			workDir = "/home/" + username + ".linux"
-		}
+		workDir = ""
 	}
 
 	guest := lima.New(host.New())
