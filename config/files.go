@@ -100,8 +100,11 @@ var (
 
 	cacheDir = requiredDir{
 		dir: func() (string, error) {
-			dir := os.Getenv("XDG_CACHE_HOME")
-			if dir != "" {
+			if dir := os.Getenv("COLIMA_CACHE_HOME"); dir != "" {
+				return dir, nil
+			}
+
+			if dir := os.Getenv("XDG_CACHE_HOME"); dir != "" {
 				return filepath.Join(dir, "colima"), nil
 			}
 			// else
