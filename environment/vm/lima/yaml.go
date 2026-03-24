@@ -15,6 +15,7 @@ import (
 	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/environment/container/docker"
 	"github.com/abiosoft/colima/environment/container/incus"
+	"github.com/abiosoft/colima/environment/container/podman"
 	"github.com/abiosoft/colima/environment/vm/lima/limaconfig"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 	"github.com/abiosoft/colima/util"
@@ -115,6 +116,14 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 			l.Provision = append(l.Provision, limaconfig.Provision{
 				Mode:   limaconfig.ProvisionModeDependency,
 				Script: "groupadd -f incus-admin && usermod -aG incus-admin {{ .User }}",
+			})
+		}
+
+		// add user to podman group
+		if conf.Runtime == podman.Name {
+			l.Provision = append(l.Provision, limaconfig.Provision{
+				Mode:   limaconfig.ProvisionModeDependency,
+				Script: "groupadd -f podman && usermod -aG podman {{ .User }}",
 			})
 		}
 
@@ -271,6 +280,16 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 				limaconfig.PortForward{
 					GuestSocket: "/var/lib/incus/unix.socket",
 					HostSocket:  incus.HostSocketFile(),
+					Proto:       limaconfig.TCP,
+				})
+		}
+
+		// podman socket
+		if conf.Runtime == podman.Name {
+			l.PortForwards = append(l.PortForwards,
+				limaconfig.PortForward{
+					GuestSocket: "/run/podman/podman.sock",
+					HostSocket:  podman.HostSocketFile(),
 					Proto:       limaconfig.TCP,
 				})
 		}
