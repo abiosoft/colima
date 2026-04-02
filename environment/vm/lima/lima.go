@@ -163,6 +163,16 @@ func (l *limaVM) resume(ctx context.Context, conf config.Config) error {
 	a.Add(l.setDiskImage)
 
 	a.Add(func() error {
+		if conf.DiskImage != "" && conf.ForceDiskImage != nil && *conf.ForceDiskImage {
+			for i := range l.limaConf.Images {
+				l.limaConf.Images[i].Location = conf.DiskImage
+				l.limaConf.Images[i].Digest = ""
+			}
+		}
+		return nil
+	})
+
+	a.Add(func() error {
 		err := yamlutil.WriteYAML(l.limaConf, config.CurrentProfile().LimaFile())
 		return err
 	})

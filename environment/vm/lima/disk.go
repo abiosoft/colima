@@ -158,7 +158,12 @@ func (l *limaVM) downloadDiskImage(ctx context.Context, conf config.Config) erro
 
 		sha := downloader.SHA{Size: 512, Digest: image.Digest}
 		if err := sha.ValidateFile(l.host, conf.DiskImage); err != nil {
-			return fmt.Errorf("disk image must be downloaded from '%s', hash failure: %w", image.Location, err)
+			if conf.ForceDiskImage != nil && *conf.ForceDiskImage {
+				log.Warnln("unable to validate disk image, but continuing as requested...")
+				image.Digest = "" // clear so lima does not re-validate
+			} else {
+				return fmt.Errorf("disk image must be downloaded from '%s', hash failure: %w", image.Location, err)
+			}
 		}
 
 		image.Location = conf.DiskImage
