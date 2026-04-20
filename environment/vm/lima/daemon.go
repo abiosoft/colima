@@ -14,8 +14,8 @@ import (
 )
 
 func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.Context, error) {
-	// vmnet is used by QEMU or bridged mode
-	useVmnet := conf.VMType == limaconfig.QEMU || conf.Network.Mode == "bridged"
+	// vmnet is used by QEMU, Krunkit, or bridged mode
+	useVmnet := conf.VMType == limaconfig.QEMU || conf.VMType == limaconfig.Krunkit || conf.Network.Mode == "bridged"
 
 	// network daemon is only needed for vmnet
 	conf.Network.Address = conf.Network.Address && useVmnet
