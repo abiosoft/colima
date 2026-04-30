@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -91,8 +92,13 @@ func limaInstances(ids ...string) ([]InstanceInfo, error) {
 	cmd.Stdout = &buf
 
 	if err := cmd.Run(); err != nil {
-		// limactl not available — not an error for native-only setups
-		return nil, nil
+		// Only suppress "executable not found" errors.
+		// Real limactl errors (e.g. daemon issues) should still propagate
+		// so users running VM-mode on Linux don't get silent failures.
+		if errors.Is(err, exec.ErrNotFound) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("error retrieving instances: %w", err)
 	}
 
 	var instances []InstanceInfo
