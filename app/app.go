@@ -21,6 +21,7 @@ import (
 	"github.com/abiosoft/colima/environment/host"
 	"github.com/abiosoft/colima/environment/vm/lima"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
+	"github.com/abiosoft/colima/environment/vm/native"
 	"github.com/abiosoft/colima/store"
 	"github.com/abiosoft/colima/util"
 	"github.com/docker/go-units"
@@ -42,11 +43,32 @@ type App interface {
 
 var _ App = (*colimaApp)(nil)
 
-// New creates a new app.
+// New creates a new app using the saved instance's VM type.
 func New() (App, error) {
-	guest := lima.New(host.New())
-	if err := host.IsInstalled(guest); err != nil {
-		return nil, fmt.Errorf("dependency check failed for VM: %w", err)
+	return NewWithVMType("")
+}
+
+// NewWithVMType creates a new app with the specified VM type.
+// If vmType is empty, it loads from saved instance state or uses the default.
+func NewWithVMType(vmType string) (App, error) {
+	h := host.New()
+
+	if vmType == "" {
+		if conf, err := configmanager.LoadInstance(); err == nil && conf.VMType != "" {
+			vmType = conf.VMType
+		} else {
+			vmType = environment.DefaultVMType()
+		}
+	}
+
+	var guest environment.VM
+	if vmType == "native" && util.Linux() {
+		guest = native.New(h)
+	} else {
+		guest = lima.New(h)
+		if err := host.IsInstalled(guest); err != nil {
+			return nil, fmt.Errorf("dependency check failed for VM: %w", err)
+		}
 	}
 
 	return &colimaApp{
@@ -281,9 +303,12 @@ func (c colimaApp) Delete(data, force bool) error {
 
 	// delete runtime disk if disk in use and data deletion is requested
 	if diskInUse && data {
-		log.Println("deleting container data")
-		if err := limautil.DeleteDisk(); err != nil {
-			return fmt.Errorf("error deleting container data: %w", err)
+		conf, _ := configmanager.LoadInstance()
+		if conf.VMType != "native" {
+			log.Println("deleting container data")
+			if err := limautil.DeleteDisk(); err != nil {
+				return fmt.Errorf("error deleting container data: %w", err)
+			}
 		}
 
 		if err := store.Reset(); err != nil {
@@ -342,8 +367,7 @@ func (c colimaApp) SSH(args ...string) error {
 		workDir = ""
 	}
 
-	guest := lima.New(host.New())
-	return guest.SSH(workDir, args...)
+	return c.guest.SSH(workDir, args...)
 }
 
 type statusInfo struct {
@@ -383,28 +407,48 @@ func (c colimaApp) getStatus() (status statusInfo, err error) {
 	status.Arch = string(c.guest.Arch())
 	status.Runtime = currentRuntime
 	status.MountType = conf.MountType
-	ipAddress := limautil.IPAddress(config.CurrentProfile().ID)
-	if ipAddress != "127.0.0.1" {
-		status.IPAddress = ipAddress
+	if conf.VMType == "native" {
+		status.IPAddress = native.HostIPAddress()
+		cpu, mem, disk := native.HostResources()
+		status.CPU = cpu
+		status.Memory = mem
+		status.Disk = disk
+	} else {
+		ipAddress := limautil.IPAddress(config.CurrentProfile().ID)
+		if ipAddress != "127.0.0.1" {
+			status.IPAddress = ipAddress
+		}
+		if inst, err := limautil.Instance(); err == nil {
+			status.CPU = inst.CPU
+			status.Memory = inst.Memory
+			status.Disk = inst.Disk
+		}
 	}
 	if currentRuntime == docker.Name {
-		status.DockerSocket = "unix://" + docker.HostSocketFile()
-		status.ContainerdSocket = "unix://" + containerd.HostSocketFiles().Containerd
+		if conf.VMType == "native" {
+			status.DockerSocket = "unix:///var/run/docker.sock"
+		} else {
+			status.DockerSocket = "unix://" + docker.HostSocketFile()
+			status.ContainerdSocket = "unix://" + containerd.HostSocketFiles().Containerd
+		}
 	}
 	if currentRuntime == containerd.Name {
-		status.ContainerdSocket = "unix://" + containerd.HostSocketFiles().Containerd
-		status.BuildkitdSocket = "unix://" + containerd.HostSocketFiles().Buildkitd
+		if conf.VMType == "native" {
+			status.ContainerdSocket = "unix:///run/containerd/containerd.sock"
+		} else {
+			status.ContainerdSocket = "unix://" + containerd.HostSocketFiles().Containerd
+			status.BuildkitdSocket = "unix://" + containerd.HostSocketFiles().Buildkitd
+		}
 	}
 	if currentRuntime == incus.Name {
-		status.IncusSocket = "unix://" + incus.HostSocketFile()
+		if conf.VMType == "native" {
+			status.IncusSocket = "unix:///var/lib/incus/unix.socket"
+		} else {
+			status.IncusSocket = "unix://" + incus.HostSocketFile()
+		}
 	}
 	if k, err := c.Kubernetes(); err == nil && k.Running(ctx) {
 		status.Kubernetes = true
-	}
-	if inst, err := limautil.Instance(); err == nil {
-		status.CPU = inst.CPU
-		status.Memory = inst.Memory
-		status.Disk = inst.Disk
 	}
 	return status, nil
 }
@@ -625,6 +669,11 @@ func (c *colimaApp) Update() error {
 }
 
 func generateSSHConfig(modifySSHConfig bool) error {
+	// Skip SSH config generation for native mode (no VM to SSH into)
+	if conf, err := configmanager.LoadInstance(); err == nil && conf.VMType == "native" {
+		return nil
+	}
+
 	instances, err := limautil.Instances()
 	if err != nil {
 		return fmt.Errorf("error retrieving instances: %w", err)

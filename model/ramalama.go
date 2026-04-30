@@ -7,8 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/abiosoft/colima/environment/host"
-	"github.com/abiosoft/colima/environment/vm/lima"
 	"github.com/abiosoft/colima/store"
 	log "github.com/sirupsen/logrus"
 )
@@ -24,7 +22,7 @@ func SetupOrUpdateRamalama() error {
 // GetRamalamaVersion returns the currently installed ramalama version in the VM.
 // Returns empty string if ramalama is not installed or version cannot be determined.
 func GetRamalamaVersion() string {
-	guest := lima.New(host.New())
+	guest := newGuest()
 	output, err := guest.RunOutput("sh", "-c", `export PATH="$HOME/.local/bin:$PATH"; ramalama version 2>/dev/null`)
 	if err != nil {
 		return ""
@@ -71,7 +69,7 @@ type ramalamaModel struct {
 
 // listRamalamaModels returns all locally available ramalama models.
 func listRamalamaModels() ([]ramalamaModel, error) {
-	guest := lima.New(host.New())
+	guest := newGuest()
 	output, err := guest.RunOutput("sh", "-c", `export PATH="$HOME/.local/bin:$PATH"; ramalama ls --json 2>/dev/null`)
 	if err != nil {
 		return nil, fmt.Errorf("error listing models: %w", err)
@@ -131,7 +129,7 @@ func EnsureRamalamaModel(modelName string) error {
 	}
 
 	// Model not found locally, pull it
-	guest := lima.New(host.New())
+	guest := newGuest()
 	shellCmd := fmt.Sprintf(
 		`export RAMALAMA_CONTAINER_ENGINE=docker PATH="$HOME/.local/bin:$PATH"; ramalama pull %s`,
 		modelName,
@@ -146,7 +144,7 @@ func EnsureRamalamaModel(modelName string) error {
 
 // ProvisionRamalama installs ramalama and its dependencies in the VM.
 func ProvisionRamalama() error {
-	guest := lima.New(host.New())
+	guest := newGuest()
 
 	script := `set -e
 export PATH="$HOME/.local/bin:$PATH"
