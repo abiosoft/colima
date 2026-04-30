@@ -86,6 +86,12 @@ func (n nativeVM) Teardown(ctx context.Context) error {
 	// Clean up the native config file
 	configFile := n.configFilePath()
 	_ = n.host.RunQuiet("rm", "-f", configFile)
+
+	// Clean up the state directory (contains colima.yaml)
+	// This ensures 'colima list' won't show deleted native instances.
+	stateDir := config.CurrentProfile().LimaInstanceDir()
+	_ = n.host.RunQuiet("rm", "-rf", stateDir)
+
 	return nil
 }
 
