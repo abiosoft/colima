@@ -551,6 +551,12 @@ func (c colimaApp) currentRuntime(ctx context.Context) (string, error) {
 
 	r := c.guest.Get(environment.ContainerRuntimeKey)
 	if r == "" {
+		// Fallback: read runtime from persisted config (needed for native mode
+		// where the Lima store mechanism is not available)
+		conf, err := configmanager.LoadInstance()
+		if err == nil && conf.Runtime != "" {
+			return conf.Runtime, nil
+		}
 		return "", fmt.Errorf("error retrieving current runtime: empty value")
 	}
 
