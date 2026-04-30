@@ -142,6 +142,9 @@ func (c Config) AutoActivate() bool {
 func (c Config) Empty() bool { return c.Runtime == "" } // this may be better but not really needed.
 
 func (c Config) DriverLabel() string {
+	if c.VMType == "native" {
+		return "Native"
+	}
 	if util.MacOS13OrNewer() && c.VMType == "vz" {
 		return "macOS Virtualization.Framework"
 	} else if util.MacOS13OrNewerOnArm() && c.VMType == "krunkit" {

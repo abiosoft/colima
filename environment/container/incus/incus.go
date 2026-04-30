@@ -11,6 +11,7 @@ import (
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/config/configmanager"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/guest/systemctl"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
@@ -81,7 +82,8 @@ func (c *incusRuntime) Provision(ctx context.Context) error {
 
 	emptyDisk := true
 	recoverStorage := false
-	if limautil.DiskProvisioned(Name) {
+	instConf, _ := configmanager.LoadInstance()
+	if instConf.VMType != "native" && limautil.DiskProvisioned(Name) {
 		emptyDisk = false
 		// previous disk exists
 		// ignore storage, recovery would be attempted later
@@ -432,7 +434,12 @@ func (c *incusRuntime) wipeDisk(size int) error {
 // (separate incus-disks and incus-backups subdirectories) to the new layout
 // (full /var/lib/incus directory).
 func migrationScript() string {
-	mountPoint := limautil.MountPoint()
+	var mountPoint string
+	if conf, err := configmanager.LoadInstance(); err == nil && conf.VMType == "native" {
+		mountPoint = "/var/lib/colima"
+	} else {
+		mountPoint = limautil.MountPoint()
+	}
 	return `MOUNT_POINT="` + mountPoint + `"
 if [ -d "$MOUNT_POINT/incus-disks" ] && [ ! -d "$MOUNT_POINT/incus" ]; then
   mkdir -p "$MOUNT_POINT/incus"

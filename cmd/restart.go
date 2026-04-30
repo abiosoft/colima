@@ -23,9 +23,12 @@ The state of the VM is persisted at stop. A start afterwards
 should return it back to its previous state.`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// validate if the instance was previously created
-		if _, err := limautil.Instance(); err != nil {
-			return err
+		// validate if the instance was previously created (skip for native mode)
+		conf, _ := configmanager.LoadInstance()
+		if conf.VMType != "native" {
+			if _, err := limautil.Instance(); err != nil {
+				return err
+			}
 		}
 
 		app := newApp()
