@@ -9,13 +9,20 @@ import (
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/config/configmanager"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
+	"github.com/abiosoft/colima/environment/vm/native"
 )
 
 const masterAddressKey = "master_address"
 
 func (c kubernetesRuntime) provisionKubeconfig(ctx context.Context) error {
-	ip := limautil.IPAddress(config.CurrentProfile().ID)
+	var ip string
+	if conf, err := configmanager.LoadInstance(); err == nil && conf.VMType == "native" {
+		ip = native.HostIPAddress()
+	} else {
+		ip = limautil.IPAddress(config.CurrentProfile().ID)
+	}
 	if ip == c.guest.Get(masterAddressKey) {
 		return nil
 	}
