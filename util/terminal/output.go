@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -20,14 +21,16 @@ type verboseWriter struct {
 	buf   bytes.Buffer
 	lines []string
 
-	lineHeight int
-	termWidth  int
-	overflow   int
+	lineHeight   int
+	termWidth    int
+	screenHeight int
 
 	lastUpdate time.Time
 
 	sync.Mutex
 }
+
+var ansiControlSequence = regexp.MustCompile(`\x1b\[[0-?]*[ -/]*[@-~]`)
 
 // NewVerboseWriter creates a new verbose writer.
 // A verbose writer pipes the input received to the stdout while tailing the specified lines.
@@ -109,6 +112,8 @@ func (v *verboseWriter) sanitizeLine(line string) string {
 		}
 	}
 
+	line = normalizeDisplayText(line)
+
 	return "> " + line
 }
 
@@ -117,15 +122,10 @@ func (v *verboseWriter) printScreen() error {
 		return err
 	}
 
-	v.overflow = 0
+	v.screenHeight = 0
 	for _, line := range v.lines {
 		line = v.sanitizeLine(line)
-		if len(line) > v.termWidth {
-			v.overflow += len(line) / v.termWidth
-			if len(line)%v.termWidth == 0 {
-				v.overflow -= 1
-			}
-		}
+		v.screenHeight += countDisplayLines(line, v.termWidth)
 		line = color.HiBlackString(line)
 		fmt.Println(line)
 	}
@@ -133,9 +133,10 @@ func (v *verboseWriter) printScreen() error {
 }
 
 func (v *verboseWriter) clearScreen() {
-	for i := 0; i < len(v.lines)+v.overflow; i++ {
+	for i := 0; i < v.screenHeight; i++ {
 		ClearLine()
 	}
+	v.screenHeight = 0
 }
 
 func (v *verboseWriter) updateTerm() error {
@@ -159,4 +160,30 @@ func (v *verboseWriter) updateTerm() error {
 	v.termWidth = w
 
 	return nil
+}
+
+func countDisplayLines(line string, termWidth int) int {
+	if termWidth <= 0 {
+		termWidth = 80
+	}
+
+	visibleWidth := len([]rune(normalizeDisplayText(line)))
+	if visibleWidth == 0 {
+		return 1
+	}
+
+	return ((visibleWidth - 1) / termWidth) + 1
+}
+
+func normalizeDisplayText(line string) string {
+	line = ansiControlSequence.ReplaceAllString(line, "")
+	line = strings.ReplaceAll(line, "\r", "")
+	line = strings.ReplaceAll(line, "\n", "")
+	line = strings.Map(func(r rune) rune {
+		if r < 32 && r != '\t' {
+			return -1
+		}
+		return r
+	}, line)
+	return line
 }
