@@ -1,0 +1,82 @@
+on:
+  workflow_call:
+    inputs:
+      runner:
+        required: true
+        type: string
+      kvm:
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Enable KVM
+        if: ${{ inputs.kvm }}
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Set up Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version: "1.26.1"
+
+      - name: Install Homebrew
+        if: ${{ inputs.kvm }}
+        run: |
+          NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          echo "/home/linuxbrew/.linuxbrew/bin" >> $GITHUB_PATH
+
+      - name: Install CLI deps
+        run: brew install ${{ inputs.kvm && 'qemu ' || '' }}kubectl docker coreutils lima incus
+
+      - name: Build and Install
+        run: make && sudo make install
+
+      - name: Start Colima
+        run: colima start --runtime incus
+
+      - name: Delay
+        run: sleep 10
+
+      - name: Validate Incus
+        run: incus version && incus list
+
+      - name: Launch Instance
+        run: incus launch images:alpine/edge test-instance
+
+      - name: Delay for instance
+        run: sleep 5
+
+      - name: Validate Instance
+        run: incus exec test-instance -- cat /etc/os-release
+
+      - name: Validate DNS
+        run: colima ssh -- sh -c "sudo apt-get update -y -qq && sudo apt-get install -qq dnsutils && nslookup host.docker.internal"
+
+      - name: Stop
+        run: colima stop
+
+      - name: Temp Delete
+        run: colima delete -f
+
+      - name: Restart
+        run: colima start --runtime incus
+
+      - name: Delay for restart
+        run: sleep 10
+
+      - name: Assert instance restored
+        run: incus exec test-instance -- cat /etc/os-release
+
+      - name: Teardown
+        run: colima delete --data -f

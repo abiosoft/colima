@@ -1,0 +1,51 @@
+name: Integration (Linux)
+
+on:
+  push:
+    tags: ["v*"]
+    branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "**/*.nix"
+      - "**/*.lock"
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "**/*.nix"
+      - "**/*.lock"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  kubernetes-docker:
+    uses: ./.github/workflows/_kubernetes-docker.yml
+    with:
+      runner: ubuntu-24.04
+      kvm: true
+
+  kubernetes-containerd:
+    uses: ./.github/workflows/_kubernetes-containerd.yml
+    with:
+      runner: ubuntu-24.04
+      kvm: true
+
+  docker:
+    uses: ./.github/workflows/_docker.yml
+    with:
+      runner: ubuntu-24.04
+      kvm: true
+
+  containerd:
+    uses: ./.github/workflows/_containerd.yml
+    with:
+      runner: ubuntu-24.04
+      kvm: true
+
+  incus:
+    uses: ./.github/workflows/_incus.yml
+    with:
+      runner: ubuntu-24.04
+      kvm: true
