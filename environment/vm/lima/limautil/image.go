@@ -74,8 +74,8 @@ func DownloadImage(arch environment.Arch, runtime string) (f limaconfig.File, er
 
 	diskImage := diskImageFile(qcow2)
 
-	// if qemu-img is missing, ignore raw conversion
-	if err := util.AssertQemuImg(); err != nil {
+	// if qemu-img is missing or the image is zstd, ignore raw conversion
+	if err := util.AssertQemuImg(); err != nil || img.Compressed() {
 		img.Location = diskImage.String()
 		img.Digest = "" // remove digest
 		return img, nil

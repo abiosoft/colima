@@ -2,6 +2,7 @@ package limaconfig
 
 import (
 	"net"
+	"strings"
 
 	"github.com/abiosoft/colima/environment"
 )
@@ -37,6 +38,9 @@ type File struct {
 	Arch     Arch   `yaml:"arch,omitempty"`
 	Digest   string `yaml:"digest,omitempty"`
 }
+
+// Compressed returns if the file is gzipped, detected with the .gz suffix.
+func (f File) Compressed() bool { return strings.HasSuffix(f.Location, ".gz") }
 
 type Mount struct {
 	Location   string `yaml:"location"` // REQUIRED
