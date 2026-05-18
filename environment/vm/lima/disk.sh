@@ -10,20 +10,23 @@
 DISK_LABEL="lima-{{ .InstanceId }}"
 MOUNT_POINT="/mnt/${DISK_LABEL}"
 
-# Directory already mounted, skip setup
-if [ -d "$MOUNT_POINT" ]; then
-    if [ -n "$(find "$DIR" -mindepth 1 -print -quit 2>/dev/null)" ]; then
-        echo "Disk already mounted, skipping setup."
-        exit 0
-    fi
-fi
-
 # Detect the disk to use e.g. /dev/vdb or /dev/vdc
 DISK="/dev/vdb"
 if df -h /mnt/lima-cidata/ | tail -n +2 | grep '^/dev/vdb'; then
-    DISK="/dev/vdc"
+	DISK="/dev/vdc"
 fi
 DISK_PART="${DISK}1"
+
+# Check current mount state before touching the disk.
+if findmnt --noheadings --source "$DISK_PART" --target "$MOUNT_POINT" >/dev/null 2>&1; then
+	echo "Disk already mounted, skipping setup."
+	exit 0
+fi
+
+if findmnt --noheadings --target "$MOUNT_POINT" >/dev/null 2>&1; then
+	echo "Unexpected disk at mount point."
+	exit 1
+fi
 
 {{ if .Format }}
 echo 'type=83' | sudo sfdisk "$DISK"
@@ -34,4 +37,3 @@ e2label "$DISK_PART" "$DISK_LABEL"
 # mount disk
 mkdir -p "$MOUNT_POINT"
 mount "$DISK_PART" "$MOUNT_POINT"
-
