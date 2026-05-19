@@ -51,7 +51,7 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 		"  colima start --kubernetes --k3s-arg='\"--disable=coredns,servicelb,traefik,local-storage,metrics-server\"'",
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		app := newApp()
+		app := newAppWithVMType(startCmdArgs.VMType)
 		conf := startCmdArgs.Config
 
 		if !startCmdArgs.Flags.Edit {
@@ -87,9 +87,11 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 		return start(app, conf)
 	},
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		// validate Lima version
-		if err := core.LimaVersionSupported(); err != nil {
-			return fmt.Errorf("lima compatibility error: %w", err)
+		// validate Lima version (not needed for native mode)
+		if startCmdArgs.VMType != "native" {
+			if err := core.LimaVersionSupported(); err != nil {
+				return fmt.Errorf("lima compatibility error: %w", err)
+			}
 		}
 
 		// combine args and current config file(if any)
@@ -173,6 +175,9 @@ func init() {
 	if util.MacOS13OrNewerOnArm() {
 		vmTypes = append(vmTypes, "krunkit")
 	}
+	if util.Linux() {
+		vmTypes = append(vmTypes, "native")
+	}
 	types := strings.Join(vmTypes, ", ")
 
 	saveConfigDefault := true
@@ -227,6 +232,11 @@ func init() {
 		if util.MacOSNestedVirtualizationSupported() {
 			startCmd.Flags().BoolVarP(&startCmdArgs.NestedVirtualization, "nested-virtualization", "z", false, "enable nested virtualization")
 		}
+	}
+
+	// vm type on Linux
+	if util.Linux() {
+		startCmd.Flags().StringVarP(&startCmdArgs.VMType, "vm-type", "t", defaultVMType, "virtual machine type ("+types+")")
 	}
 
 	// Gateway Address

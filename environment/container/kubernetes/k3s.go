@@ -8,10 +8,12 @@ import (
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/config/configmanager"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/environment/container/docker"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
+	"github.com/abiosoft/colima/environment/vm/native"
 	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/downloader"
 	"github.com/sirupsen/logrus"
@@ -160,7 +162,15 @@ func installK3sCluster(
 	}, k3sArgs...)
 
 	a.Retry("waiting for VM IP address", time.Second*5, 4, func(retryCount int) error {
-		ipAddress := limautil.IPAddress(config.CurrentProfile().ID)
+		var ipAddress string
+		var netInterface string
+		if conf, err := configmanager.LoadInstance(); err == nil && conf.VMType == "native" {
+			ipAddress = native.HostIPAddress()
+			netInterface = native.HostPrimaryInterface()
+		} else {
+			ipAddress = limautil.IPAddress(config.CurrentProfile().ID)
+			netInterface = limautil.NetInterface
+		}
 		if ipAddress == "" {
 			return fmt.Errorf("no IP address assigned to network interface")
 		}
@@ -172,7 +182,7 @@ func installK3sCluster(
 				args = append(args, "--advertise-address", ipAddress)
 			}
 			if !hasK3sArg(k3sArgs, "--flannel-iface") {
-				args = append(args, "--flannel-iface", limautil.NetInterface)
+				args = append(args, "--flannel-iface", netInterface)
 			}
 		}
 		return nil
