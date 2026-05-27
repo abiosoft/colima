@@ -111,8 +111,8 @@ func Instances(ids ...string) ([]InstanceInfo, error) {
 					i.IPAddress = getIPAddress(i.Name, NetInterface)
 				}
 			}
-			i.Runtime = getRuntime(conf)
 		}
+		i.Runtime = getRuntime(conf)
 
 		// rename to local friendly names
 		i.Name = config.ProfileFromName(i.Name).ShortName
