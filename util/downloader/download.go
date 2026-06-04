@@ -74,7 +74,16 @@ func DownloadToGuest(host hostActions, guest guestActions, r Request, filename s
 // CopyToGuest copies a file or directory from the host to the guest VM using limactl copy.
 func CopyToGuest(host hostActions, src, dest string) error {
 	instanceName := config.CurrentProfile().ID
-	return host.RunQuiet("limactl", "copy", "-r", src, instanceName+":"+dest)
+	args := []string{"limactl", "copy"}
+
+	if stat, err := host.Stat(src); err != nil {
+		return err
+	} else if stat.IsDir() {
+		args = append(args, "-r")
+	}
+
+	args = append(args, src, instanceName+":"+dest)
+	return host.RunQuiet(args...)
 }
 
 // Download downloads file at url and returns the location of the downloaded file.
