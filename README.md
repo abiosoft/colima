@@ -3,7 +3,8 @@
 ## Colima - container runtimes on macOS (and Linux) with minimal setup.
 
 [![Go](https://github.com/abiosoft/colima/actions/workflows/go.yml/badge.svg)](https://github.com/abiosoft/colima/actions/workflows/go.yml)
-[![Integration](https://github.com/abiosoft/colima/actions/workflows/integration.yml/badge.svg)](https://github.com/abiosoft/colima/actions/workflows/integration.yml)
+[![Integration](https://github.com/abiosoft/colima/actions/workflows/linux-integration.yml/badge.svg)](https://github.com/abiosoft/colima/actions/workflows/linux-integration.yml)
+[![Integration](https://github.com/abiosoft/colima/actions/workflows/macos-integration.yml/badge.svg)](https://github.com/abiosoft/colima/actions/workflows/macos-integration.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/abiosoft/colima)](https://goreportcard.com/report/github.com/abiosoft/colima)
 
 ![Demonstration](colima.gif)
