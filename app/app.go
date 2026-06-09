@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
@@ -182,8 +183,8 @@ func (c colimaApp) Stop(force bool) error {
 	// the order for stop is:
 	//   container stop -> vm stop
 
-	// stop container runtimes
-	if c.guest.Running(ctx) {
+	// stop container runtimes only if the guest is responsive
+	if c.guest.Running(ctx) && c.guestResponsive() {
 		containers, err := c.currentContainerEnvironments(ctx)
 		if err != nil {
 			log.Warnln(fmt.Errorf("error retrieving runtimes: %w", err))
@@ -203,6 +204,8 @@ func (c colimaApp) Stop(force bool) error {
 				log.Warnln(fmt.Errorf("error stopping %s: %w", cont.Name(), err))
 			}
 		}
+	} else if c.guest.Running(ctx) {
+		log.Warnln("vm not responsive, skipping runtime shutdown")
 	}
 
 	// stop vm
@@ -622,6 +625,25 @@ func (c *colimaApp) Update() error {
 	}
 
 	return nil
+}
+
+// guestResponsive checks if the guest VM is responsive.
+func (c colimaApp) guestResponsive() bool {
+	done := make(chan bool, 1)
+	timeout := time.After(5 * time.Second)
+
+	go func() {
+		err := c.guest.RunQuiet("true")
+		done <- err == nil
+	}()
+
+	select {
+	case responsive := <-done:
+		return responsive
+	case <-timeout:
+		log.Debugln("vm not responsive: check timed out after 5 seconds")
+		return false
+	}
 }
 
 func generateSSHConfig(modifySSHConfig bool) error {
