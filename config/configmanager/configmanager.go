@@ -44,6 +44,20 @@ func LoadFrom(file string) (config.Config, error) {
 		return c, fmt.Errorf("could not load config from file: %w", err)
 	}
 
+	// yaml.Unmarshal collapses both an absent `mounts` key and an explicit
+	// `mounts: null` into a nil slice, but they mean different things: an absent
+	// key falls back to the documented default (mount $HOME, i.e. an empty list),
+	// whereas an explicit null disables mounts. Restore the default for the
+	// absent case by inspecting the raw document for the key's presence.
+	if c.Mounts == nil {
+		var raw map[string]yaml.Node
+		if yaml.Unmarshal(b, &raw) == nil {
+			if _, present := raw["mounts"]; !present {
+				c.Mounts = []config.Mount{}
+			}
+		}
+	}
+
 	return c, nil
 }
 
