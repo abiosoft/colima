@@ -7,8 +7,6 @@ import (
 	"time"
 
 	"github.com/abiosoft/colima/environment"
-	"github.com/abiosoft/colima/environment/host"
-	"github.com/abiosoft/colima/environment/vm/lima"
 	"github.com/abiosoft/colima/util/terminal"
 	log "github.com/sirupsen/logrus"
 )
@@ -96,7 +94,7 @@ func findGGUFPath(guest environment.VM, modelHash string) (string, error) {
 
 // InspectDockerModel returns information about a Docker model.
 func InspectDockerModel(modelName string) (*DockerModelInfo, error) {
-	guest := lima.New(host.New())
+	guest := newGuest()
 	output, err := guest.RunOutput("docker", "model", "inspect", modelName)
 	if err != nil {
 		return nil, fmt.Errorf("error inspecting model %q: %w", modelName, err)
@@ -112,7 +110,7 @@ func InspectDockerModel(modelName string) (*DockerModelInfo, error) {
 
 // SetupOrUpdateDocker reinstalls Docker Model Runner in the VM.
 func SetupOrUpdateDocker() error {
-	guest := lima.New(host.New())
+	guest := newGuest()
 
 	log.Println("reinstalling Docker Model Runner...")
 
@@ -135,7 +133,7 @@ func SetupOrUpdateDocker() error {
 // GetDockerModelVersion returns the Docker Model Runner version in the VM.
 // Returns empty string if version cannot be determined.
 func GetDockerModelVersion() string {
-	guest := lima.New(host.New())
+	guest := newGuest()
 	output, err := guest.RunOutput("docker", "model", "version")
 	if err != nil {
 		return ""
@@ -146,7 +144,7 @@ func GetDockerModelVersion() string {
 // EnsureDockerModel ensures a Docker model is available, pulling if necessary.
 // Returns the normalized model name (resolving aliases like hf.co → huggingface.co).
 func EnsureDockerModel(modelName string) (string, error) {
-	guest := lima.New(host.New())
+	guest := newGuest()
 
 	// Try to inspect the model first
 	modelInfo, err := InspectDockerModel(modelName)
@@ -182,7 +180,7 @@ type DockerModelServeConfig struct {
 // The function blocks until interrupted (Ctrl-C) or llama-server exits.
 // Note: Call EnsureDockerModel first to ensure the model is available.
 func ServeDockerModel(cfg DockerModelServeConfig) error {
-	guest := lima.New(host.New())
+	guest := newGuest()
 
 	// Set defaults
 	if cfg.Threads <= 0 {
@@ -309,7 +307,7 @@ func stopSocat(guest environment.VM, port int) {
 
 // StopDockerModelServe stops a Docker model serve instance.
 func StopDockerModelServe(port int) error {
-	guest := lima.New(host.New())
+	guest := newGuest()
 
 	// Stop the socat proxy on the VM
 	stopCmd := fmt.Sprintf("pkill -f 'socat.*TCP-LISTEN:%d' 2>/dev/null || true", port)
@@ -326,7 +324,7 @@ func StopDockerModelServe(port int) error {
 
 // IsDockerModelServeRunning checks if a serve instance is running on the given port.
 func IsDockerModelServeRunning(port int) bool {
-	guest := lima.New(host.New())
+	guest := newGuest()
 
 	// Check if socat is running for this port
 	checkCmd := fmt.Sprintf("pgrep -f 'socat.*TCP-LISTEN:%d' > /dev/null 2>&1", port)
