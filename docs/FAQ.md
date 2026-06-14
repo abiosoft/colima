@@ -277,6 +277,12 @@ colima start --edit
 +     - https://my.quayio.mirror.something
 ```
 
+Registry mirrors can also be set directly on start with the repeatable `--registry-mirror` flag, without editing the config:
+
+```sh
+colima start --registry-mirror https://my.dockerhub.mirror.something --registry-mirror https://my.quayio.mirror.something
+```
+
 As an alternative approach to the **colima start --edit**, make the changes via the **template** command (affecting the configuration for any new instances):
 
 ```sh

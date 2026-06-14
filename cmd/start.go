@@ -150,6 +150,7 @@ var startCmdArgs struct {
 		ForceDiskImage          bool
 		Binfmt                  bool
 		DNSHosts                []string
+		RegistryMirrors         []string
 		Foreground              bool
 		SaveConfig              bool
 		LegacyCPU               int // for backward compatibility
@@ -269,6 +270,9 @@ func init() {
 	startCmd.Flags().IPSliceVarP(&startCmdArgs.Network.DNSResolvers, "dns", "n", nil, "DNS resolvers for the VM")
 	startCmd.Flags().StringSliceVar(&startCmdArgs.Flags.DNSHosts, "dns-host", nil, "custom DNS names to provide to resolver")
 
+	// docker
+	startCmd.Flags().StringSliceVar(&startCmdArgs.Flags.RegistryMirrors, "registry-mirror", nil, "registry mirrors to configure for docker, e.g. https://mirror.gcr.io")
+
 	// download options
 	startCmd.Flags().StringVar(&startCmdArgs.Flags.Downloader, "downloader", downloader.DownloaderNative, "downloader to use (native, curl)")
 }
@@ -288,6 +292,16 @@ func dnsHostsFromFlag(hosts []string) map[string]string {
 		mapping[src] = target
 	}
 	return mapping
+}
+
+// withRegistryMirrors returns the docker config with the registry-mirrors key
+// set to the provided mirrors, initializing the map if necessary.
+func withRegistryMirrors(docker map[string]any, mirrors []string) map[string]any {
+	if docker == nil {
+		docker = map[string]any{}
+	}
+	docker["registry-mirrors"] = mirrors
+	return docker
 }
 
 // mountsFromFlag converts mounts from cli flag format to config file format
@@ -461,6 +475,9 @@ func prepareConfig(cmd *cobra.Command) {
 	startCmdArgs.ActivateRuntime = &startCmdArgs.Flags.ActivateRuntime
 	startCmdArgs.Binfmt = &startCmdArgs.Flags.Binfmt
 	startCmdArgs.ForceDiskImage = &startCmdArgs.Flags.ForceDiskImage
+	if cmd.Flag("registry-mirror").Changed {
+		startCmdArgs.Docker = withRegistryMirrors(startCmdArgs.Docker, startCmdArgs.Flags.RegistryMirrors)
+	}
 
 	// handle legacy kubernetes-disable
 	for _, disable := range startCmdArgs.Flags.LegacyKubernetesDisable {
@@ -492,8 +509,11 @@ func prepareConfig(cmd *cobra.Command) {
 	// set missing defaults in the current config
 	setConfigDefaults(&current)
 
-	// docker can only be set in config file
+	// docker can only be set in config file, except registry mirrors via flag
 	startCmdArgs.Docker = current.Docker
+	if cmd.Flag("registry-mirror").Changed {
+		startCmdArgs.Docker = withRegistryMirrors(startCmdArgs.Docker, startCmdArgs.Flags.RegistryMirrors)
+	}
 	// provision scripts can only be set in config file
 	startCmdArgs.Provision = current.Provision
 

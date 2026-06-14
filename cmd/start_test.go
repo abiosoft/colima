@@ -65,3 +65,45 @@ func Test_mountsFromFlag(t *testing.T) {
 		})
 	}
 }
+
+func Test_withRegistryMirrors(t *testing.T) {
+	tests := []struct {
+		name    string
+		docker  map[string]any
+		mirrors []string
+		want    map[string]any
+	}{
+		{
+			name:    "nil map",
+			docker:  nil,
+			mirrors: []string{"https://mirror.gcr.io"},
+			want: map[string]any{
+				"registry-mirrors": []string{"https://mirror.gcr.io"},
+			},
+		},
+		{
+			name:    "existing keys preserved",
+			docker:  map[string]any{"insecure-registries": []string{"host.docker.internal:5000"}},
+			mirrors: []string{"https://mirror.gcr.io"},
+			want: map[string]any{
+				"insecure-registries": []string{"host.docker.internal:5000"},
+				"registry-mirrors":    []string{"https://mirror.gcr.io"},
+			},
+		},
+		{
+			name:    "existing mirrors replaced",
+			docker:  map[string]any{"registry-mirrors": []string{"https://old.mirror"}},
+			mirrors: []string{"https://new.mirror"},
+			want: map[string]any{
+				"registry-mirrors": []string{"https://new.mirror"},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := withRegistryMirrors(tt.docker, tt.mirrors); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("withRegistryMirrors() = %+v, want %+v", got, tt.want)
+			}
+		})
+	}
+}
