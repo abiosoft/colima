@@ -475,6 +475,9 @@ func prepareConfig(cmd *cobra.Command) {
 	startCmdArgs.ActivateRuntime = &startCmdArgs.Flags.ActivateRuntime
 	startCmdArgs.Binfmt = &startCmdArgs.Flags.Binfmt
 	startCmdArgs.ForceDiskImage = &startCmdArgs.Flags.ForceDiskImage
+	if cmd.Flag("registry-mirror").Changed {
+		startCmdArgs.Docker = withRegistryMirrors(startCmdArgs.Docker, startCmdArgs.Flags.RegistryMirrors)
+	}
 
 	// handle legacy kubernetes-disable
 	for _, disable := range startCmdArgs.Flags.LegacyKubernetesDisable {
@@ -499,9 +502,6 @@ func prepareConfig(cmd *cobra.Command) {
 
 		if !templateUsed {
 			// use default config if there is no template or template is disabled
-			if cmd.Flag("registry-mirror").Changed {
-				startCmdArgs.Docker = withRegistryMirrors(startCmdArgs.Docker, startCmdArgs.Flags.RegistryMirrors)
-			}
 			return
 		}
 	}
