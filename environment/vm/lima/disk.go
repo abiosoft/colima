@@ -172,14 +172,14 @@ func (l *limaVM) downloadDiskImage(ctx context.Context, conf config.Config) erro
 	}
 
 	// use a previously cached image
-	if image, ok := limautil.ImageCached(l.limaConf.Arch, conf.Runtime); ok {
+	if image, ok := limautil.ImageCached(l.limaConf.Arch, conf.Runtime, conf.DiskImageMirror); ok {
 		l.limaConf.Images = []limaconfig.File{image}
 		return nil
 	}
 
 	// download image
 	log.Infoln("downloading disk image ...")
-	image, err := limautil.DownloadImage(l.limaConf.Arch, conf.Runtime)
+	image, err := limautil.DownloadImage(l.limaConf.Arch, conf.Runtime, conf.DiskImageMirror)
 	if err != nil {
 		return fmt.Errorf("error getting qcow image: %w", err)
 	}
