@@ -23,13 +23,27 @@ func init() {
 	}
 }
 
+// imageURLHost is the host prefix of the disk image URLs in images/images.txt.
+// It is the part replaced when a disk image mirror is configured.
+const imageURLHost = "https://github.com"
+
+// mirrorURL replaces the github.com prefix of a disk image URL with the given
+// mirror. A non-github URL or an empty mirror is returned unchanged.
+func mirrorURL(rawurl, mirror string) string {
+	if mirror == "" || !strings.HasPrefix(rawurl, imageURLHost) {
+		return rawurl
+	}
+	return strings.TrimSuffix(mirror, "/") + strings.TrimPrefix(rawurl, imageURLHost)
+}
+
 // ImageCached returns if the image for architecture and runtime
 // has been previously downloaded and cached.
-func ImageCached(arch environment.Arch, runtime string) (limaconfig.File, bool) {
+func ImageCached(arch environment.Arch, runtime, mirror string) (limaconfig.File, bool) {
 	img, err := findImage(arch, runtime)
 	if err != nil {
 		return img, false
 	}
+	img.Location = mirrorURL(img.Location, mirror)
 
 	image := diskImageFile(downloader.CacheFilename(img.Location))
 
@@ -59,11 +73,12 @@ func Image(arch environment.Arch, runtime string) (limaconfig.File, error) {
 }
 
 // DownloadImage downloads the image for arch and runtime.
-func DownloadImage(arch environment.Arch, runtime string) (f limaconfig.File, err error) {
+func DownloadImage(arch environment.Arch, runtime, mirror string) (f limaconfig.File, err error) {
 	img, err := findImage(arch, runtime)
 	if err != nil {
 		return img, err
 	}
+	img.Location = mirrorURL(img.Location, mirror)
 
 	host := host.New()
 	// download image

@@ -267,6 +267,14 @@ mounts: []
 # Default: ""
 diskImage: ""
 
+# Mirror to download the disk image from, replacing the https://github.com
+# prefix of the image URL. Useful behind a proxy or registry that mirrors
+# GitHub release assets. The sha512 checksum is still verified after download.
+#
+# EXAMPLE: https://artifactory.mycompany.com/artifactory/github
+# Default: ""
+diskImageMirror: ""
+
 # Use the custom disk image even if it does NOT match a supported release image.
 # WARNING: This bypasses validating the image and is a completely unsupported!
 forceDiskImage: false

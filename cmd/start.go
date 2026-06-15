@@ -194,6 +194,7 @@ func init() {
 	startCmd.Flags().BoolVarP(&startCmdArgs.Flags.Foreground, "foreground", "f", false, "Keep colima in the foreground")
 	startCmd.Flags().StringVar(&startCmdArgs.Hostname, "hostname", "", "custom hostname for the virtual machine")
 	startCmd.Flags().StringVarP(&startCmdArgs.DiskImage, "disk-image", "i", "", "file path to a custom disk image")
+	startCmd.Flags().StringVar(&startCmdArgs.DiskImageMirror, "disk-image-mirror", "", "mirror URL to replace the https://github.com prefix when downloading disk images")
 	startCmd.Flags().BoolVar(&startCmdArgs.Flags.ForceDiskImage, "force-disk-image", false, "load unsupported disk image")
 	startCmd.Flags().BoolVar(&startCmdArgs.Flags.Template, "template", true, "use the template file for initial configuration")
 
@@ -609,6 +610,9 @@ func prepareConfig(cmd *cobra.Command) {
 		if current.ForceDiskImage != nil {
 			startCmdArgs.ForceDiskImage = current.ForceDiskImage
 		}
+	}
+	if !cmd.Flag("disk-image-mirror").Changed {
+		startCmdArgs.DiskImageMirror = current.DiskImageMirror
 	}
 	if !cmd.Flag("network-host-addresses").Changed {
 		startCmdArgs.Network.HostAddresses = current.Network.HostAddresses
