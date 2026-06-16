@@ -28,6 +28,9 @@ func MacOS13OrNewerOnArm() bool {
 // MacOS13OrNewer returns if the current OS is macOS 13 or newer.
 func MacOS13OrNewer() bool { return minMacOSVersion("13.0.0") }
 
+// MacOS14OrNewer returns if the current OS is macOS 14 or newer.
+func MacOS14OrNewer() bool { return minMacOSVersion("14.0.0") }
+
 // MacOS15OrNewer returns if the current OS is macOS 15 or newer.
 func MacOS15OrNewer() bool { return minMacOSVersion("15.0.0") }
 

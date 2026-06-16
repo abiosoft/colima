@@ -42,6 +42,7 @@
     - [Automatic](#automatic)
     - [Manual](#manual)
   - [How can disk size be increased?](#how-can-disk-size-be-increased)
+  - [Can Colima mount a physical disk partition?](#can-colima-mount-a-physical-disk-partition)
   - [Are Lima overrides supported?](#are-lima-overrides-supported)
     - [Example: Adding provision scripts](#example-adding-provision-scripts)
   - [How can the VM and its tools be updated?](#how-can-the-vm-and-its-tools-be-updated)
@@ -485,6 +486,12 @@ Disk size is automatically increased on start up based on configuration in `coli
 
 __Note:__ This feature is available from Version 0.5.3.
 
+
+## Can Colima mount a physical disk partition?
+
+Yes. macOS physical disk partitions can be attached to the VM with the `physicalDisks` configuration using either the NBD backend or native VZ block attachment when the Lima/VZ requirements are met. They can also be mounted back on macOS through NFS.
+
+See [Physical Disks](PHYSICAL_DISKS.md) for configuration, safety notes, and troubleshooting.
 
 ## Are Lima overrides supported?
 

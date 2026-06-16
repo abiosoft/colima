@@ -59,6 +59,9 @@ type Config struct {
 	MountType    string  `yaml:"mountType,omitempty"`
 	MountINotify bool    `yaml:"mountInotify,omitempty"`
 
+	// physical block devices mounted inside the VM.
+	PhysicalDisks []PhysicalDisk `yaml:"physicalDisks,omitempty"`
+
 	// Runtime is one of docker, containerd.
 	Runtime         string `yaml:"runtime,omitempty"`
 	ActivateRuntime *bool  `yaml:"autoActivate,omitempty"`
@@ -101,6 +104,25 @@ type Mount struct {
 	Location   string `yaml:"location"`
 	MountPoint string `yaml:"mountPoint,omitempty"`
 	Writable   bool   `yaml:"writable"`
+}
+
+// PhysicalDisk is a host block device exposed to the VM and mounted there.
+type PhysicalDisk struct {
+	Name       string                 `yaml:"name"`
+	Device     string                 `yaml:"device"`
+	RawDevice  string                 `yaml:"rawDevice,omitempty"`
+	FSType     string                 `yaml:"fsType,omitempty"`
+	Writable   bool                   `yaml:"writable"`
+	MountPoint string                 `yaml:"mountPoint,omitempty"`
+	Backend    string                 `yaml:"backend,omitempty"`
+	HostAccess PhysicalDiskHostAccess `yaml:"hostAccess,omitempty"`
+}
+
+// PhysicalDiskHostAccess exposes a VM-mounted physical disk back to the host.
+type PhysicalDiskHostAccess struct {
+	Enabled    bool   `yaml:"enabled"`
+	Driver     string `yaml:"driver,omitempty"`
+	MountPoint string `yaml:"mountPoint,omitempty"`
 }
 
 // Provision modes managed by Colima (not passed to Lima).
