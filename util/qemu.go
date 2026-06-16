@@ -15,6 +15,16 @@ func AssertQemuImg() error {
 	return nil
 }
 
+// AssertQemuNBD checks if qemu-nbd is available.
+func AssertQemuNBD() error {
+	cmd := "qemu-nbd"
+	if _, err := exec.LookPath(cmd); err != nil {
+		return fmt.Errorf("%s not found, run 'brew install %s' to install", cmd, "qemu")
+	}
+
+	return nil
+}
+
 // AssertKrunkit checks if krunkit is available.
 func AssertKrunkit() error {
 	if _, err := exec.LookPath("krunkit"); err != nil {

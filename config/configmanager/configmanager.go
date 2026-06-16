@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/abiosoft/colima/config"
@@ -95,6 +97,101 @@ func ValidateConfig(c config.Config) error {
 	if c.Network.GatewayAddress != nil {
 		if err := validateGatewayAddress(c.Network.GatewayAddress); err != nil {
 			return err
+		}
+	}
+
+	if err := validatePhysicalDisks(c.PhysicalDisks); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func validatePhysicalDisks(disks []config.PhysicalDisk) error {
+	if len(disks) == 0 {
+		return nil
+	}
+	if !util.MacOS() {
+		return fmt.Errorf("physicalDisks is currently only supported on macOS")
+	}
+
+	validName := regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.-]*$`)
+	validDiskDevice := regexp.MustCompile(`^disk[0-9]+s[0-9]+$`)
+	validRawDiskDevice := regexp.MustCompile(`^rdisk[0-9]+s[0-9]+$`)
+	seenNames := map[string]bool{}
+	seenDevices := map[string]string{}
+	seenGuestMounts := map[string]string{}
+	seenHostMounts := map[string]string{}
+
+	for _, disk := range disks {
+		if disk.Name == "" {
+			return fmt.Errorf("physicalDisks entries require a name")
+		}
+		if !validName.MatchString(disk.Name) {
+			return fmt.Errorf("invalid physicalDisks name %q: use letters, numbers, dot, underscore, or dash", disk.Name)
+		}
+		if seenNames[disk.Name] {
+			return fmt.Errorf("duplicate physicalDisks name %q", disk.Name)
+		}
+		seenNames[disk.Name] = true
+
+		if disk.Device == "" {
+			return fmt.Errorf("physicalDisks.%s requires device", disk.Name)
+		}
+		if !filepath.IsAbs(disk.Device) || !strings.HasPrefix(disk.Device, "/dev/disk") {
+			return fmt.Errorf("physicalDisks.%s device must be an absolute /dev/diskNsM path", disk.Name)
+		}
+		if !validDiskDevice.MatchString(filepath.Base(disk.Device)) {
+			return fmt.Errorf("physicalDisks.%s must target a partition, not a whole disk", disk.Name)
+		}
+		if other := seenDevices[disk.Device]; other != "" {
+			return fmt.Errorf("physicalDisks.%s uses the same device as physicalDisks.%s", disk.Name, other)
+		}
+		seenDevices[disk.Device] = disk.Name
+
+		if disk.RawDevice != "" {
+			if !filepath.IsAbs(disk.RawDevice) || !validRawDiskDevice.MatchString(filepath.Base(disk.RawDevice)) {
+				return fmt.Errorf("physicalDisks.%s rawDevice must be an absolute /dev/rdiskNsM path", disk.Name)
+			}
+		}
+
+		switch disk.Backend {
+		case "", "auto", "nbd":
+		default:
+			return fmt.Errorf("physicalDisks.%s backend %q is unsupported", disk.Name, disk.Backend)
+		}
+
+		switch disk.FSType {
+		case "", "auto", "ext4", "xfs", "btrfs":
+		default:
+			return fmt.Errorf("physicalDisks.%s fsType %q is unsupported", disk.Name, disk.FSType)
+		}
+
+		if disk.MountPoint != "" {
+			if !filepath.IsAbs(disk.MountPoint) {
+				return fmt.Errorf("physicalDisks.%s mountPoint must be absolute", disk.Name)
+			}
+			if other := seenGuestMounts[disk.MountPoint]; other != "" {
+				return fmt.Errorf("physicalDisks.%s uses the same mountPoint as physicalDisks.%s", disk.Name, other)
+			}
+			seenGuestMounts[disk.MountPoint] = disk.Name
+		}
+
+		if disk.HostAccess.Enabled {
+			switch disk.HostAccess.Driver {
+			case "", "nfs":
+			default:
+				return fmt.Errorf("physicalDisks.%s hostAccess.driver %q is unsupported", disk.Name, disk.HostAccess.Driver)
+			}
+			if disk.HostAccess.MountPoint != "" {
+				if !filepath.IsAbs(disk.HostAccess.MountPoint) {
+					return fmt.Errorf("physicalDisks.%s hostAccess.mountPoint must be absolute", disk.Name)
+				}
+				if other := seenHostMounts[disk.HostAccess.MountPoint]; other != "" {
+					return fmt.Errorf("physicalDisks.%s uses the same hostAccess.mountPoint as physicalDisks.%s", disk.Name, other)
+				}
+				seenHostMounts[disk.HostAccess.MountPoint] = disk.Name
+			}
 		}
 	}
 

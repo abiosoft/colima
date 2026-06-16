@@ -517,6 +517,8 @@ func prepareConfig(cmd *cobra.Command) {
 	}
 	// provision scripts can only be set in config file
 	startCmdArgs.Provision = current.Provision
+	// physical disks can only be set in config file
+	startCmdArgs.PhysicalDisks = current.PhysicalDisks
 
 	// use current settings for unchanged configs
 	// otherwise may be reverted to their default values.

@@ -259,6 +259,30 @@ sshPort: 0
 # Default: []
 mounts: []
 
+# Mount host physical disk partitions inside the VM and optionally expose them
+# back to macOS through NFS.
+#
+# WARNING: writable physical disks can corrupt data if the same filesystem is
+# mounted by macOS or another OS at the same time. Colima refuses to start when
+# a writable disk is already mounted on macOS, but it cannot detect every
+# external writer.
+#
+# EXAMPLE - writable ext4 partition with macOS access via NFS:
+# physicalDisks:
+#   - name: src
+#     device: /dev/disk0s6
+#     rawDevice: /dev/rdisk0s6
+#     fsType: ext4 # ext4, xfs, btrfs, or auto
+#     writable: true
+#     mountPoint: /mnt/colima/physical/src
+#     hostAccess:
+#       enabled: true
+#       driver: nfs
+#       mountPoint: /Volumes/Colima/src
+#
+# Default: []
+physicalDisks: []
+
 # Specify a custom disk image for the virtual machine.
 # When not specified, Colima downloads an appropriate disk image from Github at
 # https://github.com/abiosoft/colima-core/releases.
