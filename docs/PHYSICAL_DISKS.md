@@ -104,6 +104,18 @@ rm etc_sudoers.d_lima
 
 For read-only configurations, Colima mounts the filesystem read-only in the guest. The current Lima VZ block-device contract does not provide a host-enforced read-only flag, so use `backend: nbd` if host-enforced read-only block access is required.
 
+## E2E Smoke Test
+
+Contributors can run the native VZ physical disk smoke test on macOS with a Lima build that supports secure block devices:
+
+```sh
+COLIMA_BINARY=/path/to/colima \
+LIMA_BIN=/path/to/secure-lima/limactl \
+scripts/physical_disk_vz_e2e.sh
+```
+
+The script creates a temporary ext4 disk image, attaches it as a macOS disk image, installs a temporary root-owned Lima helper under `/opt/colima-vz-e2e`, starts a disposable Colima profile with `backend: vz`, verifies guest and host read/write through the NFS host-access path, and removes the VM, disk image, helper, and sudoers fragment during cleanup.
+
 ## Host Access
 
 When host access is enabled, Colima starts an NFS server in the VM and mounts it on macOS through an SSH local tunnel. macOS sees an NFS mount; the Linux VM remains the only machine mounting the physical filesystem directly.
