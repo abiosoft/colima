@@ -97,6 +97,10 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 		return err
 	})
 
+	a.Add(func() error {
+		return l.assertPhysicalDiskBackends(conf)
+	})
+
 	a.Add(l.assertQemu)
 
 	a.Add(func() error {
@@ -151,6 +155,10 @@ func (l *limaVM) resume(ctx context.Context, conf config.Config) error {
 
 		l.limaConf, err = newConf(ctx, conf)
 		return err
+	})
+
+	a.Add(func() error {
+		return l.assertPhysicalDiskBackends(conf)
 	})
 
 	a.Add(l.assertQemu)

@@ -416,6 +416,12 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 		})
 	}
 
+	for _, disk := range conf.PhysicalDisks {
+		if l.VMType == limaconfig.VZ && physicalDiskBackend(disk) == "vz" {
+			l.BlockDevices = append(l.BlockDevices, disk.Device)
+		}
+	}
+
 	return
 }
 

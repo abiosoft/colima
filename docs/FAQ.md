@@ -489,7 +489,7 @@ __Note:__ This feature is available from Version 0.5.3.
 
 ## Can Colima mount a physical disk partition?
 
-Yes. macOS physical disk partitions can be attached to the VM with the `physicalDisks` configuration and optionally mounted back on macOS through NFS.
+Yes. macOS physical disk partitions can be attached to the VM with the `physicalDisks` configuration using either the NBD backend or native VZ block attachment when the Lima/VZ requirements are met. They can also be mounted back on macOS through NFS.
 
 See [Physical Disks](PHYSICAL_DISKS.md) for configuration, safety notes, and troubleshooting.
 

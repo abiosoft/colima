@@ -102,6 +102,27 @@ func Test_config_Mounts(t *testing.T) {
 	}
 }
 
+func Test_config_PhysicalDiskVZBlockDevices(t *testing.T) {
+	if !util.MacOS13OrNewer() {
+		t.Skip("VZ blockDevices are macOS-specific")
+	}
+
+	conf, err := newConf(context.Background(), config.Config{
+		VMType: limaconfig.VZ,
+		PhysicalDisks: []config.PhysicalDisk{
+			{Name: "src", Device: "/dev/disk0s6", Backend: "vz"},
+			{Name: "cache", Device: "/dev/disk0s7", Backend: "nbd"},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(conf.BlockDevices) != 1 || conf.BlockDevices[0] != "/dev/disk0s6" {
+		t.Fatalf("BlockDevices = %#v, want [/dev/disk0s6]", conf.BlockDevices)
+	}
+}
+
 func Test_ingressDisabled(t *testing.T) {
 	tests := []struct {
 		args []string

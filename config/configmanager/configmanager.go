@@ -100,14 +100,14 @@ func ValidateConfig(c config.Config) error {
 		}
 	}
 
-	if err := validatePhysicalDisks(c.PhysicalDisks); err != nil {
+	if err := validatePhysicalDisks(c.PhysicalDisks, c.VMType); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func validatePhysicalDisks(disks []config.PhysicalDisk) error {
+func validatePhysicalDisks(disks []config.PhysicalDisk, vmType string) error {
 	if len(disks) == 0 {
 		return nil
 	}
@@ -157,6 +157,10 @@ func validatePhysicalDisks(disks []config.PhysicalDisk) error {
 
 		switch disk.Backend {
 		case "", "auto", "nbd":
+		case "vz":
+			if vmType != "vz" {
+				return fmt.Errorf("physicalDisks.%s backend %q requires vmType: vz", disk.Name, disk.Backend)
+			}
 		default:
 			return fmt.Errorf("physicalDisks.%s backend %q is unsupported", disk.Name, disk.Backend)
 		}
