@@ -219,13 +219,15 @@ findmnt --noheadings --mountpoint /mnt/colima/physical/smoke
 blkid /dev/disk/by-id/virtio-'"$(basename "$device")"'
 printf "guest-to-host\n" | sudo tee /mnt/colima/physical/smoke/guest.txt >/dev/null
 test "$(cat /mnt/colima/physical/smoke/guest.txt)" = "guest-to-host"
+sudo mkdir -p /mnt/colima/physical/smoke/rw-test
+sudo chmod 0777 /mnt/colima/physical/smoke/rw-test
 '
 
 	log "checking host NFS read/write"
 	test -f "$HOST_MOUNT/guest.txt"
 	test "$(cat "$HOST_MOUNT/guest.txt")" = "guest-to-host"
-	printf 'host-to-guest\n' >"$HOST_MOUNT/host.txt"
-	PATH="$SECURE_PREFIX/bin:$PATH" "${colima[@]}" ssh -- sh -lc 'test "$(cat /mnt/colima/physical/smoke/host.txt)" = "host-to-guest"'
+	printf 'host-to-guest\n' >"$HOST_MOUNT/rw-test/host.txt"
+	PATH="$SECURE_PREFIX/bin:$PATH" "${colima[@]}" ssh -- sh -lc 'test "$(cat /mnt/colima/physical/smoke/rw-test/host.txt)" = "host-to-guest"'
 }
 
 main() {

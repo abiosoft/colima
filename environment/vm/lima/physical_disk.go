@@ -370,6 +370,9 @@ func (l *limaVM) attachPhysicalDiskInGuest(disk physicalDiskRuntime, guestDevice
 }
 
 func (l *limaVM) startPhysicalDiskNFSTunnel(disk physicalDiskRuntime) error {
+	if err := os.MkdirAll(disk.stateDir, 0755); err != nil {
+		return err
+	}
 	port, err := freeTCPPort()
 	if err != nil {
 		return err
