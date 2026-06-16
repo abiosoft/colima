@@ -15,11 +15,13 @@ func TestValidatePhysicalDisks(t *testing.T) {
 
 	tests := []struct {
 		name    string
+		vmType  string
 		disks   []config.PhysicalDisk
 		wantErr string
 	}{
 		{
-			name: "valid writable nfs disk",
+			name:   "valid writable nfs disk",
+			vmType: "qemu",
 			disks: []config.PhysicalDisk{
 				{
 					Name:      "src",
@@ -36,21 +38,39 @@ func TestValidatePhysicalDisks(t *testing.T) {
 			},
 		},
 		{
-			name: "whole disk rejected",
+			name:   "whole disk rejected",
+			vmType: "qemu",
 			disks: []config.PhysicalDisk{
 				{Name: "src", Device: "/dev/disk0"},
 			},
 			wantErr: "must target a partition",
 		},
 		{
-			name: "unsupported filesystem",
+			name:   "unsupported filesystem",
+			vmType: "qemu",
 			disks: []config.PhysicalDisk{
 				{Name: "src", Device: "/dev/disk0s6", FSType: "apfs"},
 			},
 			wantErr: "fsType",
 		},
 		{
-			name: "duplicate host mountpoint",
+			name:   "valid vz backend",
+			vmType: "vz",
+			disks: []config.PhysicalDisk{
+				{Name: "src", Device: "/dev/disk0s6", Backend: "vz"},
+			},
+		},
+		{
+			name:   "vz backend requires vz vm",
+			vmType: "qemu",
+			disks: []config.PhysicalDisk{
+				{Name: "src", Device: "/dev/disk0s6", Backend: "vz"},
+			},
+			wantErr: "requires vmType: vz",
+		},
+		{
+			name:   "duplicate host mountpoint",
+			vmType: "qemu",
 			disks: []config.PhysicalDisk{
 				{Name: "one", Device: "/dev/disk0s6", HostAccess: config.PhysicalDiskHostAccess{Enabled: true, MountPoint: "/Volumes/Colima/src"}},
 				{Name: "two", Device: "/dev/disk0s7", HostAccess: config.PhysicalDiskHostAccess{Enabled: true, MountPoint: "/Volumes/Colima/src"}},
@@ -61,7 +81,7 @@ func TestValidatePhysicalDisks(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validatePhysicalDisks(tt.disks)
+			err := validatePhysicalDisks(tt.disks, tt.vmType)
 			if tt.wantErr == "" && err != nil {
 				t.Fatalf("validatePhysicalDisks() error = %v", err)
 			}

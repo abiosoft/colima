@@ -45,8 +45,41 @@ func TestNewPhysicalDiskRuntimeDefaults(t *testing.T) {
 	if runtime.nbdGuestPort != physicalDiskGuestNBDPortBase+2 {
 		t.Fatalf("nbdGuestPort = %d", runtime.nbdGuestPort)
 	}
+	if runtime.guestDevice != "" {
+		t.Fatalf("guestDevice = %q, want empty for nbd", runtime.guestDevice)
+	}
 	if filepath.Base(runtime.stateDir) != "src" {
 		t.Fatalf("stateDir = %q", runtime.stateDir)
+	}
+}
+
+func TestNewPhysicalDiskRuntimeVZ(t *testing.T) {
+	config.SetProfile("physical-test")
+	defer config.SetProfile("default")
+
+	runtime, err := newPhysicalDiskRuntime(0, config.PhysicalDisk{
+		Name:    "src",
+		Device:  "/dev/disk0s6",
+		Backend: "vz",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if runtime.Backend != "vz" {
+		t.Fatalf("Backend = %q, want vz", runtime.Backend)
+	}
+	if runtime.guestDevice != "/dev/disk/by-id/virtio-disk0s6" {
+		t.Fatalf("guestDevice = %q, want /dev/disk/by-id/virtio-disk0s6", runtime.guestDevice)
+	}
+}
+
+func TestPhysicalDiskGuestBlockDeviceID(t *testing.T) {
+	if got := physicalDiskGuestBlockDeviceID("/dev/disk4s1"); got != "disk4s1" {
+		t.Fatalf("id = %q, want disk4s1", got)
+	}
+	if got := physicalDiskGuestBlockDeviceID("/dev/disk123456789s123456789"); got != "disk123456789s123456" {
+		t.Fatalf("id = %q, want truncated Lima VZ id", got)
 	}
 }
 

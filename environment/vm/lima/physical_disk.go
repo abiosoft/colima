@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/environment/vm/lima/limaconfig"
 	"github.com/abiosoft/colima/util"
 )
 
@@ -31,6 +32,7 @@ type physicalDiskRuntime struct {
 
 	index        int
 	nbdDevice    string
+	guestDevice  string
 	nbdGuestPort int
 	nbdHostPort  int
 	nfsHostPort  int
@@ -44,21 +46,59 @@ func (l *limaVM) setupPhysicalDisks(ctx context.Context, conf config.Config) err
 	if !util.MacOS() {
 		return fmt.Errorf("physical disks are only supported on macOS")
 	}
-	if err := util.AssertQemuNBD(); err != nil {
-		return err
-	}
+
+	var runtimes []physicalDiskRuntime
+	requiresNBD := false
 	for i, disk := range conf.PhysicalDisks {
 		runtime, err := newPhysicalDiskRuntime(i, disk)
 		if err != nil {
 			return err
 		}
+		runtimes = append(runtimes, runtime)
+		if runtime.Backend == "nbd" {
+			requiresNBD = true
+		}
+	}
 
-		if err := l.setupPhysicalDisk(ctx, runtime); err != nil {
+	if requiresNBD {
+		if err := util.AssertQemuNBD(); err != nil {
 			return err
 		}
 	}
 
+	for _, runtime := range runtimes {
+		if err := l.setupPhysicalDisk(ctx, runtime); err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+func (l *limaVM) assertPhysicalDiskBackends(conf config.Config) error {
+	for _, disk := range conf.PhysicalDisks {
+		if physicalDiskBackend(disk) != "vz" {
+			continue
+		}
+		if l.limaConf.VMType != limaconfig.VZ {
+			return fmt.Errorf("physicalDisks.%s backend vz requires vmType: vz", disk.Name)
+		}
+		if !util.MacOS14OrNewer() {
+			return fmt.Errorf("physicalDisks.%s backend vz requires macOS 14 or newer", disk.Name)
+		}
+		if !l.limaSupportsSafeVZBlockDevices() {
+			return fmt.Errorf("physicalDisks.%s backend vz requires a Lima build with secure macOS VZ block-device support; expected limactl create --help and limactl sudoers --help to expose --block-device", disk.Name)
+		}
+	}
+	return nil
+}
+
+func (l *limaVM) limaSupportsSafeVZBlockDevices() bool {
+	createHelp, err := l.host.RunOutput(limactl, "create", "--help")
+	if err != nil || !strings.Contains(createHelp, "--block-device") {
+		return false
+	}
+	sudoersHelp, err := l.host.RunOutput(limactl, "sudoers", "--help")
+	return err == nil && strings.Contains(sudoersHelp, "--block-device")
 }
 
 func (l *limaVM) setupPhysicalDisk(ctx context.Context, disk physicalDiskRuntime) error {
@@ -77,14 +117,23 @@ func (l *limaVM) setupPhysicalDisk(ctx context.Context, disk physicalDiskRuntime
 	if err := l.assertPhysicalDiskReady(disk); err != nil {
 		return fmt.Errorf("physical disk %s is not ready: %w", disk.Name, err)
 	}
-	if err := l.startPhysicalDiskNBD(disk); err != nil {
-		return fmt.Errorf("error starting physical disk %s NBD backend: %w", disk.Name, err)
-	}
-	if err := l.startPhysicalDiskNBDTunnel(disk); err != nil {
-		return fmt.Errorf("error starting physical disk %s NBD tunnel: %w", disk.Name, err)
-	}
-	if err := l.attachPhysicalDiskInGuest(disk); err != nil {
-		return fmt.Errorf("error attaching physical disk %s in VM: %w", disk.Name, err)
+	switch disk.Backend {
+	case "nbd":
+		if err := l.startPhysicalDiskNBD(disk); err != nil {
+			return fmt.Errorf("error starting physical disk %s NBD backend: %w", disk.Name, err)
+		}
+		if err := l.startPhysicalDiskNBDTunnel(disk); err != nil {
+			return fmt.Errorf("error starting physical disk %s NBD tunnel: %w", disk.Name, err)
+		}
+		if err := l.attachPhysicalDiskInGuest(disk, disk.nbdDevice); err != nil {
+			return fmt.Errorf("error attaching physical disk %s in VM: %w", disk.Name, err)
+		}
+	case "vz":
+		if err := l.attachPhysicalDiskInGuest(disk, disk.guestDevice); err != nil {
+			return fmt.Errorf("error mounting physical disk %s in VM: %w", disk.Name, err)
+		}
+	default:
+		return fmt.Errorf("unsupported physical disk backend %q", disk.Backend)
 	}
 	if err := l.assertPhysicalDiskBackendLive(disk); err != nil {
 		return fmt.Errorf("error checking physical disk %s backend health: %w", disk.Name, err)
@@ -130,9 +179,7 @@ func newPhysicalDiskRuntime(index int, disk config.PhysicalDisk) (physicalDiskRu
 	if disk.FSType == "" {
 		disk.FSType = "auto"
 	}
-	if disk.Backend == "" || disk.Backend == "auto" {
-		disk.Backend = "nbd"
-	}
+	disk.Backend = physicalDiskBackend(disk)
 	if disk.MountPoint == "" {
 		disk.MountPoint = filepath.Join("/mnt/colima/physical", disk.Name)
 	}
@@ -148,7 +195,7 @@ func newPhysicalDiskRuntime(index int, disk config.PhysicalDisk) (physicalDiskRu
 		}
 	}
 
-	if disk.Backend != "nbd" {
+	if disk.Backend != "nbd" && disk.Backend != "vz" {
 		return physicalDiskRuntime{}, fmt.Errorf("unsupported physical disk backend %q", disk.Backend)
 	}
 
@@ -157,14 +204,63 @@ func newPhysicalDiskRuntime(index int, disk config.PhysicalDisk) (physicalDiskRu
 		PhysicalDisk: disk,
 		index:        index,
 		nbdDevice:    fmt.Sprintf("/dev/nbd%d", index),
+		guestDevice:  physicalDiskGuestDevice(disk),
 		nbdGuestPort: physicalDiskGuestNBDPortBase + index,
 		stateDir:     stateDir,
 	}, nil
 }
 
+func physicalDiskBackend(disk config.PhysicalDisk) string {
+	if disk.Backend == "" || disk.Backend == "auto" {
+		return "nbd"
+	}
+	return disk.Backend
+}
+
+func physicalDiskGuestDevice(disk config.PhysicalDisk) string {
+	if physicalDiskBackend(disk) != "vz" {
+		return ""
+	}
+	return filepath.Join("/dev/disk/by-id", "virtio-"+physicalDiskGuestBlockDeviceID(disk.Device))
+}
+
+func physicalDiskGuestBlockDeviceID(devicePath string) string {
+	base := filepath.Base(devicePath)
+	var b strings.Builder
+	b.Grow(len(base))
+	for _, r := range base {
+		switch {
+		case r >= 'a' && r <= 'z':
+			b.WriteRune(r)
+		case r >= 'A' && r <= 'Z':
+			b.WriteRune(r)
+		case r >= '0' && r <= '9':
+			b.WriteRune(r)
+		case r == '-', r == '_', r == '.':
+			b.WriteRune(r)
+		default:
+			b.WriteByte('-')
+		}
+	}
+	id := b.String()
+	if id == "" {
+		id = "block-device"
+	}
+	if len(id) > 20 {
+		id = id[:20]
+	}
+	return id
+}
+
 func (l *limaVM) assertPhysicalDiskReady(disk physicalDiskRuntime) error {
-	if _, err := os.Stat(disk.RawDevice); err != nil {
-		return fmt.Errorf("rawDevice %s is not accessible: %w", disk.RawDevice, err)
+	hostDevice := disk.RawDevice
+	hostDeviceField := "rawDevice"
+	if disk.Backend == "vz" {
+		hostDevice = disk.Device
+		hostDeviceField = "device"
+	}
+	if _, err := os.Stat(hostDevice); err != nil {
+		return fmt.Errorf("%s %s is not accessible: %w", hostDeviceField, hostDevice, err)
 	}
 	out, err := l.host.RunOutput("diskutil", "info", disk.Device)
 	if err != nil {
@@ -255,7 +351,7 @@ func (l *limaVM) startPhysicalDiskNBDTunnel(disk physicalDiskRuntime) error {
 	return nil
 }
 
-func (l *limaVM) attachPhysicalDiskInGuest(disk physicalDiskRuntime) error {
+func (l *limaVM) attachPhysicalDiskInGuest(disk physicalDiskRuntime, guestDevice string) error {
 	writable := "false"
 	if disk.Writable {
 		writable = "true"
@@ -263,11 +359,13 @@ func (l *limaVM) attachPhysicalDiskInGuest(disk physicalDiskRuntime) error {
 	return l.runGuestWith(strings.NewReader(physicalDiskScript),
 		"sudo", "sh", "-s", "--",
 		disk.Name,
-		disk.nbdDevice,
+		disk.Backend,
+		guestDevice,
 		fmt.Sprint(disk.nbdGuestPort),
 		disk.MountPoint,
 		disk.FSType,
 		writable,
+		fmt.Sprint(disk.HostAccess.Enabled),
 	)
 }
 
@@ -345,11 +443,13 @@ func (l *limaVM) stopPhysicalDisk(ctx context.Context, disk physicalDiskRuntime)
 		}
 	}
 
-	if err := l.killHostPID(disk.nbdTunnelPidFile(), false); err != nil {
-		errs = append(errs, err.Error())
-	}
-	if err := l.killPhysicalDiskNBD(disk); err != nil {
-		errs = append(errs, err.Error())
+	if disk.Backend == "nbd" {
+		if err := l.killHostPID(disk.nbdTunnelPidFile(), false); err != nil {
+			errs = append(errs, err.Error())
+		}
+		if err := l.killPhysicalDiskNBD(disk); err != nil {
+			errs = append(errs, err.Error())
+		}
 	}
 
 	if len(errs) > 0 {
@@ -359,18 +459,23 @@ func (l *limaVM) stopPhysicalDisk(ctx context.Context, disk physicalDiskRuntime)
 }
 
 func (l *limaVM) detachPhysicalDiskInGuest(disk physicalDiskRuntime) error {
-	script := strings.Join([]string{
+	lines := []string{
 		"set -eu",
 		fmt.Sprintf("export_file=%s", shellQuote(filepath.Join("/etc/exports.d", "colima-physical-"+disk.Name+".exports"))),
 		fmt.Sprintf("export_root_file=%s", shellQuote(filepath.Join("/etc/exports.d", "colima-physical-root.exports"))),
 		fmt.Sprintf("mount_point=%s", shellQuote(disk.MountPoint)),
-		fmt.Sprintf("nbd_device=%s", shellQuote(disk.nbdDevice)),
 		"rm -f \"$export_file\"",
 		"if ! find /etc/exports.d -name 'colima-physical-*.exports' ! -name 'colima-physical-root.exports' | grep -q .; then rm -f \"$export_root_file\"; fi",
 		"exportfs -ra >/dev/null 2>&1 || true",
 		"if findmnt --noheadings --mountpoint \"$mount_point\" >/dev/null 2>&1; then umount \"$mount_point\" >/dev/null 2>&1 || true; fi",
-		"if nbd-client -c \"$nbd_device\" >/dev/null 2>&1; then nbd-client -d \"$nbd_device\" >/dev/null 2>&1 || true; fi",
-	}, "\n")
+	}
+	if disk.Backend == "nbd" {
+		lines = append(lines,
+			fmt.Sprintf("nbd_device=%s", shellQuote(disk.nbdDevice)),
+			"if command -v nbd-client >/dev/null 2>&1 && nbd-client -c \"$nbd_device\" >/dev/null 2>&1; then nbd-client -d \"$nbd_device\" >/dev/null 2>&1 || true; fi",
+		)
+	}
+	script := strings.Join(lines, "\n")
 	return l.runGuestQuiet("sudo", "sh", "-c", script)
 }
 
@@ -390,6 +495,11 @@ func hostMountpointMounted(l *limaVM, mountPoint string) bool {
 }
 
 func (l *limaVM) assertPhysicalDiskBackendLive(disk physicalDiskRuntime) error {
+	if disk.Backend == "vz" {
+		script := fmt.Sprintf("test -b %s && findmnt --noheadings --mountpoint %s >/dev/null", shellQuote(disk.guestDevice), shellQuote(disk.MountPoint))
+		return l.runGuestQuiet("sh", "-c", script)
+	}
+
 	if err := l.waitPIDExists(disk.qemuPidFile()); err != nil {
 		return appendPhysicalDiskLog(err, disk.qemuLogFile(), "qemu-nbd")
 	}
