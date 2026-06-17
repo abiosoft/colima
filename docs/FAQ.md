@@ -57,6 +57,7 @@
     - [Docker Compose and Buildx showing runc error](#docker-compose-and-buildx-showing-runc-error)
       - [Version v0.5.6 or lower](#version-v056-or-lower)
     - [Issue with Docker bind mount showing empty](#issue-with-docker-bind-mount-showing-empty)
+    - [Mount path with spaces is not supported](#mount-path-with-spaces-is-not-supported)
   - [How can Docker version be updated?](#how-can-docker-version-be-updated)
   - [How can I delete container data](#how-can-i-delete-container-data)
 
@@ -665,6 +666,15 @@ From v0.5.6, start Colima with `--cgroups-v2` flag as a workaround.
 When using docker to bind mount a volume (e.g. using `-v` or `--mount`) from the host where the volume is not contained within `/Users/$USER`, the container will start without raising any errors but the mapped mountpoint on the container will be empty.
 
 This is rectified by mounting the volume on the VM, and only then can docker map the volume or any subdirectory. Edit `$HOME/.colima/default/colima.yaml` and add to the `mounts` section (examples are provided within the yaml file), and then run `colima restart`. Start the container again with the desired bind mount and it should show up correctly.
+
+### Mount path with spaces is not supported
+
+Mount paths containing spaces (e.g. `/Volumes/External HD`) are not supported by the
+underlying [Lima](https://github.com/lima-vm/lima) runtime and will fail to mount.
+
+Colima now rejects such paths at startup with a clear error instead of failing silently.
+As a workaround, mount a parent directory without spaces, or rename/alias the volume to
+avoid spaces. See [#1471](https://github.com/abiosoft/colima/issues/1471).
 
 ## How can Docker version be updated?
 
