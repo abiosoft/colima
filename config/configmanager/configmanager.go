@@ -98,6 +98,10 @@ func ValidateConfig(c config.Config) error {
 		}
 	}
 
+	if err := validateMounts(c.Mounts); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -140,5 +144,19 @@ func validateGatewayAddress(gateway net.IP) error {
 		return fmt.Errorf("the last octet of gateway %q is not 2", gateway)
 	}
 
+	return nil
+}
+
+// validateMounts ensures mount paths do not contain spaces, which are not
+// supported by the underlying Lima runtime and otherwise fail silently.
+// See https://github.com/abiosoft/colima/issues/1471.
+func validateMounts(mounts []config.Mount) error {
+	for _, m := range mounts {
+		for _, p := range []string{m.Location, m.MountPoint} {
+			if strings.Contains(p, " ") {
+				return fmt.Errorf("mount path with spaces is not supported by the underlying Lima runtime: %q", p)
+			}
+		}
+	}
 	return nil
 }
