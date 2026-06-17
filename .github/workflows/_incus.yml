@@ -80,3 +80,24 @@ jobs:
 
       - name: Teardown
         run: colima delete --data -f
+
+      - name: Diagnostics (on failure)
+        if: ${{ failure() }}
+        run: |
+          set +e
+          echo "=== lima user and groups ==="
+          colima ssh -- id
+          echo "=== incus-admin group members ==="
+          colima ssh -- getent group incus-admin
+          echo "=== incus.service status ==="
+          colima ssh -- sudo systemctl status incus.service --no-pager
+          echo "=== incus.socket status ==="
+          colima ssh -- sudo systemctl status incus.socket --no-pager
+          echo "=== unix socket permissions ==="
+          colima ssh -- sudo ls -la /var/lib/incus/unix.socket
+          echo "=== incus info as lima user (no sudo) ==="
+          colima ssh -- incus info
+          echo "=== incus info via sudo ==="
+          colima ssh -- sudo incus info
+          echo "=== journalctl -u incus (last 200) ==="
+          colima ssh -- sudo journalctl -u incus --no-pager -n 200
