@@ -8,6 +8,9 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
@@ -72,6 +75,9 @@ func (c *incusRuntime) Provision(ctx context.Context) error {
 	// start incus to check if already fully provisioned.
 	// after a full /var/lib/incus restore from external disk, incus
 	// reads its previous database and restores networks/pools automatically.
+	// incus.socket (socket activation) is stopped by the data disk PreMount on
+	// every boot, so start it explicitly to restore the listening socket.
+	_ = c.systemctl.Start("incus.socket")
 	_ = c.systemctl.Start("incus.service")
 
 	if found, _, _ := c.findNetwork(incusBridgeInterface); found {
@@ -145,26 +151,33 @@ func (c *incusRuntime) Running(ctx context.Context) bool {
 	return c.systemctl.Active("incus.service")
 }
 
+// ensureIncusUp (re)starts the incus daemon. incus uses systemd socket
+// activation: incus.socket owns the listening /var/lib/incus/unix.socket and
+// activates incus.service on connection. The data disk PreMount stops both units
+// on every boot to mount /var/lib/incus, so the socket listener must be started
+// again — best-effort, since incus.service may already hold the socket. The
+// service is restarted (rather than started) when the zfs pool is not yet
+// imported, so the pool gets picked up.
+func (c *incusRuntime) ensureIncusUp() error {
+	_ = c.systemctl.Start("incus.socket")
+
+	if c.poolImported() {
+		return c.systemctl.Start("incus.service")
+	}
+	// pool not yet imported; restart incus to import it
+	return c.systemctl.Restart("incus.service")
+}
+
 // Start implements environment.Container.
 func (c *incusRuntime) Start(ctx context.Context) error {
 	conf, _ := ctx.Value(config.CtxKey()).(config.Config)
 
 	a := c.Init(ctx)
 
-	// incus should already be started
-	// this is mainly to ascertain it has started
-
-	if c.poolImported() {
-		a.Add(func() error {
-			return c.systemctl.Start("incus.service")
-		})
-	} else {
-		// pool not yet imported
-		// restart incus to import pool
-		a.Add(func() error {
-			return c.systemctl.Restart("incus.service")
-		})
-	}
+	// bring the incus daemon up (socket activation listener + service).
+	a.Add(func() error {
+		return c.ensureIncusUp()
+	})
 
 	// sync disk size for the default pool
 	if conf.Disk > 0 {
@@ -176,19 +189,28 @@ func (c *incusRuntime) Start(ctx context.Context) error {
 	}
 
 	a.Add(func() error {
-		// attempt to set remote
-		if err := c.setRemote(conf.AutoActivate()); err == nil {
-			return nil
+		// Wait until incus is reachable by the non-root guest user. This requires
+		// both a running daemon and the lima user being effective in the
+		// incus-admin group. `usermod` adds the user during provisioning, but the
+		// existing SSH session (used for the forwarded host socket) does not pick
+		// up the new group until a fresh login, so the host's `incus remote add`
+		// is rejected with EOF. Restart the VM to refresh the session, bringing
+		// the daemon back up after each restart (the data disk PreMount stops
+		// incus.socket on every boot).
+		const maxRestarts = 2
+		for i := 0; !c.guestIncusReady(); i++ {
+			if i >= maxRestarts {
+				// give up refreshing; let setRemote surface the underlying error
+				break
+			}
+			rctx := context.WithValue(ctx, cli.CtxKeyQuiet, true)
+			if err := c.guest.Restart(rctx); err != nil {
+				return err
+			}
+			_ = c.ensureIncusUp()
 		}
 
-		// workaround missing user in incus-admin by restarting
-		ctx := context.WithValue(ctx, cli.CtxKeyQuiet, true)
-		if err := c.guest.Restart(ctx); err != nil {
-			return err
-		}
-
-		// attempt once again to set remote
-		return c.setRemote(conf.AutoActivate())
+		return c.setRemoteWithRetry(conf.AutoActivate())
 	})
 
 	a.Add(func() error {
@@ -248,6 +270,47 @@ func (c *incusRuntime) Version(ctx context.Context) string {
 
 func (c incusRuntime) Name() string {
 	return Name
+}
+
+// guestIncusReady reports whether the incus daemon is reachable by the non-root
+// guest user. This mirrors the access path the forwarded host socket relies on: it
+// requires both the daemon to be listening and the lima user to be effective in the
+// incus-admin group, so a successful non-sudo `incus info` is a faithful
+// precondition for `incus remote add` from the host. It polls for a bounded time.
+func (c incusRuntime) guestIncusReady() bool {
+	const (
+		attempts = 15
+		interval = 2 * time.Second
+	)
+
+	for i := range attempts {
+		if c.guest.RunQuiet("incus", "info") == nil {
+			return true
+		}
+		log.Tracef("incus not yet reachable by guest user (attempt %d/%d)", i+1, attempts)
+		time.Sleep(interval)
+	}
+	return false
+}
+
+// setRemoteWithRetry calls setRemote, retrying briefly while the forwarded host
+// socket is not yet ready (it can lag shortly after the daemon becomes reachable
+// inside the guest). It returns the last error if the remote cannot be added.
+func (c incusRuntime) setRemoteWithRetry(activate bool) error {
+	const (
+		attempts = 15
+		interval = 2 * time.Second
+	)
+
+	var err error
+	for i := range attempts {
+		if err = c.setRemote(activate); err == nil {
+			return nil
+		}
+		log.Tracef("incus host socket not ready (attempt %d/%d): %v", i+1, attempts, err)
+		time.Sleep(interval)
+	}
+	return err
 }
 
 func (c incusRuntime) setRemote(activate bool) error {
