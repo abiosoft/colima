@@ -1,0 +1,7 @@
+.idea/
+.fleet/
+.vscode/
+_output/
+_build/
+bin/
+result

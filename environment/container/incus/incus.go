@@ -1,0 +1,527 @@
+package incus
+
+import (
+	"bytes"
+	"context"
+	_ "embed"
+	"encoding/json"
+	"fmt"
+	"path/filepath"
+	"strings"
+	"time"
+
+	log "github.com/sirupsen/logrus"
+
+	"github.com/abiosoft/colima/cli"
+	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/environment/guest/systemctl"
+	"github.com/abiosoft/colima/environment/vm/lima/limautil"
+	"github.com/abiosoft/colima/util"
+	"github.com/abiosoft/colima/util/debutil"
+)
+
+const incusBridgeInterface = "incusbr0"
+
+func newRuntime(host environment.HostActions, guest environment.GuestActions) environment.Container {
+	return &incusRuntime{
+		host:         host,
+		guest:        guest,
+		systemctl:    systemctl.New(guest),
+		CommandChain: cli.New(Name),
+	}
+}
+
+var configDir = func() string { return config.CurrentProfile().ConfigDir() }
+
+// HostSocketFile returns the path to the containerd socket on host.
+func HostSocketFile() string { return filepath.Join(configDir(), "incus.sock") }
+
+const (
+	Name = "incus"
+
+	storageDriver = "zfs"
+
+	poolName    = "default"
+	poolMetaDir = "/var/lib/incus/storage-pools/" + poolName
+
+	poolDisksDir = "/var/lib/incus/disks"
+	poolDiskFile = poolDisksDir + "/" + poolName + ".img"
+)
+
+func init() {
+	environment.RegisterContainer(Name, newRuntime, false)
+}
+
+var _ environment.Container = (*incusRuntime)(nil)
+
+type incusRuntime struct {
+	host      environment.HostActions
+	guest     environment.GuestActions
+	systemctl systemctl.Systemctl
+	cli.CommandChain
+}
+
+// Dependencies implements environment.Container.
+func (c *incusRuntime) Dependencies() []string {
+	return []string{"incus"}
+}
+
+// Provision implements environment.Container.
+func (c *incusRuntime) Provision(ctx context.Context) error {
+	conf := ctx.Value(config.CtxKey()).(config.Config)
+	log := c.Logger(ctx)
+
+	// start incus to check if already fully provisioned.
+	// after a full /var/lib/incus restore from external disk, incus
+	// reads its previous database and restores networks/pools automatically.
+	// incus.socket (socket activation) is stopped by the data disk PreMount on
+	// every boot, so start it explicitly to restore the listening socket.
+	_ = c.systemctl.Start("incus.socket")
+	_ = c.systemctl.Start("incus.service")
+
+	if found, _, _ := c.findNetwork(incusBridgeInterface); found {
+		// already provisioned (e.g. full restore from external disk)
+		return nil
+	}
+
+	emptyDisk := true
+	recoverStorage := false
+	if limautil.DiskProvisioned(Name) {
+		emptyDisk = false
+		// previous disk exists
+		// ignore storage, recovery would be attempted later
+		recoverStorage = cli.Prompt("existing Incus data found, would you like to recover the storage pool(s)")
+	}
+
+	var value struct {
+		Disk          int
+		Interface     string
+		BridgeGateway string
+		SetStorage    bool
+	}
+	value.Disk = conf.Disk
+	value.Interface = incusBridgeInterface
+	value.BridgeGateway = bridgeGateway
+	value.SetStorage = emptyDisk // set only when the disk is empty
+
+	buf, err := util.ParseTemplate(configYaml, value)
+	if err != nil {
+		return fmt.Errorf("error parsing incus config template: %w", err)
+	}
+
+	stdin := bytes.NewReader(buf)
+	if err := c.guest.RunWith(stdin, nil, "sudo", "incus", "admin", "init", "--preseed"); err != nil {
+		return fmt.Errorf("error setting up incus: %w", err)
+	}
+
+	// provision successful
+	if emptyDisk {
+		return nil
+	}
+
+	if !recoverStorage {
+		return c.wipeDisk(conf.Disk)
+	}
+
+	if _, err := c.guest.Stat(poolDiskFile); err != nil {
+		log.Warnln(fmt.Errorf("cannot recover disk: %w, creating new storage pool", err))
+		return c.wipeDisk(conf.Disk)
+	}
+
+	for {
+		if err := c.recoverDisk(ctx); err != nil {
+			log.Warnln(err)
+
+			if cli.Prompt("recovery failed for default storage pool, try again") {
+				continue
+			}
+
+			log.Warnln("discarding disk, creating new storage pool")
+			return c.wipeDisk(conf.Disk)
+		}
+		break
+	}
+
+	return nil
+}
+
+// Running implements environment.Container.
+func (c *incusRuntime) Running(ctx context.Context) bool {
+	return c.systemctl.Active("incus.service")
+}
+
+// ensureIncusUp (re)starts the incus daemon. incus uses systemd socket
+// activation: incus.socket owns the listening /var/lib/incus/unix.socket and
+// activates incus.service on connection. The data disk PreMount stops both units
+// on every boot to mount /var/lib/incus, so the socket listener must be started
+// again — best-effort, since incus.service may already hold the socket. The
+// service is restarted (rather than started) when the zfs pool is not yet
+// imported, so the pool gets picked up.
+func (c *incusRuntime) ensureIncusUp() error {
+	_ = c.systemctl.Start("incus.socket")
+
+	if c.poolImported() {
+		return c.systemctl.Start("incus.service")
+	}
+	// pool not yet imported; restart incus to import it
+	return c.systemctl.Restart("incus.service")
+}
+
+// Start implements environment.Container.
+func (c *incusRuntime) Start(ctx context.Context) error {
+	conf, _ := ctx.Value(config.CtxKey()).(config.Config)
+
+	a := c.Init(ctx)
+
+	// bring the incus daemon up (socket activation listener + service).
+	a.Add(func() error {
+		return c.ensureIncusUp()
+	})
+
+	// sync disk size for the default pool
+	if conf.Disk > 0 {
+		a.Add(func() error {
+			// this can fail silently
+			_ = c.guest.RunQuiet("sudo", "incus", "storage", "set", "default", "size="+config.Disk(conf.Disk).GiB())
+			return nil
+		})
+	}
+
+	a.Add(func() error {
+		// Wait until incus is reachable by the non-root guest user. This requires
+		// both a running daemon and the lima user being effective in the
+		// incus-admin group. `usermod` adds the user during provisioning, but the
+		// existing SSH session (used for the forwarded host socket) does not pick
+		// up the new group until a fresh login, so the host's `incus remote add`
+		// is rejected with EOF. Restart the VM to refresh the session, bringing
+		// the daemon back up after each restart (the data disk PreMount stops
+		// incus.socket on every boot).
+		const maxRestarts = 2
+		for i := 0; !c.guestIncusReady(); i++ {
+			if i >= maxRestarts {
+				// give up refreshing; let setRemote surface the underlying error
+				break
+			}
+			rctx := context.WithValue(ctx, cli.CtxKeyQuiet, true)
+			if err := c.guest.Restart(rctx); err != nil {
+				return err
+			}
+			_ = c.ensureIncusUp()
+		}
+
+		return c.setRemoteWithRetry(conf.AutoActivate())
+	})
+
+	a.Add(func() error {
+		if err := c.addDockerRemote(); err != nil {
+			return cli.ErrNonFatal(err)
+		}
+		return nil
+	})
+
+	a.Add(func() error {
+		if err := c.addContainerRoute(); err != nil {
+			return cli.ErrNonFatal(err)
+		}
+		return nil
+	})
+
+	return a.Exec()
+}
+
+// Stop implements environment.Container.
+func (c *incusRuntime) Stop(ctx context.Context, force bool) error {
+	a := c.Init(ctx)
+
+	a.Add(func() error {
+		_ = c.removeContainerRoute()
+		return nil
+	})
+
+	a.Add(func() error {
+		return c.systemctl.Stop("incus.service", force)
+	})
+
+	a.Add(c.unsetRemote)
+
+	return a.Exec()
+}
+
+// Teardown implements environment.Container.
+func (c *incusRuntime) Teardown(ctx context.Context) error {
+	a := c.Init(ctx)
+
+	a.Add(func() error {
+		_ = c.removeContainerRoute()
+		return nil
+	})
+
+	a.Add(c.unsetRemote)
+
+	return a.Exec()
+}
+
+// Version implements environment.Container.
+func (c *incusRuntime) Version(ctx context.Context) string {
+	version, _ := c.host.RunOutput("incus", "version", config.CurrentProfile().ID+":")
+	return version
+}
+
+func (c incusRuntime) Name() string {
+	return Name
+}
+
+// guestIncusReady reports whether the incus daemon is reachable by the non-root
+// guest user. This mirrors the access path the forwarded host socket relies on: it
+// requires both the daemon to be listening and the lima user to be effective in the
+// incus-admin group, so a successful non-sudo `incus info` is a faithful
+// precondition for `incus remote add` from the host. It polls for a bounded time.
+func (c incusRuntime) guestIncusReady() bool {
+	const (
+		attempts = 15
+		interval = 2 * time.Second
+	)
+
+	for i := range attempts {
+		if c.guest.RunQuiet("incus", "info") == nil {
+			return true
+		}
+		log.Tracef("incus not yet reachable by guest user (attempt %d/%d)", i+1, attempts)
+		time.Sleep(interval)
+	}
+	return false
+}
+
+// setRemoteWithRetry calls setRemote, retrying briefly while the forwarded host
+// socket is not yet ready (it can lag shortly after the daemon becomes reachable
+// inside the guest). It returns the last error if the remote cannot be added.
+func (c incusRuntime) setRemoteWithRetry(activate bool) error {
+	const (
+		attempts = 15
+		interval = 2 * time.Second
+	)
+
+	var err error
+	for i := range attempts {
+		if err = c.setRemote(activate); err == nil {
+			return nil
+		}
+		log.Tracef("incus host socket not ready (attempt %d/%d): %v", i+1, attempts, err)
+		time.Sleep(interval)
+	}
+	return err
+}
+
+func (c incusRuntime) setRemote(activate bool) error {
+	name := config.CurrentProfile().ID
+
+	// add remote
+	if !c.hasRemote(name) {
+		if err := c.host.RunQuiet("incus", "remote", "add", name, "unix://"+HostSocketFile()); err != nil {
+			return err
+		}
+	}
+
+	// if activate, set default to new remote
+	if activate {
+		return c.host.RunQuiet("incus", "remote", "switch", name)
+	}
+
+	return nil
+}
+
+func (c incusRuntime) unsetRemote() error {
+	// if default remote, set default to local
+	if c.isDefaultRemote() {
+		if err := c.host.RunQuiet("incus", "remote", "switch", "local"); err != nil {
+			return err
+		}
+	}
+
+	// if has remote, remove remote
+	if c.hasRemote(config.CurrentProfile().ID) {
+		return c.host.RunQuiet("incus", "remote", "remove", config.CurrentProfile().ID)
+	}
+
+	return nil
+}
+
+func (c incusRuntime) hasRemote(name string) bool {
+	remotes, err := c.fetchRemotes()
+	if err != nil {
+		return false
+	}
+
+	_, ok := remotes[name]
+	return ok
+}
+
+func (c incusRuntime) fetchRemotes() (remoteInfo, error) {
+	b, err := c.host.RunOutput("incus", "remote", "list", "--format", "json")
+	if err != nil {
+		return nil, fmt.Errorf("error fetching remotes: %w", err)
+	}
+
+	var remotes remoteInfo
+	if err := json.NewDecoder(strings.NewReader(b)).Decode(&remotes); err != nil {
+		return nil, fmt.Errorf("error decoding remotes response: %w", err)
+	}
+
+	return remotes, nil
+}
+
+func (c incusRuntime) isDefaultRemote() bool {
+	remote, _ := c.host.RunOutput("incus", "remote", "get-default")
+	return remote == config.CurrentProfile().ID
+}
+
+func (c incusRuntime) addDockerRemote() error {
+	if c.hasRemote("docker") {
+		// already added
+		return nil
+	}
+
+	return c.host.RunQuiet("incus", "remote", "add", "docker", "https://docker.io", "--protocol=oci")
+}
+
+func (c incusRuntime) findNetwork(interfaceName string) (found bool, info networkInfo, err error) {
+	b, err := c.guest.RunOutput("sudo", "incus", "network", "list", "--format", "json")
+	if err != nil {
+		return found, info, fmt.Errorf("error listing networks: %w", err)
+	}
+	var resp []networkInfo
+	if err := json.NewDecoder(strings.NewReader(b)).Decode(&resp); err != nil {
+		return found, info, fmt.Errorf("error decoding networks into struct: %w", err)
+	}
+	for _, n := range resp {
+		if n.Name == interfaceName {
+			return true, n, nil
+		}
+	}
+
+	return
+}
+
+//go:embed config.yaml
+var configYaml string
+
+type remoteInfo map[string]struct {
+	Addr string `json:"Addr"`
+}
+
+type networkInfo struct {
+	Name    string `json:"name"`
+	Managed bool   `json:"managed"`
+	Type    string `json:"type"`
+}
+
+func (c *incusRuntime) Update(ctx context.Context) (bool, error) {
+	packages := []string{
+		"incus",
+		"incus-base",
+		"incus-client",
+		"incus-extra",
+		"incus-ui-canonical",
+	}
+
+	return debutil.UpdateRuntime(ctx, c.guest, c, packages...)
+}
+
+func (c *incusRuntime) poolImported() bool {
+	script := strings.NewReplacer(
+		"{pool_name}", poolName,
+	).Replace("sudo zpool list -H -o name | grep '^{pool_name}$'")
+	return c.guest.RunQuiet("sh", "-c", script) == nil
+}
+
+func (c *incusRuntime) recoverDisk(ctx context.Context) error {
+	var disks []string
+	str, err := c.guest.RunOutput("sh", "-c", "sudo ls "+poolDisksDir+" | grep '.img$'")
+
+	if err != nil {
+		return fmt.Errorf("cannot list storage pool disks: %w", err)
+	}
+
+	disks = strings.Fields(str)
+	if len(disks) == 0 {
+		return fmt.Errorf("no existing storage pool disks found")
+	}
+
+	log := c.Logger(ctx)
+
+	log.Println()
+	log.Println("Running 'incus admin recover' ...")
+	log.Println()
+	log.Println(fmt.Sprintf("Found %d storage pool source(s):", len(disks)))
+	for _, disk := range disks {
+		log.Println("  " + poolDisksDir + "/" + disk)
+	}
+	log.Println()
+
+	if err := c.guest.RunInteractive("sudo", "incus", "admin", "recover"); err != nil {
+		return fmt.Errorf("error recovering storage pool: %w", err)
+	}
+
+	out, err := c.guest.RunOutput("sudo", "incus", "storage", "list", "name="+poolName, "-c", "n", "--format", "compact,noheader")
+	if err != nil {
+		return err
+	}
+
+	if out != poolName {
+		return fmt.Errorf("default storage pool recovery failure")
+	}
+
+	return nil
+}
+
+func (c *incusRuntime) wipeDisk(size int) error {
+	// prepare by deleting relevant files/directories
+	deleteScript := strings.NewReplacer(
+		"{disk_file}", poolDiskFile,
+		"{meta_dir}", poolMetaDir,
+	).Replace("sudo rm -rf {disk_file} {meta_dir}")
+
+	if err := c.guest.RunQuiet("sh", "-c", deleteScript); err != nil {
+		return fmt.Errorf("error preparing storage pools directory: %w", err)
+	}
+
+	// create new storage pool
+	var diskSize = fmt.Sprintf("%dGiB", size)
+	return c.guest.RunQuiet("sudo", "incus", "storage", "create", poolName, storageDriver, "size="+diskSize)
+}
+
+// migrationScript returns a script that migrates from the old disk layout
+// (separate incus-disks and incus-backups subdirectories) to the new layout
+// (full /var/lib/incus directory).
+func migrationScript() string {
+	mountPoint := limautil.MountPoint()
+	return `MOUNT_POINT="` + mountPoint + `"
+if [ -d "$MOUNT_POINT/incus-disks" ] && [ ! -d "$MOUNT_POINT/incus" ]; then
+  mkdir -p "$MOUNT_POINT/incus"
+  if [ -d /var/lib/incus ]; then
+    cp -a /var/lib/incus/. "$MOUNT_POINT/incus/"
+  fi
+  rm -rf "$MOUNT_POINT/incus/disks"
+  mv "$MOUNT_POINT/incus-disks" "$MOUNT_POINT/incus/disks"
+  if [ -d "$MOUNT_POINT/incus-backups" ]; then
+    rm -rf "$MOUNT_POINT/incus/backups"
+    mv "$MOUNT_POINT/incus-backups" "$MOUNT_POINT/incus/backups"
+  fi
+fi`
+}
+
+// DataDisk represents the data disk for the container runtime.
+func DataDisk() environment.DataDisk {
+	return environment.DataDisk{
+		FSType: "ext4",
+		Dirs: []environment.DiskDir{
+			{Name: "incus", Path: "/var/lib/incus"},
+		},
+		PreMount: []string{
+			"systemctl stop incus.service || true",
+			"systemctl stop incus.socket || true",
+			migrationScript(),
+		},
+	}
+}

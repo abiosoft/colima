@@ -1,0 +1,4 @@
+disabled_plugins = ["cri"]
+
+[grpc]
+gid = 1000

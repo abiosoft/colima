@@ -1,0 +1,32 @@
+networks:
+  - config:
+      ipv4.address: {{.BridgeGateway}}
+      ipv4.nat: "true"
+      ipv6.address: auto
+    description: ""
+    name: {{.Interface}}
+    type: ""
+    project: default
+{{ if .SetStorage }}
+storage_pools:
+  - config:
+      size: {{.Disk}}GiB
+    description: ""
+    name: default
+    driver: zfs
+{{ end }}
+profiles:
+  - config: {}
+    description: ""
+    devices:
+      eth0:
+        name: eth0
+        network: {{.Interface}}
+        type: nic
+      root:
+        path: /
+        pool: default
+        type: disk
+    name: default
+projects: []
+cluster: null

@@ -1,0 +1,8 @@
+[worker.oci]
+enabled = false
+
+[worker.containerd]
+enabled = true
+
+[grpc]
+gid = 1000

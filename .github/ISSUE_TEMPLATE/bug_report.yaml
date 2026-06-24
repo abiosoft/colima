@@ -1,0 +1,47 @@
+name: Bug report
+description: Report a bug or issue
+body:
+  - type: textarea
+    attributes:
+      label: Description
+      description: A clear and concise description of what the issue is.
+  - type: textarea
+    attributes:
+      label: Version
+      description: Please show the output of `colima version && limactl --version && qemu-img --version`.
+  - type: checkboxes
+    attributes:
+      label: Operating System
+      description: Which Operating System/Architecture does this issue happen on? Check all that apply.
+      options:
+        - label: macOS Intel <= 13 (Ventura)
+          required: false
+        - label: macOS Intel >= 14 (Sonoma)
+          required: false
+        - label: Apple Silicon <= 13 (Ventura)
+          required: false
+        - label: Apple Silicon >= 14 (Sonoma)
+          required: false
+        - label: Linux
+          required: false
+  - type: textarea
+    attributes:
+      label: Output of `colima status`
+      description: The output of `colima status` or `colima status -p <profilename>` tells us what vm-type and mount type, etc.
+      value:
+  - type: textarea
+    attributes:
+      label: Reproduction Steps
+      description: Kindly walk us through the steps to reproduce this behaviour.
+      value: |
+        1.
+        2.
+        3.
+  - type: textarea
+    attributes:
+      label: Expected behaviour
+      description: A clear and concise description of what you expected to happen.
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here.
