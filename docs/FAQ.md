@@ -60,6 +60,7 @@
     - [Mount path with spaces is not supported](#mount-path-with-spaces-is-not-supported)
   - [How can Docker version be updated?](#how-can-docker-version-be-updated)
   - [How can I delete container data](#how-can-i-delete-container-data)
+  - [How do I use Colima with an AI coding assistant?](#how-do-i-use-colima-with-an-ai-coding-assistant)
 
 ## How does Colima compare to Lima?
 
@@ -687,3 +688,13 @@ From v0.7.6, there is a new `colima update` command to update the container runt
 From v0.9.0, Colima utilises a different disk for the container runtime data. This guards against accidental data loss after deletion and the container data should be reinstated on `colima start`.
 
 To clear all data, `colima delete --data`  should be run instead. The `--data` flag ensures that the container data is also deleted.
+
+## How do I use Colima with an AI coding assistant?
+
+The [`skills/`](../skills/) folder is an Agent Skill — Markdown that AI coding assistants (Claude Code, Cursor, Kimi Code, etc.) load on demand to give accurate, version-aware Colima guidance instead of generic Docker advice. Install it into your assistant's skills directory, e.g.:
+
+```sh
+cp -R skills ~/.claude/skills/colima
+```
+
+See [`skills/README.md`](../skills/README.md) for per-tool instructions and what each file covers.
