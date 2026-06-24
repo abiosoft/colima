@@ -1,7 +1,12 @@
 # Runtimes: Docker, Containerd, Kubernetes, Incus, AI
 
 Sources: `README.md` (usage) + `docs/FAQ.md` (config/details). Runtime is chosen at `colima start`
-(default Docker); changing it needs a stop/start.
+(default Docker). **Switching to a different runtime requires re-creating the VM** — a stop/start
+alone does not change it:
+
+```sh
+colima delete --data && colima start --runtime <new runtime>
+```
 
 ## Docker
 

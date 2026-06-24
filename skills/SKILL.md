@@ -61,7 +61,8 @@ Profiles isolate independent VMs: `colima start work` operates on the `work` pro
 
 ## Runtimes — chosen at `start`
 
-Default is Docker. Switch with `--runtime` (changing runtime needs a stop/start).
+Default is Docker. **Switching the runtime requires re-creating the VM** — a stop/start alone
+does not change it: `colima delete --data && colima start --runtime <new>`.
 
 - **Docker** (default): `colima start` → `docker ...` works directly. Needs the docker client (`brew install docker`).
 - **Containerd**: `colima start --runtime containerd` → use `colima nerdctl ...` (run `colima nerdctl install` to add a `nerdctl` alias to `$PATH`).
