@@ -221,6 +221,8 @@ The logo was contributed by [Daniel Hodvogner](https://github.com/dhodvogner). C
 
 Check [here](docs/FAQ.md) for Frequently Asked Questions, or visit the [online FAQ](https://colima.run/docs/faq/) for a searchable version.
 
+Using an AI coding assistant? The [`skills/`](skills/) folder is an Agent Skill that helps Claude Code and other agents give accurate Colima guidance.
+
 ## How to Contribute?
 
 Check [here](docs/CONTRIBUTE.md) for the instructions on contributing to the project.
