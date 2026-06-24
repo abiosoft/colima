@@ -226,7 +226,6 @@ Check [here](docs/FAQ.md) for Frequently Asked Questions, or visit the [online F
 Check [here](docs/CONTRIBUTE.md) for the instructions on contributing to the project.
 
 ## Community
-- [Agent Skill](skills/) — helps Claude Code and other AI assistants give accurate Colima guidance
 - [GitHub Discussions](https://github.com/abiosoft/colima/discussions)
 - [GitHub Issues](https://github.com/abiosoft/colima/issues)
 - [Announcements](https://colima.run/announcements/)
