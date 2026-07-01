@@ -10,8 +10,6 @@ import (
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/config/configmanager"
 	"github.com/abiosoft/colima/environment/container/docker"
-	"github.com/abiosoft/colima/environment/host"
-	"github.com/abiosoft/colima/environment/vm/lima"
 	"github.com/abiosoft/colima/environment/vm/lima/limaconfig"
 	"github.com/abiosoft/colima/store"
 	"github.com/abiosoft/colima/util"
@@ -97,11 +95,19 @@ func validateCommonPrerequisites(a app.App) error {
 			"Start colima with: colima start --runtime docker --vm-type krunkit", r)
 	}
 
-	// check VM type is krunkit (required for GPU access)
+	// check VM type requirements
 	conf, err := configmanager.LoadInstance()
 	if err != nil {
 		return fmt.Errorf("error loading instance config: %w", err)
 	}
+
+	// native mode: colima model is not yet supported
+	if conf.VMType == "native" {
+		return fmt.Errorf("'colima model' is not yet supported in native mode\n" +
+			"Use Docker directly with NVIDIA Container Toolkit for GPU workloads")
+	}
+
+	// check VM type is krunkit (required for GPU access)
 	if conf.VMType != limaconfig.Krunkit {
 		return fmt.Errorf("'colima model' requires krunkit VM type for GPU access, current VM type is %s\n"+
 			"Start colima with: colima start --runtime docker --vm-type krunkit", conf.VMType)
@@ -179,7 +185,7 @@ func GetFirstModel() (string, error) {
 
 // listDockerModels returns all available models from docker model list.
 func listDockerModels() ([]dockerModel, error) {
-	guest := lima.New(host.New())
+	guest := newGuest()
 	output, err := guest.RunOutput("docker", "model", "list", "--json")
 	if err != nil {
 		return nil, fmt.Errorf("error listing models: %w", err)
@@ -351,7 +357,7 @@ func (r *ramalamaRunner) EnsureModel(modelName string) (string, error) {
 
 // Serve starts serving a model using ramalama.
 func (r *ramalamaRunner) Serve(modelName string, port int) error {
-	guest := lima.New(host.New())
+	guest := newGuest()
 
 	// ramalama serve <model> with GPU support and custom port
 	shellCmd := fmt.Sprintf(

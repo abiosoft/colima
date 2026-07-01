@@ -12,7 +12,11 @@ const hostGatewayIPKey = "host-gateway-ip"
 
 func getHostGatewayIp(d dockerRuntime, conf map[string]any) (string, error) {
 	// get host-gateway ip from the guest
-	ip, err := d.guest.RunOutput("sh", "-c", "grep 'host.lima.internal' /etc/hosts | awk -F' ' '{print $1}'")
+	// Try Lima host entry first, fall back to default gateway for native mode
+	ip, err := d.guest.RunOutput("sh", "-c",
+		"grep 'host.lima.internal' /etc/hosts 2>/dev/null | awk -F' ' '{print $1}' || "+
+			"ip route show default 2>/dev/null | awk '{print $3}' || "+
+			"echo 127.0.0.1")
 	if err != nil {
 		return "", fmt.Errorf("error retrieving host gateway IP address: %w", err)
 	}
