@@ -67,20 +67,34 @@ var (
 
 			// extra xdg config directory
 			xdgDir, xdg := os.LookupEnv("XDG_CONFIG_HOME")
+			if xdgDir == "" {
+				// the XDG spec treats an unset or empty variable as ~/.config.
+				// resolving the default keeps processes started without a shell
+				// environment (e.g. launchd via `brew services`) on the same
+				// config directory as interactive runs.
+				xdg = false
+				xdgDir = filepath.Join(homeDir, ".config")
+			}
+			xdgColimaDir := filepath.Join(xdgDir, "colima")
 
 			if err == nil {
 				// ~/.colima is found but xdg dir is set
 				if xdg {
 					logrus.Warnln("found ~/.colima, ignoring $XDG_CONFIG_HOME...")
 					logrus.Warnln("delete ~/.colima to use $XDG_CONFIG_HOME as config directory")
-					logrus.Warnf("or run `mv ~/.colima \"%s\"`", filepath.Join(xdgDir, "colima"))
+					logrus.Warnf("or run `mv ~/.colima \"%s\"`", xdgColimaDir)
 				}
 				return dir, nil
-			} else {
-				// ~/.colima is missing and xdg dir is set
-				if xdg {
-					return filepath.Join(xdgDir, "colima"), nil
-				}
+			}
+
+			// ~/.colima is missing and xdg dir is set
+			if xdg {
+				return xdgColimaDir, nil
+			}
+
+			// ~/.colima is missing and the xdg default dir is already in use
+			if _, err := os.Stat(xdgColimaDir); err == nil {
+				return xdgColimaDir, nil
 			}
 
 			// macOS users are accustomed to ~/.colima

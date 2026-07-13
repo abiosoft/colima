@@ -119,7 +119,12 @@ Yes, from v0.4.0, Colima support YAML configuration file.
 
 ### Specifying the config location
 
-Set the `$COLIMA_HOME` environment variable, otherwise it defaults to `$HOME/.colima`.
+Set the `$COLIMA_HOME` environment variable. When it is not set, the first match wins:
+
+1. `$HOME/.colima`, if it exists
+2. `$XDG_CONFIG_HOME/colima`, if the variable is set
+3. `~/.config/colima`, if it exists (the XDG default when the variable is unset)
+4. otherwise `$HOME/.colima` on macOS, and the user config directory on other platforms
 
 ### Editing the config
 
