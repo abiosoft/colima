@@ -363,6 +363,13 @@ func setFlagDefaults(cmd *cobra.Command) {
 				log.Warnf("9p is only available for 'qemu' vmType, using %s", defaultMountTypeVZ)
 			}
 		}
+		// convert mount type for krunkit
+		if startCmdArgs.VMType == "krunkit" && startCmdArgs.MountType == "9p" {
+			startCmdArgs.MountType = "virtiofs"
+			if cmd.Flag("mount-type").Changed {
+				log.Warnf("9p is not supported for 'krunkit' vmType, using virtiofs")
+			}
+		}
 	}
 
 	// always enable nested virtualization for incus, if supported and not explicitly disabled.
