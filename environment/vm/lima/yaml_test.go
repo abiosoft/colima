@@ -102,6 +102,29 @@ func Test_config_Mounts(t *testing.T) {
 	}
 }
 
+func Test_resolveMountType(t *testing.T) {
+	tests := []struct {
+		name      string
+		vmType    limaconfig.VMType
+		mountType string
+		want      limaconfig.MountType
+	}{
+		{name: "qemu defaults to 9p", vmType: limaconfig.QEMU, want: limaconfig.NINEP},
+		{name: "vz defaults to virtiofs", vmType: limaconfig.VZ, want: limaconfig.VIRTIOFS},
+		{name: "krunkit defaults to virtiofs", vmType: limaconfig.Krunkit, want: limaconfig.VIRTIOFS},
+		{name: "krunkit supports explicit virtiofs", vmType: limaconfig.Krunkit, mountType: limaconfig.VIRTIOFS, want: limaconfig.VIRTIOFS},
+		{name: "krunkit supports sshfs", vmType: limaconfig.Krunkit, mountType: "sshfs", want: limaconfig.REVSSHFS},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := resolveMountType(tt.vmType, tt.mountType); got != tt.want {
+				t.Errorf("resolveMountType() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func Test_ingressDisabled(t *testing.T) {
 	tests := []struct {
 		args []string

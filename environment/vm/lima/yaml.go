@@ -339,16 +339,7 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 		}
 	}
 
-	switch strings.ToLower(conf.MountType) {
-	case "ssh", "sshfs", "reversessh", "reverse-ssh", "reversesshfs", limaconfig.REVSSHFS:
-		l.MountType = limaconfig.REVSSHFS
-	default:
-		if l.VMType == limaconfig.VZ {
-			l.MountType = limaconfig.VIRTIOFS
-		} else { // qemu
-			l.MountType = limaconfig.NINEP
-		}
-	}
+	l.MountType = resolveMountType(l.VMType, conf.MountType)
 
 	/*
 		provision scripts for disk actions
@@ -420,6 +411,18 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 }
 
 type Arch = environment.Arch
+
+func resolveMountType(vmType limaconfig.VMType, mountType string) limaconfig.MountType {
+	switch strings.ToLower(mountType) {
+	case "ssh", "sshfs", "reversessh", "reverse-ssh", "reversesshfs", limaconfig.REVSSHFS:
+		return limaconfig.REVSSHFS
+	default:
+		if vmType == limaconfig.VZ || vmType == limaconfig.Krunkit {
+			return limaconfig.VIRTIOFS
+		}
+		return limaconfig.NINEP
+	}
+}
 
 func selectPath(m config.Mount) (string, error) {
 	if m.MountPoint != "" {
