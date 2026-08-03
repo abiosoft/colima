@@ -109,11 +109,11 @@ func Test_resolveMountType(t *testing.T) {
 		mountType string
 		want      limaconfig.MountType
 	}{
-		{name: "qemu defaults to 9p", vmType: limaconfig.QEMU, want: limaconfig.NINEP},
-		{name: "vz defaults to virtiofs", vmType: limaconfig.VZ, want: limaconfig.VIRTIOFS},
-		{name: "krunkit defaults to virtiofs", vmType: limaconfig.Krunkit, want: limaconfig.VIRTIOFS},
-		{name: "krunkit supports explicit virtiofs", vmType: limaconfig.Krunkit, mountType: limaconfig.VIRTIOFS, want: limaconfig.VIRTIOFS},
-		{name: "krunkit supports sshfs", vmType: limaconfig.Krunkit, mountType: "sshfs", want: limaconfig.REVSSHFS},
+		{name: "qemu keeps explicit 9p", vmType: limaconfig.QEMU, mountType: limaconfig.NINEP, want: limaconfig.NINEP},
+		{name: "qemu maps sshfs to reverse-sshfs", vmType: limaconfig.QEMU, mountType: "sshfs", want: limaconfig.REVSSHFS},
+		{name: "vz converts 9p to virtiofs", vmType: limaconfig.VZ, mountType: limaconfig.NINEP, want: limaconfig.VIRTIOFS},
+		{name: "krunkit converts 9p to virtiofs", vmType: limaconfig.Krunkit, mountType: limaconfig.NINEP, want: limaconfig.VIRTIOFS},
+		{name: "krunkit maps sshfs to reverse-sshfs", vmType: limaconfig.Krunkit, mountType: "sshfs", want: limaconfig.REVSSHFS},
 	}
 
 	for _, tt := range tests {
