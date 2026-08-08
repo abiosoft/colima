@@ -23,6 +23,14 @@ func Test_mountsFromFlag(t *testing.T) {
 		},
 		{
 			mounts: []string{
+				"~:W",
+			},
+			want: []config.Mount{
+				{Location: "~", Writable: true},
+			},
+		},
+		{
+			mounts: []string{
 				"~",
 			},
 			want: []config.Mount{
@@ -48,6 +56,14 @@ func Test_mountsFromFlag(t *testing.T) {
 				{Location: "/home/another", Writable: true},
 				{Location: "/tmp", MountPoint: "/users/tmp"},
 				{Location: "/tmp", MountPoint: "/users/tmp", Writable: true},
+			},
+		},
+		{
+			mounts: []string{
+				"/home/users:/home/users:W",
+			},
+			want: []config.Mount{
+				{Location: "/home/users", MountPoint: "/home/users", Writable: true},
 			},
 		},
 		{
