@@ -3,6 +3,7 @@ package lima
 import (
 	"context"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 	"testing"
@@ -100,6 +101,64 @@ func Test_config_Mounts(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestNewConfResolverCompatibility characterizes the DNS/hostResolver contract
+// preserved by the dnsmasq DNS path: empty DNS keeps the lima hostResolver
+// enabled, explicit resolvers disable it and are preserved in exact order, and
+// DNSHosts are preserved with the host.docker.internal default entry.
+func TestNewConfResolverCompatibility(t *testing.T) {
+	fsutil.FS = fsutil.FakeFS
+
+	t.Run("empty DNS keeps hostResolver enabled", func(t *testing.T) {
+		conf, err := newConf(context.Background(), config.Config{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(conf.DNS) != 0 {
+			t.Fatalf("conf.DNS = %v; want empty", conf.DNS)
+		}
+		if !conf.HostResolver.Enabled {
+			t.Fatal("conf.HostResolver.Enabled = false; want true with empty DNS")
+		}
+		if got := conf.HostResolver.Hosts["host.docker.internal"]; got != "host.lima.internal" {
+			t.Fatalf("host.docker.internal = %q; want %q", got, "host.lima.internal")
+		}
+	})
+
+	t.Run("explicit resolvers preserved in order", func(t *testing.T) {
+		resolvers := []net.IP{net.ParseIP("1.1.1.1"), net.ParseIP("8.8.8.8")}
+		conf, err := newConf(context.Background(), config.Config{Network: config.Network{DNSResolvers: resolvers}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(conf.DNS) != 2 {
+			t.Fatalf("conf.DNS = %v; want two resolvers", conf.DNS)
+		}
+		if got := conf.DNS[0].String(); got != "1.1.1.1" {
+			t.Fatalf("conf.DNS[0] = %q; want %q", got, "1.1.1.1")
+		}
+		if got := conf.DNS[1].String(); got != "8.8.8.8" {
+			t.Fatalf("conf.DNS[1] = %q; want %q", got, "8.8.8.8")
+		}
+		if conf.HostResolver.Enabled {
+			t.Fatal("conf.HostResolver.Enabled = true; want false with explicit resolvers")
+		}
+	})
+
+	t.Run("DNSHosts preserved with default entry", func(t *testing.T) {
+		hosts := map[string]string{"custom.internal": "10.0.0.5"}
+		conf, err := newConf(context.Background(), config.Config{Network: config.Network{DNSHosts: hosts}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := conf.HostResolver.Hosts["custom.internal"]; got != "10.0.0.5" {
+			t.Fatalf("custom.internal = %q; want %q", got, "10.0.0.5")
+		}
+		if got := conf.HostResolver.Hosts["host.docker.internal"]; got != "host.lima.internal" {
+			t.Fatalf("host.docker.internal = %q; want %q", got, "host.lima.internal")
+		}
+	})
 }
 
 func Test_ingressDisabled(t *testing.T) {
