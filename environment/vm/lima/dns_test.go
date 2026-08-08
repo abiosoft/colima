@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net"
 	"os"
 	"strings"
 	"testing"
@@ -226,7 +227,9 @@ func TestAddPostStartActionsSetupDNSFirst(t *testing.T) {
 type fakeHost struct {
 	runOutput func(args ...string) (string, error)
 	runQuiet  func(args ...string) error
+	runWith   func(stdin io.Reader, args ...string) error
 	calls     [][]string
+	written   map[string][]byte
 }
 
 func (f *fakeHost) record(args []string) { f.calls = append(f.calls, args) }
@@ -249,6 +252,24 @@ func (f *fakeHost) RunOutput(args ...string) (string, error) {
 func (f *fakeHost) RunInteractive(args ...string) error { f.record(args); return nil }
 func (f *fakeHost) RunWith(stdin io.Reader, stdout io.Writer, args ...string) error {
 	f.record(args)
+	if f.runWith != nil {
+		return f.runWith(stdin, args...)
+	}
+	if stdin != nil {
+		body, err := io.ReadAll(stdin)
+		if err != nil {
+			return err
+		}
+		if f.written == nil {
+			f.written = map[string][]byte{}
+		}
+		for _, a := range args {
+			if target, ok := strings.CutPrefix(a, "cat > "); ok {
+				f.written[target] = body
+				break
+			}
+		}
+	}
 	return nil
 }
 func (f *fakeHost) Read(fileName string) (string, error) { return "", nil }
@@ -296,5 +317,126 @@ func TestSetupDNSPropagatesCapabilityProbeError(t *testing.T) {
 	}
 	if len(h.calls) != 1 {
 		t.Fatalf("setupDNS() executed %d guest commands; want only the capability probe", len(h.calls))
+	}
+}
+
+// TestSetupDNSRendersCustomGatewayHostnameAndResolvers covers the remaining
+// setupDNS rendering branches: custom gateway address, hostname entry, and
+// explicit DNSResolvers taking precedence over the default gateway server.
+func TestSetupDNSRendersCustomGatewayHostnameAndResolvers(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+
+	gateway := net.ParseIP("10.0.0.2")
+	hostname := "myhost"
+	resolvers := []net.IP{net.ParseIP("1.1.1.1"), net.ParseIP("9.9.9.9")}
+	h := &fakeHost{runOutput: func(args ...string) (string, error) {
+		return "loaded", nil
+	}}
+	l := &limaVM{host: h, CommandChain: cli.New("vm")}
+
+	conf := config.Config{
+		Hostname: hostname,
+		Network: config.Network{
+			GatewayAddress: gateway,
+			DNSResolvers:   resolvers,
+		},
+	}
+	if err := l.setupDNS(conf); err != nil {
+		t.Fatalf("setupDNS() err = %v; want nil", err)
+	}
+	confOut := string(h.written["/etc/dnsmasq.d/01-colima.conf"])
+	for _, want := range []string{
+		"address=/host.docker.internal/10.0.0.2",
+		"address=/host.lima.internal/10.0.0.2",
+		"address=/myhost/127.0.0.1",
+		"server=1.1.1.1",
+		"server=9.9.9.9",
+	} {
+		if !strings.Contains(confOut, want) {
+			t.Fatalf("dnsmasq config missing %q:\n%s", want, confOut)
+		}
+	}
+	if strings.Contains(confOut, "server=10.0.0.2") {
+		t.Fatalf("dnsmasq config has default gateway server despite explicit resolvers:\n%s", confOut)
+	}
+}
+
+// TestSetupDNSPresentPathPropagatesWriteFailure covers the sequence failure
+// branches: mkdir, dnsmasq config write, resolv.conf removal, and resolv.conf
+// write failures all propagate out of setupDNS.
+func TestSetupDNSPresentPathPropagatesWriteFailure(t *testing.T) {
+	tests := []struct {
+		name     string
+		runQuiet func(args ...string) error
+		runWith  func(stdin io.Reader, args ...string) error
+		wantErr  string
+	}{
+		{
+			name: "mkdir fails",
+			runQuiet: func(args ...string) error {
+				for _, a := range args {
+					if a == "mkdir" {
+						return errors.New("mkdir failed")
+					}
+				}
+				return nil
+			},
+			wantErr: "failed to create dnsmasq config directory",
+		},
+		{
+			name: "dnsmasq config write fails",
+			runWith: func(stdin io.Reader, args ...string) error {
+				for _, a := range args {
+					if strings.Contains(a, "01-colima.conf") {
+						return errors.New("write failed")
+					}
+				}
+				return nil
+			},
+			wantErr: "failed to write dnsmasq config",
+		},
+		{
+			name: "resolv.conf removal fails",
+			runQuiet: func(args ...string) error {
+				for _, a := range args {
+					if a == "rm" {
+						return errors.New("rm failed")
+					}
+				}
+				return nil
+			},
+			wantErr: "failed to remove existing resolv.conf",
+		},
+		{
+			name: "resolv.conf write fails",
+			runWith: func(stdin io.Reader, args ...string) error {
+				for _, a := range args {
+					if strings.Contains(a, "resolv.conf") && strings.Contains(a, "cat >") {
+						return errors.New("write failed")
+					}
+				}
+				return nil
+			},
+			wantErr: "failed to write resolv.conf",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("PATH", t.TempDir())
+			h := &fakeHost{runOutput: func(args ...string) (string, error) {
+				return "loaded", nil
+			}}
+			h.runQuiet = tt.runQuiet
+			h.runWith = tt.runWith
+			l := &limaVM{host: h, CommandChain: cli.New("vm")}
+
+			err := l.setupDNS(config.Config{})
+			if err == nil {
+				t.Fatal("setupDNS() err = nil; want sequence failure")
+			}
+			if !strings.Contains(err.Error(), tt.wantErr) {
+				t.Fatalf("setupDNS() err = %v; want it to contain %q", err, tt.wantErr)
+			}
+		})
 	}
 }
