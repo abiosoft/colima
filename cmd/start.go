@@ -287,8 +287,12 @@ func dnsHostsFromFlag(hosts []string) map[string]string {
 			log.Warnf("unable to parse custom dns host: %v, skipping\n", h)
 			continue
 		}
-		src := str[0]
-		target := str[1]
+		src := strings.TrimSpace(str[0])
+		target := strings.TrimSpace(str[1])
+		if src == "" || target == "" {
+			log.Warnf("unable to parse custom dns host: %v, skipping\n", h)
+			continue
+		}
 
 		mapping[src] = target
 	}
