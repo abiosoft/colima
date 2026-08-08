@@ -82,10 +82,8 @@ func ValidateConfig(c config.Config) error {
 		}
 	}
 
-	if c.DiskImage != "" {
-		if strings.HasPrefix(c.DiskImage, "http://") || strings.HasPrefix(c.DiskImage, "https://") {
-			return fmt.Errorf("cannot use diskImage: remote URLs not supported, only local files can be specified")
-		}
+	if err := validateDiskImage(c.DiskImage); err != nil {
+		return err
 	}
 
 	if _, ok := validPortForwarders[c.PortForwarder]; !ok {
@@ -157,6 +155,24 @@ func validateMounts(mounts []config.Mount) error {
 				return fmt.Errorf("mount path with spaces is not supported by the underlying Lima runtime: %q", p)
 			}
 		}
+	}
+	return nil
+}
+
+// validateDiskImage ensures the diskImage is a local file path. Remote URLs
+// with an http or https scheme are not supported by the Lima image-loading
+// path and fail later with a confusing os.Stat "file not found" error, so
+// reject them here with a clear message.
+// The scheme match is case-insensitive per RFC 3986 §3.1, so HTTP:// and
+// HTTPS:// (and any mixed-case variant) are treated the same as http:// and
+// https://. The empty string is allowed and is the default.
+func validateDiskImage(diskImage string) error {
+	if diskImage == "" {
+		return nil
+	}
+	lower := strings.ToLower(diskImage)
+	if strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://") {
+		return fmt.Errorf("cannot use diskImage: remote URLs not supported, only local files can be specified")
 	}
 	return nil
 }

@@ -26,3 +26,32 @@ func TestValidateMounts(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateDiskImage(t *testing.T) {
+	tests := []struct {
+		name      string
+		diskImage string
+		wantErr   bool
+	}{
+		{name: "empty", diskImage: "", wantErr: false},
+		{name: "plain local path", diskImage: "/Users/me/colima.img", wantErr: false},
+		{name: "relative local path", diskImage: "images/colima.img", wantErr: false},
+		{name: "local path with spaces", diskImage: "/Volumes/My Disk/colima.img", wantErr: false},
+		{name: "http lowercase", diskImage: "http://example.com/colima.img", wantErr: true},
+		{name: "https lowercase", diskImage: "https://example.com/colima.img", wantErr: true},
+		{name: "HTTP uppercase", diskImage: "HTTP://example.com/colima.img", wantErr: true},
+		{name: "HTTPS uppercase", diskImage: "HTTPS://example.com/colima.img", wantErr: true},
+		{name: "Https mixed case", diskImage: "Https://example.com/colima.img", wantErr: true},
+		{name: "hTTp mixed case", diskImage: "hTTp://example.com/colima.img", wantErr: true},
+		{name: "HtTpS mixed case", diskImage: "HtTpS://example.com/colima.img", wantErr: true},
+		{name: "httplocal is a distinct scheme, not http", diskImage: "httplocal://x", wantErr: false},
+		{name: "unrelated scheme not in scope", diskImage: "ftp://example.com/x", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := validateDiskImage(tt.diskImage); (err != nil) != tt.wantErr {
+				t.Errorf("validateDiskImage(%q) error = %v, wantErr %v", tt.diskImage, err, tt.wantErr)
+			}
+		})
+	}
+}
