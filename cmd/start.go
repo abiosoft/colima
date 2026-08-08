@@ -325,11 +325,11 @@ func mountsFromFlag(mounts []string) []config.Mount {
 		if len(str) > 1 {
 			if filepath.IsAbs(str[1]) {
 				mnt.MountPoint = str[1]
-			} else if str[1] == "w" {
+			} else if strings.EqualFold(str[1], "w") {
 				mnt.Writable = true
 			}
 		}
-		if len(str) > 2 && str[2] == "w" {
+		if len(str) > 2 && strings.EqualFold(str[2], "w") {
 			mnt.Writable = true
 		}
 
