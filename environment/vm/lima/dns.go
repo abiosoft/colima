@@ -3,6 +3,7 @@ package lima
 import (
 	"bytes"
 	"fmt"
+	"strings"
 
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
@@ -13,13 +14,41 @@ const (
 	defaultGatewayAddress = "192.168.5.2"
 )
 
-func hasDnsmasq(l *limaVM) bool {
-	// check if dnsmasq is installed
-	return l.RunQuiet("sh", "-c", `apt list | grep 'dnsmasq\/' | grep '\[installed'`) == nil
+// dnsmasqProbe is the minimal package-private seam for the dnsmasq capability
+// probe: it makes the guest command result, stdout, and error observable.
+// *limaVM satisfies it.
+type dnsmasqProbe interface {
+	RunOutput(args ...string) (string, error)
+}
+
+// hasDnsmasq reports whether the guest has a loadable dnsmasq systemd service.
+//
+// It returns (true, nil) when the service is loaded, (false, nil) when the
+// service is absent (not-found), and an error for any other load state or a
+// failed guest command. It intentionally does not parse apt output, which
+// misreports an installed package with an available upgrade.
+func hasDnsmasq(l dnsmasqProbe) (bool, error) {
+	out, err := l.RunOutput("systemctl", "show", "dnsmasq.service", "--property=LoadState", "--value")
+	if err != nil {
+		return false, fmt.Errorf("failed to query dnsmasq service load state: %w", err)
+	}
+
+	switch strings.TrimSpace(out) {
+	case "loaded":
+		return true, nil
+	case "not-found":
+		return false, nil
+	default:
+		return false, fmt.Errorf("unexpected dnsmasq service load state %q", out)
+	}
 }
 
 func (l *limaVM) setupDNS(conf config.Config) error {
-	if !hasDnsmasq(l) {
+	present, err := hasDnsmasq(l)
+	if err != nil {
+		return fmt.Errorf("failed to detect dnsmasq service: %w", err)
+	}
+	if !present {
 		// older image still using systemd-resolved
 		// ignore
 		return nil
