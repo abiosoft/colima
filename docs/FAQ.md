@@ -58,6 +58,7 @@
       - [Version v0.5.6 or lower](#version-v056-or-lower)
     - [Issue with Docker bind mount showing empty](#issue-with-docker-bind-mount-showing-empty)
     - [Mount path with spaces is not supported](#mount-path-with-spaces-is-not-supported)
+    - [Disk image must be a local file](#disk-image-must-be-a-local-file)
   - [How can Docker version be updated?](#how-can-docker-version-be-updated)
   - [How can I delete container data](#how-can-i-delete-container-data)
   - [How do I use Colima with an AI coding assistant?](#how-do-i-use-colima-with-an-ai-coding-assistant)
@@ -681,6 +682,18 @@ underlying [Lima](https://github.com/lima-vm/lima) runtime and will fail to moun
 Colima now rejects such paths at startup with a clear error instead of failing silently.
 As a workaround, mount a parent directory without spaces, or rename/alias the volume to
 avoid spaces. See [#1471](https://github.com/abiosoft/colima/issues/1471).
+
+### Disk image must be a local file
+
+The `--disk-image` flag (and the `diskImage` config field) must point to a local
+file path. Remote URLs with an `http://` or `https://` scheme — in any letter
+case, e.g. `HTTP://` or `Https://` — are rejected at startup, because the
+underlying [Lima](https://github.com/lima-vm/lima) image-loading path treats the
+value as a local file and would otherwise fail later with a confusing
+"file not found" error.
+
+To use a remote image, download it to a local path first and pass that path to
+`--disk-image`.
 
 ## How can Docker version be updated?
 
