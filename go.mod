@@ -10,7 +10,7 @@ require (
 	github.com/rjeczalik/notify v0.9.3
 	github.com/schollz/progressbar/v3 v3.19.1
 	github.com/sevlyar/go-daemon v0.1.6
-	github.com/sirupsen/logrus v1.9.4
+	github.com/sirupsen/logrus v1.10.0
 	github.com/spf13/cobra v1.10.2
 	golang.org/x/term v0.45.0
 	gopkg.in/yaml.v3 v3.0.1
