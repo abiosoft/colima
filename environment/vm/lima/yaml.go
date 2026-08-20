@@ -382,7 +382,7 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 	// grow partition in case disk size has increased
 	l.Provision = append(l.Provision, limaconfig.Provision{
 		Mode:   limaconfig.ProvisionModeSystem,
-		Script: "resize2fs " + diskByLabelPath(config.CurrentProfile().ID) + " || true",
+		Script: diskResizeScript(conf.DiskFS, config.CurrentProfile().ID),
 	})
 
 	/* end */
@@ -491,4 +491,15 @@ func diskByLabelPath(instanceId string) string {
 	}
 
 	return "/dev/disk/by-label/" + name
+}
+
+func diskResizeScript(fsType, instanceId string) string {
+	switch fsType {
+	case "xfs":
+		// xfs_growfs operates on the mounted filesystem.
+		return "xfs_growfs " + limautil.MountPoint() + " || true"
+	default:
+		// resize2fs operates on the ext4 block device.
+		return "resize2fs " + diskByLabelPath(instanceId) + " || true"
+	}
 }

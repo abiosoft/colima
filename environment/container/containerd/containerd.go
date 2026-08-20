@@ -187,8 +187,7 @@ func (c *containerdRuntime) Update(ctx context.Context) (bool, error) {
 // DataDirs represents the data disk for the container runtime.
 func DataDisk() environment.DataDisk {
 	return environment.DataDisk{
-		Dirs:   diskDirs,
-		FSType: "ext4",
+		Dirs: diskDirs,
 		PreMount: []string{
 			"systemctl stop containerd.service",
 			"systemctl stop buildkit.service",

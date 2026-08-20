@@ -30,7 +30,7 @@ func (l *limaVM) createRuntimeDisk(conf config.Config) error {
 		return nil
 	}
 
-	disk := dataDisk(conf.Runtime)
+	disk := dataDisk(conf)
 
 	s, _ := store.Load()
 	format := !s.DiskFormatted // only format if not previously formatted
@@ -54,7 +54,7 @@ func (l *limaVM) createRuntimeDisk(conf config.Config) error {
 		FSType: disk.FSType,
 	})
 
-	l.mountRuntimeDisk(conf, format)
+	l.mountRuntimeDisk(disk, format)
 	return nil
 }
 
@@ -64,7 +64,7 @@ func (l *limaVM) useRuntimeDisk(conf config.Config) {
 		return
 	}
 
-	disk := dataDisk(conf.Runtime)
+	disk := dataDisk(conf)
 
 	s, _ := store.Load()
 	format := !s.DiskFormatted // only format if not previously formatted
@@ -76,28 +76,33 @@ func (l *limaVM) useRuntimeDisk(conf config.Config) {
 		FSType: disk.FSType,
 	})
 
-	l.mountRuntimeDisk(conf, format)
+	l.mountRuntimeDisk(disk, format)
 }
 
-func dataDisk(runtime string) environment.DataDisk {
-	switch runtime {
+func dataDisk(conf config.Config) environment.DataDisk {
+	var disk environment.DataDisk
+
+	switch conf.Runtime {
 	case docker.Name:
-		return docker.DataDisk()
+		disk = docker.DataDisk()
 	case containerd.Name:
-		return containerd.DataDisk()
+		disk = containerd.DataDisk()
 	case incus.Name:
-		return incus.DataDisk()
+		disk = incus.DataDisk()
 	}
 
-	return environment.DataDisk{}
+	disk.FSType = conf.DiskFS
+	return disk
 }
 
-func diskMountScript(format bool) string {
+func diskMountScript(format bool, fsType string) string {
 	var values = struct {
 		Format     bool
+		FSType     string
 		InstanceId string
 	}{
 		Format:     format,
+		FSType:     fsType,
 		InstanceId: config.CurrentProfile().ID,
 	}
 
@@ -109,16 +114,14 @@ func diskMountScript(format bool) string {
 	return string(b)
 }
 
-func (l *limaVM) mountRuntimeDisk(conf config.Config, format bool) {
+func (l *limaVM) mountRuntimeDisk(disk environment.DataDisk, format bool) {
 	// provision script to prepare disk
 	l.limaConf.Provision = append(l.limaConf.Provision, limaconfig.Provision{
 		Mode:   "dependency",
-		Script: diskMountScript(format),
+		Script: diskMountScript(format, disk.FSType),
 	})
 
 	// handle disk mounts
-	disk := dataDisk(conf.Runtime)
-
 	// pre mount script
 	for _, script := range disk.PreMount {
 		l.limaConf.Provision = append(l.limaConf.Provision, limaconfig.Provision{
