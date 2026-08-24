@@ -67,10 +67,17 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 		if err != nil {
 			return err
 		}
+		setConfigDefaults(&conf)
+		setFixedConfigs(&conf)
 
 		// validate config
 		if err := configmanager.ValidateConfig(conf); err != nil {
 			return fmt.Errorf("error in config file: %w", err)
+		}
+		if startCmdArgs.Flags.SaveConfig {
+			if err := configmanager.Save(conf); err != nil {
+				return fmt.Errorf("error preparing config file: %w", err)
+			}
 		}
 
 		if app.Active() {
@@ -124,6 +131,7 @@ const (
 	defaultCPU               = 2
 	defaultMemory            = 2
 	defaultDisk              = 100
+	defaultDiskFS            = "ext4"
 	defaultRootDisk          = 20
 	defaultKubernetesVersion = kubernetes.DefaultVersion
 
@@ -189,6 +197,7 @@ func init() {
 	startCmd.Flags().StringVar(&startCmdArgs.CPUType, "cpu-type", "", "the CPU type, options can be checked with 'qemu-system-"+defaultArch+" -cpu help'")
 	startCmd.Flags().Float32VarP(&startCmdArgs.Memory, "memory", "m", defaultMemory, "memory in GiB")
 	startCmd.Flags().IntVarP(&startCmdArgs.Disk, "disk", "d", defaultDisk, "disk size in GiB")
+	startCmd.Flags().StringVar(&startCmdArgs.DiskFS, "disk-fs", defaultDiskFS, "filesystem for the container data disk, fixed after initial creation (ext4, xfs)")
 	startCmd.Flags().IntVar(&startCmdArgs.RootDisk, "root-disk", defaultRootDisk, "disk size in GiB for the root filesystem")
 	startCmd.Flags().StringVarP(&startCmdArgs.Arch, "arch", "a", defaultArch, "architecture (aarch64, x86_64)")
 	startCmd.Flags().BoolVarP(&startCmdArgs.Flags.Foreground, "foreground", "f", false, "Keep colima in the foreground")
@@ -396,6 +405,10 @@ func setFlagDefaults(cmd *cobra.Command) {
 }
 
 func setConfigDefaults(conf *config.Config) {
+	if conf.DiskFS == "" {
+		conf.DiskFS = defaultDiskFS
+	}
+
 	// handle macOS virtualization.framework transition
 	if conf.VMType == "" {
 		conf.VMType = defaultVMType
@@ -434,7 +447,7 @@ func setFixedConfigs(conf *config.Config) {
 	}
 
 	// override the fixed configs
-	// arch, vmType, mountType, runtime are fixed and cannot be changed
+	// arch, vmType, mountType, runtime and diskFS are fixed and cannot be changed
 	if fixedConf.Arch != "" {
 		warnIfNotEqual("architecture", conf.Arch, fixedConf.Arch)
 		conf.Arch = fixedConf.Arch
@@ -447,6 +460,13 @@ func setFixedConfigs(conf *config.Config) {
 		warnIfNotEqual("runtime", conf.Runtime, fixedConf.Runtime)
 		conf.Runtime = fixedConf.Runtime
 	}
+	fixedDiskFS := fixedConf.DiskFS
+	if fixedDiskFS == "" {
+		// profiles created before diskFS was configurable always used ext4
+		fixedDiskFS = defaultDiskFS
+	}
+	warnIfNotEqual("disk filesystem", conf.DiskFS, fixedDiskFS)
+	conf.DiskFS = fixedDiskFS
 	if fixedConf.MountType != "" {
 		warnIfNotEqual("volume mount type", conf.MountType, fixedConf.MountType)
 		conf.MountType = fixedConf.MountType
@@ -536,6 +556,9 @@ func prepareConfig(cmd *cobra.Command) {
 	}
 	if !cmd.Flag("disk").Changed {
 		startCmdArgs.Disk = current.Disk
+	}
+	if !cmd.Flag("disk-fs").Changed {
+		startCmdArgs.DiskFS = current.DiskFS
 	}
 	if !cmd.Flag("root-disk").Changed {
 		if current.RootDisk > 0 {
@@ -690,11 +713,6 @@ func editConfigFile() (config.Config, error) {
 	defer func() {
 		_ = os.Remove(tmpFile)
 	}()
-	if startCmdArgs.Flags.SaveConfig {
-		if err := configmanager.SaveFromFile(tmpFile); err != nil {
-			return c, err
-		}
-	}
 	return configmanager.LoadFrom(tmpFile)
 }
 

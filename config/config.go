@@ -31,6 +31,7 @@ var (
 type Config struct {
 	CPU      int               `yaml:"cpu,omitempty"`
 	Disk     int               `yaml:"disk,omitempty"`
+	DiskFS   string            `yaml:"diskFS,omitempty"`
 	RootDisk int               `yaml:"rootDisk,omitempty"`
 	Memory   float32           `yaml:"memory,omitempty"`
 	Arch     string            `yaml:"arch,omitempty"`

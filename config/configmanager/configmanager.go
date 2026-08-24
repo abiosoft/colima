@@ -52,6 +52,10 @@ func ValidateConfig(c config.Config) error {
 	validMountTypes := map[string]bool{"9p": true, "sshfs": true}
 	validPortForwarders := map[string]bool{"grpc": true, "ssh": true, "none": true}
 
+	if err := validateDiskFilesystem(c.DiskFS); err != nil {
+		return err
+	}
+
 	if util.MacOS13OrNewer() {
 		validMountTypes["virtiofs"] = true
 	}
@@ -102,6 +106,16 @@ func ValidateConfig(c config.Config) error {
 		return err
 	}
 
+	return nil
+}
+
+func validateDiskFilesystem(fsType string) error {
+	if fsType != "ext4" && fsType != "xfs" {
+		return fmt.Errorf("invalid diskFS: '%s'", fsType)
+	}
+	if fsType == "xfs" && len("lima-"+config.CurrentProfile().ID) > 12 {
+		return fmt.Errorf("diskFS 'xfs' is not supported for profile '%s' because the generated filesystem label exceeds 12 bytes", config.CurrentProfile().ShortName)
+	}
 	return nil
 }
 
