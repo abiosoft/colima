@@ -78,9 +78,12 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 
 	l.DNS = conf.Network.DNSResolvers
 	l.HostResolver.Enabled = len(conf.Network.DNSResolvers) == 0
-	l.HostResolver.Hosts = conf.Network.DNSHosts
-	if l.HostResolver.Hosts == nil {
-		l.HostResolver.Hosts = make(map[string]string)
+	// copy the user-provided DNS hosts into a new map so that injecting colima's
+	// internal default below does not mutate the caller's config, which would
+	// otherwise persist host.docker.internal into the user's saved colima.yaml.
+	l.HostResolver.Hosts = make(map[string]string, len(conf.Network.DNSHosts)+1)
+	for host, addr := range conf.Network.DNSHosts {
+		l.HostResolver.Hosts[host] = addr
 	}
 
 	if _, ok := l.HostResolver.Hosts["host.docker.internal"]; !ok {

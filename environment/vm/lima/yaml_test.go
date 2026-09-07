@@ -102,6 +102,29 @@ func Test_config_Mounts(t *testing.T) {
 	}
 }
 
+func Test_newConf_doesNotMutateDNSHosts(t *testing.T) {
+	fsutil.FS = fsutil.FakeFS
+
+	userHosts := map[string]string{"myhost.internal": "1.2.3.4"}
+	conf := config.Config{
+		Network: config.Network{DNSHosts: userHosts},
+	}
+
+	if _, err := newConf(context.Background(), conf); err != nil {
+		t.Fatal(err)
+	}
+
+	// newConf injects colima's internal default (host.docker.internal) into the
+	// lima config. It must not leak that default back into the caller's config
+	// map, otherwise it gets persisted into the user's saved colima.yaml.
+	if _, injected := userHosts["host.docker.internal"]; injected {
+		t.Errorf("newConf mutated caller DNSHosts, injected host.docker.internal: %+v", userHosts)
+	}
+	if len(userHosts) != 1 {
+		t.Errorf("newConf mutated caller DNSHosts size, got %d entries: %+v", len(userHosts), userHosts)
+	}
+}
+
 func Test_ingressDisabled(t *testing.T) {
 	tests := []struct {
 		args []string
