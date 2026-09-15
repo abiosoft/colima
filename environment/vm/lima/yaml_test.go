@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/vm/lima/limaconfig"
 	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/fsutil"
@@ -116,6 +117,45 @@ func Test_ingressDisabled(t *testing.T) {
 		t.Run(strconv.Itoa(i+1), func(t *testing.T) {
 			if got := ingressDisabled(tt.args); got != tt.want {
 				t.Errorf("ingressDisabled() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_limaVMType(t *testing.T) {
+	hostArch := environment.HostArch()
+	foreignArch := environment.X8664
+	if hostArch == environment.X8664 {
+		foreignArch = environment.AARCH64
+	}
+
+	vz := limaconfig.QEMU
+	if util.MacOS13OrNewer() {
+		vz = limaconfig.VZ
+	}
+	krunkit := limaconfig.QEMU
+	if util.MacOS13OrNewerOnArm() {
+		krunkit = limaconfig.Krunkit
+	}
+
+	tests := []struct {
+		vmType string
+		arch   environment.Arch
+		want   limaconfig.VMType
+	}{
+		{vmType: limaconfig.QEMU, arch: hostArch, want: limaconfig.QEMU},
+		{vmType: limaconfig.VZ, arch: hostArch, want: vz},
+		{vmType: limaconfig.Krunkit, arch: hostArch, want: krunkit},
+		// vz and krunkit cannot emulate a foreign architecture, qemu is used instead
+		{vmType: limaconfig.QEMU, arch: foreignArch, want: limaconfig.QEMU},
+		{vmType: limaconfig.VZ, arch: foreignArch, want: limaconfig.QEMU},
+		{vmType: limaconfig.Krunkit, arch: foreignArch, want: limaconfig.QEMU},
+	}
+	for _, tt := range tests {
+		t.Run(tt.vmType+"_"+string(tt.arch), func(t *testing.T) {
+			conf := config.Config{VMType: tt.vmType, Arch: string(tt.arch)}
+			if got := limaVMType(conf); got != tt.want {
+				t.Errorf("limaVMType() = %v, want %v", got, tt.want)
 			}
 		})
 	}
