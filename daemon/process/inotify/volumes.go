@@ -67,6 +67,7 @@ func (f *inotifyProcess) monitorContainerVolumes(ctx context.Context, c chan<- [
 				if err != nil {
 					log.Trace(fmt.Errorf("error during stop: %w", err))
 				}
+				return
 			case <-time.After(volumesInterval):
 				if vols, err := fetch(); err != nil {
 					log.Error(err)
