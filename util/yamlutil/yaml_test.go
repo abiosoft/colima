@@ -15,6 +15,7 @@ func Test_encode_Docker(t *testing.T) {
 		Network: config.Network{
 			DNSResolvers: []net.IP{net.ParseIP("1.1.1.1")},
 			Subnet:       "192.168.107.0/24",
+			NAT66Prefix:  net.ParseIP("fd25:636f:6c69:6d61::"),
 		},
 		Kubernetes: config.Kubernetes{K3sArgs: []string{"--disable=traefik"}},
 	}
@@ -42,6 +43,9 @@ func Test_encode_Docker(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got.Docker, tt.want.Docker) {
 				t.Errorf("save() = %+v\nwant %+v", got.Docker, tt.want.Docker)
+			}
+			if !got.Network.NAT66Prefix.Equal(tt.want.Network.NAT66Prefix) {
+				t.Errorf("nat66Prefix = %q, want %q", got.Network.NAT66Prefix, tt.want.Network.NAT66Prefix)
 			}
 			if got.Network.Subnet != tt.want.Network.Subnet {
 				t.Errorf("network subnet = %q, want %q", got.Network.Subnet, tt.want.Network.Subnet)

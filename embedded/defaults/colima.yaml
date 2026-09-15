@@ -82,6 +82,13 @@ network:
   # Default: 192.168.106.0/24
   subnet: ""
 
+  # IPv6 ULA prefix for NAT66 for shared mode.
+  # This is only supported when mode is set to shared.
+  # This setting is not supported by VZ.
+  # Chosen automatically by macOS if unset
+  # Default: null
+  nat66Prefix: null
+
   # Network interface to use for bridged mode.
   # This is only used when mode is set to bridged.
   # NOTE: this is currently macOS only and ignored on Linux.

@@ -110,6 +110,10 @@ func (l processManager) Start(ctx context.Context, conf config.Config) error {
 		args = append(args, "--vmnet-gateway", subnet.Gateway)
 		args = append(args, "--vmnet-dhcp-end", subnet.DHCPEnd)
 		args = append(args, "--vmnet-mask", subnet.Netmask)
+
+		if conf.Network.NAT66Prefix != nil {
+			args = append(args, "--vmnet-nat66-prefix", conf.Network.NAT66Prefix.String())
+		}
 	}
 	if conf.MountINotify {
 		args = append(args, "--inotify")
@@ -142,7 +146,7 @@ func processesFromConfig(conf config.Config) []process.Process {
 
 	if conf.Network.Address {
 		subnet, _ := config.ParseSubnet(conf.Network.Subnet)
-		processes = append(processes, vmnet.New(conf.Network.Mode, conf.Network.BridgeInterface, subnet))
+		processes = append(processes, vmnet.New(conf.Network.Mode, conf.Network.BridgeInterface, subnet, conf.Network.NAT66Prefix))
 	}
 	if conf.MountINotify {
 		processes = append(processes, inotify.New())

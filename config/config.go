@@ -88,6 +88,7 @@ type Kubernetes struct {
 type Network struct {
 	Address         bool              `yaml:"address"`
 	Subnet          string            `yaml:"subnet,omitempty"`
+	NAT66Prefix     net.IP            `yaml:"nat66Prefix,omitempty"`
 	DNSResolvers    []net.IP          `yaml:"dns"`
 	DNSHosts        map[string]string `yaml:"dnsHosts"`
 	HostAddresses   bool              `yaml:"hostAddresses"`
