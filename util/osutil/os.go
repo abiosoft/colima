@@ -93,3 +93,25 @@ func (s Socket) Unix() string { return "unix://" + s.File() }
 
 // File returns the file path for the socket.
 func (s Socket) File() string { return strings.TrimPrefix(string(s), "unix://") }
+
+// EnvironWithout returns a copy of os.Environ with the named variables removed.
+// Matching is by key only (the part before the first '=').
+func EnvironWithout(keys ...string) []string {
+	if len(keys) == 0 {
+		return os.Environ()
+	}
+	skip := make(map[string]struct{}, len(keys))
+	for _, k := range keys {
+		skip[k] = struct{}{}
+	}
+	env := os.Environ()
+	out := make([]string, 0, len(env))
+	for _, e := range env {
+		k, _, _ := strings.Cut(e, "=")
+		if _, drop := skip[k]; drop {
+			continue
+		}
+		out = append(out, e)
+	}
+	return out
+}
