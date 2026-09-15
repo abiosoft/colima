@@ -100,7 +100,7 @@ func (l processManager) Start(ctx context.Context, conf config.Config) error {
 	args := []string{osutil.Executable(), "daemon", "start", config.CurrentProfile().ShortName}
 
 	if conf.Network.Address {
-		subnet, err := vmnet.ParseSubnet(conf.Network.Subnet)
+		subnet, err := config.ParseSubnet(conf.Network.Subnet)
 		if err != nil {
 			return err
 		}
@@ -141,7 +141,7 @@ func processesFromConfig(conf config.Config) []process.Process {
 	var processes []process.Process
 
 	if conf.Network.Address {
-		subnet, _ := vmnet.ParseSubnet(conf.Network.Subnet)
+		subnet, _ := config.ParseSubnet(conf.Network.Subnet)
 		processes = append(processes, vmnet.New(conf.Network.Mode, conf.Network.BridgeInterface, subnet))
 	}
 	if conf.MountINotify {
