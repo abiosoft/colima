@@ -14,8 +14,9 @@ const (
 )
 
 func hasDnsmasq(l *limaVM) bool {
-	// check if dnsmasq is installed
-	return l.RunQuiet("sh", "-c", `apt list | grep 'dnsmasq\/' | grep '\[installed'`) == nil
+	// Check if dnsmasq is installed
+	status, err := l.RunOutput("dpkg-query", "--show", "--showformat=${db:Status-Status}", "dnsmasq")
+	return err == nil && status == "installed"
 }
 
 func (l *limaVM) setupDNS(conf config.Config) error {
