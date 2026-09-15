@@ -87,6 +87,7 @@ type Kubernetes struct {
 // Network is VM network configuration
 type Network struct {
 	Address         bool              `yaml:"address"`
+	Subnet          string            `yaml:"subnet,omitempty"`
 	DNSResolvers    []net.IP          `yaml:"dns"`
 	DNSHosts        map[string]string `yaml:"dnsHosts"`
 	HostAddresses   bool              `yaml:"hostAddresses"`

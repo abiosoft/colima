@@ -97,11 +97,30 @@ func ValidateConfig(c config.Config) error {
 			return err
 		}
 	}
+	if err := validateNetworkSubnet(c); err != nil {
+		return err
+	}
 
 	if err := validateMounts(c.Mounts); err != nil {
 		return err
 	}
 
+	return nil
+}
+
+func validateNetworkSubnet(c config.Config) error {
+	if c.Network.Subnet == "" {
+		return nil
+	}
+	if _, err := config.ParseSubnet(c.Network.Subnet); err != nil {
+		return err
+	}
+	if c.Network.Mode != "shared" {
+		return fmt.Errorf("network subnet is only supported with shared network mode")
+	}
+	if c.VMType == "vz" {
+		return fmt.Errorf("network subnet is not supported with vmType 'vz'")
+	}
 	return nil
 }
 

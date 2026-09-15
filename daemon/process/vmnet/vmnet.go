@@ -17,25 +17,22 @@ import (
 
 const Name = "vmnet"
 
-const (
-	SubProcessEnvVar = "COLIMA_VMNET"
-
-	NetGateway = "192.168.106.1"
-	NetDHCPEnd = "192.168.106.254"
-)
+const SubProcessEnvVar = "COLIMA_VMNET"
 
 var _ process.Process = (*vmnetProcess)(nil)
 
-func New(mode, netInterface string) process.Process {
+func New(mode, netInterface string, subnet config.Subnet) process.Process {
 	return &vmnetProcess{
 		mode:         mode,
 		netInterface: netInterface,
+		subnet:       subnet,
 	}
 }
 
 type vmnetProcess struct {
 	mode         string
 	netInterface string
+	subnet       config.Subnet
 }
 
 func (*vmnetProcess) Alive(ctx context.Context) error {
@@ -95,8 +92,9 @@ func (v *vmnetProcess) Start(ctx context.Context) error {
 			command = cli.CommandInteractive("sudo", BinaryPath,
 				"--vmnet-mode", "shared",
 				"--socket-group", "staff",
-				"--vmnet-gateway", NetGateway,
-				"--vmnet-dhcp-end", NetDHCPEnd,
+				"--vmnet-gateway", v.subnet.Gateway,
+				"--vmnet-dhcp-end", v.subnet.DHCPEnd,
+				"--vmnet-mask", v.subnet.Netmask,
 				"--pidfile", pid,
 				socket,
 			)

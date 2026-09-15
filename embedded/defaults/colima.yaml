@@ -77,6 +77,11 @@ network:
   # Default: shared
   mode: shared
 
+  # Subnet to use for shared mode.
+  # This setting is not supported by VZ.
+  # Default: 192.168.106.0/24
+  subnet: ""
+
   # Network interface to use for bridged mode.
   # This is only used when mode is set to bridged.
   # NOTE: this is currently macOS only and ignored on Linux.

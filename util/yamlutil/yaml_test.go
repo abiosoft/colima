@@ -11,8 +11,11 @@ import (
 
 func Test_encode_Docker(t *testing.T) {
 	conf := config.Config{
-		Docker:     map[string]any{"insecure-registries": []any{"127.0.0.1"}},
-		Network:    config.Network{DNSResolvers: []net.IP{net.ParseIP("1.1.1.1")}},
+		Docker: map[string]any{"insecure-registries": []any{"127.0.0.1"}},
+		Network: config.Network{
+			DNSResolvers: []net.IP{net.ParseIP("1.1.1.1")},
+			Subnet:       "192.168.107.0/24",
+		},
 		Kubernetes: config.Kubernetes{K3sArgs: []string{"--disable=traefik"}},
 	}
 
@@ -39,6 +42,9 @@ func Test_encode_Docker(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got.Docker, tt.want.Docker) {
 				t.Errorf("save() = %+v\nwant %+v", got.Docker, tt.want.Docker)
+			}
+			if got.Network.Subnet != tt.want.Network.Subnet {
+				t.Errorf("network subnet = %q, want %q", got.Network.Subnet, tt.want.Network.Subnet)
 			}
 		})
 	}
