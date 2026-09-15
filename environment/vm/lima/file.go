@@ -58,7 +58,8 @@ func newFileInfo(guest environment.GuestActions, filename string) (fileInfo, err
 	info.name = filename
 	info.size, _ = strconv.ParseInt(stats[0], 10, 64)
 	info.mode = func() fs.FileMode {
-		mode, _ := strconv.ParseUint(stats[1], 10, 32)
+		// stat -c %a emits an octal mode string (e.g. "644")
+		mode, _ := strconv.ParseUint(stats[1], 8, 32)
 		return fs.FileMode(mode)
 	}()
 	info.modTime = func() time.Time {
