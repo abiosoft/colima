@@ -56,6 +56,7 @@
     - [Colima cannot access the internet.](#colima-cannot-access-the-internet)
     - [Docker Compose and Buildx showing runc error](#docker-compose-and-buildx-showing-runc-error)
       - [Version v0.5.6 or lower](#version-v056-or-lower)
+    - [Docker Compose logs showing no output](#docker-compose-logs-showing-no-output)
     - [Issue with Docker bind mount showing empty](#issue-with-docker-bind-mount-showing-empty)
     - [Mount path with spaces is not supported](#mount-path-with-spaces-is-not-supported)
   - [How can Docker version be updated?](#how-can-docker-version-be-updated)
@@ -666,6 +667,39 @@ runc run failed: unable to start container process: error during container init:
 From v0.5.6, start Colima with `--cgroups-v2` flag as a workaround.
 
 **This is fixed in v0.6.0.**
+
+### Docker Compose logs showing no output
+
+`docker compose ps` includes orphaned containers by default (`--orphans` defaults to `true`),
+while `docker compose logs` always restricts the output to the services of the project loaded
+from the compose file in the current directory, and has no equivalent flag.
+
+A running container whose `com.docker.compose.service` is not among those services - gated
+behind `profiles:`, declared with `attach: false`, renamed or removed from the compose file,
+or started from a different compose file - is therefore listed by `ps` but produces no log
+output, and the command exits `0` without any warning.
+
+Passing `-p/--project-name` makes Compose skip loading the compose file altogether, so no
+service filter is applied. That is why `docker compose -p <name> logs` works while a bare
+`docker compose logs` does not.
+
+Compare the label of the container with the services of the current project.
+
+```console
+$ docker inspect -f '{{index .Config.Labels "com.docker.compose.service"}}' <container>
+supavisor-db
+
+$ docker compose config --services
+# supavisor-db is missing here, so its logs are filtered out
+```
+
+Depending on the cause, activate the profile (`docker compose --profile <name> logs`), pass
+the project name explicitly (`docker compose -p <name> logs`), or read the container directly
+(`docker logs <container>`).
+
+This is `docker compose` client-side behaviour and is not specific to Colima.
+See [#1498](https://github.com/abiosoft/colima/issues/1498) and
+[#1299](https://github.com/abiosoft/colima/issues/1299).
 
 ### Issue with Docker bind mount showing empty
 
