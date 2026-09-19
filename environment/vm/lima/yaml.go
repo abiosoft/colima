@@ -353,7 +353,8 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 	case "ssh", "sshfs", "reversessh", "reverse-ssh", "reversesshfs", limaconfig.REVSSHFS:
 		l.MountType = limaconfig.REVSSHFS
 	default:
-		if l.VMType == limaconfig.VZ {
+		// vz and krunkit only support virtiofs and reverse-sshfs.
+		if l.VMType == limaconfig.VZ || l.VMType == limaconfig.Krunkit {
 			l.MountType = limaconfig.VIRTIOFS
 		} else { // qemu
 			l.MountType = limaconfig.NINEP
