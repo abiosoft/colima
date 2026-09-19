@@ -97,7 +97,11 @@ func ValidateConfig(c config.Config) error {
 			return err
 		}
 	}
+
 	if err := validateNetworkSubnet(c); err != nil {
+		return err
+	}
+	if err := validateNetworkNat66Prefix(c); err != nil {
 		return err
 	}
 
@@ -120,6 +124,24 @@ func validateNetworkSubnet(c config.Config) error {
 	}
 	if c.VMType == "vz" {
 		return fmt.Errorf("network subnet is not supported with vmType 'vz'")
+	}
+	return nil
+}
+
+func validateNetworkNat66Prefix(c config.Config) error {
+	prefix := c.Network.NAT66Prefix
+	if prefix == nil {
+		return nil
+	}
+	ip6 := prefix.To16()
+	if prefix.To4() != nil || ip6 == nil || ip6[0] != 0xfd || !ip6.Equal(ip6.Mask(net.CIDRMask(64, 128))) {
+		return fmt.Errorf("network nat66Prefix %q must be an IPv6 ULA address with its lower 64 bits set to zero", prefix)
+	}
+	if c.Network.Mode != "shared" {
+		return fmt.Errorf("network nat66Prefix is only supported with shared network mode")
+	}
+	if c.VMType == "vz" {
+		return fmt.Errorf("network nat66Prefix is not supported with vmType 'vz'")
 	}
 	return nil
 }
