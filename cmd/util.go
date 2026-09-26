@@ -22,6 +22,14 @@ func newApp() app.App {
 	return colimaApp
 }
 
+func newAppWithVMType(vmType string) app.App {
+	colimaApp, err := app.NewWithVMType(vmType)
+	if err != nil {
+		logrus.Fatal("Error: ", err)
+	}
+	return colimaApp
+}
+
 // waitForUserEdit launches a temporary file with content using editor,
 // and waits for the user to close the editor.
 // It returns the filename (if saved), empty file name (if aborted), and an error (if any).

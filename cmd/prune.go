@@ -43,9 +43,10 @@ var pruneCmd = &cobra.Command{
 		}
 
 		if pruneCmdArgs.all {
+			// Lima prune is not applicable in native-only mode
 			cmd := limautil.Limactl("prune")
 			if err := cmd.Run(); err != nil {
-				return fmt.Errorf("error during Lima prune: %w", err)
+				logrus.Warnf("Lima prune skipped or failed: %v", err)
 			}
 		}
 
