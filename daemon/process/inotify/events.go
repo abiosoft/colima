@@ -14,6 +14,12 @@ type modEvent struct {
 
 func (m modEvent) Mode() string { return fmt.Sprintf("%o", m.FileMode) }
 
+const syncEventScript = `/bin/chmod "$1" "$2" && : >> "$2"`
+
+func syncEventCmd(ev modEvent) []string {
+	return []string{"sudo", "/bin/sh", "-c", syncEventScript, "sh", ev.Mode(), ev.path}
+}
+
 func (f *inotifyProcess) handleEvents(ctx context.Context, watcher dirWatcher) error {
 	log := f.log
 	log.Trace("begin inotify event handler")
@@ -101,7 +107,7 @@ func (f *inotifyProcess) handleEvents(ctx context.Context, watcher dirWatcher) e
 			}
 
 			log.Infof("syncing inotify event for %s ", ev.path)
-			if err := f.guest.RunQuiet("sudo", "/bin/chmod", ev.Mode(), ev.path); err != nil {
+			if err := f.guest.RunQuiet(syncEventCmd(ev)...); err != nil {
 				log.Trace(fmt.Errorf("error syncing inotify event: %w", err))
 			}
 		}
