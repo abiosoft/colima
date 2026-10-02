@@ -103,6 +103,46 @@ func Test_config_Mounts(t *testing.T) {
 	}
 }
 
+func Test_config_MountType(t *testing.T) {
+	fsutil.FS = fsutil.FakeFS
+	tests := []struct {
+		vmType    string
+		mountType string
+		want      limaconfig.MountType
+	}{
+		// vz and krunkit only support virtiofs and reverse-sshfs
+		{vmType: limaconfig.VZ, mountType: "virtiofs", want: limaconfig.VIRTIOFS},
+		{vmType: limaconfig.Krunkit, mountType: "virtiofs", want: limaconfig.VIRTIOFS},
+		// qemu does not support virtiofs, 9p is used
+		{vmType: limaconfig.QEMU, mountType: "virtiofs", want: limaconfig.NINEP},
+		{vmType: limaconfig.QEMU, mountType: "9p", want: limaconfig.NINEP},
+		// sshfs is supported by all vm types
+		{vmType: limaconfig.QEMU, mountType: "sshfs", want: limaconfig.REVSSHFS},
+		{vmType: limaconfig.VZ, mountType: "sshfs", want: limaconfig.REVSSHFS},
+		{vmType: limaconfig.Krunkit, mountType: "sshfs", want: limaconfig.REVSSHFS},
+	}
+	for _, tt := range tests {
+		t.Run(tt.vmType+"_"+tt.mountType, func(t *testing.T) {
+			conf := config.Config{
+				VMType:    tt.vmType,
+				MountType: tt.mountType,
+				Arch:      string(environment.HostArch()),
+			}
+			l, err := newConf(context.Background(), conf)
+			if err != nil {
+				t.Fatal(err)
+			}
+			// vm types not available on the host fall back to qemu
+			if l.VMType != limaconfig.VMType(tt.vmType) {
+				t.Skipf("%s is not available on this host, using %s", tt.vmType, l.VMType)
+			}
+			if l.MountType != tt.want {
+				t.Errorf("mount type = %v, want %v", l.MountType, tt.want)
+			}
+		})
+	}
+}
+
 func Test_ingressDisabled(t *testing.T) {
 	tests := []struct {
 		args []string
