@@ -113,6 +113,27 @@ If Colima has been installed using brew, the easiest way to autostart Colima is 
 brew services start colima
 ```
 
+Colima can also register itself with Lima's own autostart support, which delegates to
+launchd on macOS and systemd on Linux.
+
+```sh
+colima autostart enable          # start when the user logs in
+colima autostart enable --boot   # start at system boot, before any user logs in
+colima autostart disable
+```
+
+`--boot` is macOS only and is the option a headless machine needs, since it does not
+require a user to log in. It installs a system LaunchDaemon under
+`/Library/LaunchDaemons`, so it prompts for sudo. Lima restarts the instance
+automatically if it exits unexpectedly.
+
+Note that this registers the instance with Lima, so the unit runs `limactl start`
+rather than `colima start`. Provision scripts configured with mode `afterBoot` or
+`ready` therefore do not run on an automatic start. `brew services start colima` runs
+`colima start` and does not have that limitation, but it only covers Homebrew installs.
+
+Requires Lima v2.3.0 or newer.
+
 ## Can config file be used instead of cli flags?
 
 Yes, from v0.4.0, Colima support YAML configuration file.
