@@ -150,12 +150,17 @@ func (a *ActiveCommandChain) Exec() error {
 // retryCount starts from 1.
 func (a *ActiveCommandChain) Retry(stage string, interval time.Duration, count int, f func(retryCount int) error) {
 	a.Add(func() (err error) {
-		var i int
-		for err = f(i + 1); i < count && err != nil; i, err = i+1, f(i+1) {
-			if stage != "" {
-				a.log.Println(stage, "...")
+		for i := 0; i < count; i++ {
+			if err = f(i + 1); err == nil {
+				return nil
 			}
-			time.Sleep(interval)
+			// back off before the next attempt; skip the sleep after the final attempt
+			if i < count-1 {
+				if stage != "" {
+					a.log.Println(stage, "...")
+				}
+				time.Sleep(interval)
+			}
 		}
 		return err
 	})
