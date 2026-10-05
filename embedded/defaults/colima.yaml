@@ -8,6 +8,14 @@ cpu: 2
 # Default: 100
 disk: 100
 
+# Filesystem for the disk containing container data (ext4, xfs).
+# NOTE: this cannot be changed after the virtual machine is created.
+# XFS is currently only supported for the default profile. Lima derives the
+# filesystem label as "lima-<disk-name>", which exceeds XFS's 12-byte label
+# limit for Colima's custom-profile disk names.
+# Default: ext4
+diskFS: ext4
+
 # Size of the memory in GiB to be allocated to the virtual machine.
 # Default: 2
 memory: 2

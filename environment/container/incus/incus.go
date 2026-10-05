@@ -514,7 +514,6 @@ fi`
 // DataDisk represents the data disk for the container runtime.
 func DataDisk() environment.DataDisk {
 	return environment.DataDisk{
-		FSType: "ext4",
 		Dirs: []environment.DiskDir{
 			{Name: "incus", Path: "/var/lib/incus"},
 		},
