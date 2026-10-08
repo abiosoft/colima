@@ -3,12 +3,13 @@ package inotify
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/abiosoft/colima/util"
 	"github.com/rjeczalik/notify"
 	"github.com/sirupsen/logrus"
 )
+
+const eventBufferSize = 1024
 
 type dirWatcher interface {
 	// Watch watches directories recursively for changes and sends message via c on
@@ -18,7 +19,7 @@ type dirWatcher interface {
 	// An error is returned when the watcher can not be started in background.
 	//
 	// The watcher terminates on fatal error or when ctx is done.
-	Watch(ctx context.Context, dirs []string, c chan<- modEvent) error
+	Watch(ctx context.Context, dirs []string, c chan<- string) error
 }
 
 type defaultWatcher struct {
@@ -26,9 +27,11 @@ type defaultWatcher struct {
 }
 
 // Watch implements dirWatcher
-func (d *defaultWatcher) Watch(ctx context.Context, dirs []string, mod chan<- modEvent) error {
+func (d *defaultWatcher) Watch(ctx context.Context, dirs []string, mod chan<- string) error {
 	log := d.log
-	c := make(chan notify.EventInfo, 1)
+	// notify drops events when the channel is full, which happens during
+	// bursts of file changes.
+	c := make(chan notify.EventInfo, eventBufferSize)
 
 	for _, dir := range dirs {
 		dir, err := util.CleanPath(dir)
@@ -41,7 +44,7 @@ func (d *defaultWatcher) Watch(ctx context.Context, dirs []string, mod chan<- mo
 		}
 	}
 
-	go func(ctx context.Context, c chan notify.EventInfo, mod chan<- modEvent) {
+	go func(ctx context.Context, c chan notify.EventInfo, mod chan<- string) {
 		for {
 			select {
 
@@ -58,19 +61,8 @@ func (d *defaultWatcher) Watch(ctx context.Context, dirs []string, mod chan<- mo
 
 				log.Tracef("received event %s for %s", e.Event().String(), path)
 
-				stat, err := os.Stat(path)
-				if err != nil {
-					log.Trace(fmt.Errorf("unable to stat inotify file '%s': %w", path, err))
-					continue
-				}
-
-				if stat.IsDir() {
-					log.Tracef("'%s' is directory, ignoring.", path)
-					continue
-				}
-
 				// send modification event
-				mod <- modEvent{path: path, FileMode: stat.Mode()}
+				mod <- path
 			}
 		}
 	}(ctx, c, mod)
