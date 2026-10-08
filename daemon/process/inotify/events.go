@@ -14,10 +14,115 @@ type modEvent struct {
 
 func (m modEvent) Mode() string { return fmt.Sprintf("%o", m.FileMode) }
 
-const syncEventScript = `/bin/chmod "$1" "$2" && : >> "$2"`
+// syncEventsScript syncs each (mode, path) pair passed as arguments.
+// Files that do not exist in the VM are skipped.
+const syncEventsScript = `while [ $# -gt 1 ]; do [ -e "$2" ] && /bin/chmod "$1" "$2" && : >> "$2"; shift 2; done; true`
 
-func syncEventCmd(ev modEvent) []string {
-	return []string{"sudo", "/bin/sh", "-c", syncEventScript, "sh", ev.Mode(), ev.path}
+// syncBatchDelay is how long events are collected before they are synced.
+const syncBatchDelay = 100 * time.Millisecond
+
+// maxSyncArgsSize caps the size of the arguments of a single sync command,
+// well below the 128KiB limit of a single argument on Linux, as the command
+// is passed to the VM's shell as one string.
+const maxSyncArgsSize = 64 * 1024
+
+// syncEventsCmds returns the commands that sync evs, splitting them so that
+// each command stays within maxSyncArgsSize.
+func syncEventsCmds(evs []modEvent) [][]string {
+	var cmds [][]string
+	var args []string
+	size := 0
+
+	flush := func() {
+		if len(args) == 0 {
+			return
+		}
+		cmd := append([]string{"sudo", "/bin/sh", "-c", syncEventsScript, "sh"}, args...)
+		cmds = append(cmds, cmd)
+		args = nil
+		size = 0
+	}
+
+	for _, ev := range evs {
+		mode := ev.Mode()
+		n := len(mode) + len(ev.path) + 2
+		if size+n > maxSyncArgsSize {
+			flush()
+		}
+		args = append(args, mode, ev.path)
+		size += n
+	}
+	flush()
+
+	return cmds
+}
+
+// batchEvents collects events from mod, deduplicated by path, and passes
+// them to sync in batches. A batch is synced delay after its first event,
+// or as soon as the previous sync returns. sync runs in the
+// background so that events keep being received while it runs.
+func batchEvents(ctx context.Context, mod <-chan modEvent, delay time.Duration, sync func([]modEvent)) {
+	var pending []modEvent
+	index := map[string]int{}
+	var flush <-chan time.Time
+	syncing := false
+	done := make(chan struct{}, 1)
+
+	start := func() {
+		evs := pending
+		pending = nil
+		index = map[string]int{}
+		syncing = true
+		go func() {
+			sync(evs)
+			done <- struct{}{}
+		}()
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+
+		case ev, ok := <-mod:
+			if !ok {
+				return
+			}
+			if i, ok := index[ev.path]; ok {
+				pending[i] = ev
+				continue
+			}
+			index[ev.path] = len(pending)
+			pending = append(pending, ev)
+			if !syncing && flush == nil {
+				flush = time.After(delay)
+			}
+
+		case <-flush:
+			flush = nil
+			start()
+
+		case <-done:
+			syncing = false
+			if len(pending) > 0 {
+				start()
+			}
+		}
+	}
+}
+
+func (f *inotifyProcess) syncEvents(evs []modEvent) {
+	log := f.log
+	for _, ev := range evs {
+		log.Tracef("syncing inotify event for %s", ev.path)
+	}
+	log.Infof("syncing inotify events for %d file(s)", len(evs))
+
+	for _, cmd := range syncEventsCmds(evs) {
+		if err := f.guest.RunQuiet(cmd...); err != nil {
+			log.Trace(fmt.Errorf("error syncing inotify events: %w", err))
+		}
+	}
 }
 
 func (f *inotifyProcess) handleEvents(ctx context.Context, watcher dirWatcher) error {
@@ -31,7 +136,8 @@ func (f *inotifyProcess) handleEvents(ctx context.Context, watcher dirWatcher) e
 		return fmt.Errorf("error watching container volumes: %w", err)
 	}
 
-	var last time.Time
+	go batchEvents(ctx, mod, syncBatchDelay, f.syncEvents)
+
 	var cancelWatch context.CancelFunc
 	var currentVols []string
 
@@ -47,14 +153,11 @@ func (f *inotifyProcess) handleEvents(ctx context.Context, watcher dirWatcher) e
 		return false
 	}
 
-	cache := map[string]struct{}{}
-
 	for {
 		select {
 
 		// exit signal
 		case <-ctx.Done():
-			close(mod)
 			return ctx.Err()
 
 		// watch only container volumes
@@ -79,37 +182,6 @@ func (f *inotifyProcess) handleEvents(ctx context.Context, watcher dirWatcher) e
 					log.Error(fmt.Errorf("error running watcher: %w", err))
 				}
 			}(ctx, vols, mod)
-
-		// handle modification events
-		case ev := <-mod:
-			now := time.Now()
-
-			// rate limit, handle at most 50 unique items every 500 ms
-			if now.Sub(last) < time.Millisecond*500 {
-				if _, ok := cache[ev.path]; ok {
-					continue // handled, ignore
-				}
-				if len(cache) > 50 {
-					continue
-				}
-			} else {
-				last = now
-				cache = map[string]struct{}{} // >500ms, reset unique cache
-			}
-
-			// cache current event
-			cache[ev.path] = struct{}{}
-
-			// validate that file exists
-			if err := f.guest.RunQuiet("stat", ev.path); err != nil {
-				log.Trace(fmt.Errorf("cannot stat '%s': %w", ev.path, err))
-				continue
-			}
-
-			log.Infof("syncing inotify event for %s ", ev.path)
-			if err := f.guest.RunQuiet(syncEventCmd(ev)...); err != nil {
-				log.Trace(fmt.Errorf("error syncing inotify event: %w", err))
-			}
 		}
 	}
 }
