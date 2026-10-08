@@ -10,6 +10,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const eventBufferSize = 1024
+
 type dirWatcher interface {
 	// Watch watches directories recursively for changes and sends message via c on
 	// modifications to files within the watched directories.
@@ -28,7 +30,9 @@ type defaultWatcher struct {
 // Watch implements dirWatcher
 func (d *defaultWatcher) Watch(ctx context.Context, dirs []string, mod chan<- modEvent) error {
 	log := d.log
-	c := make(chan notify.EventInfo, 1)
+	// notify drops events when the channel is full, which happens during
+	// bursts of file changes.
+	c := make(chan notify.EventInfo, eventBufferSize)
 
 	for _, dir := range dirs {
 		dir, err := util.CleanPath(dir)
