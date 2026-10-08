@@ -87,3 +87,44 @@ func Test_syncEventCmd_emitsAttribAndCloseWriteWithoutModifyingFile(t *testing.T
 		t.Errorf("content changed: %q -> %q", content, got)
 	}
 }
+
+func Test_syncEventCmd_directoryEmitsCreateAndDeleteWithoutLeavingFiles(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "dir with spaces")
+	if err := os.Mkdir(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	stat, err := os.Stat(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fd, err := syscall.InotifyInit1(syscall.IN_NONBLOCK | syscall.IN_CLOEXEC)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = syscall.Close(fd) }()
+	if _, err := syscall.InotifyAddWatch(fd, dir, syscall.IN_CREATE|syscall.IN_DELETE); err != nil {
+		t.Fatal(err)
+	}
+
+	args := syncEventCmd(modEvent{path: dir, FileMode: stat.Mode()})[1:]
+	if out, err := exec.Command(args[0], args[1:]...).CombinedOutput(); err != nil {
+		t.Fatalf("sync command failed: %v: %s", err, out)
+	}
+
+	mask := readInotifyMasks(t, fd)
+	if mask&syscall.IN_CREATE == 0 {
+		t.Errorf("expected IN_CREATE, got mask %#x", mask)
+	}
+	if mask&syscall.IN_DELETE == 0 {
+		t.Errorf("expected IN_DELETE, got mask %#x", mask)
+	}
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 0 {
+		t.Errorf("expected no leftover files, got %v", entries)
+	}
+}
