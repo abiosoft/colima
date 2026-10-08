@@ -3,17 +3,23 @@ package inotify
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 func Test_syncEventsCmds(t *testing.T) {
-	prefix := []string{"sudo", "/bin/sh", "-c", syncEventsScript, "sh"}
+	cmd := func(mode string, paths ...string) []string {
+		return append([]string{"sudo", "/bin/sh", "-c", syncEventsScript, "sh", mode}, paths...)
+	}
 
 	tests := []struct {
 		name string
@@ -26,15 +32,16 @@ func Test_syncEventsCmds(t *testing.T) {
 			want: nil,
 		},
 		{
-			name: "events are passed as mode and path pairs",
+			name: "one command per mode",
 			evs: []modEvent{
 				{path: "/Users/someone/project/main.go", FileMode: 0o644},
-				{path: `/Users/someone/my "project"/a b.go`, FileMode: 0o755},
+				{path: `/Users/someone/my "project"/run.sh`, FileMode: 0o755},
+				{path: `/Users/someone/my "project"/a b.go`, FileMode: 0o644},
 			},
-			want: [][]string{append(append([]string{}, prefix...),
-				"644", "/Users/someone/project/main.go",
-				"755", `/Users/someone/my "project"/a b.go`,
-			)},
+			want: [][]string{
+				cmd("644", "/Users/someone/project/main.go", `/Users/someone/my "project"/a b.go`),
+				cmd("755", `/Users/someone/my "project"/run.sh`),
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -59,17 +66,14 @@ func Test_syncEventsCmds_splitsLargeBatches(t *testing.T) {
 
 	var paths []string
 	for _, cmd := range cmds {
-		args := cmd[5:]
 		size := 0
-		for _, arg := range args {
-			size += len(arg) + 1
+		for _, path := range cmd[6:] {
+			size += len(path) + 1
 		}
 		if size > maxSyncArgsSize {
 			t.Errorf("command arguments size %d exceeds %d", size, maxSyncArgsSize)
 		}
-		for i := 1; i < len(args); i += 2 {
-			paths = append(paths, args[i])
-		}
+		paths = append(paths, cmd[6:]...)
 	}
 	if len(paths) != len(evs) {
 		t.Fatalf("expected %d paths, got %d", len(evs), len(paths))
@@ -85,27 +89,20 @@ func Test_batchEvents(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	mod := make(chan modEvent)
+	mod := make(chan string)
 	var mu sync.Mutex
-	var batches [][]modEvent
+	var batches [][]string
 	release := make(chan struct{})
-	synced := make(chan struct{}, 10)
 
-	go batchEvents(ctx, mod, 500*time.Millisecond, func(evs []modEvent) {
+	go batchEvents(ctx, mod, 500*time.Millisecond, func(paths []string) {
 		mu.Lock()
-		batches = append(batches, evs)
+		batches = append(batches, paths)
 		first := len(batches) == 1
 		mu.Unlock()
 		if first {
 			<-release
 		}
-		synced <- struct{}{}
 	})
-
-	for i := range 100 {
-		mod <- modEvent{path: fmt.Sprintf("/a/%d", i), FileMode: 0o644}
-	}
-	mod <- modEvent{path: "/a/0", FileMode: 0o600}
 
 	waitBatches := func(n int) {
 		t.Helper()
@@ -125,84 +122,85 @@ func Test_batchEvents(t *testing.T) {
 		}
 	}
 
+	for i := range 100 {
+		mod <- fmt.Sprintf("/a/%d", i)
+	}
+	mod <- "/a/0"
 	waitBatches(1)
 
 	for i := range 50 {
-		mod <- modEvent{path: fmt.Sprintf("/b/%d", i), FileMode: 0o644}
+		mod <- fmt.Sprintf("/b/%d", i)
 	}
-	mod <- modEvent{path: "/b/0", FileMode: 0o600}
+	mod <- "/b/0"
 	close(release)
-
 	waitBatches(2)
-	<-synced
-	<-synced
 
 	mu.Lock()
 	defer mu.Unlock()
-	if len(batches) != 2 {
-		t.Fatalf("expected 2 batches, got %d", len(batches))
-	}
 	if len(batches[0]) != 100 {
-		t.Errorf("first batch has %d events, want 100", len(batches[0]))
-	}
-	if got := batches[0][0]; got.path != "/a/0" || got.Mode() != "600" {
-		t.Errorf("deduplicated event = (%s, %s), want latest (/a/0, 600)", got.path, got.Mode())
+		t.Errorf("first batch has %d paths, want 100", len(batches[0]))
 	}
 	if len(batches[1]) != 50 {
-		t.Errorf("events received during a sync: got batch of %d, want 50", len(batches[1]))
-	}
-	if got := batches[1][0]; got.path != "/b/0" || got.Mode() != "600" {
-		t.Errorf("deduplicated event = (%s, %s), want latest (/b/0, 600)", got.path, got.Mode())
+		t.Errorf("paths received during a sync: got batch of %d, want 50", len(batches[1]))
 	}
 }
 
-func Test_batchEvents_skipsUnchangedFiles(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+type fakeRunner struct {
+	mu   sync.Mutex
+	cmds [][]string
+}
 
-	path := filepath.Join(t.TempDir(), "main.go")
-	event := func(content string, rewrite bool) modEvent {
-		t.Helper()
-		if rewrite {
-			if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
-				t.Fatal(err)
-			}
-		}
-		info, err := os.Stat(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		return modEvent{path: path, FileMode: info.Mode(), info: info}
+func (f *fakeRunner) RunQuiet(args ...string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.cmds = append(f.cmds, args)
+	return nil
+}
+
+func Test_syncer(t *testing.T) {
+	dir := t.TempDir()
+	file := filepath.Join(dir, "main.go")
+	script := filepath.Join(dir, "run.sh")
+	sub := filepath.Join(dir, "pkg")
+	if err := os.WriteFile(file, []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(script, []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(sub, 0o755); err != nil {
+		t.Fatal(err)
 	}
 
-	mod := make(chan modEvent)
-	batches := make(chan []modEvent, 10)
-	go batchEvents(ctx, mod, 10*time.Millisecond, func(evs []modEvent) { batches <- evs })
-
-	expectBatch := func(want bool) {
+	guest := &fakeRunner{}
+	logger := logrus.New()
+	logger.SetOutput(io.Discard)
+	s := newSyncer(guest, logrus.NewEntry(logger))
+	synced := func(paths ...string) [][]string {
 		t.Helper()
-		select {
-		case evs := <-batches:
-			if !want {
-				t.Fatalf("unexpected sync of %d event(s)", len(evs))
-			}
-		case <-time.After(200 * time.Millisecond):
-			if want {
-				t.Fatal("expected a sync")
-			}
-		}
+		guest.cmds = nil
+		s.sync(paths)
+		sort.Slice(guest.cmds, func(i, j int) bool {
+			return strings.Join(guest.cmds[i], " ") < strings.Join(guest.cmds[j], " ")
+		})
+		return guest.cmds
 	}
 
-	mod <- event("package main\n", true)
-	expectBatch(true)
+	want := syncEventsCmds([]modEvent{{path: file, FileMode: 0o644}, {path: script, FileMode: 0o755}})
+	if got := synced(file, script, sub, filepath.Join(dir, "missing.go")); !reflect.DeepEqual(got, want) {
+		t.Errorf("first sync = %q, want %q", got, want)
+	}
 
-	mod <- event("", false)
-	expectBatch(false)
+	if got := synced(file, script); len(got) != 0 {
+		t.Errorf("unchanged files were synced again: %q", got)
+	}
 
 	time.Sleep(10 * time.Millisecond)
-	mod <- event("package main\n\nfunc main() {}\n", true)
-	expectBatch(true)
-
-	mod <- modEvent{path: path, FileMode: 0o644}
-	expectBatch(true)
+	if err := os.WriteFile(file, []byte("package main\n\nfunc main() {}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	want = syncEventsCmds([]modEvent{{path: file, FileMode: 0o644}})
+	if got := synced(file, script); !reflect.DeepEqual(got, want) {
+		t.Errorf("sync after a change = %q, want %q", got, want)
+	}
 }
