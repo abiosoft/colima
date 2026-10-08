@@ -3,6 +3,8 @@ package inotify
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
@@ -152,4 +154,55 @@ func Test_batchEvents(t *testing.T) {
 	if got := batches[1][0]; got.path != "/b/0" || got.Mode() != "600" {
 		t.Errorf("deduplicated event = (%s, %s), want latest (/b/0, 600)", got.path, got.Mode())
 	}
+}
+
+func Test_batchEvents_skipsUnchangedFiles(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	path := filepath.Join(t.TempDir(), "main.go")
+	event := func(content string, rewrite bool) modEvent {
+		t.Helper()
+		if rewrite {
+			if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+				t.Fatal(err)
+			}
+		}
+		info, err := os.Stat(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return modEvent{path: path, FileMode: info.Mode(), info: info}
+	}
+
+	mod := make(chan modEvent)
+	batches := make(chan []modEvent, 10)
+	go batchEvents(ctx, mod, 10*time.Millisecond, func(evs []modEvent) { batches <- evs })
+
+	expectBatch := func(want bool) {
+		t.Helper()
+		select {
+		case evs := <-batches:
+			if !want {
+				t.Fatalf("unexpected sync of %d event(s)", len(evs))
+			}
+		case <-time.After(200 * time.Millisecond):
+			if want {
+				t.Fatal("expected a sync")
+			}
+		}
+	}
+
+	mod <- event("package main\n", true)
+	expectBatch(true)
+
+	mod <- event("", false)
+	expectBatch(false)
+
+	time.Sleep(10 * time.Millisecond)
+	mod <- event("package main\n\nfunc main() {}\n", true)
+	expectBatch(true)
+
+	mod <- modEvent{path: path, FileMode: 0o644}
+	expectBatch(true)
 }

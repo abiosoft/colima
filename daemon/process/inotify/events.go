@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
+	"os"
 	"time"
 )
 
 type modEvent struct {
 	path string // filename
 	fs.FileMode
+	info fs.FileInfo // state of the file on the host, if known
 }
 
 func (m modEvent) Mode() string { return fmt.Sprintf("%o", m.FileMode) }
@@ -20,6 +22,9 @@ const syncEventsScript = `while [ $# -gt 1 ]; do [ -e "$2" ] && /bin/chmod "$1" 
 
 // syncBatchDelay is how long events are collected before they are synced.
 const syncBatchDelay = 100 * time.Millisecond
+
+// syncedTTL is how long the state of a synced file is remembered.
+const syncedTTL = time.Minute
 
 // maxSyncArgsSize caps the size of the arguments of a single sync command,
 // well below the 128KiB limit of a single argument on Linux, as the command
@@ -57,13 +62,32 @@ func syncEventsCmds(evs []modEvent) [][]string {
 	return cmds
 }
 
+// unchanged reports whether a and b describe the same, unmodified file.
+func unchanged(a, b fs.FileInfo) bool {
+	return a != nil && b != nil &&
+		os.SameFile(a, b) &&
+		a.Size() == b.Size() &&
+		a.Mode() == b.Mode() &&
+		a.ModTime().Equal(b.ModTime())
+}
+
+type syncedFile struct {
+	info fs.FileInfo
+	at   time.Time
+}
+
 // batchEvents collects events from mod, deduplicated by path, and passes
 // them to sync in batches. A batch is synced delay after its first event,
 // or as soon as the previous sync returns. sync runs in the
 // background so that events keep being received while it runs.
+//
+// Events for files left unchanged since they were last synced are skipped.
+// Syncing a file from the VM can itself emit an event on the host, which
+// would otherwise sync the file again, endlessly.
 func batchEvents(ctx context.Context, mod <-chan modEvent, delay time.Duration, sync func([]modEvent)) {
 	var pending []modEvent
 	index := map[string]int{}
+	synced := map[string]syncedFile{}
 	var flush <-chan time.Time
 	syncing := false
 	done := make(chan struct{}, 1)
@@ -73,6 +97,19 @@ func batchEvents(ctx context.Context, mod <-chan modEvent, delay time.Duration, 
 		pending = nil
 		index = map[string]int{}
 		syncing = true
+
+		now := time.Now()
+		for path, s := range synced {
+			if now.Sub(s.at) > syncedTTL {
+				delete(synced, path)
+			}
+		}
+		for _, ev := range evs {
+			if ev.info != nil {
+				synced[ev.path] = syncedFile{info: ev.info, at: now}
+			}
+		}
+
 		go func() {
 			sync(evs)
 			done <- struct{}{}
@@ -87,6 +124,9 @@ func batchEvents(ctx context.Context, mod <-chan modEvent, delay time.Duration, 
 		case ev, ok := <-mod:
 			if !ok {
 				return
+			}
+			if s, ok := synced[ev.path]; ok && unchanged(s.info, ev.info) {
+				continue
 			}
 			if i, ok := index[ev.path]; ok {
 				pending[i] = ev

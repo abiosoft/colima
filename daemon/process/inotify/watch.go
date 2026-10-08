@@ -70,7 +70,7 @@ func (d *defaultWatcher) Watch(ctx context.Context, dirs []string, mod chan<- mo
 				}
 
 				// send modification event
-				mod <- modEvent{path: path, FileMode: stat.Mode()}
+				mod <- modEvent{path: path, FileMode: stat.Mode(), info: stat}
 			}
 		}
 	}(ctx, c, mod)
