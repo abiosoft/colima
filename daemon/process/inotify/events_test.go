@@ -1,6 +1,7 @@
 package inotify
 
 import (
+	"io/fs"
 	"reflect"
 	"testing"
 )
@@ -20,6 +21,11 @@ func Test_syncEventCmd(t *testing.T) {
 			name: "path with spaces and quotes stays a single argument",
 			ev:   modEvent{path: `/Users/someone/my "project"/a b.go`, FileMode: 0o755},
 			want: []string{"sudo", "/bin/sh", "-c", syncEventScript, "sh", "755", `/Users/someone/my "project"/a b.go`},
+		},
+		{
+			name: "directory",
+			ev:   modEvent{path: `/Users/someone/my "project"/pkg`, FileMode: fs.ModeDir | 0o755},
+			want: []string{"sudo", "/bin/sh", "-c", syncDirEventScript, "sh", `/Users/someone/my "project"/pkg`},
 		},
 	}
 	for _, tt := range tests {

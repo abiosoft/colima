@@ -8,7 +8,7 @@ import (
 )
 
 type modEvent struct {
-	path string // filename
+	path string // filename, or directory whose entries changed
 	fs.FileMode
 }
 
@@ -16,7 +16,19 @@ func (m modEvent) Mode() string { return fmt.Sprintf("%o", m.FileMode) }
 
 const syncEventScript = `/bin/chmod "$1" "$2" && : >> "$2"`
 
+// syncDirTempPrefix is the name prefix of the temporary file used to
+// trigger events in a directory. Events for such files are ignored.
+const syncDirTempPrefix = ".colima-inotify."
+
+// syncDirEventScript creates and removes a file in the directory, which makes
+// the kernel emit IN_CREATE and IN_DELETE for it. Watchers then rescan the
+// directory and pick up added, removed and renamed entries.
+const syncDirEventScript = `t=$(mktemp "$1/` + syncDirTempPrefix + `XXXXXX") && rm -f "$t"`
+
 func syncEventCmd(ev modEvent) []string {
+	if ev.IsDir() {
+		return []string{"sudo", "/bin/sh", "-c", syncDirEventScript, "sh", ev.path}
+	}
 	return []string{"sudo", "/bin/sh", "-c", syncEventScript, "sh", ev.Mode(), ev.path}
 }
 

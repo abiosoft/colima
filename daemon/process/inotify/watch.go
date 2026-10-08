@@ -4,11 +4,15 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/abiosoft/colima/util"
 	"github.com/rjeczalik/notify"
 	"github.com/sirupsen/logrus"
 )
+
+const eventBufferSize = 1024
 
 type dirWatcher interface {
 	// Watch watches directories recursively for changes and sends message via c on
@@ -28,14 +32,16 @@ type defaultWatcher struct {
 // Watch implements dirWatcher
 func (d *defaultWatcher) Watch(ctx context.Context, dirs []string, mod chan<- modEvent) error {
 	log := d.log
-	c := make(chan notify.EventInfo, 1)
+	// notify drops events when the channel is full, which happens during
+	// bursts of file changes.
+	c := make(chan notify.EventInfo, eventBufferSize)
 
 	for _, dir := range dirs {
 		dir, err := util.CleanPath(dir)
 		if err != nil {
 			return fmt.Errorf("invalid directory: %w", err)
 		}
-		err = notify.Watch(dir+"...", c, notify.Write)
+		err = notify.Watch(dir+"...", c, notify.Write, notify.Create, notify.Remove, notify.Rename)
 		if err != nil {
 			return fmt.Errorf("error watching directory recursively '%s': %w", dir, err)
 		}
@@ -58,19 +64,14 @@ func (d *defaultWatcher) Watch(ctx context.Context, dirs []string, mod chan<- mo
 
 				log.Tracef("received event %s for %s", e.Event().String(), path)
 
-				stat, err := os.Stat(path)
+				ev, err := syncTarget(path)
 				if err != nil {
-					log.Trace(fmt.Errorf("unable to stat inotify file '%s': %w", path, err))
-					continue
-				}
-
-				if stat.IsDir() {
-					log.Tracef("'%s' is directory, ignoring.", path)
+					log.Trace(err)
 					continue
 				}
 
 				// send modification event
-				mod <- modEvent{path: path, FileMode: stat.Mode()}
+				mod <- ev
 			}
 		}
 	}(ctx, c, mod)
@@ -79,3 +80,25 @@ func (d *defaultWatcher) Watch(ctx context.Context, dirs []string, mod chan<- mo
 }
 
 var _ dirWatcher = (*defaultWatcher)(nil)
+
+// syncTarget returns the event to replay in the VM for a change to path.
+//
+// A file that still exists is synced directly. Otherwise, i.e. a directory
+// or a removed or renamed path, the parent directory is synced so that
+// watchers notice the added or removed entry.
+func syncTarget(path string) (modEvent, error) {
+	if strings.HasPrefix(filepath.Base(path), syncDirTempPrefix) {
+		return modEvent{}, fmt.Errorf("'%s' is a sync temporary file, ignoring", path)
+	}
+
+	if stat, err := os.Stat(path); err == nil && !stat.IsDir() {
+		return modEvent{path: path, FileMode: stat.Mode()}, nil
+	}
+
+	dir := filepath.Dir(path)
+	stat, err := os.Stat(dir)
+	if err != nil {
+		return modEvent{}, fmt.Errorf("unable to stat inotify directory '%s': %w", dir, err)
+	}
+	return modEvent{path: dir, FileMode: stat.Mode()}, nil
+}
