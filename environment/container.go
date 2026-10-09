@@ -74,9 +74,10 @@ func ContainerRuntimes() (names []string) {
 
 // DataDisk holds the configuration for mounting an external runtime disk.
 type DataDisk struct {
-	Dirs     []DiskDir // the directories to be mounted
-	PreMount []string  // the scripts to run before mounting the directories
-	FSType   string    // the filesystem type for the disk e.g. ext4
+	Dirs      []DiskDir // the directories to be mounted
+	PreMount  []string  // the scripts to run before mounting the directories
+	PostMount []string  // the scripts to run after mounting the directories
+	FSType    string    // the filesystem type for the disk e.g. ext4
 }
 
 // DiskDir is a directory mounted in a data disk.
