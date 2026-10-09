@@ -13,13 +13,13 @@ func Test_syncEventCmd(t *testing.T) {
 	}{
 		{
 			name: "regular file",
-			ev:   modEvent{path: "/Users/someone/project/main.go", FileMode: 0o644},
-			want: []string{"sudo", "/bin/sh", "-c", syncEventScript, "sh", "644", "/Users/someone/project/main.go"},
+			ev:   modEvent{path: "/Users/someone/project/main.go"},
+			want: []string{"sudo", "/bin/sh", "-c", syncEventScript, "sh", "/Users/someone/project/main.go"},
 		},
 		{
 			name: "path with spaces and quotes stays a single argument",
-			ev:   modEvent{path: `/Users/someone/my "project"/a b.go`, FileMode: 0o755},
-			want: []string{"sudo", "/bin/sh", "-c", syncEventScript, "sh", "755", `/Users/someone/my "project"/a b.go`},
+			ev:   modEvent{path: `/Users/someone/my "project"/a b.go`},
+			want: []string{"sudo", "/bin/sh", "-c", syncEventScript, "sh", `/Users/someone/my "project"/a b.go`},
 		},
 	}
 	for _, tt := range tests {
