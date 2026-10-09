@@ -163,6 +163,9 @@ func DataDisk() environment.DataDisk {
 			"systemctl stop docker.service",
 			"systemctl stop containerd.service",
 		},
+		PostMount: []string{
+			"systemctl start docker.service",
+		},
 	}
 }
 

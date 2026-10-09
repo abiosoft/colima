@@ -140,6 +140,14 @@ func (l *limaVM) mountRuntimeDisk(conf config.Config, format bool) {
 			Script: script,
 		})
 	}
+
+	// post mount script
+	for _, script := range disk.PostMount {
+		l.limaConf.Provision = append(l.limaConf.Provision, limaconfig.Provision{
+			Mode:   "dependency",
+			Script: script,
+		})
+	}
 }
 
 func (l *limaVM) downloadDiskImage(ctx context.Context, conf config.Config) error {
