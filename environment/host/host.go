@@ -14,6 +14,7 @@ import (
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/environment"
+	"github.com/abiosoft/colima/util/osutil"
 )
 
 // New creates a new host environment.
@@ -53,7 +54,7 @@ func (h hostEnv) Run(args ...string) error {
 		return errors.New("args not specified")
 	}
 	cmd := cli.Command(args[0], args[1:]...)
-	cmd.Env = append(os.Environ(), h.env...)
+	cmd.Env = append(osutil.EnvironWithout("LIMA_WORKDIR"), h.env...)
 	if h.dir != "" {
 		cmd.Dir = h.dir
 	}
@@ -79,7 +80,7 @@ func (h hostEnv) RunQuiet(args ...string) error {
 		return errors.New("args not specified")
 	}
 	cmd := cli.Command(args[0], args[1:]...)
-	cmd.Env = append(os.Environ(), h.env...)
+	cmd.Env = append(osutil.EnvironWithout("LIMA_WORKDIR"), h.env...)
 	if h.dir != "" {
 		cmd.Dir = h.dir
 	}
@@ -102,7 +103,7 @@ func (h hostEnv) RunOutput(args ...string) (string, error) {
 	}
 
 	cmd := cli.Command(args[0], args[1:]...)
-	cmd.Env = append(os.Environ(), h.env...)
+	cmd.Env = append(osutil.EnvironWithout("LIMA_WORKDIR"), h.env...)
 	if h.dir != "" {
 		cmd.Dir = h.dir
 	}
@@ -134,7 +135,7 @@ func (h hostEnv) RunInteractive(args ...string) error {
 		return errors.New("args not specified")
 	}
 	cmd := cli.CommandInteractive(args[0], args[1:]...)
-	cmd.Env = append(os.Environ(), h.env...)
+	cmd.Env = append(osutil.EnvironWithout("LIMA_WORKDIR"), h.env...)
 	if h.dir != "" {
 		cmd.Dir = h.dir
 	}
@@ -146,7 +147,7 @@ func (h hostEnv) RunWith(stdin io.Reader, stdout io.Writer, args ...string) erro
 		return errors.New("args not specified")
 	}
 	cmd := cli.CommandInteractive(args[0], args[1:]...)
-	cmd.Env = append(os.Environ(), h.env...)
+	cmd.Env = append(osutil.EnvironWithout("LIMA_WORKDIR"), h.env...)
 	if h.dir != "" {
 		cmd.Dir = h.dir
 	}
