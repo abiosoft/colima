@@ -3,21 +3,17 @@ package inotify
 import (
 	"context"
 	"fmt"
-	"io/fs"
 	"time"
 )
 
 type modEvent struct {
 	path string // filename
-	fs.FileMode
 }
 
-func (m modEvent) Mode() string { return fmt.Sprintf("%o", m.FileMode) }
-
-const syncEventScript = `/bin/chmod "$1" "$2" && : >> "$2"`
+const syncEventScript = `: >> "$1"`
 
 func syncEventCmd(ev modEvent) []string {
-	return []string{"sudo", "/bin/sh", "-c", syncEventScript, "sh", ev.Mode(), ev.path}
+	return []string{"sudo", "/bin/sh", "-c", syncEventScript, "sh", ev.path}
 }
 
 func (f *inotifyProcess) handleEvents(ctx context.Context, watcher dirWatcher) error {
