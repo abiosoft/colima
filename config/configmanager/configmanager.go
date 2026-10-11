@@ -49,6 +49,15 @@ func LoadFrom(file string) (config.Config, error) {
 
 // ValidateConfig validates config before we use it
 func ValidateConfig(c config.Config) error {
+	// native mode: skip VM-specific validations entirely
+	if c.VMType == "native" {
+		if !util.Linux() {
+			return fmt.Errorf("vmType 'native' is only available on Linux")
+		}
+		// Native mode doesn't use mount types, disk images, or port forwarders
+		return nil
+	}
+
 	validMountTypes := map[string]bool{"9p": true, "sshfs": true}
 	validPortForwarders := map[string]bool{"grpc": true, "ssh": true, "none": true}
 
@@ -64,6 +73,9 @@ func ValidateConfig(c config.Config) error {
 	}
 	if util.MacOS13OrNewerOnArm() {
 		validVMTypes["krunkit"] = true
+	}
+	if util.Linux() {
+		validVMTypes["native"] = true
 	}
 	if c.VMType == "krunkit" && !util.MacOS13OrNewerOnArm() {
 		return fmt.Errorf("vmType 'krunkit' is only available on macOS with Apple Silicon")

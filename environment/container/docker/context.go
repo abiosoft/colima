@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/config/configmanager"
 )
 
 var configDir = func() string { return config.CurrentProfile().ConfigDir() }
@@ -25,9 +26,15 @@ func (d dockerRuntime) setupContext() error {
 
 	profile := config.CurrentProfile()
 
+	// In native mode, use the system Docker socket directly
+	socketPath := HostSocketFile()
+	if conf, err := configmanager.LoadInstance(); err == nil && conf.VMType == "native" {
+		socketPath = "/var/run/docker.sock"
+	}
+
 	return d.host.Run("docker", "context", "create", profile.ID,
 		"--description", profile.DisplayName,
-		"--docker", "host=unix://"+HostSocketFile(),
+		"--docker", "host=unix://"+socketPath,
 	)
 }
 

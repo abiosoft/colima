@@ -4,7 +4,11 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/abiosoft/colima/config"
@@ -73,8 +77,9 @@ func getInstance(profileID string) (InstanceInfo, error) {
 	return i, nil
 }
 
-// Instances returns Lima instances created by colima.
-func Instances(ids ...string) ([]InstanceInfo, error) {
+// limaInstances returns instances retrieved via limactl.
+// Returns nil slice (not error) if limactl is unavailable.
+func limaInstances(ids ...string) ([]InstanceInfo, error) {
 	limaIDs := make([]string, len(ids))
 	for i := range ids {
 		limaIDs[i] = config.ProfileFromName(ids[i]).ID
@@ -87,6 +92,12 @@ func Instances(ids ...string) ([]InstanceInfo, error) {
 	cmd.Stdout = &buf
 
 	if err := cmd.Run(); err != nil {
+		// Only suppress "executable not found" errors.
+		// Real limactl errors (e.g. daemon issues) should still propagate
+		// so users running VM-mode on Linux don't get silent failures.
+		if errors.Is(err, exec.ErrNotFound) {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("error retrieving instances: %w", err)
 	}
 
@@ -131,6 +142,155 @@ func Instances(ids ...string) ([]InstanceInfo, error) {
 	return instances, nil
 }
 
+// NativeInstances scans the lima directory for native-mode colima profiles
+// by reading state files directly, without requiring limactl.
+func NativeInstances(ids ...string) []InstanceInfo {
+	limaDir := config.LimaDir()
+
+	entries, err := os.ReadDir(limaDir)
+	if err != nil {
+		return nil
+	}
+
+	// Build filter set from requested IDs
+	filterSet := make(map[string]bool)
+	for _, id := range ids {
+		p := config.ProfileFromName(id)
+		filterSet[p.ID] = true
+	}
+
+	var instances []InstanceInfo
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+
+		// Only colima profiles
+		if !strings.HasPrefix(name, "colima") {
+			continue
+		}
+
+		// Apply filter if specified
+		if len(filterSet) > 0 && !filterSet[name] {
+			continue
+		}
+
+		// Read state file
+		stateFile := filepath.Join(limaDir, name, "colima.yaml")
+		conf, err := configmanager.LoadFrom(stateFile)
+		if err != nil {
+			continue
+		}
+
+		// Only native profiles
+		if conf.VMType != "native" {
+			continue
+		}
+
+		profile := config.ProfileFromName(name)
+
+		inst := InstanceInfo{
+			Name:    profile.ShortName,
+			Arch:    conf.Arch,
+			CPU:     conf.CPU,
+			Memory:  int64(conf.Memory * 1024 * 1024 * 1024), // GiB to bytes
+			Runtime: getRuntime(conf),
+		}
+
+		if conf.Disk > 0 {
+			inst.Disk = config.Disk(conf.Disk).Int()
+		}
+
+		// Check if native instance is running by checking systemd service
+		switch conf.Runtime {
+		case "docker":
+			if isSystemdActive("docker.service") {
+				inst.Status = limaStatusRunning
+				inst.IPAddress = getNativeIPAddress()
+			} else {
+				inst.Status = "Stopped"
+			}
+		case "containerd":
+			if isSystemdActive("containerd.service") {
+				inst.Status = limaStatusRunning
+				inst.IPAddress = getNativeIPAddress()
+			} else {
+				inst.Status = "Stopped"
+			}
+		case "incus":
+			if isSystemdActive("incus.service") {
+				inst.Status = limaStatusRunning
+				inst.IPAddress = getNativeIPAddress()
+			} else {
+				inst.Status = "Stopped"
+			}
+		default:
+			inst.Status = "Stopped"
+		}
+
+		instances = append(instances, inst)
+	}
+
+	return instances
+}
+
+// isSystemdActive checks if a systemd service is active.
+func isSystemdActive(service string) bool {
+	var buf bytes.Buffer
+	cmd := exec.Command("systemctl", "is-active", service)
+	cmd.Stdout = &buf
+	cmd.Stderr = nil
+	if err := cmd.Run(); err != nil {
+		return false
+	}
+	return strings.TrimSpace(buf.String()) == "active"
+}
+
+// getNativeIPAddress returns the host's primary IP address for native mode.
+func getNativeIPAddress() string {
+	var buf bytes.Buffer
+	cmd := exec.Command("hostname", "-I")
+	cmd.Stdout = &buf
+	cmd.Stderr = nil
+	if err := cmd.Run(); err != nil {
+		return ""
+	}
+	fields := strings.Fields(buf.String())
+	if len(fields) > 0 {
+		return fields[0]
+	}
+	return ""
+}
+
+// Instances returns all Colima instances (Lima-managed + native).
+func Instances(ids ...string) ([]InstanceInfo, error) {
+	// Get Lima-managed instances (gracefully handles missing limactl)
+	limaInsts, err := limaInstances(ids...)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get native instances from state files
+	nativeInsts := NativeInstances(ids...)
+
+	// Merge, deduplicating by name
+	seen := make(map[string]bool)
+	var all []InstanceInfo
+
+	for _, inst := range limaInsts {
+		seen[inst.Name] = true
+		all = append(all, inst)
+	}
+	for _, inst := range nativeInsts {
+		if !seen[inst.Name] {
+			all = append(all, inst)
+		}
+	}
+
+	return all, nil
+}
+
 // RunningInstances return Lima instances that are has a running status.
 func RunningInstances() ([]InstanceInfo, error) {
 	allInstances, err := Instances()
@@ -165,3 +325,4 @@ func getRuntime(conf config.Config) string {
 	}
 	return runtime
 }
+

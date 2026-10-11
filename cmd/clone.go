@@ -8,6 +8,7 @@ import (
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/cmd/root"
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/config/configmanager"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -23,15 +24,22 @@ var cloneCmd = &cobra.Command{
 		to := config.ProfileFromName(args[1])
 
 		logrus.Infof("preparing to clone %s...", from.DisplayName)
-		{
-			// verify source profile exists
+
+		// Check if source is a native instance
+		isNative := false
+		if conf, err := configmanager.LoadFrom(from.StateFile()); err == nil && conf.VMType == "native" {
+			isNative = true
+		}
+
+		if !isNative {
+			// VM mode: verify source profile exists and clone VM files
 			if stat, err := os.Stat(from.LimaInstanceDir()); err != nil || !stat.IsDir() {
 				return fmt.Errorf("colima profile '%s' does not exist", from.ShortName)
 			}
 
-			// verify destination profile does not exists
+			// verify destination profile does not exist
 			if stat, err := os.Stat(to.LimaInstanceDir()); err == nil && stat.IsDir() {
-				return fmt.Errorf("colima profile '%s' already exists, delete with `colima delete %s` and try again", to.ShortName, to.ShortName)
+				return fmt.Errorf("colima profile '%s' already exists, delete with 'colima delete %s' and try again", to.ShortName, to.ShortName)
 			}
 
 			// copy source to destination
@@ -48,6 +56,11 @@ var cloneCmd = &cobra.Command{
 				to.LimaInstanceDir(),
 			).Run(); err != nil {
 				return fmt.Errorf("error copying VM: %w", err)
+			}
+		} else {
+			// Native mode: verify source config exists
+			if _, err := os.Stat(from.ConfigDir()); err != nil {
+				return fmt.Errorf("colima profile '%s' does not exist", from.ShortName)
 			}
 		}
 
