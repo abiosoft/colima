@@ -12,6 +12,7 @@ import (
 	"github.com/abiosoft/colima/environment/container/containerd"
 	"github.com/abiosoft/colima/environment/container/docker"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
+	"github.com/abiosoft/colima/store"
 	"github.com/abiosoft/colima/util"
 	"github.com/abiosoft/colima/util/downloader"
 	"github.com/sirupsen/logrus"
@@ -204,6 +205,7 @@ func installK3sCluster(
 func getPortNumber(guest environment.GuestActions, k3sListenPort int) (int, error) {
 	// port previously set, reuse it
 	if port, err := strconv.Atoi(guest.Get(listenPortKey)); err == nil && port > 0 {
+		saveDiskPortNumber(port)
 		return port, nil
 	}
 
@@ -214,7 +216,10 @@ func getPortNumber(guest environment.GuestActions, k3sListenPort int) (int, erro
 	}
 
 	var port int
-	if k3sListenPort > 0 {
+	if p := diskPortNumber(); p > 0 {
+		// the VM was recreated on a kept runtime disk, whose k3s state still uses this port
+		port = p
+	} else if k3sListenPort > 0 {
 		// template configured port
 		port = k3sListenPort
 	} else {
@@ -225,6 +230,22 @@ func getPortNumber(guest environment.GuestActions, k3sListenPort int) (int, erro
 	if err := guest.Set(listenPortKey, strconv.Itoa(port)); err != nil {
 		return 0, err
 	}
+	saveDiskPortNumber(port)
 
 	return port, nil
+}
+
+// diskPortNumber returns the port k3s used on the runtime disk, if any.
+func diskPortNumber() int {
+	s, _ := store.Load()
+	if !s.DiskFormatted {
+		return 0
+	}
+	return s.K3sListenPort
+}
+
+func saveDiskPortNumber(port int) {
+	if err := store.Set(func(s *store.Store) { s.K3sListenPort = port }); err != nil {
+		logrus.Traceln(fmt.Errorf("error persisting k3s port: %w", err))
+	}
 }

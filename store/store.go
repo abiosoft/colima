@@ -17,6 +17,8 @@ type Store struct {
 	DiskRuntime string `json:"disk_runtime"`
 	// if ramalama has been provisioned in the VM
 	RamalamaProvisioned bool `json:"ramalama_provisioned"`
+	// the k3s listen port, kept with the runtime disk that holds the k3s state
+	K3sListenPort int `json:"k3s_listen_port,omitempty"`
 }
 
 func storeFile() string { return config.CurrentProfile().StoreFile() }
