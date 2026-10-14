@@ -73,6 +73,18 @@ func Test_restartConfig(t *testing.T) {
 		}
 	})
 
+	t.Run("preserves saved custom disk image", func(t *testing.T) {
+		write(t, file, "cpu: 2\ndisk: 20\nruntime: docker\ndiskImage: /path/to/custom.img\n")
+
+		conf, err := restartConfig()
+		if err != nil {
+			t.Fatalf("restartConfig() error = %v", err)
+		}
+		if conf.DiskImage != "/path/to/custom.img" {
+			t.Errorf("restartConfig() DiskImage = %q, want %q", conf.DiskImage, "/path/to/custom.img")
+		}
+	})
+
 	t.Run("unreadable config is an error", func(t *testing.T) {
 		write(t, stateFile, "cpu: 4\ndisk: 60\nruntime: containerd\n")
 		write(t, file, "cpu: [\n")

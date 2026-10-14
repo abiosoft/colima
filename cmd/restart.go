@@ -61,6 +61,9 @@ func restartConfig() (config.Config, error) {
 		return configmanager.LoadInstance()
 	}
 	prepareConfig(startCmd)
+	if startCmdArgs.DiskImage == "" && current.DiskImage != "" {
+		startCmdArgs.DiskImage = current.DiskImage
+	}
 	return startCmdArgs.Config, nil
 }
 
