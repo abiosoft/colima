@@ -75,18 +75,45 @@ func (l *limaVM) setupPhysicalDisks(ctx context.Context, conf config.Config) err
 }
 
 func (l *limaVM) assertPhysicalDiskBackends(conf config.Config) error {
-	for _, disk := range conf.PhysicalDisks {
-		if physicalDiskBackend(disk) != "vz" {
-			continue
+	if len(conf.PhysicalDisks) == 0 {
+		return nil
+	}
+	if !util.MacOS() {
+		return fmt.Errorf("physical disks are only supported on macOS")
+	}
+
+	requiresNBD := false
+	checkedVZSupport := false
+	for i, disk := range conf.PhysicalDisks {
+		runtime, err := newPhysicalDiskRuntime(i, disk)
+		if err != nil {
+			return err
 		}
-		if l.limaConf.VMType != limaconfig.VZ {
-			return fmt.Errorf("physicalDisks.%s backend vz requires vmType: vz", disk.Name)
+		switch runtime.Backend {
+		case "nbd":
+			requiresNBD = true
+		case "vz":
+			if l.limaConf.VMType != limaconfig.VZ {
+				return fmt.Errorf("physicalDisks.%s backend vz requires vmType: vz", disk.Name)
+			}
+			if !util.MacOS14OrNewer() {
+				return fmt.Errorf("physicalDisks.%s backend vz requires macOS 14 or newer", disk.Name)
+			}
+			if !checkedVZSupport {
+				if !l.limaSupportsSafeVZBlockDevices() {
+					return fmt.Errorf("physicalDisks.%s backend vz requires Lima 2.3.0 or newer with secure macOS VZ block-device support; expected limactl create --help and limactl sudoers --help to expose per-device --block-device", disk.Name)
+				}
+				checkedVZSupport = true
+			}
 		}
-		if !util.MacOS14OrNewer() {
-			return fmt.Errorf("physicalDisks.%s backend vz requires macOS 14 or newer", disk.Name)
+		if err := l.assertPhysicalDiskReady(runtime); err != nil {
+			return fmt.Errorf("physical disk %s is not ready: %w", disk.Name, err)
 		}
-		if !l.limaSupportsSafeVZBlockDevices() {
-			return fmt.Errorf("physicalDisks.%s backend vz requires a Lima build with secure macOS VZ block-device support; expected limactl create --help and limactl sudoers --help to expose --block-device", disk.Name)
+	}
+
+	if requiresNBD {
+		if err := util.AssertQemuNBD(); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -94,11 +121,20 @@ func (l *limaVM) assertPhysicalDiskBackends(conf config.Config) error {
 
 func (l *limaVM) limaSupportsSafeVZBlockDevices() bool {
 	createHelp, err := l.host.RunOutput(limactl, "create", "--help")
-	if err != nil || !strings.Contains(createHelp, "--block-device") {
+	if err != nil {
 		return false
 	}
 	sudoersHelp, err := l.host.RunOutput(limactl, "sudoers", "--help")
-	return err == nil && strings.Contains(sudoersHelp, "--block-device")
+	if err != nil {
+		return false
+	}
+	return supportsSafeVZBlockDevices(createHelp, sudoersHelp)
+}
+
+func supportsSafeVZBlockDevices(createHelp, sudoersHelp string) bool {
+	return strings.Contains(createHelp, "--block-device") &&
+		strings.Contains(sudoersHelp, "--block-device") &&
+		(strings.Contains(sudoersHelp, "--block-device strings") || strings.Contains(sudoersHelp, "--block-device="))
 }
 
 func (l *limaVM) setupPhysicalDisk(ctx context.Context, disk physicalDiskRuntime) error {

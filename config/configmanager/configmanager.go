@@ -183,7 +183,7 @@ func validatePhysicalDisks(disks []config.PhysicalDisk, vmType string) error {
 		if disk.Device == "" {
 			return fmt.Errorf("physicalDisks.%s requires device", disk.Name)
 		}
-		if !filepath.IsAbs(disk.Device) || !strings.HasPrefix(disk.Device, "/dev/disk") {
+		if !filepath.IsAbs(disk.Device) || filepath.Clean(disk.Device) != disk.Device || filepath.Dir(disk.Device) != "/dev" || !strings.HasPrefix(disk.Device, "/dev/disk") {
 			return fmt.Errorf("physicalDisks.%s device must be an absolute /dev/diskNsM path", disk.Name)
 		}
 		if !validDiskDevice.MatchString(filepath.Base(disk.Device)) {
@@ -195,8 +195,12 @@ func validatePhysicalDisks(disks []config.PhysicalDisk, vmType string) error {
 		seenDevices[disk.Device] = disk.Name
 
 		if disk.RawDevice != "" {
-			if !filepath.IsAbs(disk.RawDevice) || !validRawDiskDevice.MatchString(filepath.Base(disk.RawDevice)) {
+			if !filepath.IsAbs(disk.RawDevice) || filepath.Clean(disk.RawDevice) != disk.RawDevice || filepath.Dir(disk.RawDevice) != "/dev" || !validRawDiskDevice.MatchString(filepath.Base(disk.RawDevice)) {
 				return fmt.Errorf("physicalDisks.%s rawDevice must be an absolute /dev/rdiskNsM path", disk.Name)
+			}
+			expectedRawDevice := "/dev/r" + filepath.Base(disk.Device)
+			if disk.RawDevice != expectedRawDevice {
+				return fmt.Errorf("physicalDisks.%s rawDevice %q must match device %q (%s)", disk.Name, disk.RawDevice, disk.Device, expectedRawDevice)
 			}
 		}
 

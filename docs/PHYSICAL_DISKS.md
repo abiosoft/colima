@@ -88,17 +88,20 @@ This backend requires:
 
 - `vmType: vz`
 - macOS 14 or newer
-- a Lima build with secure VZ block-device support, including `limactl sudoers --block-device`
-- an installed Lima sudoers file generated with the explicit block-device opt-in
+- Lima 2.3.0 or newer (`v2.3.0-beta.1+`) with `libexec/lima/privileged/lima-privileged-block-device` installed under a root-owned, non-user-writable prefix (for example `/opt/lima`; see Lima's [block-device sudoers setup](https://lima-vm.io/docs/config/disk/#sudoers-setup))
+- an installed Lima sudoers file generated with an explicit per-device `--block-device=/dev/diskNsM` grant for the current user
 
 Example Lima sudoers setup:
 
 ```sh
-limactl sudoers --block-device >etc_sudoers.d_lima
+limactl sudoers --block-device=/dev/disk0s6 >etc_sudoers.d_lima
 less etc_sudoers.d_lima
-sudo install -o root etc_sudoers.d_lima /etc/sudoers.d/lima
+visudo -cf etc_sudoers.d_lima
+sudo install -o root -g wheel -m 0440 etc_sudoers.d_lima /etc/sudoers.d/lima
 rm etc_sudoers.d_lima
 ```
+
+Include every current-user `--block-device` grant you want to keep when regenerating `/etc/sudoers.d/lima`.
 
 `backend: vz` is faster for VM-side workloads because the guest sees a native virtio block device instead of a network block device. Host access from macOS still uses NFS because macOS does not mount Linux filesystems such as ext4 natively.
 
@@ -106,15 +109,15 @@ For read-only configurations, Colima mounts the filesystem read-only in the gues
 
 ## E2E Smoke Test
 
-Contributors can run the native VZ physical disk smoke test on macOS with a Lima build that supports secure block devices:
+Contributors can run the native VZ physical disk smoke test on macOS with Lima 2.3.0 or newer:
 
 ```sh
 COLIMA_BINARY=/path/to/colima \
-LIMA_BIN=/path/to/secure-lima/limactl \
+LIMA_BIN=/path/to/lima/bin/limactl \
 scripts/physical_disk_vz_e2e.sh
 ```
 
-The script creates a temporary ext4 disk image, attaches it as a macOS disk image, installs a temporary root-owned Lima helper under `/opt/colima-vz-e2e`, starts a disposable Colima profile with `backend: vz`, verifies guest and host read/write through the NFS host-access path, and removes the VM, disk image, helper, and sudoers fragment during cleanup.
+The script creates a temporary ext4 disk image, attaches it as a macOS disk image, installs a temporary root-owned Lima prefix and `lima-privileged-block-device` helper under `/opt/colima-vz-e2e`, authorizes the attached partition with `limactl sudoers --block-device=/dev/diskNs1`, starts a disposable Colima profile with `backend: vz`, verifies guest and host read/write through the NFS host-access path, and removes the VM, sudoers fragment, helper, and disk image during cleanup.
 
 ## Host Access
 
@@ -152,6 +155,6 @@ colima stop --force
 ## Limitations
 
 - Physical disks are currently macOS-only.
-- `backend: vz` requires `vmType: vz` and a Lima build with secure VZ block-device support.
+- `backend: vz` requires `vmType: vz` and Lima 2.3.0 or newer with secure VZ block-device support.
 - Writable mode requires the filesystem to be mounted by Colima only.
 - Host access requires the macOS NFS client and the VM NFS server.

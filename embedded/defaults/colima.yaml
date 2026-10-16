@@ -294,8 +294,8 @@ mounts: []
 #       mountPoint: /Volumes/Colima/src
 #
 # Use backend: vz with vmType: vz for native Virtualization.Framework block
-# attachment. This requires a Lima build that exposes `limactl sudoers
-# --block-device`; host access still uses NFS.
+# attachment. This requires Lima 2.3.0+ with a root-owned helper and per-device
+# `limactl sudoers --block-device=/dev/disk0s6`; host access still uses NFS.
 #
 # Default: []
 physicalDisks: []

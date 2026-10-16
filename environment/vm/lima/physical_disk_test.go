@@ -105,3 +105,23 @@ func TestPhysicalDiskNFSSourcePath(t *testing.T) {
 		t.Fatal("expected error for mount point outside NFS root")
 	}
 }
+
+func TestSupportsSafeVZBlockDevices(t *testing.T) {
+	createHelp := "      --block-device strings       Host block devices to attach (macOS VZ), e.g. /dev/disk4\n"
+	sudoersHelpV23 := "      --block-device strings   include the macOS VZ host block-device helper for the current user and comma-separated devices\n"
+	if !supportsSafeVZBlockDevices(createHelp, sudoersHelpV23) {
+		t.Fatal("expected Lima 2.3.0-beta.1 help output to be accepted")
+	}
+
+	if supportsSafeVZBlockDevices("", sudoersHelpV23) {
+		t.Fatal("expected missing create --block-device to be rejected")
+	}
+
+	if supportsSafeVZBlockDevices(createHelp, "      --check   check that the sudoers file is up-to-date\n") {
+		t.Fatal("expected missing sudoers --block-device to be rejected")
+	}
+
+	if supportsSafeVZBlockDevices(createHelp, "      --block-device   include the macOS VZ host block-device helper\n") {
+		t.Fatal("expected legacy boolean sudoers --block-device without device argument to be rejected")
+	}
+}

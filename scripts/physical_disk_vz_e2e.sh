@@ -4,7 +4,7 @@ set -euo pipefail
 
 PROFILE="${PROFILE:-physical-vz-e2e-$RANDOM}"
 COLIMA_BINARY="${COLIMA_BINARY:-./_output/binaries/colima-$(uname)-$(uname -m)}"
-LIMA_BIN="${LIMA_BIN:-/tmp/lima-5117/_output/bin/limactl}"
+LIMA_BIN="${LIMA_BIN:-$(command -v limactl || echo /opt/lima/bin/limactl)}"
 SECURE_PREFIX="${SECURE_PREFIX:-/opt/colima-vz-e2e}"
 LIMA_SHARE="${LIMA_SHARE:-}"
 LIMA_LIBEXEC="${LIMA_LIBEXEC:-}"
@@ -51,6 +51,10 @@ cleanup() {
 		rmdir "$HOST_MOUNT" >/dev/null 2>&1 || sudo -n rmdir "$HOST_MOUNT" >/dev/null 2>&1 || true
 	fi
 
+	# Revoke the device grant before detaching so macOS cannot reuse an authorized /dev/diskN slot.
+	sudo -n rm -f /private/etc/sudoers.d/colima-vz-e2e >/dev/null 2>&1 || true
+	sudo -n rm -rf "$SECURE_PREFIX" >/dev/null 2>&1 || true
+
 	if [ -n "$whole_device" ]; then
 		hdiutil detach "$whole_device" >/dev/null 2>&1 || true
 	fi
@@ -61,9 +65,6 @@ cleanup() {
 	if [ -n "$tmpdir" ]; then
 		rm -rf "$tmpdir"
 	fi
-
-	sudo -n rm -f /private/etc/sudoers.d/colima-vz-e2e >/dev/null 2>&1 || true
-	sudo -n rm -rf "$SECURE_PREFIX" >/dev/null 2>&1 || true
 }
 
 trap cleanup EXIT
@@ -74,22 +75,33 @@ require_cmd() {
 
 find_lima_assets() {
 	if [ -n "$LIMA_SHARE" ] && [ -n "$LIMA_LIBEXEC" ]; then
+		[ -d "$LIMA_SHARE" ] || die "Lima share directory not found: $LIMA_SHARE"
+		[ -d "$LIMA_LIBEXEC" ] || die "Lima libexec directory not found: $LIMA_LIBEXEC"
+		[ -x "$LIMA_LIBEXEC/privileged/lima-privileged-block-device" ] || die "Lima privileged block-device helper not found: $LIMA_LIBEXEC/privileged/lima-privileged-block-device"
 		return
 	fi
 
-	local limactl_path
-	limactl_path="$(command -v limactl || true)"
-	if [ -z "$limactl_path" ]; then
-		die "limactl not found in PATH and LIMA_SHARE/LIMA_LIBEXEC were not set"
-	fi
+	local bin_prefix
+	bin_prefix="$(cd "$(dirname "$LIMA_BIN")/.." && pwd)"
+	if [ -d "$bin_prefix/share/lima" ] && [ -d "$bin_prefix/libexec/lima" ]; then
+		LIMA_SHARE="${LIMA_SHARE:-$bin_prefix/share/lima}"
+		LIMA_LIBEXEC="${LIMA_LIBEXEC:-$bin_prefix/libexec/lima}"
+	else
+		local limactl_path
+		limactl_path="$(command -v limactl || true)"
+		if [ -z "$limactl_path" ]; then
+			die "limactl not found in PATH and LIMA_SHARE/LIMA_LIBEXEC were not set"
+		fi
 
-	local prefix
-	prefix="$(cd "$(dirname "$limactl_path")/.." && pwd)"
-	LIMA_SHARE="${LIMA_SHARE:-$prefix/share/lima}"
-	LIMA_LIBEXEC="${LIMA_LIBEXEC:-$prefix/libexec/lima}"
+		local prefix
+		prefix="$(cd "$(dirname "$limactl_path")/.." && pwd)"
+		LIMA_SHARE="${LIMA_SHARE:-$prefix/share/lima}"
+		LIMA_LIBEXEC="${LIMA_LIBEXEC:-$prefix/libexec/lima}"
+	fi
 
 	[ -d "$LIMA_SHARE" ] || die "Lima share directory not found: $LIMA_SHARE"
 	[ -d "$LIMA_LIBEXEC" ] || die "Lima libexec directory not found: $LIMA_LIBEXEC"
+	[ -x "$LIMA_LIBEXEC/privileged/lima-privileged-block-device" ] || die "Lima privileged block-device helper not found: $LIMA_LIBEXEC/privileged/lima-privileged-block-device"
 }
 
 install_secure_lima() {
@@ -100,7 +112,7 @@ install_secure_lima() {
 	create_help="$("$LIMA_BIN" create --help 2>&1)"
 	sudoers_help="$("$LIMA_BIN" sudoers --help 2>&1)"
 	[[ "$create_help" == *"--block-device"* ]] || die "$LIMA_BIN lacks create --block-device"
-	[[ "$sudoers_help" == *"--block-device"* ]] || die "$LIMA_BIN lacks sudoers --block-device"
+	[[ "$sudoers_help" == *"--block-device strings"* || "$sudoers_help" == *"--block-device="* ]] || die "$LIMA_BIN lacks per-device sudoers --block-device"
 
 	find_lima_assets
 
@@ -113,21 +125,35 @@ install_secure_lima() {
 	) &
 	sudo_keepalive_pid="$!"
 
-	sudo install -d -m 0755 "$SECURE_PREFIX/bin" "$SECURE_PREFIX/share" "$SECURE_PREFIX/libexec"
-	sudo install -m 0555 "$LIMA_BIN" "$SECURE_PREFIX/bin/limactl"
+	sudo rm -rf "$SECURE_PREFIX"
+	sudo install -d -o root -g wheel -m 0755 \
+		"$SECURE_PREFIX" \
+		"$SECURE_PREFIX/bin" \
+		"$SECURE_PREFIX/share" \
+		"$SECURE_PREFIX/libexec" \
+		"$SECURE_PREFIX/libexec/lima" \
+		"$SECURE_PREFIX/libexec/lima/privileged"
+	sudo install -o root -g wheel -m 0555 "$LIMA_BIN" "$SECURE_PREFIX/bin/limactl"
 	if [ -x "$(dirname "$LIMA_BIN")/lima" ]; then
-		sudo install -m 0555 "$(dirname "$LIMA_BIN")/lima" "$SECURE_PREFIX/bin/lima"
+		sudo install -o root -g wheel -m 0555 "$(dirname "$LIMA_BIN")/lima" "$SECURE_PREFIX/bin/lima"
 	fi
-	sudo rm -f "$SECURE_PREFIX/share/lima" "$SECURE_PREFIX/libexec/lima"
+	sudo install -o root -g wheel -m 0555 \
+		"$LIMA_LIBEXEC/privileged/lima-privileged-block-device" \
+		"$SECURE_PREFIX/libexec/lima/privileged/lima-privileged-block-device"
+	for item in "$LIMA_LIBEXEC"/*; do
+		[ -e "$item" ] || continue
+		[ "$(basename "$item")" = "privileged" ] && continue
+		sudo ln -s "$item" "$SECURE_PREFIX/libexec/lima/$(basename "$item")"
+	done
 	sudo ln -s "$LIMA_SHARE" "$SECURE_PREFIX/share/lima"
-	sudo ln -s "$LIMA_LIBEXEC" "$SECURE_PREFIX/libexec/lima"
+	sudo chmod -RN "$SECURE_PREFIX" 2>/dev/null || true
 
 	local sudoers_tmp sudoers_line sudoers_file
 	sudoers_tmp="$(mktemp "$tmpdir/sudoers.XXXXXX")"
 	sudoers_file="/private/etc/sudoers.d/colima-vz-e2e"
-	LIMA_HOME="$tmpdir/lima-home" "$SECURE_PREFIX/bin/limactl" sudoers --block-device >"$sudoers_tmp.full"
-	sudoers_line="$(grep 'sudo-open-block-device' "$sudoers_tmp.full" || true)"
-	[ -n "$sudoers_line" ] || die "failed to generate sudo-open-block-device sudoers entry"
+	LIMA_HOME="$tmpdir/lima-home" "$SECURE_PREFIX/bin/limactl" sudoers --block-device="$device" >"$sudoers_tmp.full"
+	sudoers_line="$(grep 'lima-privileged-block-device' "$sudoers_tmp.full" || true)"
+	[ -n "$sudoers_line" ] || die "failed to generate lima-privileged-block-device sudoers entry"
 	{
 		printf '# Colima physical disk VZ E2E temporary helper\n'
 		printf '%s\n' "$sudoers_line"

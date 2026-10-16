@@ -77,6 +77,30 @@ func TestValidatePhysicalDisks(t *testing.T) {
 			},
 			wantErr: "hostAccess.mountPoint",
 		},
+		{
+			name:   "nested device path rejected",
+			vmType: "vz",
+			disks: []config.PhysicalDisk{
+				{Name: "src", Device: "/dev/disk0/disk0s6", Backend: "vz"},
+			},
+			wantErr: "device must be an absolute /dev/diskNsM path",
+		},
+		{
+			name:   "non-dev rawDevice rejected",
+			vmType: "qemu",
+			disks: []config.PhysicalDisk{
+				{Name: "src", Device: "/dev/disk0s6", RawDevice: "/tmp/rdisk0s6"},
+			},
+			wantErr: "rawDevice must be an absolute /dev/rdiskNsM path",
+		},
+		{
+			name:   "mismatched rawDevice rejected",
+			vmType: "qemu",
+			disks: []config.PhysicalDisk{
+				{Name: "src", Device: "/dev/disk0s6", RawDevice: "/dev/rdisk0s2"},
+			},
+			wantErr: "rawDevice \"/dev/rdisk0s2\" must match device \"/dev/disk0s6\"",
+		},
 	}
 
 	for _, tt := range tests {
