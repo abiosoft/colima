@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/fatih/color"
+	"github.com/rivo/uniseg"
 	"golang.org/x/term"
 )
 
@@ -167,7 +168,7 @@ func countDisplayLines(line string, termWidth int) int {
 		termWidth = 80
 	}
 
-	visibleWidth := len([]rune(normalizeDisplayText(line)))
+	visibleWidth := uniseg.StringWidth(normalizeDisplayText(line))
 	if visibleWidth == 0 {
 		return 1
 	}
