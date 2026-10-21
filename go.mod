@@ -7,6 +7,7 @@ require (
 	github.com/docker/go-units v0.5.0
 	github.com/fatih/color v1.19.0
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
+	github.com/rivo/uniseg v0.4.7
 	github.com/rjeczalik/notify v0.9.3
 	github.com/schollz/progressbar/v3 v3.19.1
 	github.com/sevlyar/go-daemon v0.1.6
@@ -22,7 +23,6 @@ require (
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.22 // indirect
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
-	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/spf13/pflag v1.0.9 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 )

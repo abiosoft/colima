@@ -129,21 +129,9 @@ func countLines(s string, termWidth int) int {
 		termWidth = 80
 	}
 
-	lines := 1
-	currentLineLen := 0
-
-	for _, ch := range s {
-		if ch == '\n' {
-			lines++
-			currentLineLen = 0
-		} else {
-			currentLineLen++
-			if currentLineLen >= termWidth {
-				lines++
-				currentLineLen = 0
-			}
-		}
+	lines := 0
+	for _, line := range strings.Split(s, "\n") {
+		lines += countDisplayLines(line, termWidth)
 	}
-
 	return lines
 }
