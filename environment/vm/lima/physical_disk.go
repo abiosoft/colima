@@ -742,9 +742,12 @@ func physicalDiskNFSSourcePath(mountPoint string) (string, error) {
 func (l *limaVM) waitTCPListen(port int) error {
 	var err error
 	for i := 0; i < 40; i++ {
-		if err = l.host.RunQuiet("sh", "-c", tcpListenCmd(port)); err == nil {
+		conn, dialErr := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", port), 200*time.Millisecond)
+		if dialErr == nil {
+			_ = conn.Close()
 			return nil
 		}
+		err = dialErr
 		time.Sleep(250 * time.Millisecond)
 	}
 	return err
@@ -758,11 +761,16 @@ func (l *limaVM) physicalDiskNBDRunning(disk physicalDiskRuntime) bool {
 	if err != nil || port == 0 {
 		return false
 	}
-	return l.host.RunQuiet("sh", "-c", tcpListenCmd(port)) == nil
+	conn, dialErr := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", port), 100*time.Millisecond)
+	if dialErr == nil {
+		_ = conn.Close()
+		return true
+	}
+	return false
 }
 
 func tcpListenCmd(port int) string {
-	return fmt.Sprintf("netstat -an -p tcp | awk '$4 ~ /[.:]%d$/ && $6 == \"LISTEN\" {found=1} END{exit !found}'", port)
+	return fmt.Sprintf("nc -z 127.0.0.1 %d", port)
 }
 
 func appendPhysicalDiskLog(err error, logFile, name string) error {
