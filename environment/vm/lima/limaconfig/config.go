@@ -19,6 +19,7 @@ type Config struct {
 	Memory               string            `yaml:"memory,omitempty"`
 	Disk                 string            `yaml:"disk,omitempty"`
 	AdditionalDisks      []Disk            `yaml:"additionalDisks,omitempty" json:"additionalDisks,omitempty"`
+	BlockDevices         []string          `yaml:"blockDevices,omitempty" json:"blockDevices,omitempty"`
 	Mounts               []Mount           `yaml:"mounts,omitempty"`
 	MountType            MountType         `yaml:"mountType,omitempty" json:"mountType,omitempty"`
 	SSH                  SSH               `yaml:"ssh"`

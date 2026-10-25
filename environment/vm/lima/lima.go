@@ -97,6 +97,10 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 		return err
 	})
 
+	a.Add(func() error {
+		return l.assertPhysicalDiskBackends(conf)
+	})
+
 	a.Add(l.assertQemu)
 
 	a.Add(func() error {
@@ -151,6 +155,10 @@ func (l *limaVM) resume(ctx context.Context, conf config.Config) error {
 
 		l.limaConf, err = newConf(ctx, conf)
 		return err
+	})
+
+	a.Add(func() error {
+		return l.assertPhysicalDiskBackends(conf)
 	})
 
 	a.Add(l.assertQemu)
@@ -208,8 +216,15 @@ func (l limaVM) Stop(ctx context.Context, force bool) error {
 
 	a.Stage("stopping")
 
+	conf, _ := configmanager.LoadInstance()
+	a.Add(func() error {
+		if err := l.stopPhysicalDisks(ctx, conf); err != nil {
+			log.Warnln(fmt.Errorf("error stopping physical disks: %w", err))
+		}
+		return nil
+	})
+
 	if util.MacOS() {
-		conf, _ := configmanager.LoadInstance()
 		a.Retry("", time.Second*1, 10, func(retryCount int) error {
 			err := l.daemon.Stop(ctx, conf)
 			if err != nil {
@@ -235,9 +250,16 @@ func (l limaVM) Stop(ctx context.Context, force bool) error {
 
 func (l limaVM) Teardown(ctx context.Context) error {
 	a := l.Init(ctx)
+	conf, _ := configmanager.LoadInstance()
+
+	a.Add(func() error {
+		if err := l.stopPhysicalDisks(ctx, conf); err != nil {
+			l.Logger(ctx).Warnln(fmt.Errorf("error stopping physical disks: %w", err))
+		}
+		return nil
+	})
 
 	if util.MacOS() {
-		conf, _ := configmanager.LoadInstance()
 		a.Retry("", time.Second*1, 10, func(retryCount int) error {
 			return l.daemon.Stop(ctx, conf)
 		})
@@ -350,6 +372,14 @@ func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Conf
 	a.Add(func() error {
 		if err := configmanager.SaveToFile(conf, config.CurrentProfile().StateFile()); err != nil {
 			logrus.Warnln(fmt.Errorf("error persisting Colima state: %w", err))
+		}
+		return nil
+	})
+
+	// attach physical block devices and mount optional host access.
+	a.Add(func() error {
+		if err := l.setupPhysicalDisks(context.Background(), conf); err != nil {
+			return fmt.Errorf("error setting up physical disks: %w", err)
 		}
 		return nil
 	})
