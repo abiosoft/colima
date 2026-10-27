@@ -129,15 +129,34 @@ func parseMNumber(s string) (int, bool) {
 	return n, true
 }
 
-// RosettaRunning checks if Rosetta process is running.
-func RosettaRunning() bool {
-	if !MacOS() {
-		return false
-	}
-	cmd := cli.Command("pgrep", "oahd")
+// RosettaLinuxInstalled returns whether Rosetta for Linux VMs is installed
+// by querying VZLinuxRosettaDirectoryShare.availability via AppleScript.
+// An error is returned if Rosetta is not supported or availability cannot be determined.
+// https://developer.apple.com/documentation/virtualization/vzlinuxrosettadirectoryshare/availability
+func RosettaLinuxInstalled() (bool, error) {
+	var buf bytes.Buffer
+	cmd := cli.Command("osascript",
+		"-e", `use framework "Virtualization"`,
+		"-e", `return (current application's VZLinuxRosettaDirectoryShare's availability()) as integer`,
+	)
+	cmd.Stdout = &buf
 	cmd.Stderr = nil
-	cmd.Stdout = nil
-	return cmd.Run() == nil
+
+	if err := cmd.Run(); err != nil {
+		return false, fmt.Errorf("could not determine Rosetta availability: %w", err)
+	}
+
+	// See: VZLinuxRosettaAvailability in Virtualization.framework
+	switch out := strings.TrimSpace(buf.String()); out {
+	case "2": // installed
+		return true, nil
+	case "1": // notInstalled
+		return false, nil
+	case "0": // notSupported
+		return false, fmt.Errorf("this host does not support Rosetta")
+	default:
+		return false, fmt.Errorf("unknown Rosetta availability: %q", out)
+	}
 }
 
 // macOSProductVersion returns the host's macOS version.
