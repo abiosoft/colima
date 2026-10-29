@@ -463,6 +463,10 @@ func setFixedConfigs(conf *config.Config) {
 		warnIfNotEqual("network mode", conf.Network.Mode, fixedConf.Network.Mode)
 		conf.Network.Mode = fixedConf.Network.Mode
 	}
+	if fixedConf.Disk > 0 && conf.Disk > 0 && conf.Disk < fixedConf.Disk {
+		log.Warnln("disk size cannot be reduced, ignoring...")
+		conf.Disk = fixedConf.Disk
+	}
 }
 
 func prepareConfig(cmd *cobra.Command) {

@@ -126,7 +126,7 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 		return nil
 	})
 
-	l.addPostStartActions(a, conf)
+	l.addPostStartActions(a, &conf)
 
 	return a.Exec()
 }
@@ -184,7 +184,7 @@ func (l *limaVM) resume(ctx context.Context, conf config.Config) error {
 		return l.host.Run(limactl, "start", config.CurrentProfile().ID)
 	})
 
-	l.addPostStartActions(a, conf)
+	l.addPostStartActions(a, &conf)
 
 	return a.Exec()
 }
@@ -295,10 +295,10 @@ func (l limaVM) Arch() environment.Arch {
 	return environment.Arch(a)
 }
 
-func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Config) {
+func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf *config.Config) {
 	// setup dns
 	a.Add(func() error {
-		if err := l.setupDNS(conf); err != nil {
+		if err := l.setupDNS(*conf); err != nil {
 			return fmt.Errorf("error setting up DNS: %w", err)
 		}
 		return nil
@@ -340,7 +340,7 @@ func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Conf
 
 	// replicate addresses when network address is disabled
 	a.Add(func() error {
-		if err := l.replicateHostAddresses(conf); err != nil {
+		if err := l.replicateHostAddresses(*conf); err != nil {
 			logrus.Warnln(fmt.Errorf("unable to assign host IP addresses to the VM: %w", err))
 		}
 		return nil
@@ -348,7 +348,7 @@ func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Conf
 
 	// preserve state
 	a.Add(func() error {
-		if err := configmanager.SaveToFile(conf, config.CurrentProfile().StateFile()); err != nil {
+		if err := configmanager.SaveToFile(*conf, config.CurrentProfile().StateFile()); err != nil {
 			logrus.Warnln(fmt.Errorf("error persisting Colima state: %w", err))
 		}
 		return nil
