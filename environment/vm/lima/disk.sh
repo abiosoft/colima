@@ -17,13 +17,13 @@ if df -h /mnt/lima-cidata/ | tail -n +2 | grep '^/dev/vdb'; then
 fi
 DISK_PART="${DISK}1"
 
-# Check current mount state before touching the disk.
-if findmnt --noheadings --source "$DISK_PART" --target "$MOUNT_POINT" >/dev/null 2>&1; then
+# Check the exact mount point. --target also matches its enclosing filesystem.
+if findmnt --noheadings --source "$DISK_PART" --mountpoint "$MOUNT_POINT" >/dev/null 2>&1; then
 	echo "Disk already mounted, skipping setup."
 	exit 0
 fi
 
-if findmnt --noheadings --target "$MOUNT_POINT" >/dev/null 2>&1; then
+if findmnt --noheadings --mountpoint "$MOUNT_POINT" >/dev/null 2>&1; then
 	echo "Unexpected disk at mount point."
 	exit 1
 fi
