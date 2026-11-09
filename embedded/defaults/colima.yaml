@@ -120,7 +120,10 @@ network:
     host.docker.internal: host.lima.internal
 
   # Replicate host IP addresses in the VM. This enables port forwarding to specific
-  # host IP addresses.
+  # host IPv4 addresses already assigned to a host interface when Colima starts.
+  # For a custom loopback address such as 127.42.90.84, assign it to lo0
+  # on macOS before starting Colima. This option does not create host aliases.
+  #
   #   e.g. `docker run --port 10.0.1.2:8080:8080 alpine` would only forward to the
   #   specified IP address.
   #
