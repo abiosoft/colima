@@ -14,11 +14,9 @@ type dirWatcher interface {
 	// Watch watches directories recursively for changes and sends message via c on
 	// modifications to files within the watched directories.
 	//
-	// Watch returns immediately and runs the watcher in the background.
-	// An error is returned when the watcher can not be started in background.
-	//
-	// The watcher terminates on fatal error or when ctx is done.
-	Watch(ctx context.Context, dirs []string, c chan<- modEvent) error
+	// Watch returns a function that stops the watcher and waits for its registrations
+	// to be removed. The watcher also stops when ctx is done.
+	Watch(ctx context.Context, dirs []string, c chan<- modEvent) (stop func(), err error)
 }
 
 type defaultWatcher struct {
@@ -26,32 +24,33 @@ type defaultWatcher struct {
 }
 
 // Watch implements dirWatcher
-func (d *defaultWatcher) Watch(ctx context.Context, dirs []string, mod chan<- modEvent) error {
+func (d *defaultWatcher) Watch(ctx context.Context, dirs []string, mod chan<- modEvent) (func(), error) {
 	log := d.log
 	c := make(chan notify.EventInfo, 1)
 
 	for _, dir := range dirs {
 		dir, err := util.CleanPath(dir)
 		if err != nil {
-			return fmt.Errorf("invalid directory: %w", err)
+			notify.Stop(c)
+			return nil, fmt.Errorf("invalid directory: %w", err)
 		}
 		err = notify.Watch(dir+"...", c, notify.Write)
 		if err != nil {
-			return fmt.Errorf("error watching directory recursively '%s': %w", dir, err)
+			notify.Stop(c)
+			return nil, fmt.Errorf("error watching directory recursively '%s': %w", dir, err)
 		}
 	}
 
-	go func(ctx context.Context, c chan notify.EventInfo, mod chan<- modEvent) {
+	ctx, cancel := context.WithCancel(ctx)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		defer notify.Stop(c)
 		for {
 			select {
-
 			case <-ctx.Done():
-				notify.Stop(c)
 				log.Trace("stopping watcher")
-				if err := ctx.Err(); err != nil {
-					log.Trace(fmt.Errorf("error found in ctx: %w", err))
-					return
-				}
+				return
 
 			case e := <-c:
 				path := e.Path()
@@ -70,12 +69,19 @@ func (d *defaultWatcher) Watch(ctx context.Context, dirs []string, mod chan<- mo
 				}
 
 				// send modification event
-				mod <- modEvent{path: path, FileMode: stat.Mode()}
+				select {
+				case mod <- modEvent{path: path, FileMode: stat.Mode()}:
+				case <-ctx.Done():
+					return
+				}
 			}
 		}
-	}(ctx, c, mod)
+	}()
 
-	return nil
+	return func() {
+		cancel()
+		<-done
+	}, nil
 }
 
 var _ dirWatcher = (*defaultWatcher)(nil)
