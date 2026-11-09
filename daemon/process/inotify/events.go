@@ -32,7 +32,12 @@ func (f *inotifyProcess) handleEvents(ctx context.Context, watcher dirWatcher) e
 	}
 
 	var last time.Time
-	var cancelWatch context.CancelFunc
+	var stopWatch func()
+	defer func() {
+		if stopWatch != nil {
+			stopWatch()
+		}
+	}()
 	var currentVols []string
 
 	volsChanged := func(vols []string) bool {
@@ -54,7 +59,6 @@ func (f *inotifyProcess) handleEvents(ctx context.Context, watcher dirWatcher) e
 
 		// exit signal
 		case <-ctx.Done():
-			close(mod)
 			return ctx.Err()
 
 		// watch only container volumes
@@ -64,21 +68,24 @@ func (f *inotifyProcess) handleEvents(ctx context.Context, watcher dirWatcher) e
 			}
 			log.Tracef("volumes changed from: %+v, to: %+v", currentVols, vols)
 
-			currentVols = vols
-
-			if cancel := cancelWatch; cancel != nil {
-				// delay a bit to avoid zero downtime
-				time.AfterFunc(time.Second*1, cancel)
+			// Overlapping recursive watches can lose the parent watch when
+			// notify removes the old child watch on macOS.
+			if stopWatch != nil {
+				stopWatch()
+				stopWatch = nil
+			}
+			currentVols = nil
+			if len(vols) == 0 {
+				continue
 			}
 
-			ctx, cancel := context.WithCancel(ctx)
-			cancelWatch = cancel
-
-			go func(ctx context.Context, vols []string, mod chan<- modEvent) {
-				if err := watcher.Watch(ctx, vols, mod); err != nil {
-					log.Error(fmt.Errorf("error running watcher: %w", err))
-				}
-			}(ctx, vols, mod)
+			stop, err := watcher.Watch(ctx, vols, mod)
+			if err != nil {
+				log.Error(fmt.Errorf("error running watcher: %w", err))
+				continue
+			}
+			stopWatch = stop
+			currentVols = vols
 
 		// handle modification events
 		case ev := <-mod:
