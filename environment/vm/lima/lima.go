@@ -97,7 +97,7 @@ func (l *limaVM) Start(ctx context.Context, conf config.Config) error {
 		return err
 	})
 
-	a.Add(l.assertQemu)
+	a.Add(func() error { return l.assertQemu(conf) })
 
 	a.Add(func() error {
 		return l.createRuntimeDisk(conf)
@@ -153,7 +153,7 @@ func (l *limaVM) resume(ctx context.Context, conf config.Config) error {
 		return err
 	})
 
-	a.Add(l.assertQemu)
+	a.Add(func() error { return l.assertQemu(conf) })
 
 	a.Add(func() error {
 		l.useRuntimeDisk(conf)
@@ -374,9 +374,14 @@ func (l *limaVM) addPostStartActions(a *cli.ActiveCommandChain, conf config.Conf
 
 }
 
-func (l *limaVM) assertQemu() error {
+func (l *limaVM) assertQemu(conf config.Config) error {
 	// assert qemu requirement
-	sameArchitecture := environment.HostArch() == l.limaConf.Arch
+	hostArch := environment.HostArch()
+	sameArchitecture := hostArch == l.limaConf.Arch
+	if !sameArchitecture && l.limaConf.VMType == limaconfig.QEMU &&
+		(conf.VMType == limaconfig.VZ || conf.VMType == limaconfig.Krunkit) {
+		logrus.Warnf("%s cannot run VM architecture %s on host architecture %s; falling back to QEMU", conf.VMType, l.limaConf.Arch, hostArch)
+	}
 	if err := util.AssertQemuImg(); err != nil && l.limaConf.VMType == limaconfig.QEMU {
 		if !sameArchitecture {
 			return fmt.Errorf("qemu is required to emulate %s: %w", l.limaConf.Arch, err)
