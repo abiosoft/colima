@@ -509,8 +509,10 @@ func prepareConfig(cmd *cobra.Command) {
 
 		// attempt template if enabled
 		if startCmdArgs.Flags.Template {
-			template, err := configmanager.LoadFrom(templateFile())
+			path := templateFile()
+			template, err := configmanager.LoadFrom(path)
 			if err == nil {
+				log.Infof("using configuration template %s", path)
 				current = template
 				templateUsed = true
 			}
