@@ -170,7 +170,7 @@ docker: {}
 # krunkit runs super‑light VMs on macOS/ARM64 with a focus on GPU access. It is experimental.
 #
 # NOTE: value cannot be changed after virtual machine is created.
-# Default: qemu
+# Default: vz (for macOS >= 13), qemu (for Linux and macOS < 13)
 vmType: qemu
 
 # Port forwarder for the virtual machine (ssh, grpc, none).

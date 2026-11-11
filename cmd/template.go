@@ -10,7 +10,9 @@ import (
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/config/configmanager"
 	"github.com/abiosoft/colima/embedded"
+	"github.com/abiosoft/colima/util/yamlutil"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 )
 
 // templateCmd represents the template command
@@ -78,7 +80,18 @@ func templateFileOrDefault() (string, error) {
 		}
 	}
 
-	return embedded.ReadString("defaults/colima.yaml")
+	b, err := embedded.Read("defaults/colima.yaml")
+	if err != nil {
+		return "", err
+	}
+	var conf config.Config
+	if err := yaml.Unmarshal(b, &conf); err != nil {
+		return "", err
+	}
+	conf.VMType = defaultVMType
+	conf.MountType = startCmd.Flag("mount-type").DefValue
+	b, err = yamlutil.Encode(conf)
+	return string(b), err
 }
 
 var templateCmdArgs struct {
