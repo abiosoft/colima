@@ -32,6 +32,8 @@ type verboseWriter struct {
 
 var ansiControlSequence = regexp.MustCompile(`\x1b\[[0-?]*[ -/]*[@-~]`)
 
+var persistentLogLine = regexp.MustCompile(`(^|[[:space:]])level=(warning|error|fatal|panic)([[:space:]]|$)|^(WARN|ERRO|FATA|PANI)\[`)
+
 // NewVerboseWriter creates a new verbose writer.
 // A verbose writer pipes the input received to the stdout while tailing the specified lines.
 // Calling `Close` when done is recommended to clear the last uncleared output.
@@ -77,8 +79,8 @@ func (v *verboseWriter) refresh() error {
 func (v *verboseWriter) addLine() {
 	defer v.buf.Reset()
 
-	// if height <=0, do not scroll
-	if v.lineHeight <= 0 {
+	// Keep diagnostics outside the temporary progress area so they survive cleanup.
+	if v.lineHeight <= 0 || persistentLogLine.MatchString(v.buf.String()) {
 		v.printLineVerbose()
 		return
 	}
