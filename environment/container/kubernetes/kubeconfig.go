@@ -3,16 +3,40 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/abiosoft/colima/cli"
 	"github.com/abiosoft/colima/config"
+	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
 )
 
 const masterAddressKey = "master_address"
+
+// CleanupKubeconfig removes the current profile's host configuration without contacting the VM.
+func CleanupKubeconfig(ctx context.Context, host environment.HostActions) error {
+	if _, err := exec.LookPath("kubectl"); err != nil {
+		return nil
+	}
+	profile := config.CurrentProfile().ID
+	names, err := host.RunOutput("kubectl", "config", "get-contexts", "-o", "name")
+	if err != nil {
+		return err
+	}
+	if !slices.Contains(strings.Fields(names), profile) {
+		return nil
+	}
+
+	c := kubernetesRuntime{host: host}
+	a := cli.New(Name).Init(ctx)
+	a.Stage("reverting config")
+	c.unsetKubeconfig(a)
+	return a.Exec()
+}
 
 func (c kubernetesRuntime) provisionKubeconfig(ctx context.Context) error {
 	ip := limautil.IPAddress(config.CurrentProfile().ID)

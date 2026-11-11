@@ -278,6 +278,10 @@ func (c colimaApp) Delete(data, force bool) error {
 	}
 
 	// delete configs
+	if err := kubernetes.CleanupKubeconfig(ctx, c.guest.Host()); err != nil {
+		log.Warnln(fmt.Errorf("error cleaning up kubeconfig: %w", err))
+	}
+
 	if err := configmanager.Teardown(); err != nil {
 		return fmt.Errorf("error deleting configs: %w", err)
 	}
