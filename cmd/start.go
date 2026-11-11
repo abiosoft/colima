@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -93,7 +94,9 @@ Run 'colima template' to set the default configurations or 'colima start --edit'
 		}
 
 		// combine args and current config file(if any)
-		prepareConfig(cmd)
+		if err := prepareConfig(cmd); err != nil {
+			return err
+		}
 
 		// validate config
 		if err := configmanager.ValidateConfig(startCmdArgs.Config); err != nil {
@@ -465,7 +468,7 @@ func setFixedConfigs(conf *config.Config) {
 	}
 }
 
-func prepareConfig(cmd *cobra.Command) {
+func prepareConfig(cmd *cobra.Command) error {
 	current, err := configmanager.Load()
 	if err != nil {
 		// not fatal, will proceed with defaults
@@ -510,6 +513,9 @@ func prepareConfig(cmd *cobra.Command) {
 		// attempt template if enabled
 		if startCmdArgs.Flags.Template {
 			template, err := configmanager.LoadFrom(templateFile())
+			if err != nil && !errors.Is(err, os.ErrNotExist) {
+				return fmt.Errorf("error loading template %s: %w", templateFile(), err)
+			}
 			if err == nil {
 				current = template
 				templateUsed = true
@@ -518,7 +524,7 @@ func prepareConfig(cmd *cobra.Command) {
 
 		if !templateUsed {
 			// use default config if there is no template or template is disabled
-			return
+			return nil
 		}
 	}
 
@@ -669,6 +675,7 @@ func prepareConfig(cmd *cobra.Command) {
 	}
 
 	setFixedConfigs(&startCmdArgs.Config)
+	return nil
 }
 
 // editConfigFile launches an editor to edit the config file.
