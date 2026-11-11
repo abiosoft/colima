@@ -90,7 +90,7 @@ func (d systemProfilerChipDetector) GetChipType() (string, error) {
 	}
 
 	var buf bytes.Buffer
-	cmd := cli.Command("system_profiler", "-json", "SPHardwareDataType")
+	cmd := cli.Command("/usr/sbin/system_profiler", "-json", "SPHardwareDataType")
 	cmd.Stdout = &buf
 
 	if err := cmd.Run(); err != nil {
