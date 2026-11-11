@@ -25,7 +25,7 @@ func WriteYAML(value any, file string) error {
 
 // Save saves the config.
 func Save(c config.Config, file string) error {
-	b, err := encodeYAML(c)
+	b, err := Encode(c)
 	if err != nil {
 		return err
 	}
@@ -36,7 +36,8 @@ func Save(c config.Config, file string) error {
 	return nil
 }
 
-func encodeYAML(conf config.Config) ([]byte, error) {
+// Encode encodes configuration using the embedded defaults to preserve documentation.
+func Encode(conf config.Config) ([]byte, error) {
 	var doc yaml.Node
 
 	f, err := embedded.Read("defaults/colima.yaml")
