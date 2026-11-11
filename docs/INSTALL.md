@@ -48,6 +48,20 @@ yay -S lima-bin colima-bin
 ```
 
 
+## Runtime dependencies for manual installs
+
+Before running a downloaded binary or a source build, install [Lima](https://lima-vm.io/docs/installation/) and ensure `lima` and `limactl` are in your `PATH`.
+On Linux, install QEMU as described in the Lima installation guide, including `qemu-img` and the system emulator for your VM architecture.
+
+Install the Docker client for the default Docker runtime, or use `colima start --runtime containerd` to use Containerd.
+Kubernetes additionally requires `kubectl` on the host.
+
+Confirm Lima is available before starting Colima.
+
+```sh
+limactl --version
+```
+
 ## Binary
 
 Binaries are available with every release on the [releases page](https://github.com/abiosoft/colima/releases).
@@ -62,7 +76,7 @@ sudo install colima-$(uname)-$(uname -m) /usr/local/bin/colima
 
 ## Building from Source
 
-Requires [Go](https://golang.org).
+Requires [Go](https://golang.org). Install the [runtime dependencies](#runtime-dependencies-for-manual-installs) before starting Colima. `make install` installs the Colima executable.
 
 ```sh
 # clone repo and cd into it
