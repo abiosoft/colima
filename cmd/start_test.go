@@ -1,12 +1,42 @@
 package cmd
 
 import (
+	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/abiosoft/colima/config"
 )
+
+func TestPrepareConfigInvalidTemplate(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("COLIMA_HOME", dir)
+	previousProfile := config.CurrentProfile().ShortName
+	config.SetProfile("invalid-template-test")
+	t.Cleanup(func() { config.SetProfile(previousProfile) })
+	previousArgs := startCmdArgs
+	t.Cleanup(func() { startCmdArgs = previousArgs })
+	startCmdArgs.Flags.Template = true
+
+	file := templateFile()
+	if err := os.MkdirAll(filepath.Dir(file), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(file, []byte("cpu: [\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	err := prepareConfig(startCmd)
+	if err == nil {
+		t.Fatal("expected invalid template to stop config preparation")
+	}
+	if !strings.Contains(err.Error(), file) || !strings.Contains(err.Error(), "yaml:") {
+		t.Fatalf("expected template path and YAML error, got %v", err)
+	}
+}
 
 func Test_mountsFromFlag(t *testing.T) {
 	tests := []struct {
