@@ -13,7 +13,7 @@ func (l limaVM) copyCerts() error {
 	log := l.Logger(context.Background())
 	err := func() error {
 		dockerCertsDirHost := filepath.Join(docker.DockerDir(), "certs.d")
-		dockerCertsDirsGuest := []string{"/etc/docker/certs.d", "/etc/ssl/certs"}
+		dockerCertsDirsGuest := []string{"/etc/docker/certs.d", "/usr/local/share/ca-certificates"}
 		if _, err := l.host.Stat(dockerCertsDirHost); err != nil {
 			// no certs found
 			return nil
@@ -37,13 +37,18 @@ func (l limaVM) copyCerts() error {
 			if err := l.RunQuiet("sudo", "mkdir", "-p", dir); err != nil {
 				return err
 			}
-			if err := l.RunQuiet("sudo", "cp", "-R", tmpDir+"/.", dir); err != nil {
+			if err := l.RunQuiet("sudo", "cp", "-R", tmpDir+"/certs.d/.", dir); err != nil {
 				return err
 			}
 		}
 
 		// cleanup temp
 		_ = l.RunQuiet("rm", "-rf", tmpDir)
+
+		// update VM CA bundle
+		if err := l.RunQuiet("sudo", "update-ca-certificates"); err != nil {
+			return err
+		}
 
 		return nil
 	}()
