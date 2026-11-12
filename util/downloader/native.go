@@ -3,7 +3,9 @@ package downloader
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"path"
 	"time"
@@ -42,13 +44,22 @@ func (n *nativeDownloader) Download(r Request, destPath string) error {
 	}
 
 	// download the file
-	result, err := client.Download(ctx, DownloadOptions{
+	opts := DownloadOptions{
 		URL:            finalURL,
 		DestPath:       destPath,
 		ExpectedETag:   resumeInfo.ETag,
 		ResumeFromByte: existingSize,
 		ShowProgress:   true,
-	})
+	}
+	result, err := client.Download(ctx, opts)
+
+	// the server cannot resume from the partial file, so download it again
+	var statusErr *HTTPStatusError
+	if existingSize > 0 && errors.As(err, &statusErr) && statusErr.StatusCode == http.StatusRequestedRangeNotSatisfiable {
+		existingSize = 0
+		opts.ResumeFromByte = 0
+		result, err = client.Download(ctx, opts)
+	}
 	if err != nil {
 		// save resume info for next attempt if we have ETag
 		if result != nil && result.ETag != "" {

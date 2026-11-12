@@ -13,9 +13,16 @@ import (
 	"github.com/abiosoft/colima/util"
 )
 
+// usesVmnet reports whether the VM networking relies on vmnet.
+// vmnet is used by QEMU, Krunkit, or bridged mode.
+// The effective VM type is used as vz falls back to QEMU for a foreign architecture.
+func usesVmnet(conf config.Config) bool {
+	vmType := limaVMType(conf)
+	return vmType == limaconfig.QEMU || vmType == limaconfig.Krunkit || conf.Network.Mode == "bridged"
+}
+
 func (l *limaVM) startDaemon(ctx context.Context, conf config.Config) (context.Context, error) {
-	// vmnet is used by QEMU, Krunkit, or bridged mode
-	useVmnet := conf.VMType == limaconfig.QEMU || conf.VMType == limaconfig.Krunkit || conf.Network.Mode == "bridged"
+	useVmnet := usesVmnet(conf)
 
 	// network daemon is only needed for vmnet
 	conf.Network.Address = conf.Network.Address && useVmnet

@@ -21,18 +21,31 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err error) {
-	l.Arch = environment.Arch(conf.Arch).Value()
-
-	// VM type is qemu except in few scenarios
-	l.VMType = limaconfig.QEMU
-
-	sameArchitecture := environment.HostArch() == l.Arch
+// limaVMType returns the VM type Lima will actually use for conf.
+// It is qemu except when vz or krunkit is chosen, supported by the OS,
+// and the guest architecture matches the host.
+func limaVMType(conf config.Config) limaconfig.VMType {
+	sameArchitecture := environment.HostArch() == environment.Arch(conf.Arch).Value()
 
 	// when vz is chosen and OS version supports it
 	if util.MacOS13OrNewer() && conf.VMType == limaconfig.VZ && sameArchitecture {
-		l.VMType = limaconfig.VZ
+		return limaconfig.VZ
+	}
 
+	// when krunkit is chosen and OS version supports it
+	if util.MacOS13OrNewerOnArm() && conf.VMType == limaconfig.Krunkit && sameArchitecture {
+		return limaconfig.Krunkit
+	}
+
+	return limaconfig.QEMU
+}
+
+func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err error) {
+	l.Arch = environment.Arch(conf.Arch).Value()
+
+	l.VMType = limaVMType(conf)
+
+	if l.VMType == limaconfig.VZ {
 		// Rosetta is only available on Apple Silicon
 		if conf.VZRosetta && util.MacOS13OrNewerOnArm() {
 			if util.RosettaRunning() {
@@ -49,10 +62,7 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 		}
 	}
 
-	// when krunkit is chosen and OS version supports it
-	if util.MacOS13OrNewerOnArm() && conf.VMType == limaconfig.Krunkit && sameArchitecture {
-		l.VMType = limaconfig.Krunkit
-
+	if l.VMType == limaconfig.Krunkit {
 		if util.MacOSNestedVirtualizationSupported() {
 			l.NestedVirtualization = conf.NestedVirtualization
 		}

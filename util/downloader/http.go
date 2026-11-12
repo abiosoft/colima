@@ -177,7 +177,11 @@ func (h *HTTPClient) Download(ctx context.Context, opts DownloadOptions) (*Downl
 		}
 
 	case http.StatusRequestedRangeNotSatisfiable: // 416
-		// file is likely complete or server doesn't support range
+		// resuming a complete file is answered with 416 and "Content-Range: bytes */<size>"
+		if existingSize > 0 && parseContentRangeTotal(resp.Header.Get("Content-Range")) == existingSize {
+			result.TotalBytes = existingSize
+			return result, nil
+		}
 		return nil, &HTTPStatusError{
 			StatusCode: resp.StatusCode,
 			Status:     resp.Status,

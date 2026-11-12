@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"context"
+	"net"
 	"time"
 
 	"github.com/abiosoft/colima/cmd/root"
@@ -32,7 +33,7 @@ var startCmd = &cobra.Command{
 
 		var processes []process.Process
 		if daemonArgs.vmnet.enabled {
-			processes = append(processes, vmnet.New(daemonArgs.vmnet.mode, daemonArgs.vmnet.netInterface))
+			processes = append(processes, vmnet.New(daemonArgs.vmnet.mode, daemonArgs.vmnet.netInterface, daemonArgs.vmnet.subnet, daemonArgs.vmnet.nat66Prefix))
 		}
 		if daemonArgs.inotify.enabled {
 			processes = append(processes, inotify.New())
@@ -83,6 +84,8 @@ var daemonArgs struct {
 		enabled      bool
 		mode         string
 		netInterface string
+		subnet       config.Subnet
+		nat66Prefix  net.IP
 	}
 	inotify struct {
 		enabled bool
@@ -103,6 +106,10 @@ func init() {
 	startCmd.Flags().BoolVar(&daemonArgs.vmnet.enabled, "vmnet", false, "start vmnet")
 	startCmd.Flags().StringVar(&daemonArgs.vmnet.mode, "vmnet-mode", "shared", "vmnet mode (shared, bridged)")
 	startCmd.Flags().StringVar(&daemonArgs.vmnet.netInterface, "vmnet-interface", "en0", "vmnet interface for bridged mode")
+	startCmd.Flags().StringVar(&daemonArgs.vmnet.subnet.Gateway, "vmnet-gateway", config.NetGateway, "vmnet gateway for shared mode")
+	startCmd.Flags().StringVar(&daemonArgs.vmnet.subnet.DHCPEnd, "vmnet-dhcp-end", config.NetDHCPEnd, "vmnet DHCP end address for shared mode")
+	startCmd.Flags().StringVar(&daemonArgs.vmnet.subnet.Netmask, "vmnet-mask", config.NetMask, "vmnet mask for shared mode")
+	startCmd.Flags().IPVar(&daemonArgs.vmnet.nat66Prefix, "vmnet-nat66-prefix", nil, "vmnet nat66 ULA prefix for shared mode")
 	startCmd.Flags().BoolVar(&daemonArgs.inotify.enabled, "inotify", false, "start inotify")
 	startCmd.Flags().StringSliceVar(&daemonArgs.inotify.dirs, "inotify-dir", nil, "set inotify directories")
 	startCmd.Flags().StringVar(&daemonArgs.inotify.runtime, "inotify-runtime", "docker", "set runtime")

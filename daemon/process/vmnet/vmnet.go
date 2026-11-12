@@ -17,25 +17,24 @@ import (
 
 const Name = "vmnet"
 
-const (
-	SubProcessEnvVar = "COLIMA_VMNET"
-
-	NetGateway = "192.168.106.1"
-	NetDHCPEnd = "192.168.106.254"
-)
+const SubProcessEnvVar = "COLIMA_VMNET"
 
 var _ process.Process = (*vmnetProcess)(nil)
 
-func New(mode, netInterface string) process.Process {
+func New(mode, netInterface string, subnet config.Subnet, nat66Prefix net.IP) process.Process {
 	return &vmnetProcess{
 		mode:         mode,
 		netInterface: netInterface,
+		subnet:       subnet,
+		nat66Prefix:  nat66Prefix,
 	}
 }
 
 type vmnetProcess struct {
 	mode         string
 	netInterface string
+	subnet       config.Subnet
+	nat66Prefix  net.IP
 }
 
 func (*vmnetProcess) Alive(ctx context.Context) error {
@@ -92,14 +91,22 @@ func (v *vmnetProcess) Start(ctx context.Context) error {
 				socket,
 			)
 		} else {
-			command = cli.CommandInteractive("sudo", BinaryPath,
+			args := []string{
+				BinaryPath,
 				"--vmnet-mode", "shared",
 				"--socket-group", "staff",
-				"--vmnet-gateway", NetGateway,
-				"--vmnet-dhcp-end", NetDHCPEnd,
+				"--vmnet-gateway", v.subnet.Gateway,
+				"--vmnet-dhcp-end", v.subnet.DHCPEnd,
+				"--vmnet-mask", v.subnet.Netmask,
+			}
+			if v.nat66Prefix != nil {
+				args = append(args, "--vmnet-nat66-prefix", v.nat66Prefix.String())
+			}
+			args = append(args,
 				"--pidfile", pid,
 				socket,
 			)
+			command = cli.CommandInteractive("sudo", args...)
 		}
 
 		if cli.Settings.Verbose {

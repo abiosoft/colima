@@ -214,8 +214,12 @@ func init() {
 		// network address
 		startCmd.Flags().BoolVar(&startCmdArgs.Network.Address, "network-address", false, "assign reachable IP address to the VM")
 		startCmd.Flags().StringVar(&startCmdArgs.Network.Mode, "network-mode", "shared", "network mode (shared, bridged)")
+		startCmd.Flags().StringVar(&startCmdArgs.Network.Subnet, "network-subnet", "", "subnet for shared mode (e.g. 192.168.107.0/24)")
 		startCmd.Flags().StringVar(&startCmdArgs.Network.BridgeInterface, "network-interface", "en0", "host network interface to use for bridged mode")
 		startCmd.Flags().BoolVar(&startCmdArgs.Network.PreferredRoute, "network-preferred-route", false, "use the assigned IP address as the preferred route for the VM (implies --network-address)")
+
+		// nat66 prefix
+		startCmd.Flags().IPVar(&startCmdArgs.Network.NAT66Prefix, "network-nat66-prefix", nil, "nat66 ULA prefix for shared mode (optional, e.g. fd25:636f:6c69:6d61::)")
 
 		// vm type
 		if util.MacOS13OrNewer() {
@@ -634,6 +638,12 @@ func prepareConfig(cmd *cobra.Command) {
 		}
 		if !cmd.Flag("network-mode").Changed {
 			startCmdArgs.Network.Mode = current.Network.Mode
+		}
+		if !cmd.Flag("network-subnet").Changed {
+			startCmdArgs.Network.Subnet = current.Network.Subnet
+		}
+		if !cmd.Flag("network-nat66-prefix").Changed {
+			startCmdArgs.Network.NAT66Prefix = current.Network.NAT66Prefix
 		}
 		if !cmd.Flag("network-interface").Changed {
 			startCmdArgs.Network.BridgeInterface = current.Network.BridgeInterface
