@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"gopkg.in/yaml.v3"
+
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment"
 	"github.com/abiosoft/colima/environment/vm/lima/limaconfig"
@@ -159,4 +161,24 @@ func Test_limaVMType(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDisabledPortForwardingRule(t *testing.T) {
+	conf, err := newConf(context.Background(), config.Config{PortForwarder: "none"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, rule := range conf.PortForwards {
+		if rule.Ignore && rule.Proto == "any" {
+			data, err := yaml.Marshal(rule)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(string(data), "guestIPMustBeZero: false") {
+				t.Fatalf("ignore rule must also match listeners on loopback:\n%s", data)
+			}
+			return
+		}
+	}
+	t.Fatal("missing ignore rule")
 }
