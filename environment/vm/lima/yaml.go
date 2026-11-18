@@ -41,6 +41,7 @@ func limaVMType(conf config.Config) limaconfig.VMType {
 }
 
 func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err error) {
+	mustBeZero := true
 	l.Arch = environment.Arch(conf.Arch).Value()
 
 	l.VMType = limaVMType(conf)
@@ -196,14 +197,14 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 					limaconfig.PortForward{
 						GuestIP:           net.IPv4zero,
 						GuestPort:         80,
-						GuestIPMustBeZero: true,
+						GuestIPMustBeZero: &mustBeZero,
 						Ignore:            true,
 						Proto:             limaconfig.TCP,
 					},
 					limaconfig.PortForward{
 						GuestIP:           net.IPv4zero,
 						GuestPort:         443,
-						GuestIPMustBeZero: true,
+						GuestIPMustBeZero: &mustBeZero,
 						Ignore:            true,
 						Proto:             limaconfig.TCP,
 					},
@@ -215,7 +216,7 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 				l.PortForwards = append(l.PortForwards,
 					limaconfig.PortForward{
 						GuestIP:           net.IPv4zero,
-						GuestIPMustBeZero: true,
+						GuestIPMustBeZero: &mustBeZero,
 						GuestPortRange:    [2]int{1, 65535},
 						HostPortRange:     [2]int{1, 65535},
 						Ignore:            true,
@@ -286,19 +287,21 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 		}
 
 		if conf.PortForwarder == "none" {
-			// disable port forwarding
+			// An omitted guestIPMustBeZero defaults to true for a wildcard guest IP.
+			matchOnlyZero := false
 			l.PortForwards = append(l.PortForwards,
 				limaconfig.PortForward{
-					GuestIP: net.IPv4zero,
-					Proto:   "any",
-					Ignore:  true,
+					GuestIPMustBeZero: &matchOnlyZero,
+					GuestIP:           net.IPv4zero,
+					Proto:             "any",
+					Ignore:            true,
 				})
 		} else {
 			// handle port forwarding to allow listening on 0.0.0.0
 			// bind 0.0.0.0
 			l.PortForwards = append(l.PortForwards,
 				limaconfig.PortForward{
-					GuestIPMustBeZero: true,
+					GuestIPMustBeZero: &mustBeZero,
 					GuestIP:           net.IPv4zero,
 					GuestPortRange:    [2]int{1, 65535},
 					HostIP:            net.IPv4zero,
@@ -306,7 +309,7 @@ func newConf(ctx context.Context, conf config.Config) (l limaconfig.Config, err 
 					Proto:             limaconfig.TCP,
 				},
 				limaconfig.PortForward{
-					GuestIPMustBeZero: true,
+					GuestIPMustBeZero: &mustBeZero,
 					GuestIP:           net.IPv4zero,
 					GuestPortRange:    [2]int{1, 65535},
 					HostIP:            net.IPv4zero,

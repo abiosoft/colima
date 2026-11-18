@@ -93,7 +93,7 @@ const (
 )
 
 type PortForward struct {
-	GuestIPMustBeZero bool   `yaml:"guestIPMustBeZero,omitempty" json:"guestIPMustBeZero,omitempty"`
+	GuestIPMustBeZero *bool  `yaml:"guestIPMustBeZero,omitempty" json:"guestIPMustBeZero,omitempty"`
 	GuestIP           net.IP `yaml:"guestIP,omitempty" json:"guestIP,omitempty"`
 	GuestPort         int    `yaml:"guestPort,omitempty" json:"guestPort,omitempty"`
 	GuestPortRange    [2]int `yaml:"guestPortRange,omitempty" json:"guestPortRange,omitempty"`
