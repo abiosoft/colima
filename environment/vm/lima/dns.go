@@ -3,6 +3,7 @@ package lima
 import (
 	"bytes"
 	"fmt"
+	"net"
 
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
@@ -19,6 +20,32 @@ func hasDnsmasq(l *limaVM) bool {
 	return err == nil && status == "installed"
 }
 
+// dnsmasqHosts returns the host entries served by dnsmasq in the VM.
+func dnsmasqHosts(conf config.Config, gatewayAddr, internalIP string) map[string]string {
+	var dnsHosts = map[string]string{
+		"host.docker.internal": gatewayAddr,
+		"host.lima.internal":   gatewayAddr,
+	}
+
+	// extra dns entries
+	dnsHosts["colima.internal"] = internalIP
+	if (conf.Hostname) != "" {
+		dnsHosts[conf.Hostname] = localhostAddr
+	}
+
+	// user dns hosts that map to an IP address.
+	// Lima's host resolver also serves these, but it is disabled when custom
+	// dns servers are set, and the entries above take precedence over it.
+	// Entries that map to another hostname are left to Lima's host resolver.
+	for k, v := range conf.Network.DNSHosts {
+		if net.ParseIP(v) != nil {
+			dnsHosts[k] = v
+		}
+	}
+
+	return dnsHosts
+}
+
 func (l *limaVM) setupDNS(conf config.Config) error {
 	if !hasDnsmasq(l) {
 		// older image still using systemd-resolved
@@ -33,18 +60,8 @@ func (l *limaVM) setupDNS(conf config.Config) error {
 		gatewayAddr = customGatewayAddress.String()
 	}
 
-	var dnsHosts = map[string]string{
-		"host.docker.internal": gatewayAddr,
-		"host.lima.internal":   gatewayAddr,
-	}
-
 	internalIP := limautil.InternalIPAddress(config.CurrentProfile().ID)
-
-	// extra dns entries
-	dnsHosts["colima.internal"] = internalIP
-	if (conf.Hostname) != "" {
-		dnsHosts[conf.Hostname] = localhostAddr
-	}
+	dnsHosts := dnsmasqHosts(conf, gatewayAddr, internalIP)
 
 	var buf bytes.Buffer
 
