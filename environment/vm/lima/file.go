@@ -45,29 +45,39 @@ type fileInfo struct {
 }
 
 func newFileInfo(guest environment.GuestActions, filename string) (fileInfo, error) {
-	info := fileInfo{}
 	// "%s,%a,%Y,%F" -> size, permission, modified time, type
 	stat, err := guest.RunOutput("sudo", "stat", "-c", "%s,%a,%Y,%F", filename)
 	if err != nil {
-		return info, statError(filename, err)
+		return fileInfo{}, statError(filename, err)
 	}
-	stats := strings.Split(stat, ",")
-	if len(stats) < 4 {
-		return info, statError(filename, err)
-	}
-	info.name = filename
-	info.size, _ = strconv.ParseInt(stats[0], 10, 64)
-	info.mode = func() fs.FileMode {
-		mode, _ := strconv.ParseUint(stats[1], 10, 32)
-		return fs.FileMode(mode)
-	}()
-	info.modTime = func() time.Time {
-		unix, _ := strconv.ParseInt(stats[2], 10, 64)
-		return time.Unix(unix, 0)
-	}()
-	info.isDir = stats[3] == "directory"
+	return parseFileInfo(filename, stat)
+}
 
-	return info, nil
+func parseFileInfo(filename, stat string) (fileInfo, error) {
+	stats := strings.Split(strings.TrimSpace(stat), ",")
+	if len(stats) != 4 {
+		return fileInfo{}, fmt.Errorf("cannot parse stat output for file %q: expected four fields", filename)
+	}
+	size, err := strconv.ParseInt(stats[0], 10, 64)
+	if err != nil {
+		return fileInfo{}, fmt.Errorf("cannot parse size for file %q: %w", filename, err)
+	}
+	// GNU stat's %a is an octal permission string, such as "644".
+	mode, err := strconv.ParseUint(stats[1], 8, 32)
+	if err != nil {
+		return fileInfo{}, fmt.Errorf("cannot parse permissions for file %q: %w", filename, err)
+	}
+	unix, err := strconv.ParseInt(stats[2], 10, 64)
+	if err != nil {
+		return fileInfo{}, fmt.Errorf("cannot parse modification time for file %q: %w", filename, err)
+	}
+	return fileInfo{
+		name:    filepath.Base(filename),
+		size:    size,
+		mode:    fs.FileMode(mode),
+		modTime: time.Unix(unix, 0),
+		isDir:   stats[3] == "directory",
+	}, nil
 }
 
 func statError(filename string, err error) error {
